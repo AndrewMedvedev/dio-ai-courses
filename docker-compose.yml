@@ -1,0 +1,36 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-courses_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-courses_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-courses_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-courses_user} -d ${POSTGRES_DB:-courses_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  courses-api:
+    build:
+      context: ./backend/courses
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      COURSES_DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-courses_user}:${POSTGRES_PASSWORD:-courses_pass}@postgres:5432/${POSTGRES_DB:-courses_db}
+    ports:
+      - "${COURSES_API_PORT:-8001}:8001"
+
+volumes:
+  postgres_data:
+
