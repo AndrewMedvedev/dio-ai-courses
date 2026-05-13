@@ -1,12 +1,14 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from src.api.routers import router as api_router
-from src.app.services.bootstrap import create_tables
+from src.api.router import router as api_router
+from src.bootstrap import create_tables
+from src.courses.domain.exceptions import CourseAppError
 
-app = FastAPI(title="Courses Service", version="0.1.0")
+app = FastAPI(title="Сервис курсов", version="0.1.0")
 
-# Keep local scripts/tests predictable even outside ASGI lifespan hooks.
+# Держим локальные скрипты и тесты предсказуемыми вне ASGI lifespan hooks.
 create_tables()
 
 app.add_middleware(
@@ -23,7 +25,23 @@ def on_startup() -> None:
     create_tables()
 
 
-@app.get("/health")
+@app.exception_handler(CourseAppError)
+def handle_course_error(_: Request, exc: CourseAppError) -> JSONResponse:
+    """Преобразование доменной ошибки курсов в единый HTTP-ответ."""
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.error_code,
+                "message": exc.message,
+                "details": exc.details,
+            }
+        },
+    )
+
+
+@app.get("/health", tags=["Сервис"], summary="Проверить состояние сервиса")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 

@@ -1,8 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-from src.app.schemas.courses import GenerationTaskOut, generation_task_out_from_orm
-from src.infra.ai.agents.course_generator import generate_course_draft_with_langchain
-from src.infra.db.models import (
+from src.courses.schemas import GenerationTaskOut, generation_task_out_from_orm
+from src.infra.course_generator import generate_course_draft_with_langchain
+from src.courses.infra.models import (
     Block,
     Course,
     CourseGenerationTask,
@@ -14,6 +14,8 @@ from src.infra.db.models import (
 
 
 def _create_fallback_course(db, task: CourseGenerationTask) -> str:
+    """Создание резервного черновика курса без ответа LLM."""
+
     course = Course(
         title=f"{task.topic}",
         description=f"Generated course for {task.target_audience}",
@@ -60,6 +62,8 @@ def _create_fallback_course(db, task: CourseGenerationTask) -> str:
 
 
 def _create_langchain_course(db, task: CourseGenerationTask) -> str | None:
+    """Создание черновика курса на основе ответа LangChain."""
+
     draft = generate_course_draft_with_langchain(
         topic=task.topic,
         target_audience=task.target_audience,
@@ -114,6 +118,8 @@ def _create_langchain_course(db, task: CourseGenerationTask) -> str | None:
 
 
 def generate_course_job(db, task: CourseGenerationTask) -> GenerationTaskOut:
+    """Выполнение фоновой задачи генерации курса."""
+
     task.status = GenerationStatus.IN_PROGRESS.value
     db.commit()
 

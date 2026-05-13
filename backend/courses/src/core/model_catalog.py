@@ -8,11 +8,13 @@ from urllib import error, request
 
 
 class ModelsProviderUnavailableError(RuntimeError):
-    """Configured OpenAI-compatible provider is unavailable."""
+    """Настроенный OpenAI-совместимый провайдер недоступен."""
 
 
 @dataclass(frozen=True, slots=True)
 class ModelCatalogItem:
+    """Элемент каталога LLM-моделей, доступный для генерации курсов."""
+
     id: str
     label: str
     description: str
@@ -23,28 +25,28 @@ OPENAI_MODELS: tuple[ModelCatalogItem, ...] = (
     ModelCatalogItem(
         id="gpt-4.1-mini",
         label="GPT-4.1 mini",
-        description="Balanced cost and quality for most course generation tasks.",
+        description="Сбалансированная стоимость и качество для большинства задач генерации курсов.",
         recommended=True,
     ),
     ModelCatalogItem(
         id="gpt-4.1",
         label="GPT-4.1",
-        description="Higher quality and reasoning depth for complex courses.",
+        description="Более высокое качество и глубина рассуждений для сложных курсов.",
     ),
     ModelCatalogItem(
         id="gpt-4o-mini",
         label="GPT-4o mini",
-        description="Fast and cost-efficient option for quick drafts.",
+        description="Быстрый и экономичный вариант для черновиков.",
     ),
     ModelCatalogItem(
         id="gpt-4o",
         label="GPT-4o",
-        description="Strong multimodal-capable model with high quality outputs.",
+        description="Сильная мультимодальная модель с высоким качеством результата.",
     ),
     ModelCatalogItem(
         id="o4-mini",
         label="o4-mini",
-        description="Reasoning-focused model for structured planning tasks.",
+        description="Модель с упором на рассуждение для задач структурного планирования.",
     ),
 )
 
@@ -55,6 +57,8 @@ _LAST_CLOUD_MODELS_ERROR: str | None = None
 
 
 def _yandex_compatible_models() -> tuple[ModelCatalogItem, ...]:
+    """Формирование статических URI моделей Yandex Cloud по каталогу из env."""
+
     folder_id = os.getenv("YANDEX_FOLDER_ID", "").strip()
     if not folder_id:
         return ()
@@ -63,30 +67,36 @@ def _yandex_compatible_models() -> tuple[ModelCatalogItem, ...]:
         ModelCatalogItem(
             id=f"gpt://{folder_id}/yandexgpt/latest",
             label="YandexGPT latest",
-            description="Yandex Cloud model URI for OpenAI-compatible API.",
+            description="URI модели Yandex Cloud для OpenAI-совместимого API.",
         ),
         ModelCatalogItem(
             id=f"gpt://{folder_id}/yandexgpt/rc",
             label="YandexGPT rc",
-            description="YandexGPT release-candidate channel.",
+            description="Канал release-candidate модели YandexGPT.",
         ),
         ModelCatalogItem(
             id=f"gpt://{folder_id}/qwen3-235b-a22b-fp8/latest",
             label="Qwen3 235B (Yandex)",
-            description="Large open model served by Yandex AI Studio.",
+            description="Большая открытая модель, доступная через Yandex AI Studio.",
         ),
     )
 
 
 def _static_model_lookup() -> dict[str, ModelCatalogItem]:
+    """Сбор быстрых соответствий по статически известным моделям."""
+
     return {item.id: item for item in OPENAI_MODELS + _yandex_compatible_models()}
 
 
 def _provider_configured() -> bool:
+    """Проверка, что внешний OpenAI-совместимый провайдер настроен."""
+
     return bool(os.getenv("OPENAI_BASE_URL", "").strip() and os.getenv("OPENAI_API_KEY", "").strip())
 
 
 def _models_endpoint(base_url: str) -> str:
+    """Построение endpoint каталога моделей из базового URL провайдера."""
+
     clean = base_url.strip().rstrip("/")
     if clean.endswith("/models"):
         return clean
@@ -97,6 +107,8 @@ def _provider_model_to_catalog_item(
     model_id: str,
     static_lookup: dict[str, ModelCatalogItem],
 ) -> ModelCatalogItem:
+    """Преобразование модели провайдера в элемент каталога с локальным описанием."""
+
     known = static_lookup.get(model_id)
     if known is not None:
         return known
@@ -104,11 +116,13 @@ def _provider_model_to_catalog_item(
     return ModelCatalogItem(
         id=model_id,
         label=model_id,
-        description="Model discovered from configured OpenAI-compatible provider.",
+        description="Модель, найденная у настроенного OpenAI-совместимого провайдера.",
     )
 
 
 def _fetch_cloud_models_uncached() -> tuple[ModelCatalogItem, ...]:
+    """Получение списка моделей напрямую у провайдера без учета локального кеша."""
+
     base_url = os.getenv("OPENAI_BASE_URL", "").strip()
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not base_url or not api_key:
@@ -121,7 +135,7 @@ def _fetch_cloud_models_uncached() -> tuple[ModelCatalogItem, ...]:
 
     folder_id = os.getenv("YANDEX_FOLDER_ID", "").strip()
     if folder_id:
-        # Yandex OpenAI compatibility may scope model list by folder/project.
+        # Yandex OpenAI compatibility может ограничивать список моделей каталогом.
         headers["OpenAI-Project"] = folder_id
         headers["x-folder-id"] = folder_id
 
@@ -190,6 +204,8 @@ def _fetch_cloud_models_uncached() -> tuple[ModelCatalogItem, ...]:
 
 
 def _cloud_models() -> tuple[ModelCatalogItem, ...]:
+    """Получение моделей провайдера с коротким кешированием результата."""
+
     global _CLOUD_MODELS_CACHE
     global _CLOUD_MODELS_CACHE_EXPIRES_AT
     global _LAST_CLOUD_MODELS_ERROR
@@ -209,27 +225,33 @@ def _cloud_models() -> tuple[ModelCatalogItem, ...]:
     if _CLOUD_MODELS_CACHE:
         _CLOUD_MODELS_CACHE_EXPIRES_AT = now + _CACHE_TTL_SECONDS
     else:
-        # Retry soon when provider is temporarily unavailable during startup.
+        # Быстро повторяем запрос, если провайдер временно недоступен при старте.
         _CLOUD_MODELS_CACHE_EXPIRES_AT = now + 5.0
     return _CLOUD_MODELS_CACHE
 
 
 def last_cloud_models_error() -> str | None:
+    """Получение последней ошибки загрузки моделей внешнего провайдера."""
+
     return _LAST_CLOUD_MODELS_ERROR
 
 
 def all_catalog_models() -> tuple[ModelCatalogItem, ...]:
+    """Получение итогового каталога моделей с учетом настроенного провайдера."""
+
     cloud_models = _cloud_models()
     if cloud_models:
         return cloud_models
     if _provider_configured():
         raise ModelsProviderUnavailableError(
-            last_cloud_models_error() or "Configured OpenAI-compatible provider is unavailable."
+            last_cloud_models_error() or "Настроенный OpenAI-совместимый провайдер недоступен."
         )
     return OPENAI_MODELS + _yandex_compatible_models()
 
 
 def default_model_id() -> str:
+    """Получение модели по умолчанию для генерации курса."""
+
     models = all_catalog_models()
     for item in models:
         if item.recommended:
@@ -238,8 +260,12 @@ def default_model_id() -> str:
 
 
 def is_supported_model(model_id: str) -> bool:
+    """Проверка, что модель доступна в текущем каталоге."""
+
     return any(item.id == model_id for item in all_catalog_models())
 
 
 def model_catalog_payload() -> list[dict[str, object]]:
+    """Подготовка каталога моделей к выдаче через API."""
+
     return [asdict(item) for item in all_catalog_models()]

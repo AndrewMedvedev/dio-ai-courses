@@ -1,40 +1,18 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
 from uuid import uuid4
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
-
-
-class CourseStatus(StrEnum):
-    DRAFT = "draft"
-    PUBLISHED = "published"
-    ARCHIVED = "archived"
-
-
-class EnrollmentStatus(StrEnum):
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
-class AttemptStatus(StrEnum):
-    IN_PROGRESS = "in_progress"
-    PASSED = "passed"
-    FAILED = "failed"
-
-
-class GenerationStatus(StrEnum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
+from src.courses.domain.vo import AttemptStatus, CourseStatus, EnrollmentStatus, GenerationStatus
+from src.infra.db.base import Base
 
 
 class Course(Base):
+    """ORM-модель курса."""
+
     __tablename__ = "courses"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -56,6 +34,8 @@ class Course(Base):
 
 
 class Block(Base):
+    """ORM-модель блока курса."""
+
     __tablename__ = "blocks"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -76,6 +56,8 @@ class Block(Base):
 
 
 class Lesson(Base):
+    """ORM-модель урока."""
+
     __tablename__ = "lessons"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -90,6 +72,8 @@ class Lesson(Base):
 
 
 class Practice(Base):
+    """ORM-модель практического задания."""
+
     __tablename__ = "practices"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -104,6 +88,8 @@ class Practice(Base):
 
 
 class Enrollment(Base):
+    """ORM-модель прохождения курса пользователем."""
+
     __tablename__ = "enrollments"
     __table_args__ = (UniqueConstraint("user_id", "course_id", name="uq_enrollments_user_course"),)
 
@@ -126,6 +112,8 @@ class Enrollment(Base):
 
 
 class LessonCompletion(Base):
+    """ORM-модель отметки прохождения урока."""
+
     __tablename__ = "lesson_completions"
     __table_args__ = (UniqueConstraint("enrollment_id", "lesson_id", name="uq_enrollment_lesson"),)
 
@@ -138,6 +126,8 @@ class LessonCompletion(Base):
 
 
 class PracticeAttempt(Base):
+    """ORM-модель попытки выполнения практики."""
+
     __tablename__ = "practice_attempts"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -157,6 +147,8 @@ class PracticeAttempt(Base):
 
 
 class PracticeSubmission(Base):
+    """ORM-модель ответа на практическое задание."""
+
     __tablename__ = "practice_submissions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -171,6 +163,8 @@ class PracticeSubmission(Base):
 
 
 class CourseGenerationTask(Base):
+    """ORM-модель фоновой задачи генерации курса."""
+
     __tablename__ = "course_generation_tasks"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -6,6 +6,8 @@ from datetime import datetime
 
 @dataclass(slots=True)
 class PracticePayload:
+    """Входные данные практического задания."""
+
     task: str
     criteria: list[str] = field(default_factory=list)
     check_type: str = "manual"
@@ -13,30 +15,40 @@ class PracticePayload:
 
 @dataclass(slots=True)
 class LessonCreate:
+    """Входные данные создания урока."""
+
     title: str
     content: str
 
 
 @dataclass(slots=True)
 class LessonUpdate:
+    """Входные данные обновления урока."""
+
     title: str | None = None
     content: str | None = None
 
 
 @dataclass(slots=True)
 class BlockCreate:
+    """Входные данные создания блока."""
+
     title: str
     description: str = ""
 
 
 @dataclass(slots=True)
 class BlockUpdate:
+    """Входные данные обновления блока."""
+
     title: str | None = None
     description: str | None = None
 
 
 @dataclass(slots=True)
 class NestedBlockCreate:
+    """Входные данные вложенного блока при создании курса."""
+
     title: str
     description: str = ""
     lessons: list[LessonCreate] = field(default_factory=list)
@@ -45,6 +57,8 @@ class NestedBlockCreate:
 
 @dataclass(slots=True)
 class CourseCreate:
+    """Входные данные создания курса."""
+
     title: str
     description: str
     difficulty: str
@@ -54,6 +68,8 @@ class CourseCreate:
 
 @dataclass(slots=True)
 class CourseUpdate:
+    """Входные данные обновления курса."""
+
     title: str | None = None
     description: str | None = None
     difficulty: str | None = None
@@ -63,11 +79,15 @@ class CourseUpdate:
 
 @dataclass(slots=True)
 class ReorderPayload:
+    """Входные данные изменения порядка элементов."""
+
     ids: list[str]
 
 
 @dataclass(slots=True)
 class LessonOut:
+    """Ответ API с уроком."""
+
     id: str
     title: str
     content: str
@@ -76,6 +96,8 @@ class LessonOut:
 
 @dataclass(slots=True)
 class PracticeOut:
+    """Ответ API с практическим заданием."""
+
     id: str
     task: str
     criteria: list[str]
@@ -84,6 +106,8 @@ class PracticeOut:
 
 @dataclass(slots=True)
 class BlockOut:
+    """Ответ API с блоком курса."""
+
     id: str
     title: str
     description: str
@@ -94,6 +118,8 @@ class BlockOut:
 
 @dataclass(slots=True)
 class CourseOut:
+    """Полный ответ API с курсом."""
+
     id: str
     title: str
     description: str
@@ -108,6 +134,8 @@ class CourseOut:
 
 @dataclass(slots=True)
 class CourseListItem:
+    """Краткий элемент списка курсов."""
+
     id: str
     title: str
     description: str
@@ -120,6 +148,8 @@ class CourseListItem:
 
 @dataclass(slots=True)
 class CourseListOut:
+    """Ответ API со списком курсов и пагинацией."""
+
     items: list[CourseListItem]
     total: int
     page: int
@@ -129,11 +159,15 @@ class CourseListOut:
 
 @dataclass(slots=True)
 class EnrollRequest:
+    """Входные данные записи пользователя на курс."""
+
     user_id: int
 
 
 @dataclass(slots=True)
 class ProgressOut:
+    """Ответ API с прогрессом пользователя по курсу."""
+
     enrollment_id: str
     user_id: int
     course_id: str
@@ -147,16 +181,22 @@ class ProgressOut:
 
 @dataclass(slots=True)
 class CompleteLessonRequest:
+    """Входные данные отметки урока пройденным."""
+
     user_id: int
 
 
 @dataclass(slots=True)
 class StartAttemptRequest:
+    """Входные данные начала попытки практики."""
+
     user_id: int
 
 
 @dataclass(slots=True)
 class AttemptOut:
+    """Ответ API с попыткой выполнения практики."""
+
     id: str
     enrollment_id: str
     practice_id: str
@@ -170,6 +210,8 @@ class AttemptOut:
 
 @dataclass(slots=True)
 class SubmitAttemptRequest:
+    """Входные данные отправки ответа на практику."""
+
     answer_type: str
     text_answer: str | None = None
     code_answer: str | None = None
@@ -178,6 +220,8 @@ class SubmitAttemptRequest:
 
 @dataclass(slots=True)
 class ReviewAttemptRequest:
+    """Входные данные проверки попытки практики."""
+
     passed: bool
     score: float | None = None
     feedback: str | None = None
@@ -185,6 +229,8 @@ class ReviewAttemptRequest:
 
 @dataclass(slots=True)
 class GenerateCourseRequest:
+    """Входные данные запуска генерации курса."""
+
     topic: str
     target_audience: str
     difficulty: str
@@ -193,6 +239,8 @@ class GenerateCourseRequest:
     llm_model: str
 
     def validate(self) -> None:
+        """Валидация ограничений генерации курса."""
+
         if self.blocks_count < 1 or self.blocks_count > 20:
             raise ValueError("blocks_count must be in [1, 20]")
         if self.lessons_per_block < 1 or self.lessons_per_block > 20:
@@ -201,6 +249,8 @@ class GenerateCourseRequest:
 
 @dataclass(slots=True)
 class GenerationTaskOut:
+    """Ответ API с состоянием задачи генерации курса."""
+
     id: str
     status: str
     topic: str
@@ -217,6 +267,8 @@ class GenerationTaskOut:
 
 @dataclass(slots=True)
 class ModelCatalogItemOut:
+    """Ответ API с элементом каталога моделей."""
+
     id: str
     label: str
     description: str
@@ -224,6 +276,8 @@ class ModelCatalogItemOut:
 
 
 def attempt_out_from_orm(attempt) -> AttemptOut:
+    """Преобразование ORM-попытки практики в ответ API."""
+
     return AttemptOut(
         id=attempt.id,
         enrollment_id=attempt.enrollment_id,
@@ -238,6 +292,8 @@ def attempt_out_from_orm(attempt) -> AttemptOut:
 
 
 def generation_task_out_from_orm(task) -> GenerationTaskOut:
+    """Преобразование ORM-задачи генерации в ответ API."""
+
     return GenerationTaskOut(
         id=task.id,
         status=task.status,

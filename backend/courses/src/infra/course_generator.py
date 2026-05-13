@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -8,12 +8,16 @@ from typing import NotRequired, TypedDict
 
 @dataclass(slots=True)
 class GeneratedLesson:
+    """Сгенерированный черновик урока."""
+
     title: str
     content: str
 
 
 @dataclass(slots=True)
 class GeneratedBlock:
+    """Сгенерированный черновик блока курса."""
+
     title: str
     description: str
     lessons: list[GeneratedLesson] = field(default_factory=list)
@@ -23,6 +27,8 @@ class GeneratedBlock:
 
 @dataclass(slots=True)
 class GeneratedCourseDraft:
+    """Сгенерированный черновик курса до сохранения в БД."""
+
     title: str
     description: str
     tags: list[str]
@@ -30,6 +36,8 @@ class GeneratedCourseDraft:
 
 
 class AgentState(TypedDict):
+    """Состояние графа генерации курса."""
+
     topic: str
     target_audience: str
     difficulty: str
@@ -40,6 +48,8 @@ class AgentState(TypedDict):
 
 
 def _strip_json(payload: str) -> str:
+    """Очистка ответа модели от markdown-обертки вокруг JSON."""
+
     text = payload.strip()
     if text.startswith("```"):
         text = text.strip("`")
@@ -49,6 +59,8 @@ def _strip_json(payload: str) -> str:
 
 
 def _to_draft(data: dict, blocks_count: int, lessons_per_block: int, topic: str, difficulty: str) -> GeneratedCourseDraft:
+    """Преобразование JSON-ответа модели в черновик курса с заполнением пропусков."""
+
     title = str(data.get("title") or f"{topic} ({difficulty})")
     description = str(data.get("description") or f"Generated course about {topic}")
     tags = [str(x) for x in (data.get("tags") or ["generated", topic.lower()])]
@@ -118,6 +130,8 @@ def generate_course_draft_with_langchain(
     lessons_per_block: int,
     llm_model: str,
 ) -> GeneratedCourseDraft | None:
+    """Генерация черновика курса через LangChain/LangGraph при наличии зависимостей и ключа."""
+
     openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
         return None
@@ -132,6 +146,8 @@ def generate_course_draft_with_langchain(
     llm = ChatOpenAI(api_key=openai_key, model=llm_model, base_url=base_url, temperature=0.4)
 
     def reasoning_node(state: AgentState) -> dict:
+        """Подготовка педагогического обоснования для структуры курса."""
+
         prompt = (
             "You are an instructional designer.\n"
             f"Topic: {state['topic']}\n"
@@ -144,6 +160,8 @@ def generate_course_draft_with_langchain(
         return {"reasoning": reasoning}
 
     def plan_node(state: AgentState) -> dict:
+        """Получение JSON-плана курса и преобразование его в черновик."""
+
         prompt = (
             "Generate JSON only. Do not include markdown fences.\n"
             "Schema:\n"
