@@ -1,4 +1,4 @@
-﻿# Courses Backend (MVP)
+# Courses Backend (MVP)
 
 ## Run
 
@@ -7,7 +7,7 @@ cd backend/courses
 python -m venv .venv
 .venv\\Scripts\\activate
 pip install -r requirements.txt
-uvicorn src.main:app --reload --port 8001
+uvicorn main:app --reload --port 8001
 ```
 
 ## API
