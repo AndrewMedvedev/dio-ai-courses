@@ -6,9 +6,9 @@ from uuid import UUID, uuid4
 import jwt
 from passlib.context import CryptContext
 
-from ..settings import settings
+from ..core.settings import settings
+from ..shared.utils.time import current_datetime
 from .core.exceptions import UnauthorizedError
-from .utils.time import current_datetime
 
 # Хеширование паролей
 MEMORY_COST = 100  # Размер выделяемой памяти в MB

@@ -1,12 +1,10 @@
-from dataclasses import field
 from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ..utils.time import current_datetime
-from .base import Base
+from ...core.database import Base
 
 
 class UserOrm(Base):
@@ -26,4 +24,3 @@ class InvitationOrm(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_used: Mapped[bool]
-    updated_at: datetime = field(default_factory=current_datetime)

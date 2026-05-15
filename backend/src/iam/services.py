@@ -4,12 +4,14 @@ from datetime import timedelta
 from pydantic import EmailStr, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..settings import settings
+from ..core.settings import settings
+from ..shared.domain.exceptions import NotFoundError
+from ..shared.infra.mail import SmtpMailSender
+from ..shared.utils.time import get_expiration_time, get_expiration_timestamp
 from .core.constants import INVITATION_EXPIRE_IN_DAYS, INVITATION_SUBJECT, INVITATION_TEXT
-from .core.exceptions import InvitationExpiredError, NotFoundError, UnauthorizedError
+from .core.exceptions import InvitationExpiredError, UnauthorizedError
 from .database.repository import SqlInvitationRepository, SqlUserRepository
 from .dataclasses import Invitation, User
-from .mail import SmtpMailSender
 from .schemas import Tokens
 from .security import (
     create_access_token,
@@ -18,7 +20,6 @@ from .security import (
     validate_token,
     verify_password,
 )
-from .utils.time import get_expiration_time, get_expiration_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ class AuthService:
             raise UnauthorizedError("Refresh token is invalid or expired")
 
         # 2. Получение и валидация пользователя
-        user = await self.user_repo.read(user_id) # type: ignore  # noqa: PGH003
+        user = await self.user_repo.read(user_id)  # type: ignore  # noqa: PGH003
         if user is None or not user.is_verify:
             raise UnauthorizedError("User is not active")
 

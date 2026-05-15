@@ -14,7 +14,7 @@ ENV_DEV_FILE = BASE_DIR / ".env.dev"  # Среда для разработки
 
 load_dotenv(ENV_FILE)
 
-TEMPLATES_DIR = BASE_DIR / "backend" / "templates"
+TEMPLATES_DIR = BASE_DIR / "templates"
 # Имя основного S3 бакета
 S3_BUCKET_NAME = "diocon-tickets-uploads"
 S3_BACKUPS_BUCKET_NAME = "diocon-tickets-backups"

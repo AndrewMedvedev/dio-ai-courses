@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from ...settings import timezone
+from ...core.settings import timezone
 
 
 def current_datetime() -> datetime:

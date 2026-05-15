@@ -7,8 +7,8 @@ import aiosmtplib
 import html2text
 import jinja2
 
-from ..settings import TEMPLATES_DIR, settings
-from .core.exceptions import EmailSendingFailedError
+from ...core.settings import TEMPLATES_DIR, settings
+from ..domain.exceptions import EmailSendingFailedError
 
 logger = logging.getLogger(__name__)
 

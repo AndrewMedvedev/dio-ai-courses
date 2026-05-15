@@ -6,8 +6,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from src.iam.database.models import UserOrm, InvitationOrm  # noqa: F401
-from src.iam.database.base import Base
-from src.settings import settings
+from src.core.database import Base
+from src.core.settings import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

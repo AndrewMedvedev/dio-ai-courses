@@ -2,15 +2,12 @@ from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..settings import settings
-from .database.conn import get_db
+from ..core.settings import settings
+from ..shared.dependencies import SessionDep
+from ..shared.infra.mail import SmtpMailSender
 from .database.repository import SqlInvitationRepository, SqlUserRepository
-from .mail import SmtpMailSender
 from .services import AuthService
-
-SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",

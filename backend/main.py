@@ -8,9 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.core.logging import configure_logging
+from src.core.settings import settings
 from src.iam.core.exceptions import AppError
 from src.iam.routers import router as iam_router
-from src.settings import settings
+from src.shared.infra.middlewares import LoggingMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(LoggingMiddleware)
 
 
 @app.exception_handler(ValueError)

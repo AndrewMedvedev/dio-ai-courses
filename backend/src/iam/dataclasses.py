@@ -1,57 +1,12 @@
 import secrets
-import uuid
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import EmailStr, SecretStr
 
-from .utils.time import current_datetime
-
-
-@dataclass(frozen=True)
-class Event:
-    """
-    Базовый класс для всех доменных событий
-    """
-
-    event_id: UUID = field(default_factory=uuid4)
-    occurred_on: datetime = field(default_factory=current_datetime)
-    version: int = field(default=1)
-
-    def __post_init__(self):
-        if self.version < 1:
-            raise ValueError("Event version must be >= 1")
-
-
-@dataclass
-class Entity:
-    """
-    Базовая доменная сущность, от которой наследуются все остальные бизнес модели.
-    Идентичность определяется уникальным ID, а не аттрибутами модели.
-    """
-
-    _events: list[Event] = field(default_factory=list, init=False)
-
-    id: uuid.UUID = field(default_factory=uuid.uuid4)
-    created_at: datetime = field(default_factory=current_datetime)
-    updated_at: datetime = field(default_factory=current_datetime)
-
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, Entity):
-            return NotImplemented
-        return self.id == other.id
-
-    def __hash__(self) -> int:
-        return hash(self.id)
-
-    def register_event(self, event: Event) -> None:
-        self._events.append(event)
-
-    def collect_events(self) -> Iterator[Event]:
-        while self._events:
-            yield self._events.pop(0)
+from ..shared.domain.entities import Entity
+from ..shared.utils.time import current_datetime
 
 
 @dataclass(kw_only=True)
