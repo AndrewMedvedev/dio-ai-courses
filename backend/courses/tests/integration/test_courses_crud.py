@@ -120,3 +120,69 @@ def test_course_crud_lifecycle(client):
     list_after_delete = client.get("/api/v1/courses")
     assert list_after_delete.status_code == 200
     assert list_after_delete.json()["total"] == 0
+
+
+def test_course_content_mutation_endpoints(client):
+    create_resp = client.post(
+        "/api/v1/courses",
+        json={
+            "title": "Content API",
+            "description": "Content checks",
+            "difficulty": "beginner",
+            "tags": ["content"],
+            "blocks": [
+                {
+                    "title": "Initial block",
+                    "description": "Initial description",
+                    "lessons": [{"title": "Initial lesson", "content": "Initial content"}],
+                    "practice": {
+                        "task": "Initial practice",
+                        "criteria": ["initial"],
+                        "check_type": "manual",
+                    },
+                }
+            ],
+        },
+    )
+    assert create_resp.status_code == 201
+    course = create_resp.json()
+    course_id = course["id"]
+    block_id = course["blocks"][0]["id"]
+    lesson_id = course["blocks"][0]["lessons"][0]["id"]
+
+    update_block_resp = client.patch(
+        f"/api/v1/courses/{course_id}/blocks/{block_id}",
+        json={"title": "Updated block", "description": "Updated description"},
+    )
+    assert update_block_resp.status_code == 200
+    updated_block = _find_block(update_block_resp.json(), block_id)
+    assert updated_block["title"] == "Updated block"
+    assert updated_block["description"] == "Updated description"
+
+    update_lesson_resp = client.patch(
+        f"/api/v1/courses/{course_id}/lessons/{lesson_id}",
+        json={"title": "Updated lesson", "content": "Updated content"},
+    )
+    assert update_lesson_resp.status_code == 200
+    updated_lesson = _find_block(update_lesson_resp.json(), block_id)["lessons"][0]
+    assert updated_lesson["title"] == "Updated lesson"
+    assert updated_lesson["content"] == "Updated content"
+
+    update_practice_resp = client.put(
+        f"/api/v1/courses/{course_id}/blocks/{block_id}/practice",
+        json={"task": "Updated practice", "criteria": ["updated"], "check_type": "manual"},
+    )
+    assert update_practice_resp.status_code == 200
+    assert _find_block(update_practice_resp.json(), block_id)["practice"]["task"] == "Updated practice"
+
+    delete_practice_resp = client.delete(f"/api/v1/courses/{course_id}/blocks/{block_id}/practice")
+    assert delete_practice_resp.status_code == 200
+    assert _find_block(delete_practice_resp.json(), block_id)["practice"] is None
+
+    delete_lesson_resp = client.delete(f"/api/v1/courses/{course_id}/lessons/{lesson_id}")
+    assert delete_lesson_resp.status_code == 200
+    assert _find_block(delete_lesson_resp.json(), block_id)["lessons"] == []
+
+    delete_block_resp = client.delete(f"/api/v1/courses/{course_id}/blocks/{block_id}")
+    assert delete_block_resp.status_code == 200
+    assert delete_block_resp.json()["blocks"] == []

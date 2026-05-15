@@ -6,6 +6,10 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv(usecwd=True))
+
 DATABASE_URL = os.getenv("COURSES_DATABASE_URL", "sqlite:///./courses.db")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -14,6 +18,8 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expi
 
 
 def get_db() -> Generator[Session, None, None]:
+    """Получить сессию базы данных для FastAPI-зависимости."""
+
     db = SessionLocal()
     try:
         yield db

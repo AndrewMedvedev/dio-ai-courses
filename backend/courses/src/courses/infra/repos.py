@@ -3,7 +3,8 @@ from __future__ import annotations
 from sqlalchemy import String, and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from src.courses.domain.vo import AttemptStatus, CourseStatus, EnrollmentStatus
+from src.courses.domain.entities import Course as DomainCourse
+from src.courses.domain.vo import AttemptStatus, EnrollmentStatus
 from src.courses.infra.models import (
     Block,
     Course,
@@ -29,12 +30,22 @@ class SqlCourseRepository:
     def create(self, payload: CourseCreate) -> Course:
         """Создание курса с вложенными блоками из входных данных."""
 
-        course = Course(
+        domain_course = DomainCourse.create(
             title=payload.title,
             description=payload.description,
             difficulty=payload.difficulty,
             tags=payload.tags,
-            status=CourseStatus.DRAFT.value,
+        )
+        course = Course(
+            id=domain_course.id,
+            title=domain_course.title,
+            description=domain_course.description,
+            difficulty=domain_course.difficulty,
+            tags=domain_course.tags,
+            status=domain_course.status,
+            popularity=domain_course.popularity,
+            created_at=domain_course.created_at,
+            updated_at=domain_course.updated_at,
         )
         self.session.add(course)
         self.session.flush()

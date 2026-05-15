@@ -5,6 +5,10 @@ import os
 from dataclasses import dataclass, field
 from typing import NotRequired, TypedDict
 
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv(usecwd=True))
+
 
 @dataclass(slots=True)
 class GeneratedLesson:

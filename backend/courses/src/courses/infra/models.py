@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.courses.domain.vo import AttemptStatus, CourseStatus, EnrollmentStatus, GenerationStatus
 from src.infra.db.base import Base
+from src.shared.utils.time import current_datetime
 
 
 class Course(Base):
@@ -22,9 +23,9 @@ class Course(Base):
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     status: Mapped[str] = mapped_column(String(20), default=CourseStatus.DRAFT.value)
     popularity: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True), default=current_datetime, onupdate=current_datetime
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -43,7 +44,7 @@ class Block(Base):
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(Text, default="")
     position: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     course: Mapped[Course] = relationship(back_populates="blocks")
@@ -65,7 +66,7 @@ class Lesson(Base):
     title: Mapped[str] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text)
     position: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     block: Mapped[Block] = relationship(back_populates="lessons")
@@ -81,7 +82,7 @@ class Practice(Base):
     task: Mapped[str] = mapped_column(Text)
     criteria: Mapped[list[str]] = mapped_column(JSON, default=list)
     check_type: Mapped[str] = mapped_column(String(20), default="manual")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     block: Mapped[Block] = relationship(back_populates="practice")
@@ -100,7 +101,7 @@ class Enrollment(Base):
     current_block_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     current_lesson_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     completion_percent: Mapped[float] = mapped_column(Float, default=0.0)
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     completions: Mapped[list[LessonCompletion]] = relationship(
@@ -120,7 +121,7 @@ class LessonCompletion(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     enrollment_id: Mapped[str] = mapped_column(ForeignKey("enrollments.id"), index=True)
     lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), index=True)
-    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
 
     enrollment: Mapped[Enrollment] = relationship(back_populates="completions")
 
@@ -135,7 +136,7 @@ class PracticeAttempt(Base):
     practice_id: Mapped[str] = mapped_column(ForeignKey("practices.id"), index=True)
     attempt_no: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default=AttemptStatus.IN_PROGRESS.value)
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -157,7 +158,7 @@ class PracticeSubmission(Base):
     text_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     code_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
 
     attempt: Mapped[PracticeAttempt] = relationship(back_populates="submissions")
 
@@ -177,8 +178,8 @@ class CourseGenerationTask(Base):
     status: Mapped[str] = mapped_column(String(20), default=GenerationStatus.PENDING.value)
     course_id: Mapped[str | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=current_datetime)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True), default=current_datetime, onupdate=current_datetime
     )
 

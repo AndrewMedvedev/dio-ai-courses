@@ -4,16 +4,10 @@ from fastapi import APIRouter, Query, Response, status
 
 from src.courses.dependencies import CourseServiceDep
 from src.courses.schemas import (
-    BlockCreate,
-    BlockUpdate,
     CourseCreate,
     CourseListOut,
     CourseOut,
     CourseUpdate,
-    LessonCreate,
-    LessonUpdate,
-    PracticePayload,
-    ReorderPayload,
 )
 
 router = APIRouter(prefix="/courses", tags=["Курсы"])
@@ -37,7 +31,7 @@ def list_courses(
     search: str | None = None,
     sort: str = "-created_at",
 ) -> CourseListOut:
-    """Получение списка курсов."""
+    """Получение списка курсов с фильтрами и пагинацией."""
 
     return service.list(
         page=page,
@@ -75,133 +69,3 @@ def delete_course(course_id: str, service: CourseServiceDep) -> Response:
 
     service.delete(course_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.post(
-    "/{course_id}/blocks",
-    response_model=CourseOut,
-    status_code=status.HTTP_201_CREATED,
-    summary="Создать блок курса",
-)
-def create_block(course_id: str, payload: BlockCreate, service: CourseServiceDep) -> CourseOut:
-    """Создание блока курса."""
-
-    return service.create_block(course_id, payload)
-
-
-@router.patch("/{course_id}/blocks/{block_id}", response_model=CourseOut, summary="Обновить блок курса")
-def update_block(
-    course_id: str,
-    block_id: str,
-    payload: BlockUpdate,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Обновление блока курса."""
-
-    return service.update_block(course_id, block_id, payload)
-
-
-@router.delete("/{course_id}/blocks/{block_id}", response_model=CourseOut, summary="Удалить блок курса")
-def delete_block(course_id: str, block_id: str, service: CourseServiceDep) -> CourseOut:
-    """Удаление блока курса через soft-delete."""
-
-    return service.delete_block(course_id, block_id)
-
-
-@router.put("/{course_id}/blocks/reorder", response_model=CourseOut, summary="Изменить порядок блоков")
-def reorder_blocks(
-    course_id: str,
-    payload: ReorderPayload,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Изменение порядка блоков курса."""
-
-    return service.reorder_blocks(course_id, payload)
-
-
-@router.post(
-    "/{course_id}/blocks/{block_id}/lessons",
-    response_model=CourseOut,
-    status_code=status.HTTP_201_CREATED,
-    summary="Создать урок",
-)
-def create_lesson(
-    course_id: str,
-    block_id: str,
-    payload: LessonCreate,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Создание урока в блоке курса."""
-
-    return service.create_lesson(course_id, block_id, payload)
-
-
-@router.patch("/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Обновить урок")
-def update_lesson(
-    course_id: str,
-    lesson_id: str,
-    payload: LessonUpdate,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Обновление урока курса."""
-
-    return service.update_lesson(course_id, lesson_id, payload)
-
-
-@router.delete("/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Удалить урок")
-def delete_lesson(course_id: str, lesson_id: str, service: CourseServiceDep) -> CourseOut:
-    """Удаление урока через soft-delete."""
-
-    return service.delete_lesson(course_id, lesson_id)
-
-
-@router.put(
-    "/{course_id}/blocks/{block_id}/lessons/reorder",
-    response_model=CourseOut,
-    summary="Изменить порядок уроков",
-)
-def reorder_lessons(
-    course_id: str,
-    block_id: str,
-    payload: ReorderPayload,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Изменение порядка уроков блока."""
-
-    return service.reorder_lessons(course_id, block_id, payload)
-
-
-@router.post(
-    "/{course_id}/blocks/{block_id}/practice",
-    response_model=CourseOut,
-    status_code=status.HTTP_201_CREATED,
-    summary="Создать практику",
-)
-def create_practice(
-    course_id: str,
-    block_id: str,
-    payload: PracticePayload,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Создание практики для блока курса."""
-
-    return service.create_practice(course_id, block_id, payload)
-
-
-@router.put("/{course_id}/blocks/{block_id}/practice", response_model=CourseOut, summary="Обновить практику")
-def update_practice(
-    course_id: str,
-    block_id: str,
-    payload: PracticePayload,
-    service: CourseServiceDep,
-) -> CourseOut:
-    """Обновление практики блока курса."""
-
-    return service.update_practice(course_id, block_id, payload)
-
-
-@router.delete("/{course_id}/blocks/{block_id}/practice", response_model=CourseOut, summary="Удалить практику")
-def delete_practice(course_id: str, block_id: str, service: CourseServiceDep) -> CourseOut:
-    """Удаление практики блока через soft-delete."""
-
-    return service.delete_practice(course_id, block_id)

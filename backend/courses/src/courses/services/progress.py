@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from src.shared.utils.time import current_datetime
 from src.courses.domain.exceptions import (
     AttemptNotFoundError,
     BlockNotFoundError,
@@ -13,6 +12,7 @@ from src.courses.domain.exceptions import (
     PracticeNotFoundError,
 )
 from src.courses.domain.repos import ProgressRepository
+from src.courses.domain.services import count_learning_units, first_learning_position
 from src.courses.infra.models import (
     AttemptStatus,
     CourseStatus,
@@ -29,6 +29,7 @@ from src.courses.infra.queries import (
     must_get_course,
     must_get_lesson,
 )
+from src.courses.mappers import map_course_to_domain
 from src.courses.schemas import (
     AttemptOut,
     CompleteLessonRequest,
@@ -213,7 +214,7 @@ class ProgressService:
         attempt.status = AttemptStatus.PASSED.value if payload.passed else AttemptStatus.FAILED.value
         attempt.score = payload.score
         attempt.feedback = payload.feedback
-        attempt.checked_at = datetime.utcnow()
+        attempt.checked_at = current_datetime()
 
         enrollment = self.repository.get_enrollment_by_id(attempt.enrollment_id)
         if enrollment is None:
@@ -253,26 +254,13 @@ def progress_payload(enrollment: Enrollment) -> ProgressOut:
 def find_first_lesson(course) -> tuple[str | None, str | None]:
     """Поиск первого доступного блока и урока курса."""
 
-    blocks = sorted(active_blocks(course), key=lambda item: item.position)
-    if not blocks:
-        return None, None
-    first_block = blocks[0]
-    lessons = sorted(active_lessons(first_block), key=lambda item: item.position)
-    if not lessons:
-        return first_block.id, None
-    return first_block.id, lessons[0].id
+    return first_learning_position(map_course_to_domain(course))
 
 
 def count_course_units(course) -> tuple[int, int]:
     """Подсчёт общего количества уроков и практик курса."""
 
-    lessons_count = 0
-    practices_count = 0
-    for block in active_blocks(course):
-        lessons_count += len(active_lessons(block))
-        if active_practice(block) is not None:
-            practices_count += 1
-    return lessons_count, practices_count
+    return count_learning_units(map_course_to_domain(course))
 
 
 def recalculate_progress(db: Session, enrollment: Enrollment, course) -> None:
@@ -327,4 +315,4 @@ def advance_after_practice(enrollment: Enrollment, course, current_block_id: str
         enrollment.current_block_id = None
         enrollment.current_lesson_id = None
         enrollment.status = EnrollmentStatus.COMPLETED.value
-        enrollment.completed_at = datetime.utcnow()
+        enrollment.completed_at = current_datetime()

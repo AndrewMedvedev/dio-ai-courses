@@ -6,13 +6,19 @@ import time
 from dataclasses import asdict, dataclass
 from urllib import error, request
 
+from dotenv import find_dotenv, load_dotenv
+
+load_dotenv(find_dotenv(usecwd=True))
+
 
 class ModelsProviderUnavailableError(RuntimeError):
-    """Configured OpenAI-compatible provider is unavailable."""
+    """Настроенный OpenAI-совместимый провайдер недоступен."""
 
 
 @dataclass(frozen=True, slots=True)
 class ModelCatalogItem:
+    """Элемент каталога доступных LLM-моделей."""
+
     id: str
     label: str
     description: str
@@ -138,10 +144,14 @@ def _cloud_models() -> tuple[ModelCatalogItem, ...]:
 
 
 def last_cloud_models_error() -> str | None:
+    """Получить последнюю ошибку загрузки облачного каталога моделей."""
+
     return _LAST_CLOUD_MODELS_ERROR
 
 
 def all_catalog_models() -> tuple[ModelCatalogItem, ...]:
+    """Получить полный каталог моделей от настроенного провайдера."""
+
     cloud_models = _cloud_models()
     if cloud_models:
         return cloud_models
@@ -155,6 +165,8 @@ def all_catalog_models() -> tuple[ModelCatalogItem, ...]:
 
 
 def default_model_id() -> str:
+    """Получить идентификатор модели по умолчанию."""
+
     models = all_catalog_models()
     for item in models:
         if item.recommended:
@@ -163,8 +175,12 @@ def default_model_id() -> str:
 
 
 def is_supported_model(model_id: str) -> bool:
+    """Проверить, поддерживается ли модель текущим каталогом."""
+
     return any(item.id == model_id for item in all_catalog_models())
 
 
 def model_catalog_payload() -> list[dict[str, object]]:
+    """Сформировать JSON-совместимую полезную нагрузку каталога моделей."""
+
     return [asdict(item) for item in all_catalog_models()]

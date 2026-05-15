@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.courses.domain.repos import CourseRepository, ProgressRepository
 from src.courses.infra.repos import SqlCourseRepository, SqlProgressRepository
+from src.courses.services.content import ContentService
 from src.courses.services.course import CourseService
 from src.courses.services.progress import ProgressService
 from src.infra.db.conn import get_db
@@ -34,6 +35,12 @@ def get_course_service(session: SessionDep, repository: CourseRepoDep) -> Course
     return CourseService(session=session, repository=repository)
 
 
+def get_content_service(session: SessionDep, repository: CourseRepoDep) -> ContentService:
+    """Создание сервиса содержимого курса для текущего запроса."""
+
+    return ContentService(session=session, repository=repository)
+
+
 def get_progress_service(session: SessionDep, repository: ProgressRepoDep) -> ProgressService:
     """Создание сервиса прогресса для текущего запроса."""
 
@@ -41,4 +48,5 @@ def get_progress_service(session: SessionDep, repository: ProgressRepoDep) -> Pr
 
 
 CourseServiceDep = Annotated[CourseService, Depends(get_course_service)]
+ContentServiceDep = Annotated[ContentService, Depends(get_content_service)]
 ProgressServiceDep = Annotated[ProgressService, Depends(get_progress_service)]
