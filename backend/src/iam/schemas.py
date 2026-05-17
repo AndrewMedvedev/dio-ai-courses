@@ -20,6 +20,7 @@ class Tokens(BaseModel):
 class UserCreateForm(BaseModel):
     """Форма для создания пользователя"""
 
+    username: str = Field(..., description="Никнейм пользователя")
     email: EmailStr = Field(..., description="Привязанный email адрес")
     password: str = Field(..., min_length=6, description="Пароль, который придумал пользователь")
 

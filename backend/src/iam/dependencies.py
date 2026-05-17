@@ -7,7 +7,7 @@ from ..core.settings import settings
 from ..shared.dependencies import SessionDep
 from ..shared.infra.mail import SmtpMailSender
 from .database.repository import SqlInvitationRepository, SqlUserRepository
-from .services import AuthService
+from .services import AuthService, InvitationService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -35,15 +35,28 @@ def get_mail_sender() -> SmtpMailSender:
     )
 
 
-def get_auth_service(
+def get_invitation_service(
     session: SessionDep,
     user_repo: Annotated[SqlUserRepository, Depends(get_user_repo)],
     invitation_repo: Annotated[SqlInvitationRepository, Depends(get_invitation_repo)],
     mail_sender: Annotated[SmtpMailSender, Depends(get_mail_sender)],
-) -> AuthService:
-    return AuthService(
-        session, user_repo=user_repo, invitation_repo=invitation_repo, mail_sender=mail_sender
+) -> InvitationService:
+    return InvitationService(
+        session=session,
+        invitation_repo=invitation_repo,
+        mail_sender=mail_sender,
+        user_repo=user_repo,
     )
 
 
+def get_auth_service(
+    session: SessionDep,
+    user_repo: Annotated[SqlUserRepository, Depends(get_user_repo)],
+    invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
+) -> AuthService:
+    return AuthService(session, user_repo=user_repo, invitation_service=invitation_service)
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]

@@ -9,11 +9,11 @@ class AppError(Exception):
     public_message: str = "Внутренняя ошибка сервера"
 
     def __init__(
-            self,
-            message: str | None = None,
-            status_code: int | None = None,
-            error_code: str | None = None,
-            details: dict | list | None = None,
+        self,
+        message: str | None = None,
+        status_code: int | None = None,
+        error_code: str | None = None,
+        details: dict | list | None = None,
     ):
         self.message = message or self.public_message
         self.status_code = status_code or self.status_code

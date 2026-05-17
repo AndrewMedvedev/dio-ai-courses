@@ -1,8 +1,8 @@
 """Создание таблиц
 
-Revision ID: 28fea90f0d62
+Revision ID: 1e540d6f124a
 Revises: 
-Create Date: 2026-05-15 15:34:44.884522
+Create Date: 2026-05-17 14:01:21.012150
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '28fea90f0d62'
+revision: str = '1e540d6f124a'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -35,6 +35,7 @@ def upgrade() -> None:
     sa.UniqueConstraint('token')
     )
     op.create_table('users',
+    sa.Column('username', sa.String(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('password_hash', sa.String(), nullable=False),
     sa.Column('is_verify', sa.Boolean(), nullable=False),

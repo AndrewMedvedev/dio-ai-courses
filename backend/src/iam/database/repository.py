@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from ...shared.infra.repos import ModelMapper, SqlAlchemyRepository
 from ...shared.schemas import Page, PageParams
-from ..dataclasses import Invitation, User
+from ..core.dataclasses import Invitation, User
 from .models import InvitationOrm, UserOrm
 
 
@@ -14,6 +14,7 @@ class UserMapper(ModelMapper[User, UserOrm]):
     def to_entity(model: UserOrm) -> User:
         return User(
             id=model.id,
+            username=model.username,
             created_at=model.created_at,
             email=model.email,
             password_hash=SecretStr(model.password_hash),
@@ -24,6 +25,7 @@ class UserMapper(ModelMapper[User, UserOrm]):
     def from_entity(entity: User) -> UserOrm:
         return UserOrm(
             id=entity.id,
+            username=entity.username,
             created_at=entity.created_at,
             email=entity.email,
             password_hash=entity.password_hash.get_secret_value(),

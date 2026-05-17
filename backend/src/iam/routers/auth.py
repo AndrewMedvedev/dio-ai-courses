@@ -1,9 +1,10 @@
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, status
+from fastapi import APIRouter, Depends, Path, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..dependencies import AuthServiceDep
+from ..dependencies import AuthServiceDep, InvitationServiceDep
 from ..schemas import Tokens, TokensRefresh, UserCreateForm
 
 router = APIRouter(prefix="/auth", tags=["Авторизация"])
@@ -11,28 +12,38 @@ router = APIRouter(prefix="/auth", tags=["Авторизация"])
 
 @router.post(
     path="/register",
-    status_code=status.HTTP_201_CREATED,
-    response_model=Tokens,
-    summary="Регистрация пользователя ",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Регистрация пользователя",
 )
 async def register(
     data: UserCreateForm,
     service: AuthServiceDep,
-) -> Tokens:
-    return await service.registration(email=data.email, password=data.password)
+    invited_by: Annotated[
+        UUID | None, Path(..., description="Id пользоветля который пригласил")
+    ] = None,
+) -> str:
+    return await service.registration(data, invited_by)
 
 
 @router.post(
     path="/login",
     status_code=status.HTTP_200_OK,
-    response_model=Tokens,
+    response_model=None,
     summary="Вход в учётную запись",
 )
 async def login(
+    response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     service: AuthServiceDep,
-) -> Tokens:
-    return await service.authenticate(form_data.username, form_data.password)
+) -> Tokens | dict:
+    result = await service.authenticate(form_data.username, form_data.password)
+
+    if isinstance(result, str):
+        response.status_code = status.HTTP_202_ACCEPTED
+        return {"detail": result}
+
+    response.status_code = status.HTTP_200_OK
+    return result
 
 
 @router.post(
@@ -42,7 +53,7 @@ async def login(
 )
 async def verify(
     token: Annotated[str, Path(..., description="Токен из пригласительного письма")],
-    service: AuthServiceDep,
+    service: InvitationServiceDep,
 ) -> None:
     return await service.verify(token)
 

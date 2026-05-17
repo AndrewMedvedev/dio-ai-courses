@@ -9,7 +9,7 @@ from ...core.database import Base
 
 class UserOrm(Base):
     __tablename__ = "users"
-
+    username: Mapped[str] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(unique=True)
     password_hash: Mapped[str] = mapped_column(unique=True)
     is_verify: Mapped[bool] = mapped_column(default=False)

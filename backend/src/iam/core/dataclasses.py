@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import EmailStr, SecretStr
 
-from ..shared.domain.entities import Entity
-from ..shared.utils.time import current_datetime
+from ...shared.domain.entities import Entity
+from ...shared.utils.time import current_datetime
 
 
 @dataclass(kw_only=True)
@@ -15,6 +15,7 @@ class User(Entity):
     Пользователь тикет системы
     """
 
+    username: str
     email: EmailStr
     password_hash: SecretStr
     is_verify: bool = False
