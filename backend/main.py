@@ -11,9 +11,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.router import router as api_router
 from courses.bootstrap import create_tables
+from courses.content_router import router as content_router
 from courses.domain.exceptions import CourseAppError
+from courses.generation_router import router as generation_router
+from courses.models_router import router as models_router
+from courses.progress_router import router as progress_router
+from courses.router import router as courses_router
 
 # Keep local scripts and tests predictable outside ASGI lifespan hooks.
 create_tables()
@@ -61,4 +65,11 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.include_router(api_router)
+for router in (
+    courses_router,
+    content_router,
+    progress_router,
+    generation_router,
+    models_router,
+):
+    app.include_router(router, prefix="/api/v1")
