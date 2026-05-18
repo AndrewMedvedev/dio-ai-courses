@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.router import router as api_router
-from bootstrap import create_tables
+from courses.bootstrap import create_tables
 from courses.domain.exceptions import CourseAppError
 
 # Keep local scripts and tests predictable outside ASGI lifespan hooks.

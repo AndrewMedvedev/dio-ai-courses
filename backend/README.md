@@ -3,11 +3,9 @@
 ## Run
 
 ```bash
-cd backend/courses
-python -m venv .venv
+cd backend
 .venv\\Scripts\\activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8001
+python -m uvicorn main:app --reload --port 8001
 ```
 
 ## API

@@ -18,7 +18,7 @@
 
   courses-api:
     build:
-      context: ./backend/courses
+      context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
