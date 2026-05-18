@@ -1,15 +1,7 @@
 from fastapi import APIRouter
 
-from courses.content_router import router as content_router
-from courses.generation_router import router as generation_router
-from courses.models_router import router as models_router
-from courses.progress_router import router as progress_router
-from courses.router import router as courses_router
+from ai_models.router import router as ai_models_router
 
 router = APIRouter(prefix="/api/v1")
 
-router.include_router(courses_router)
-router.include_router(content_router)
-router.include_router(progress_router)
-router.include_router(generation_router)
-router.include_router(models_router)
+router.include_router(ai_models_router)

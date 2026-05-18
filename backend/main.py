@@ -7,27 +7,25 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
+from ai_models.bootstrap import create_tables as create_ai_models_tables
+from ai_models.scheduler import scheduler as ai_models_scheduler
 from api.router import router as api_router
-from courses.bootstrap import create_tables
-from courses.domain.exceptions import CourseAppError
 
-# Keep local scripts and tests predictable outside ASGI lifespan hooks.
-create_tables()
+create_ai_models_tables()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Создать таблицы при старте ASGI-приложения."""
-
-    create_tables()
+    create_ai_models_tables()
+    ai_models_scheduler.start()
     yield
+    ai_models_scheduler.shutdown()
 
 
-app = FastAPI(title="Сервис курсов", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="AI Models Service", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,26 +36,8 @@ app.add_middleware(
 )
 
 
-@app.exception_handler(CourseAppError)
-def handle_course_error(_: Request, exc: CourseAppError) -> JSONResponse:
-    """Преобразовать доменную ошибку курсов в единый HTTP-ответ."""
-
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": {
-                "code": exc.error_code,
-                "message": exc.message,
-                "details": exc.details,
-            }
-        },
-    )
-
-
 @app.get("/health", tags=["Сервис"], summary="Проверить состояние сервиса")
 def health() -> dict[str, str]:
-    """Проверить состояние сервиса."""
-
     return {"status": "ok"}
 
 
