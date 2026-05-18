@@ -6,7 +6,7 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.settings import settings
-from ..shared.domain.exceptions import NotFoundError
+from ..shared.domain.exceptions import AlreadyExistsError, NotFoundError
 from ..shared.infra.mail import SmtpMailSender
 from ..shared.utils.time import get_expiration_time, get_expiration_timestamp
 from .core.constants import INVITATION_EXPIRE_IN_DAYS, INVITATION_SUBJECT, INVITATION_TEXT
@@ -129,14 +129,17 @@ class AuthService:
         self.user_repo = user_repo
         self.invitation_service = invitation_service
 
-    async def registration(self, form: UserCreateForm, invited_by: UUID | None) -> str:
+    async def registration(self, form: UserCreateForm) -> str:
         user = User(
             username=form.username,
             email=form.email,
             password_hash=SecretStr(hash_password(form.password)),
         )
+        created_user = await self.user_repo.get_by_email(form.email)
+        if created_user is not None:
+            raise AlreadyExistsError
         await self.user_repo.create(user)
-        await self.invitation_service.send_invitation(form.email, invited_by)
+        await self.invitation_service.send_invitation(form.email)
         await self.session.commit()
         return f"Письмо с подтверждением отправлено на {form.email}"
 

@@ -1,5 +1,6 @@
-from pathlib import Path
 from typing import Literal
+
+from pathlib import Path
 
 import pytz  # type: ignore  # noqa: PGH003
 from dotenv import load_dotenv
@@ -9,6 +10,7 @@ TIMEZONE = "Asia/Yekaterinburg"
 timezone = pytz.timezone(TIMEZONE)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 ENV_FILE = BASE_DIR / ".env"
 ENV_DEV_FILE = BASE_DIR / ".env.dev"  # Среда для разработки
 

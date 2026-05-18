@@ -2,8 +2,8 @@ __all__ = ["router"]
 
 from fastapi import APIRouter
 
-from .auth import router as auth_router
+from .auth import auth_router
 
-router = APIRouter()
+router = APIRouter()  # noqa: RUF067
 
-router.include_router(auth_router)
+router.include_router(auth_router)  # noqa: RUF067
