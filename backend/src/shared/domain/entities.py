@@ -4,6 +4,7 @@ import abc
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
+from uuid import UUID
 
 from .events import Event
 
@@ -12,7 +13,7 @@ from .events import Event
 class Entity(abc.ABC):
     """Базовая доменная сущность с идентичностью, soft-delete и событиями."""
 
-    id: str
+    id: UUID
     created_at: datetime
     deleted_at: datetime | None = None
     _events: list[Event] = field(default_factory=list, init=False, repr=False)

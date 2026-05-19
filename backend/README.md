@@ -10,7 +10,6 @@ python -m uvicorn main:app --reload --port 8001
 
 ## API
 
-- `GET /api/v1/models` - model catalog for client selector
 - `POST /api/v1/courses`
 - `GET /api/v1/courses`
 - `GET /api/v1/courses/{course_id}`
@@ -24,7 +23,6 @@ python -m uvicorn main:app --reload --port 8001
 ## OpenAI-compatible generation
 
 Generation uses LangChain/LangGraph through OpenAI-compatible API.
-Client must select `llm_model` from `GET /api/v1/models`.
 
 For Yandex AI Studio compatible mode, set:
 - `OPENAI_API_KEY=<yandex_api_key>`

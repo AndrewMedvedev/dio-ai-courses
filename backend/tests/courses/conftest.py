@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session, sessionmaker
 TEST_DB_URL = "sqlite:///./.test_course.db"
 os.environ["COURSES_DATABASE_URL"] = TEST_DB_URL
 
-import core.model_catalog as model_catalog
 from courses.dependencies import get_db
 from infra.db.base import Base
 from main import app
@@ -29,17 +28,6 @@ def test_engine():
     yield engine
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
-
-
-@pytest.fixture(autouse=True)
-def reset_model_catalog_state():
-    model_catalog._CLOUD_MODELS_CACHE = ()
-    model_catalog._CLOUD_MODELS_CACHE_EXPIRES_AT = 0.0
-    model_catalog._LAST_CLOUD_MODELS_ERROR = None
-    yield
-    model_catalog._CLOUD_MODELS_CACHE = ()
-    model_catalog._CLOUD_MODELS_CACHE_EXPIRES_AT = 0.0
-    model_catalog._LAST_CLOUD_MODELS_ERROR = None
 
 
 @pytest.fixture
