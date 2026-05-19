@@ -1,4 +1,5 @@
 from __future__ import annotations
+from uuid import UUID
 
 from .models import AIModelDB, UserModelPreferenceDB
 
@@ -18,9 +19,9 @@ class AIModelRepository:
         to_deactivate: list[AIModelDB],
     ) -> None:
         for model in to_activate:
-            model.active = True
+            model.is_active = True
         for model in to_deactivate:
-            model.active = False
+            model.is_active = False
         self.session.add_all(to_add)
         self.session.commit()
 
@@ -29,7 +30,7 @@ class UserModelPreferenceRepository:
     def __init__(self, session):
         self.session = session
 
-    def upsert(self, user_id: int, model_id: int) -> UserModelPreferenceDB:
+    def upsert(self, user_id: UUID, model_id: UUID) -> UserModelPreferenceDB:
         existing = (
             self.session.query(UserModelPreferenceDB)
             .filter_by(user_id=user_id)
@@ -44,7 +45,7 @@ class UserModelPreferenceRepository:
         self.session.commit()
         return preference
 
-    def get_by_user(self, user_id: int) -> UserModelPreferenceDB | None:
+    def get_by_user(self, user_id: UUID) -> UserModelPreferenceDB | None:
         return (
             self.session.query(UserModelPreferenceDB)
             .filter_by(user_id=user_id)

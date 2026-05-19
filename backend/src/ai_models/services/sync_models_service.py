@@ -25,11 +25,11 @@ class SyncModelsService:
             name = raw_model["name"]
             if name in existing_by_name:
                 db_model = existing_by_name[name]
-                if not db_model.active:
+                if not db_model.is_active:
                     to_activate.append(db_model)
             else:
                 to_add.append(
-                    AIModelDB(name=name, provider=raw_model["provider"], active=True)
+                    AIModelDB(name=name, provider=raw_model["provider"], is_active=True)
                 )
 
         for db_model in existing:

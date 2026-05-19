@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
-
+from uuid import UUID
 
 @dataclass
 class AIModel:
-    id: int | None
+    id: UUID | None
     name: str
     provider: str
-    active: bool = field(default=True)
+    is_active: bool = field(default=True)
+    description: str | None 
+    context_parametrs: str | None

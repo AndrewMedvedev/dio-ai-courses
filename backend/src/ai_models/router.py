@@ -17,26 +17,30 @@ router = APIRouter(prefix="/ai-models", tags=["AI Models"])
 
 SessionDep = Annotated[Session, Depends(get_db)]
 
+from uuid import UUID
+
 
 # --- Schemas ---
 
 class AIModelOut(BaseModel):
-    id: int
+    id: UUID
     name: str
     provider: str
-    active: bool
+    is_active: bool
+    description: str | None = None
+    context_parametrs: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 class UserPreferenceIn(BaseModel):
-    user_id: int
-    model_id: int
+    user_id: UUID
+    model_id: UUID
 
 
 class UserPreferenceOut(BaseModel):
-    user_id: int
-    model_id: int
+    user_id: UUID
+    model_id: UUID
 
     model_config = {"from_attributes": True}
 

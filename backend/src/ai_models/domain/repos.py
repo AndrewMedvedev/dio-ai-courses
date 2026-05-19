@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from uuid import UUID
 from typing import Any, Protocol
 
 
@@ -16,6 +16,6 @@ class AIModelRepository(Protocol):
 
 
 class UserModelPreferenceRepository(Protocol):
-    def upsert(self, user_id: int, model_id: int) -> Any: ...
+    def upsert(self, user_id: UUID, model_id: UUID) -> Any: ...
 
-    def get_by_user(self, user_id: int) -> Any | None: ...
+    def get_by_user(self, user_id: UUID) -> Any | None: ...

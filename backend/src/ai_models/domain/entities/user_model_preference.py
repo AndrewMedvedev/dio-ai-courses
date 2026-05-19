@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-
+from uuid import UUID
 
 @dataclass
 class UserModelPreference:
-    id: int | None
-    user_id: int
-    model_id: int
+    id: UUID | None
+    user_id: UUID
+    model_id: UUID

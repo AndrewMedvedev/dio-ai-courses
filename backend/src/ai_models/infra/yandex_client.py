@@ -16,6 +16,7 @@ class YandexClient:
             "Authorization": f"Bearer {self.api_key}",
             "x-folder-id": self.folder_id,
             "OpenAI-Project": self.folder_id,
+            
         }
 
         response = requests.get(url, headers=headers, timeout=10)

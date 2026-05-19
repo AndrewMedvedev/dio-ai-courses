@@ -21,6 +21,14 @@ from infra.db.base import Base
 
 target_metadata = Base.metadata
 
+MANAGED_TABLES = set(target_metadata.tables.keys())
+
+
+def include_object(_object, name, type_, _reflected, _compare_to):
+    if type_ == "table" and name not in MANAGED_TABLES:
+        return False
+    return True
+
 
 def get_url() -> str:
     return settings.COURSES_DATABASE_URL
@@ -30,6 +38,7 @@ def run_migrations_offline() -> None:
     context.configure(
         url=get_url(),
         target_metadata=target_metadata,
+        include_object=include_object,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -48,7 +57,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
         with context.begin_transaction():
             context.run_migrations()
 

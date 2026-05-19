@@ -10,16 +10,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai_models.bootstrap import create_tables as create_ai_models_tables
 from ai_models.scheduler import scheduler as ai_models_scheduler
 from api.router import router as api_router
-
-create_ai_models_tables()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    create_ai_models_tables()
     ai_models_scheduler.start()
     yield
     ai_models_scheduler.shutdown()
