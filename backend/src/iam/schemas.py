@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, PositiveInt
 
+from .domain.vo import UserRole
+
 
 class Tokens(BaseModel):
     """Пара токенов access и refresh"""
@@ -62,13 +64,14 @@ class CurrentUser(BaseModel):
 
     user_id: UUID = Field(..., description="Уникальный ID пользователя")
     email: EmailStr = Field(..., description="Email адрес учётной записи")
-    counterparty_id: UUID | None = Field(None, description="ID контрагента (для клиентов)")
 
 
 class InvitationCreate(BaseModel):
     """Создание приглашения"""
 
     email: EmailStr = Field(..., description="Email пользователя")
+    role: UserRole
+    invited_by: UUID
 
 
 class InvitationResponse(BaseModel):
