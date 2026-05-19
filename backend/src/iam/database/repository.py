@@ -5,7 +5,8 @@ from sqlalchemy import select
 
 from ...shared.infra.repos import ModelMapper, SqlAlchemyRepository
 from ...shared.schemas import Page, PageParams
-from ..core.dataclasses import Invitation, User
+from ..domain.dataclasses import Invitation, User
+from ..domain.vo import Username
 from .models import InvitationOrm, UserOrm
 
 
@@ -14,22 +15,24 @@ class UserMapper(ModelMapper[User, UserOrm]):
     def to_entity(model: UserOrm) -> User:
         return User(
             id=model.id,
-            username=model.username,
+            username=Username(value=model.username),
             created_at=model.created_at,
             email=model.email,
             password_hash=SecretStr(model.password_hash),
             is_verify=model.is_verify,
+            role=model.role,
         )
 
     @staticmethod
     def from_entity(entity: User) -> UserOrm:
         return UserOrm(
             id=entity.id,
-            username=entity.username,
+            username=entity.username.value,
             created_at=entity.created_at,
             email=entity.email,
             password_hash=entity.password_hash.get_secret_value(),
             is_verify=entity.is_verify,
+            role=entity.role,
         )
 
 
@@ -62,8 +65,10 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
             email=model.email,
             token=model.token,
             invited_by=model.invited_by,
+            assigned_role=model.assigned_role,
             expires_at=model.expires_at,
             used_at=model.used_at,
+            is_delivered=model.is_delivered,
             is_used=model.is_used,
         )
 
@@ -76,8 +81,10 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
             email=entity.email,
             token=entity.token,
             invited_by=entity.invited_by,
+            assigned_role=entity.assigned_role,
             expires_at=entity.expires_at,
             used_at=entity.used_at,
+            is_delivered=entity.is_delivered,
             is_used=entity.is_used,
         )
 
