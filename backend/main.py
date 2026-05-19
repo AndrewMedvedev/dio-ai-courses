@@ -1,37 +1,25 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
+import uvicorn
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from courses.bootstrap import create_tables
 from courses.content_router import router as content_router
 from courses.domain.exceptions import CourseAppError
 from courses.generation_router import router as generation_router
-from courses.models_router import router as models_router
 from courses.progress_router import router as progress_router
 from courses.router import router as courses_router
 
-# Keep local scripts and tests predictable outside ASGI lifespan hooks.
-create_tables()
 
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Создать таблицы при старте ASGI-приложения."""
-
-    create_tables()
-    yield
-
-
-app = FastAPI(title="Сервис курсов", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Сервис курсов", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,6 +58,19 @@ for router in (
     content_router,
     progress_router,
     generation_router,
-    models_router,
 ):
     app.include_router(router, prefix="/api/v1")
+
+
+def run_migrations() -> None:
+    """Применить Alembic-миграции перед запуском сервера."""
+
+    alembic_ini = Path(__file__).resolve().with_name("alembic.ini")
+    alembic_cfg = Config(str(alembic_ini))
+    command.upgrade(alembic_cfg, "head")
+    print("Миграции успешно применены.")
+
+
+if __name__ == "__main__":
+    run_migrations()
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # noqa: S104

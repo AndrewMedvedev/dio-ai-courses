@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -51,7 +53,7 @@ class ProgressService:
         self.session = session
         self.repository = repository
 
-    def enroll(self, course_id: str, payload: EnrollRequest) -> ProgressOut:
+    def enroll(self, course_id: UUID, payload: EnrollRequest) -> ProgressOut:
         """Запись пользователя на опубликованный курс."""
 
         course = must_get_course(self.session, course_id)
@@ -73,7 +75,7 @@ class ProgressService:
         self.session.refresh(enrollment)
         return progress_payload(enrollment)
 
-    def get_progress(self, course_id: str, user_id: int) -> ProgressOut:
+    def get_progress(self, course_id: UUID, user_id: int) -> ProgressOut:
         """Получение прогресса пользователя по курсу."""
 
         must_get_course(self.session, course_id)
@@ -84,8 +86,8 @@ class ProgressService:
 
     def complete_lesson(
         self,
-        course_id: str,
-        lesson_id: str,
+        course_id: UUID,
+        lesson_id: UUID,
         payload: CompleteLessonRequest,
     ) -> ProgressOut:
         """Отметка урока пройденным и продвижение пользователя по курсу."""
@@ -144,8 +146,8 @@ class ProgressService:
 
     def start_practice_attempt(
         self,
-        course_id: str,
-        block_id: str,
+        course_id: UUID,
+        block_id: UUID,
         payload: StartAttemptRequest,
     ) -> AttemptOut:
         """Создание или получение активной попытки выполнения практики."""
@@ -176,7 +178,7 @@ class ProgressService:
 
     def submit_practice_attempt(
         self,
-        attempt_id: str,
+        attempt_id: UUID,
         payload: SubmitAttemptRequest,
     ) -> AttemptOut:
         """Добавление ответа пользователя к попытке практики."""
@@ -200,7 +202,7 @@ class ProgressService:
 
     def review_practice_attempt(
         self,
-        attempt_id: str,
+        attempt_id: UUID,
         payload: ReviewAttemptRequest,
     ) -> ProgressOut:
         """Проверка попытки практики и пересчёт прогресса."""
@@ -285,7 +287,7 @@ def recalculate_progress(db: Session, enrollment: Enrollment, course) -> None:
         enrollment.completion_percent = ((completed_lessons + completed_practices) / total_units) * 100
 
 
-def is_block_practice_passed(db: Session, enrollment_id: str, practice_id: str) -> bool:
+def is_block_practice_passed(db: Session, enrollment_id: UUID, practice_id: UUID) -> bool:
     """Проверка, что практика блока успешно пройдена."""
 
     passed = db.scalar(
@@ -298,7 +300,7 @@ def is_block_practice_passed(db: Session, enrollment_id: str, practice_id: str) 
     return passed is not None
 
 
-def advance_after_practice(enrollment: Enrollment, course, current_block_id: str) -> None:
+def advance_after_practice(enrollment: Enrollment, course, current_block_id: UUID) -> None:
     """Продвижение пользователя к следующему блоку после практики."""
 
     blocks = sorted(active_blocks(course), key=lambda item: item.position)

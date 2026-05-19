@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Query, Response, status
 
 from courses.dependencies import CourseServiceDep
@@ -45,14 +47,14 @@ def list_courses(
 
 
 @router.get("/{course_id}", response_model=CourseOut, summary="Получить курс")
-def get_course(course_id: str, service: CourseServiceDep) -> CourseOut:
+def get_course(course_id: UUID, service: CourseServiceDep) -> CourseOut:
     """Получение курса по идентификатору."""
 
     return service.get(course_id)
 
 
 @router.patch("/{course_id}", response_model=CourseOut, summary="Обновить курс")
-def update_course(course_id: str, payload: CourseUpdate, service: CourseServiceDep) -> CourseOut:
+def update_course(course_id: UUID, payload: CourseUpdate, service: CourseServiceDep) -> CourseOut:
     """Обновление курса."""
 
     return service.update(course_id, payload)
@@ -64,7 +66,7 @@ def update_course(course_id: str, payload: CourseUpdate, service: CourseServiceD
     response_class=Response,
     summary="Удалить курс",
 )
-def delete_course(course_id: str, service: CourseServiceDep) -> Response:
+def delete_course(course_id: UUID, service: CourseServiceDep) -> Response:
     """Удаление курса через soft-delete."""
 
     service.delete(course_id)

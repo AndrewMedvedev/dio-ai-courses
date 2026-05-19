@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from core.model_catalog import ModelsProviderUnavailableError, is_supported_model
 from courses.dependencies import get_db
 from courses.domain.exceptions import (
-    CourseProviderUnavailableError,
     CourseValidationError,
     GenerationTaskNotFoundError,
 )
@@ -23,7 +23,7 @@ from infra.db.conn import SessionLocal
 router = APIRouter(prefix="/course-generation", tags=["Генерация курсов"])
 
 
-def run_generation_task(task_id: str) -> None:
+def run_generation_task(task_id: UUID) -> None:
     """Запуск фоновой задачи генерации курса."""
 
     db = SessionLocal()
@@ -53,11 +53,6 @@ def create_generation_task(
         payload.validate()
     except ValueError as exc:
         raise CourseValidationError(str(exc)) from exc
-    try:
-        if not is_supported_model(payload.llm_model):
-            raise CourseValidationError("Unsupported llm_model. Use /api/v1/models catalog.")
-    except ModelsProviderUnavailableError as exc:
-        raise CourseProviderUnavailableError(str(exc)) from exc
 
     task = CourseGenerationTask(
         topic=payload.topic,
@@ -77,7 +72,7 @@ def create_generation_task(
 
 
 @router.get("/{task_id}", response_model=GenerationTaskOut, summary="Получить статус генерации")
-def get_generation_status(task_id: str, db: Session = Depends(get_db)) -> GenerationTaskOut:
+def get_generation_status(task_id: UUID, db: Session = Depends(get_db)) -> GenerationTaskOut:
     """Получение статуса фоновой генерации курса."""
 
     task = db.scalar(select(CourseGenerationTask).where(CourseGenerationTask.id == task_id))

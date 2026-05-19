@@ -83,15 +83,3 @@ class CourseConflictError(CourseAppError):
             status_code=409,
             details=details or {},
         )
-
-
-class CourseProviderUnavailableError(CourseAppError):
-    """Ошибка недоступности внешнего провайдера, нужного сервису курсов."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
-        super().__init__(
-            message=message,
-            error_code="COURSE_PROVIDER_UNAVAILABLE",
-            status_code=502,
-            details=details or {},
-        )

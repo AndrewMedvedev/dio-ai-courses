@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, status
 
 from courses.dependencies import ContentServiceDep
@@ -22,7 +24,7 @@ router = APIRouter(prefix="/courses", tags=["Содержимое курса"])
     status_code=status.HTTP_201_CREATED,
     summary="Создать блок курса",
 )
-def create_block(course_id: str, payload: BlockCreate, service: ContentServiceDep) -> CourseOut:
+def create_block(course_id: UUID, payload: BlockCreate, service: ContentServiceDep) -> CourseOut:
     """Создание блока курса."""
 
     return service.create_block(course_id, payload)
@@ -30,8 +32,8 @@ def create_block(course_id: str, payload: BlockCreate, service: ContentServiceDe
 
 @router.patch("/{course_id}/blocks/{block_id}", response_model=CourseOut, summary="Обновить блок курса")
 def update_block(
-    course_id: str,
-    block_id: str,
+    course_id: UUID,
+    block_id: UUID,
     payload: BlockUpdate,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -41,7 +43,7 @@ def update_block(
 
 
 @router.delete("/{course_id}/blocks/{block_id}", response_model=CourseOut, summary="Удалить блок курса")
-def delete_block(course_id: str, block_id: str, service: ContentServiceDep) -> CourseOut:
+def delete_block(course_id: UUID, block_id: UUID, service: ContentServiceDep) -> CourseOut:
     """Удаление блока курса через soft-delete."""
 
     return service.delete_block(course_id, block_id)
@@ -49,7 +51,7 @@ def delete_block(course_id: str, block_id: str, service: ContentServiceDep) -> C
 
 @router.put("/{course_id}/blocks/reorder", response_model=CourseOut, summary="Изменить порядок блоков")
 def reorder_blocks(
-    course_id: str,
+    course_id: UUID,
     payload: ReorderPayload,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -65,8 +67,8 @@ def reorder_blocks(
     summary="Создать урок",
 )
 def create_lesson(
-    course_id: str,
-    block_id: str,
+    course_id: UUID,
+    block_id: UUID,
     payload: LessonCreate,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -77,8 +79,8 @@ def create_lesson(
 
 @router.patch("/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Обновить урок")
 def update_lesson(
-    course_id: str,
-    lesson_id: str,
+    course_id: UUID,
+    lesson_id: UUID,
     payload: LessonUpdate,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -88,7 +90,7 @@ def update_lesson(
 
 
 @router.delete("/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Удалить урок")
-def delete_lesson(course_id: str, lesson_id: str, service: ContentServiceDep) -> CourseOut:
+def delete_lesson(course_id: UUID, lesson_id: UUID, service: ContentServiceDep) -> CourseOut:
     """Удаление урока через soft-delete."""
 
     return service.delete_lesson(course_id, lesson_id)
@@ -100,8 +102,8 @@ def delete_lesson(course_id: str, lesson_id: str, service: ContentServiceDep) ->
     summary="Изменить порядок уроков",
 )
 def reorder_lessons(
-    course_id: str,
-    block_id: str,
+    course_id: UUID,
+    block_id: UUID,
     payload: ReorderPayload,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -117,8 +119,8 @@ def reorder_lessons(
     summary="Создать практику",
 )
 def create_practice(
-    course_id: str,
-    block_id: str,
+    course_id: UUID,
+    block_id: UUID,
     payload: PracticePayload,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -129,8 +131,8 @@ def create_practice(
 
 @router.put("/{course_id}/blocks/{block_id}/practice", response_model=CourseOut, summary="Обновить практику")
 def update_practice(
-    course_id: str,
-    block_id: str,
+    course_id: UUID,
+    block_id: UUID,
     payload: PracticePayload,
     service: ContentServiceDep,
 ) -> CourseOut:
@@ -140,7 +142,7 @@ def update_practice(
 
 
 @router.delete("/{course_id}/blocks/{block_id}/practice", response_model=CourseOut, summary="Удалить практику")
-def delete_practice(course_id: str, block_id: str, service: ContentServiceDep) -> CourseOut:
+def delete_practice(course_id: UUID, block_id: UUID, service: ContentServiceDep) -> CourseOut:
     """Удаление практического задания через soft-delete."""
 
     return service.delete_practice(course_id, block_id)

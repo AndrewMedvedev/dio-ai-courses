@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
+from uuid import UUID
 
 
 @dataclass(slots=True)
@@ -11,6 +13,10 @@ class PracticePayload:
     task: str
     criteria: list[str] = field(default_factory=list)
     check_type: str = "manual"
+    title: str = ""
+    assignment_type: str = "manual"
+    assignment_data: dict[str, Any] | None = None
+    passing_score: int = 61
 
 
 @dataclass(slots=True)
@@ -19,6 +25,9 @@ class LessonCreate:
 
     title: str
     content: str
+    learning_objectives: list[str] = field(default_factory=list)
+    content_blocks: list[dict[str, Any]] = field(default_factory=list)
+    estimated_time_minutes: int | None = None
 
 
 @dataclass(slots=True)
@@ -27,6 +36,9 @@ class LessonUpdate:
 
     title: str | None = None
     content: str | None = None
+    learning_objectives: list[str] | None = None
+    content_blocks: list[dict[str, Any]] | None = None
+    estimated_time_minutes: int | None = None
 
 
 @dataclass(slots=True)
@@ -35,6 +47,8 @@ class BlockCreate:
 
     title: str
     description: str = ""
+    learning_objectives: list[str] = field(default_factory=list)
+    content_blocks: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -43,6 +57,8 @@ class BlockUpdate:
 
     title: str | None = None
     description: str | None = None
+    learning_objectives: list[str] | None = None
+    content_blocks: list[dict[str, Any]] | None = None
 
 
 @dataclass(slots=True)
@@ -51,6 +67,8 @@ class NestedBlockCreate:
 
     title: str
     description: str = ""
+    learning_objectives: list[str] = field(default_factory=list)
+    content_blocks: list[dict[str, Any]] = field(default_factory=list)
     lessons: list[LessonCreate] = field(default_factory=list)
     practice: PracticePayload | None = None
 
@@ -62,7 +80,11 @@ class CourseCreate:
     title: str
     description: str
     difficulty: str
+    creator_id: int | None = None
+    image_url: str | None = None
+    learning_objectives: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
+    final_assessment: dict[str, Any] | None = None
     blocks: list[NestedBlockCreate] = field(default_factory=list)
 
 
@@ -73,7 +95,10 @@ class CourseUpdate:
     title: str | None = None
     description: str | None = None
     difficulty: str | None = None
+    image_url: str | None = None
+    learning_objectives: list[str] | None = None
     tags: list[str] | None = None
+    final_assessment: dict[str, Any] | None = None
     status: str | None = None
 
 
@@ -81,37 +106,46 @@ class CourseUpdate:
 class ReorderPayload:
     """Входные данные изменения порядка элементов."""
 
-    ids: list[str]
+    ids: list[UUID]
 
 
 @dataclass(slots=True)
 class LessonOut:
     """Ответ API с уроком."""
 
-    id: str
+    id: UUID
     title: str
     content: str
     position: int
+    learning_objectives: list[str] = field(default_factory=list)
+    content_blocks: list[dict[str, Any]] = field(default_factory=list)
+    estimated_time_minutes: int | None = None
 
 
 @dataclass(slots=True)
 class PracticeOut:
     """Ответ API с практическим заданием."""
 
-    id: str
+    id: UUID
     task: str
     criteria: list[str]
     check_type: str
+    title: str = ""
+    assignment_type: str = "manual"
+    assignment_data: dict[str, Any] | None = None
+    passing_score: int = 61
 
 
 @dataclass(slots=True)
 class BlockOut:
     """Ответ API с блоком курса."""
 
-    id: str
+    id: UUID
     title: str
     description: str
     position: int
+    learning_objectives: list[str] = field(default_factory=list)
+    content_blocks: list[dict[str, Any]] = field(default_factory=list)
     lessons: list[LessonOut] = field(default_factory=list)
     practice: PracticeOut | None = None
 
@@ -120,11 +154,15 @@ class BlockOut:
 class CourseOut:
     """Полный ответ API с курсом."""
 
-    id: str
+    id: UUID
     title: str
     description: str
     difficulty: str
+    creator_id: int | None
+    image_url: str | None
+    learning_objectives: list[str]
     tags: list[str]
+    final_assessment: dict[str, Any] | None
     status: str
     popularity: int
     created_at: datetime
@@ -136,7 +174,7 @@ class CourseOut:
 class CourseListItem:
     """Краткий элемент списка курсов."""
 
-    id: str
+    id: UUID
     title: str
     description: str
     difficulty: str
@@ -168,12 +206,12 @@ class EnrollRequest:
 class ProgressOut:
     """Ответ API с прогрессом пользователя по курсу."""
 
-    enrollment_id: str
+    enrollment_id: UUID
     user_id: int
-    course_id: str
+    course_id: UUID
     status: str
-    current_block_id: str | None
-    current_lesson_id: str | None
+    current_block_id: UUID | None
+    current_lesson_id: UUID | None
     completion_percent: float
     started_at: datetime
     completed_at: datetime | None
@@ -197,9 +235,9 @@ class StartAttemptRequest:
 class AttemptOut:
     """Ответ API с попыткой выполнения практики."""
 
-    id: str
-    enrollment_id: str
-    practice_id: str
+    id: UUID
+    enrollment_id: UUID
+    practice_id: UUID
     attempt_no: int
     status: str
     started_at: datetime
@@ -251,7 +289,7 @@ class GenerateCourseRequest:
 class GenerationTaskOut:
     """Ответ API с состоянием задачи генерации курса."""
 
-    id: str
+    id: UUID
     status: str
     topic: str
     target_audience: str
@@ -259,20 +297,10 @@ class GenerationTaskOut:
     llm_model: str
     blocks_count: int
     lessons_per_block: int
-    course_id: str | None
+    course_id: UUID | None
     error_message: str | None
     created_at: datetime
     updated_at: datetime
-
-
-@dataclass(slots=True)
-class ModelCatalogItemOut:
-    """Ответ API с элементом каталога моделей."""
-
-    id: str
-    label: str
-    description: str
-    recommended: bool
 
 
 def attempt_out_from_orm(attempt) -> AttemptOut:

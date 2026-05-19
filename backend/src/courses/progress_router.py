@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter
 
 from courses.dependencies import ProgressServiceDep
@@ -17,14 +19,14 @@ router = APIRouter(prefix="/courses", tags=["Прогресс"])
 
 
 @router.post("/{course_id}/enrollments", response_model=ProgressOut, status_code=201, summary="Записаться на курс")
-def enroll(course_id: str, payload: EnrollRequest, service: ProgressServiceDep) -> ProgressOut:
+def enroll(course_id: UUID, payload: EnrollRequest, service: ProgressServiceDep) -> ProgressOut:
     """Запись пользователя на курс."""
 
     return service.enroll(course_id, payload)
 
 
 @router.get("/{course_id}/progress/{user_id}", response_model=ProgressOut, summary="Получить прогресс")
-def get_progress(course_id: str, user_id: int, service: ProgressServiceDep) -> ProgressOut:
+def get_progress(course_id: UUID, user_id: int, service: ProgressServiceDep) -> ProgressOut:
     """Получение прогресса пользователя по курсу."""
 
     return service.get_progress(course_id, user_id)
@@ -32,8 +34,8 @@ def get_progress(course_id: str, user_id: int, service: ProgressServiceDep) -> P
 
 @router.post("/{course_id}/lessons/{lesson_id}/complete", response_model=ProgressOut, summary="Завершить урок")
 def complete_lesson(
-    course_id: str,
-    lesson_id: str,
+    course_id: UUID,
+    lesson_id: UUID,
     payload: CompleteLessonRequest,
     service: ProgressServiceDep,
 ) -> ProgressOut:
@@ -48,8 +50,8 @@ def complete_lesson(
     summary="Начать попытку практики",
 )
 def start_practice_attempt(
-    course_id: str,
-    block_id: str,
+    course_id: UUID,
+    block_id: UUID,
     payload: StartAttemptRequest,
     service: ProgressServiceDep,
 ) -> AttemptOut:
@@ -60,7 +62,7 @@ def start_practice_attempt(
 
 @router.post("/practice-attempts/{attempt_id}/submit", response_model=AttemptOut, summary="Отправить ответ на практику")
 def submit_practice_attempt(
-    attempt_id: str,
+    attempt_id: UUID,
     payload: SubmitAttemptRequest,
     service: ProgressServiceDep,
 ) -> AttemptOut:
@@ -71,7 +73,7 @@ def submit_practice_attempt(
 
 @router.post("/practice-attempts/{attempt_id}/review", response_model=ProgressOut, summary="Проверить попытку практики")
 def review_practice_attempt(
-    attempt_id: str,
+    attempt_id: UUID,
     payload: ReviewAttemptRequest,
     service: ProgressServiceDep,
 ) -> ProgressOut:

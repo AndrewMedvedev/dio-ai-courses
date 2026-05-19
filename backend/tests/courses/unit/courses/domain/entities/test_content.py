@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from courses.domain.entities import Practice
+from courses.domain.entities.course import Practice
 from courses.domain.events import (
     BlockDeleted,
     LessonDeleted,

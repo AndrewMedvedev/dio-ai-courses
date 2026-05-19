@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from courses.domain.exceptions import (
@@ -58,12 +60,12 @@ class CourseService:
             sort=sort,
         )
 
-    def get(self, course_id: str) -> CourseOut:
+    def get(self, course_id: UUID) -> CourseOut:
         """Получить курс по идентификатору."""
 
         return serialize_course(must_get_course(self.session, course_id))
 
-    def update(self, course_id: str, payload: CourseUpdate) -> CourseOut:
+    def update(self, course_id: UUID, payload: CourseUpdate) -> CourseOut:
         """Обновить основные поля курса и его статус."""
 
         course = must_get_course(self.session, course_id)
@@ -84,14 +86,20 @@ class CourseService:
         course.title = domain_course.title
         course.description = domain_course.description
         course.difficulty = domain_course.difficulty
+        if payload.image_url is not None:
+            course.image_url = payload.image_url
+        if payload.learning_objectives is not None:
+            course.learning_objectives = payload.learning_objectives
         course.tags = domain_course.tags
+        if payload.final_assessment is not None:
+            course.final_assessment = payload.final_assessment
         course.status = domain_course.status
 
         self.session.commit()
         self.session.refresh(course)
         return serialize_course(must_get_course(self.session, course_id))
 
-    def delete(self, course_id: str) -> None:
+    def delete(self, course_id: UUID) -> None:
         """Удалить курс через soft-delete вместе с активным содержимым."""
 
         course = must_get_course(self.session, course_id)
@@ -125,8 +133,8 @@ def apply_course_deletion(course, domain_course) -> None:
 
     course.deleted_at = domain_course.deleted_at
 
-    domain_blocks = {block.id: block for block in domain_course.blocks}
-    for block in course.blocks:
+    domain_blocks = {module.id: module for module in domain_course.modules}
+    for block in course.modules:
         domain_block = domain_blocks.get(block.id)
         if domain_block is None:
             continue
