@@ -7,6 +7,9 @@ from ..core.settings import settings
 from ..shared.dependencies import SessionDep
 from ..shared.infra.mail import SmtpMailSender
 from .database.repository import SqlInvitationRepository, SqlUserRepository
+from .domain.exceptions import UnauthorizedError
+from .schemas import CurrentUser
+from .security import validate_token
 from .services import AuthService, InvitationService
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -49,14 +52,41 @@ def get_invitation_service(
     )
 
 
+InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
+
+
 def get_auth_service(
     session: SessionDep,
     user_repo: Annotated[SqlUserRepository, Depends(get_user_repo)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
+    invitation_repo: Annotated[SqlInvitationRepository, Depends(get_invitation_repo)],
 ) -> AuthService:
-    return AuthService(session, user_repo=user_repo, invitation_service=invitation_service)
+    return AuthService(
+        session,
+        user_repo=user_repo,
+        invitation_service=invitation_service,
+        invitation_repo=invitation_repo,
+    )
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
-InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
+
+async def get_current_user(  # noqa: RUF029
+    token: Annotated[str, Depends(oauth2_scheme)],
+) -> CurrentUser:
+    """Получение текущего пользователя"""
+
+    payload = validate_token(token)
+    jti, user_id = payload.get("jti"), payload.get("sub")  # noqa: F841
+
+    if user_id is None:
+        raise UnauthorizedError("Invalid token: missing sub claim")
+
+    return CurrentUser(
+        user_id=user_id,
+        email=payload.get("email"),  # type: ignore  # noqa: PGH003
+    )
+
+
+CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]
