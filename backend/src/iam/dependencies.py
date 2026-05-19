@@ -86,6 +86,7 @@ async def get_current_user(  # noqa: RUF029
     return CurrentUser(
         user_id=user_id,
         email=payload.get("email"),  # type: ignore  # noqa: PGH003
+        role=payload.get("role"),  # type: ignore  # noqa: PGH003
     )
 
 

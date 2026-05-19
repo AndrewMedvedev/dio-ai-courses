@@ -2,8 +2,9 @@ from uuid import uuid4
 
 from pydantic import SecretStr
 
-from src.iam.domain.dataclasses import Invitation, User
 from src.iam.database.repository import InvitationMapper, InvitationOrm, UserMapper, UserOrm
+from src.iam.domain.dataclasses import Invitation, User
+from src.iam.domain.vo import Username, UserRole
 from src.shared.utils.time import current_datetime
 
 
@@ -19,6 +20,7 @@ class TestUserMapper:
             username="john_doe",
             password_hash=password_hash,
             is_verify=True,
+            role=UserRole.USER,
         )
 
         entity = UserMapper.to_entity(model)
@@ -32,9 +34,10 @@ class TestUserMapper:
     def test_from_entity(self):  # noqa: PLR6301
         entity = User(
             email="test@example.com",
-            username="john_doe",
+            username=Username("john_doe"),
             password_hash=SecretStr("hashed_password"),
             is_verify=True,
+            role=UserRole.USER,
         )
 
         model = UserMapper.from_entity(entity)
@@ -82,6 +85,7 @@ class TestInvitationMapper:
             expires_at=current_datetime(),
             used_at=None,
             is_used=False,
+            assigned_role=UserRole.USER,
         )
 
         model = InvitationMapper.from_entity(entity)

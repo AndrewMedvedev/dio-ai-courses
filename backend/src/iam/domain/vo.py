@@ -10,9 +10,26 @@ from ...shared.domain.vo import ValueObject
 class UserRole(StrEnum):
     """Роли пользователей"""
 
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"  # администратор
     MODERATOR = "moderator"
     USER = "user"
+
+
+ROLE_HIERARCHY: dict[UserRole, int] = {
+    UserRole.USER: 0,
+    UserRole.MODERATOR: 1,
+    UserRole.ADMIN: 2,
+    UserRole.SUPER_ADMIN: 3,
+}
+
+
+def check_role(user_role: UserRole, role: UserRole) -> bool:
+    """
+    Проверяет, может ли пользователь с user_role назначить роль role.
+    Правило: можно назначать только роли СТРОГО ниже своей.
+    """
+    return ROLE_HIERARCHY[user_role] >= ROLE_HIERARCHY[role]
 
 
 @dataclass(frozen=True, slots=True)

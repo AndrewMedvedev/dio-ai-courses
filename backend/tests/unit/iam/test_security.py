@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from src.core.settings import settings
 from src.iam.domain.exceptions import UnauthorizedError
+from src.iam.domain.vo import UserRole
 from src.iam.security import (
     create_access_token,
     create_refresh_token,
@@ -44,7 +45,9 @@ class TestValidateToken:
         email = "support@example.com"
 
         with freeze_time("2026-03-26 10:00:00"):
-            access_token = create_access_token(user_id=user_id, email=email)
+            access_token = create_access_token(
+                user_id=user_id, email=email, user_role=UserRole.USER
+            )
 
             payload = validate_token(access_token)
 
@@ -63,8 +66,7 @@ class TestValidateToken:
 
         with freeze_time("2026-03-26 10:00:00"):
             access_token = create_access_token(
-                user_id=user_id,
-                email=email,
+                user_id=user_id, email=email, user_role=UserRole.USER
             )
 
             payload = validate_token(access_token)
@@ -72,6 +74,7 @@ class TestValidateToken:
             assert payload["sub"] == str(user_id)
             assert payload["email"] == email
             assert payload["type"] == "access"
+            assert payload["role"] == user_role.value
 
     def test_validate_token_correct_refresh_token(self):  # noqa: PLR6301
         user_id = uuid4()

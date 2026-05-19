@@ -1,6 +1,7 @@
+from typing import Protocol
+
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Protocol
 from uuid import UUID, uuid4
 
 from ..utils.time import current_datetime

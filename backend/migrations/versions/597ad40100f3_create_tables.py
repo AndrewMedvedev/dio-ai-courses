@@ -1,8 +1,8 @@
 """create tables
 
-Revision ID: 09bcb0d9855e
+Revision ID: 597ad40100f3
 Revises: 
-Create Date: 2026-05-19 09:14:54.384259
+Create Date: 2026-05-19 12:39:02.757255
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '09bcb0d9855e'
+revision: str = '597ad40100f3'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,7 +25,7 @@ def upgrade() -> None:
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('token', sa.String(), nullable=False),
     sa.Column('invited_by', sa.Uuid(), nullable=True),
-    sa.Column('assigned_role', sa.Enum('ADMIN', 'MODERATOR', 'USER', name='userrole'), nullable=False),
+    sa.Column('assigned_role', sa.Enum('SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER', name='userrole'), nullable=False),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('used_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('is_delivered', sa.Boolean(), nullable=False),
@@ -40,7 +40,7 @@ def upgrade() -> None:
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('password_hash', sa.String(), nullable=False),
-    sa.Column('role', sa.Enum('ADMIN', 'MODERATOR', 'USER', name='userrole'), nullable=False),
+    sa.Column('role', sa.Enum('SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'USER', name='userrole'), nullable=False),
     sa.Column('is_verify', sa.Boolean(), nullable=False),
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),

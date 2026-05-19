@@ -11,6 +11,18 @@ from .vo import Username, UserRole
 INVITATION_EXPIRES_IN_DAYS = 7
 
 
+def create_super_admin(email: str, password_hash: str) -> User:
+    """Фабрика для создания системного администратора"""
+
+    return User(
+        email=email,
+        password_hash=SecretStr(password_hash),
+        username=Username("admin"),
+        role=UserRole.SUPER_ADMIN,
+        is_verify=True,
+    )
+
+
 def create_user(
     email: EmailStr, username: str, password: str, role: UserRole = UserRole.USER
 ) -> User:

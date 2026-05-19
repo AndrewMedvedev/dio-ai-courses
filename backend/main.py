@@ -1,10 +1,9 @@
 import logging
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import uvicorn
-from alembic import command
-from alembic.config import Config
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,6 +13,7 @@ from src.core.settings import settings
 from src.iam.domain.exceptions import AppError
 from src.iam.routers import router as iam_router
 from src.shared.infra.middlewares import LoggingMiddleware
+from src.shared.utils.cli import run_cli_command
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Настройка логирования
     configure_logging(log_level="INFO")
+    await run_cli_command(sys.executable, "-m", "alembic", "upgrade", "head")
+    await run_cli_command(sys.executable, "-m", "src.cli", "create-first-admin")
 
     yield
 
@@ -84,8 +86,5 @@ def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:  # n
 
 
 if __name__ == "__main__":
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
-    print("Миграции успешно применены.")
     logging.basicConfig(level=logging.INFO)
     uvicorn.run(app, host="0.0.0.0", port=settings.app.port)  # noqa: S104

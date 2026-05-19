@@ -64,6 +64,7 @@ class CurrentUser(BaseModel):
 
     user_id: UUID = Field(..., description="Уникальный ID пользователя")
     email: EmailStr = Field(..., description="Email адрес учётной записи")
+    role: UserRole = Field(..., description="Роль пользователя в системе")
 
 
 class InvitationCreate(BaseModel):
@@ -71,7 +72,6 @@ class InvitationCreate(BaseModel):
 
     email: EmailStr = Field(..., description="Email пользователя")
     role: UserRole
-    invited_by: UUID
 
 
 class InvitationResponse(BaseModel):

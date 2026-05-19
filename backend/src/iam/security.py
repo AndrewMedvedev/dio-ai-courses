@@ -10,6 +10,7 @@ from passlib.context import CryptContext
 from ..core.settings import settings
 from ..shared.utils.time import current_datetime
 from .domain.exceptions import UnauthorizedError
+from .domain.vo import UserRole
 
 # Хеширование паролей
 MEMORY_COST = 100  # Размер выделяемой памяти в MB
@@ -47,7 +48,7 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
 def create_access_token(
     user_id: UUID,
     email: str,
-    counterparty_id: UUID | None = None,
+    user_role: UserRole,
 ) -> str:
     """Выпуск access токена"""
 
@@ -60,9 +61,8 @@ def create_access_token(
         "type": "access",
         "jti": f"{uuid4()}",
         "email": email,
+        "role": user_role.value,
     }
-    if counterparty_id is not None:
-        payload["counterparty_id"] = f"{counterparty_id}"
 
     return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
 

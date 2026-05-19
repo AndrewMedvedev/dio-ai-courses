@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from src.iam.domain.dataclasses import Invitation
+from src.iam.domain.vo import UserRole
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 
@@ -23,11 +24,13 @@ def past_expires_at():
 
 def test_create_invitation():
     invitation = Invitation(
-        email="govnoed1234@.com", expires_at=get_expiration_time(timedelta(days=7))
+        email="govnoed1234@.com",
+        expires_at=get_expiration_time(timedelta(days=7)),
+        assigned_role=UserRole.MODERATOR,
     )
 
     assert invitation.email == "govnoed1234@.com"
-
+    assert invitation.assigned_role == UserRole.MODERATOR
     assert invitation.is_used is False
     assert invitation.used_at is None
     assert invitation.is_valid is True
@@ -37,6 +40,7 @@ def test_is_valid_false_when_used_invitation(future_expires_at: datetime, valid_
     invitation = Invitation(
         email=valid_email,
         expires_at=future_expires_at,
+        assigned_role=UserRole.USER,
     )
     invitation.mark_as_used()
     assert invitation.is_valid is False
@@ -48,6 +52,7 @@ def test_is_valid_false_when_used_and_expired_invitation(
     invitation = Invitation(
         email=valid_email,
         expires_at=past_expires_at,
+        assigned_role=UserRole.USER,
     )
     invitation.mark_as_used()
     assert invitation.is_valid is False
@@ -60,6 +65,7 @@ def test_mark_as_used_sets_fields_correctly_invitation(
     invitation = Invitation(
         email=valid_email,
         expires_at=future_expires_at,
+        assigned_role=UserRole.USER,
     )
 
     invitation.mark_as_used()
@@ -78,10 +84,12 @@ def test_token_generated_by_default_factory_invitation(
     first_invitation = Invitation(
         email=valid_email,
         expires_at=future_expires_at,
+        assigned_role=UserRole.USER,
     )
     second_invitation = Invitation(
         email="joponyx@.com",
         expires_at=future_expires_at,
+        assigned_role=UserRole.USER,
     )
 
     min_token_length = 20
