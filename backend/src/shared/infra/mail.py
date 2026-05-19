@@ -1,7 +1,8 @@
+from typing import Any
+
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any
 
 import aiosmtplib
 import html2text
@@ -24,7 +25,7 @@ class SmtpMailSender:
     def __init__(self, smtp_host: str, smtp_port: int, use_tls: bool = True) -> None:
         self.smtp_config = {"hostname": smtp_host, "port": smtp_port, "use_tls": use_tls}
 
-    async def send(  # noqa: PLR0913
+    async def send(
         self,
         to: str | list[str],
         subject: str,
@@ -33,7 +34,7 @@ class SmtpMailSender:
         plain_text: str | None = None,
         from_email: str | None = None,
         reply_to: str | None = None,
-    ) -> None:
+    ) -> bool:
         """Отправка письма на почту используя SMTP протокол"""
 
         from_email = from_email or settings.mail.default_from_email
@@ -70,5 +71,20 @@ class SmtpMailSender:
             msg.attach(MIMEText(text_content, "plain", "utf-8"))
         if html_content:
             msg.attach(MIMEText(html_content, "html", "utf-8"))
+        is_delivered = True
+        try:
+            errors, server_message = await aiosmtplib.send(
+                msg,
+                recipients=recipients,
+                sender=from_email,
+                **self.smtp_config,  # type: ignore  # noqa: PGH003
+            )
+        except aiosmtplib.SMTPException:
+            logger.exception("SMTP error while sending email to %s", recipients)
+            is_delivered = False
 
-        await aiosmtplib.send(msg, recipients=recipients, sender=from_email, **self.smtp_config)  # type: ignore  # noqa: PGH003
+        if errors:
+            is_delivered = False
+
+        logger.info("Email successfully sent to %s. Server: %s", recipients, server_message)
+        return is_delivered

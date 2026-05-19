@@ -5,8 +5,8 @@ from uuid import uuid4
 import pytest
 from pydantic import SecretStr
 
-from src.iam.core.dataclasses import Invitation, User
-from src.iam.core.exceptions import InvitationExpiredError, UnauthorizedError
+from src.iam.domain.dataclasses import Invitation, User
+from src.iam.domain.exceptions import InvitationExpiredError, UnauthorizedError
 from src.iam.schemas import Tokens, UserCreateForm
 from src.iam.security import hash_password
 from src.iam.services import AuthService, InvitationService

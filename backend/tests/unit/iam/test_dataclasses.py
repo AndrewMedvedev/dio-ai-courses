@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from src.iam.core.dataclasses import Invitation
+from src.iam.domain.dataclasses import Invitation
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 

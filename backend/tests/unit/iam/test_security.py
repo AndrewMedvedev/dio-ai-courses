@@ -6,7 +6,7 @@ import pytest
 from freezegun import freeze_time
 
 from src.core.settings import settings
-from src.iam.core.exceptions import UnauthorizedError
+from src.iam.domain.exceptions import UnauthorizedError
 from src.iam.security import (
     create_access_token,
     create_refresh_token,

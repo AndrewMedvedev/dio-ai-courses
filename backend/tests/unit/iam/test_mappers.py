@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from pydantic import SecretStr
 
-from src.iam.core.dataclasses import Invitation, User
+from src.iam.domain.dataclasses import Invitation, User
 from src.iam.database.repository import InvitationMapper, InvitationOrm, UserMapper, UserOrm
 from src.shared.utils.time import current_datetime
 

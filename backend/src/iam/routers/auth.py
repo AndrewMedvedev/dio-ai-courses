@@ -17,7 +17,7 @@ auth_router = APIRouter(prefix="/auth", tags=["Авторизация"])
 async def register(
     data: UserCreateForm,
     service: AuthServiceDep,
-) -> str:
+) -> dict | Tokens:
     return await service.registration(data)
 
 
@@ -36,9 +36,7 @@ async def login(
 
     if isinstance(result, str):
         response.status_code = status.HTTP_202_ACCEPTED
-        return {"detail": result}
-
-    response.status_code = status.HTTP_200_OK
+        return result
     return result
 
 
