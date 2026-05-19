@@ -1,6 +1,7 @@
+from typing import Any
+
 import logging
 from datetime import timedelta
-from typing import Any
 from uuid import UUID, uuid4
 
 import jwt
@@ -8,7 +9,7 @@ from passlib.context import CryptContext
 
 from ..core.settings import settings
 from ..shared.utils.time import current_datetime
-from .core.exceptions import UnauthorizedError
+from .domain.exceptions import UnauthorizedError
 
 # Хеширование паролей
 MEMORY_COST = 100  # Размер выделяемой памяти в MB
