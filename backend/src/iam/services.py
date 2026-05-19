@@ -2,22 +2,27 @@ import logging
 from datetime import timedelta
 from uuid import UUID
 
-from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.settings import settings
-from ..shared.domain.exceptions import AlreadyExistsError, NotFoundError
+from ..shared.domain.exceptions import NotFoundError
 from ..shared.infra.mail import SmtpMailSender
-from ..shared.utils.time import get_expiration_time, get_expiration_timestamp
-from .core.constants import INVITATION_EXPIRE_IN_DAYS, INVITATION_SUBJECT, INVITATION_TEXT
-from .core.dataclasses import Invitation, User
-from .core.exceptions import InvitationExpiredError, UnauthorizedError
+from ..shared.utils.time import get_expiration_timestamp
 from .database.repository import SqlInvitationRepository, SqlUserRepository
-from .schemas import Tokens, UserCreateForm
+from .domain.constants import (
+    INVITATION_EXPIRE_IN_DAYS,
+    INVITATION_SUBJECT,
+    INVITATION_TEXT,
+    INVITE_URL,
+)
+from .domain.dataclasses import Invitation, User
+from .domain.exceptions import InvitationExpiredError, UnauthorizedError
+from .domain.services import create_invitation, create_user
+from .domain.vo import UserRole
+from .schemas import InvitationCreate, Tokens, UserCreateForm
 from .security import (
     create_access_token,
     create_refresh_token,
-    hash_password,
     validate_token,
     verify_password,
 )
@@ -60,47 +65,59 @@ class InvitationService:
         self.mail_sender = mail_sender
         self.session = session
 
-    async def send_invitation(self, email: str, invited_by: UUID | None = None) -> Invitation:
-        created_invitation = await self.invitation_repo.get_active_by_email(email)
+    async def create_invitation(self, email: str, invited_by: UUID | None = None) -> Invitation:
+        invitation = create_invitation(email=email, invited_by=invited_by)
+        if invited_by:
+            invitation.invited_by = invited_by
+        invite_url = INVITE_URL.format(url=settings.frontend_url, token=invitation.token)
         context = {
             "email": email,
             "expires_in_days": INVITATION_EXPIRE_IN_DAYS,
             "app_name": settings.app.name,
             "support_email": settings.mail.support_email,
+            "invite_url": invite_url,
         }
-        invite_url = """{url}/auth/invite/accept?token={token}"""
-
-        if created_invitation is None:
-            invitation = Invitation(email=email, expires_at=get_expiration_time(timedelta(days=7)))
-            if invited_by:
-                invitation.invited_by = invited_by
-            context["invite_url"] = invite_url.format(
-                url=settings.frontend_url, token=invitation.token
-            )
-            await self.invitation_repo.create(invitation)
-            await self.session.commit()
-            await self.mail_sender.send(
-                to=invitation.email,
-                subject=INVITATION_SUBJECT,
-                plain_text=INVITATION_TEXT,
-                template_name="email/invitation.html",
-                context=context,
-            )
-            logger.info("Invitation sent: %s", email)
-            return invitation
-        context["invite_url"] = invite_url.format(
-            url=settings.frontend_url, token=created_invitation.token
-        )
-
-        await self.mail_sender.send(
-            to=created_invitation.email,
+        await self.invitation_repo.create(invitation)
+        await self.session.commit()
+        is_delivered = await self.mail_sender.send(
+            to=invitation.email,
             subject=INVITATION_SUBJECT,
             plain_text=INVITATION_TEXT,
             template_name="email/invitation.html",
             context=context,
         )
+        if not is_delivered:
+            invitation.is_delivered = is_delivered
+            await self.invitation_repo.upsert(invitation)
         logger.info("Invitation sent: %s", email)
-        return created_invitation
+        return invitation
+
+    async def send_an_invitation_to_the_admin(self, data: InvitationCreate) -> dict:
+        invitation = create_invitation(data.email, role=data.role, invited_by=data.invited_by)
+        create = await self.invitation_repo.create(invitation)
+        await self.session.commit()
+        await self.send_invitation(create)
+        return {"message": f"Письмо с подтверждением отправлено на {invitation.email}"}
+
+    async def send_invitation(self, invitation: Invitation) -> Invitation:
+        invite_url = INVITE_URL.format(url=settings.frontend_url, token=invitation.token)
+        context = {
+            "email": invitation.email,
+            "expires_in_days": INVITATION_EXPIRE_IN_DAYS,
+            "app_name": settings.app.name,
+            "support_email": settings.mail.support_email,
+            "invite_url": invite_url,
+        }
+        is_delivered = await self.mail_sender.send(
+            to=invitation.email,
+            subject=INVITATION_SUBJECT,
+            plain_text=INVITATION_TEXT,
+            template_name="email/invitation.html",
+            context=context,
+        )
+        if not is_delivered:
+            await self.invitation_repo.update(invitation.id, is_delivered=is_delivered)
+        return invitation
 
     async def verify(self, token: str) -> None:
         invitation = await self.invitation_repo.get_by_token(token)
@@ -124,34 +141,57 @@ class AuthService:
         session: AsyncSession,
         user_repo: SqlUserRepository,
         invitation_service: InvitationService,
+        invitation_repo: SqlInvitationRepository,
     ) -> None:
         self.session = session
         self.user_repo = user_repo
         self.invitation_service = invitation_service
+        self.invitation_repo = invitation_repo
 
-    async def registration(self, form: UserCreateForm) -> str:
-        user = User(
-            username=form.username,
-            email=form.email,
-            password_hash=SecretStr(hash_password(form.password)),
-        )
+    async def registration(self, form: UserCreateForm) -> dict | Tokens:
         created_user = await self.user_repo.get_by_email(form.email)
+        created_invitation = await self.invitation_repo.get_active_by_email(form.email)
+        user = create_user(email=form.email, password=form.password, username=form.username)
+        if created_invitation:
+            if created_user is not None:
+                if created_invitation.assigned_role != UserRole.USER:
+                    created_user.role = created_invitation.assigned_role
+                    await self.user_repo.upsert(created_user)
+                    await self.session.commit()
+                    await self.invitation_service.send_invitation(created_invitation)
+                    return create_tokens_for_user(created_user)
+                await self.invitation_service.send_invitation(created_invitation)
+                return {"message": f"Письмо с подтверждением отправлено на {form.email}"}
+            if created_invitation.assigned_role != UserRole.USER:
+                user.role = created_invitation.assigned_role
+            user.is_verify = True
+            created_invitation.mark_as_used()
+            await self.user_repo.create(user)
+            await self.invitation_repo.upsert(created_invitation)
+            await self.session.commit()
+            return create_tokens_for_user(user)
         if created_user is not None:
-            raise AlreadyExistsError
+            await self.invitation_service.create_invitation(created_user.email)
+            return {"message": f"Письмо с подтверждением отправлено на {form.email}"}
         await self.user_repo.create(user)
-        await self.invitation_service.send_invitation(form.email)
+        await self.invitation_service.create_invitation(form.email)
         await self.session.commit()
-        return f"Письмо с подтверждением отправлено на {form.email}"
+        return {"message": f"Письмо с подтверждением отправлено на {form.email}"}
 
-    async def authenticate(self, email: str, password: str) -> Tokens | str:
+    async def authenticate(self, email: str, password: str) -> Tokens | dict:
         user = await self.user_repo.get_by_email(email)
+        invitation = await self.invitation_repo.get_active_by_email(email)
         if user is None:
             raise UnauthorizedError(f"User not found by email - '{email}'")
         if not verify_password(password, user.password_hash.get_secret_value()):
             raise UnauthorizedError("Invalid password or user is not active")
         if not user.is_verify:
-            await self.invitation_service.send_invitation(email=email)
-            return f"Письмо с подтверждением отправлено на {email}"
+            if invitation:
+                await self.invitation_service.send_invitation(invitation)
+                return {"message": f"Письмо с подтверждением отправлено на {email}"}
+            await self.invitation_service.create_invitation(email)
+            return {"message": f"Письмо с подтверждением отправлено на {email}"}
+
         return create_tokens_for_user(user)
 
     async def refresh_tokens(self, refresh_token: str) -> Tokens:
