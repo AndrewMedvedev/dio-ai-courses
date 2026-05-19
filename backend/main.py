@@ -3,13 +3,15 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import uvicorn
+from alembic import command
+from alembic.config import Config
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.core.logging import configure_logging
 from src.core.settings import settings
-from src.iam.core.exceptions import AppError
+from src.iam.domain.exceptions import AppError
 from src.iam.routers import router as iam_router
 from src.shared.infra.middlewares import LoggingMiddleware
 
@@ -82,5 +84,8 @@ def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:  # n
 
 
 if __name__ == "__main__":
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+    print("Миграции успешно применены.")
     logging.basicConfig(level=logging.INFO)
     uvicorn.run(app, host="0.0.0.0", port=settings.app.port)  # noqa: S104
