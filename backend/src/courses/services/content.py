@@ -5,30 +5,33 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from courses.domain.exceptions import (
-    BlockNotFoundError,
+    ModuleNotFoundError,
     CourseConflictError,
+    CourseNotFoundError,
     CourseValidationError,
     LessonNotFoundError,
     PracticeNotFoundError,
 )
 from courses.domain.repos import CourseRepository
 from courses.domain.services import (
-    assert_reorder_matches_blocks,
+    active_modules as active_domain_modules,
+    active_practice as active_domain_practice,
+    assert_reorder_matches_modules,
     assert_reorder_matches_lessons,
+    mark_module_deleted,
 )
-from courses.infra.models import Block, Lesson, Practice
-from courses.infra.queries import active_practice, must_get_course
-from courses.mappers import map_block_to_domain, map_course_to_domain
+from courses.infra.models import Lesson, Module, Practice
+from courses.infra.mappers import map_course_to_domain, map_module_to_domain
+from courses.mappers import map_course_model_to_response
 from courses.schemas import (
-    BlockCreate,
-    BlockUpdate,
+    ModuleCreate,
+    ModuleUpdate,
     CourseOut,
     LessonCreate,
     LessonUpdate,
     PracticePayload,
     ReorderPayload,
 )
-from courses.services.course import serialize_course
 from shared.utils.time import current_datetime
 
 
@@ -41,12 +44,12 @@ class ContentService:
         self.session = session
         self.repository = repository
 
-    def create_block(self, course_id: UUID, payload: BlockCreate) -> CourseOut:
-        """Создать блок курса в следующей доступной позиции."""
+    def create_module(self, course_id: UUID, payload: ModuleCreate) -> CourseOut:
+        """Создать модуль курса в следующей доступной позиции."""
 
-        must_get_course(self.session, course_id)
-        max_position = self.repository.max_block_position(course_id)
-        block = Block(
+        self._get_course_or_raise(course_id)
+        max_position = self.repository.max_module_order(course_id)
+        module = Module(
             course_id=course_id,
             title=payload.title,
             description=payload.description,
@@ -54,67 +57,67 @@ class ContentService:
             content_blocks=payload.content_blocks,
             order=(max_position + 1) if max_position is not None else 1,
         )
-        self.session.add(block)
+        self.session.add(module)
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def update_block(self, course_id: UUID, block_id: UUID, payload: BlockUpdate) -> CourseOut:
-        """Обновить название и описание блока курса."""
+    def update_module(self, course_id: UUID, module_id: UUID, payload: ModuleUpdate) -> CourseOut:
+        """Обновить название и описание модуля курса."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
         if payload.title is not None:
-            block.title = payload.title
+            module.title = payload.title
         if payload.description is not None:
-            block.description = payload.description
+            module.description = payload.description
         if payload.learning_objectives is not None:
-            block.learning_objectives = payload.learning_objectives
+            module.learning_objectives = payload.learning_objectives
         if payload.content_blocks is not None:
-            block.content_blocks = payload.content_blocks
+            module.content_blocks = payload.content_blocks
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def delete_block(self, course_id: UUID, block_id: UUID) -> CourseOut:
-        """Удалить блок курса вместе с активными уроками и практикой через soft-delete."""
+    def delete_module(self, course_id: UUID, module_id: UUID) -> CourseOut:
+        """Удалить модуль курса вместе с активными уроками и практикой через soft-delete."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
-        domain_block = map_block_to_domain(block)
-        domain_block.mark_deleted(current_datetime(), course_id=course_id)
-        apply_block_deletion(block, domain_block)
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
+        domain_module = map_module_to_domain(module)
+        mark_module_deleted(domain_module, current_datetime(), course_id=course_id)
+        apply_module_deletion(module, domain_module)
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def reorder_blocks(self, course_id: UUID, payload: ReorderPayload) -> CourseOut:
-        """Изменить порядок активных блоков курса."""
+    def reorder_modules(self, course_id: UUID, payload: ReorderPayload) -> CourseOut:
+        """Изменить порядок активных модулей курса."""
 
-        course = must_get_course(self.session, course_id)
+        course = self._get_course_or_raise(course_id)
         domain_course = map_course_to_domain(course)
         try:
-            assert_reorder_matches_blocks(domain_course.active_blocks, payload.ids)
+            assert_reorder_matches_modules(active_domain_modules(domain_course), payload.ids)
         except ValueError as exc:
             raise CourseValidationError(str(exc)) from exc
 
-        blocks = self.repository.active_blocks(course_id)
-        for index, block_id in enumerate(payload.ids, start=1):
-            block = next(item for item in blocks if item.id == block_id)
-            block.order = index
+        modules = self.repository.active_modules(course_id)
+        for index, module_id in enumerate(payload.ids, start=1):
+            module = next(item for item in modules if item.id == module_id)
+            module.order = index
 
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def create_lesson(self, course_id: UUID, block_id: UUID, payload: LessonCreate) -> CourseOut:
-        """Создать урок в следующей доступной позиции блока."""
+    def create_lesson(self, course_id: UUID, module_id: UUID, payload: LessonCreate) -> CourseOut:
+        """Создать урок в следующей доступной позиции модуля."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
-        max_position = self.repository.max_lesson_position(block.id)
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
+        max_position = self.repository.max_lesson_position(module.id)
         self.session.add(
             Lesson(
-                module_id=block.id,
+                module_id=module.id,
                 title=payload.title,
                 content=payload.content,
                 learning_objectives=payload.learning_objectives,
@@ -124,7 +127,7 @@ class ContentService:
             )
         )
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
     def update_lesson(self, course_id: UUID, lesson_id: UUID, payload: LessonUpdate) -> CourseOut:
         """Обновить название и содержимое урока."""
@@ -143,7 +146,7 @@ class ContentService:
         if payload.estimated_time_minutes is not None:
             lesson.estimated_time_minutes = payload.estimated_time_minutes
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
     def delete_lesson(self, course_id: UUID, lesson_id: UUID) -> CourseOut:
         """Удалить урок через soft-delete."""
@@ -153,41 +156,41 @@ class ContentService:
             raise LessonNotFoundError()
         lesson.deleted_at = current_datetime()
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def reorder_lessons(self, course_id: UUID, block_id: UUID, payload: ReorderPayload) -> CourseOut:
-        """Изменить порядок активных уроков внутри блока."""
+    def reorder_lessons(self, course_id: UUID, module_id: UUID, payload: ReorderPayload) -> CourseOut:
+        """Изменить порядок активных уроков внутри модуля."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
-        domain_block = map_block_to_domain(block)
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
+        domain_module = map_module_to_domain(module)
         try:
-            assert_reorder_matches_lessons(domain_block, payload.ids)
+            assert_reorder_matches_lessons(domain_module, payload.ids)
         except ValueError as exc:
             raise CourseValidationError(str(exc)) from exc
 
-        lessons = self.repository.active_lessons(block_id)
+        lessons = self.repository.active_lessons(module_id)
         for index, lesson_id in enumerate(payload.ids, start=1):
             lesson = next(item for item in lessons if item.id == lesson_id)
             lesson.position = index
 
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def create_practice(self, course_id: UUID, block_id: UUID, payload: PracticePayload) -> CourseOut:
-        """Создать практическое задание для блока курса."""
+    def create_practice(self, course_id: UUID, module_id: UUID, payload: PracticePayload) -> CourseOut:
+        """Создать практическое задание для модуля курса."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
-        domain_block = map_block_to_domain(block)
-        if domain_block.active_practice is not None:
-            raise CourseConflictError("Practice already exists for this block")
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
+        domain_module = map_module_to_domain(module)
+        if active_domain_practice(domain_module) is not None:
+            raise CourseConflictError("Практика уже существует для этого модуля")
 
         self.session.add(
             Practice(
-                module_id=block.id,
+                module_id=module.id,
                 task=payload.task,
                 criteria=payload.criteria,
                 check_type=payload.check_type,
@@ -198,15 +201,15 @@ class ContentService:
             )
         )
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def update_practice(self, course_id: UUID, block_id: UUID, payload: PracticePayload) -> CourseOut:
-        """Обновить практическое задание блока курса."""
+    def update_practice(self, course_id: UUID, module_id: UUID, payload: PracticePayload) -> CourseOut:
+        """Обновить практическое задание модуля курса."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
-        practice = active_practice(block)
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
+        practice = get_active_practice(module)
         if practice is None:
             raise PracticeNotFoundError()
 
@@ -218,31 +221,47 @@ class ContentService:
         practice.assignment_data = payload.assignment_data
         practice.passing_score = payload.passing_score
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
 
-    def delete_practice(self, course_id: UUID, block_id: UUID) -> CourseOut:
-        """Удалить практическое задание блока через soft-delete."""
+    def delete_practice(self, course_id: UUID, module_id: UUID) -> CourseOut:
+        """Удалить практическое задание модуля через soft-delete."""
 
-        block = self.repository.get_block(course_id, block_id)
-        if block is None:
-            raise BlockNotFoundError()
-        practice = active_practice(block)
+        module = self.repository.get_module(course_id, module_id)
+        if module is None:
+            raise ModuleNotFoundError()
+        practice = get_active_practice(module)
         if practice is None:
             raise PracticeNotFoundError()
         practice.deleted_at = current_datetime()
         self.session.commit()
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(self._get_course_or_raise(course_id))
+
+    def _get_course_or_raise(self, course_id: UUID):
+        """Получить курс из репозитория или выбросить доменную ошибку."""
+
+        course = self.repository.get(course_id)
+        if course is None:
+            raise CourseNotFoundError()
+        return course
 
 
-def apply_block_deletion(block, domain_block) -> None:
-    """Перенести состояние удаления из доменного блока в ORM-модели."""
+def apply_module_deletion(module, domain_module) -> None:
+    """Перенести состояние удаления из доменного модуля в ORM-модели."""
 
-    block.deleted_at = domain_block.deleted_at
-    domain_lessons = {lesson.id: lesson for lesson in domain_block.lessons}
-    for lesson in block.lessons:
+    module.deleted_at = domain_module.deleted_at
+    domain_lessons = {lesson.id: lesson for lesson in domain_module.lessons}
+    for lesson in module.lessons:
         domain_lesson = domain_lessons.get(lesson.id)
         if domain_lesson is not None:
             lesson.deleted_at = domain_lesson.deleted_at
 
-    if block.practice is not None and domain_block.practice is not None:
-        block.practice.deleted_at = domain_block.practice.deleted_at
+    if module.practice is not None and domain_module.practice is not None:
+        module.practice.deleted_at = domain_module.practice.deleted_at
+
+
+def get_active_practice(module):
+    """Получить активную ORM-практику модуля."""
+
+    if module.practice is None or module.practice.deleted_at is not None:
+        return None
+    return module.practice

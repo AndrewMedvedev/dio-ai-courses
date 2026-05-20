@@ -36,27 +36,27 @@ class CourseDeleted(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
-class BlockAdded(Event):
-    """Блок добавлен в курс."""
+class ModuleAdded(Event):
+    """Модуль добавлен в курс."""
 
     course_id: UUID
-    block_id: UUID
+    module_id: UUID
 
 
 @dataclass(frozen=True, kw_only=True)
-class BlockDeleted(Event):
-    """Блок курса помечен как удалённый."""
+class ModuleDeleted(Event):
+    """Модуль курса помечен как удалённый."""
 
     course_id: UUID
-    block_id: UUID
+    module_id: UUID
 
 
 @dataclass(frozen=True, kw_only=True)
 class LessonAdded(Event):
-    """Урок добавлен в блок курса."""
+    """Урок добавлен в модуль курса."""
 
     course_id: UUID
-    block_id: UUID
+    module_id: UUID
     lesson_id: UUID
 
 
@@ -65,16 +65,16 @@ class LessonDeleted(Event):
     """Урок курса помечен как удалённый."""
 
     course_id: UUID
-    block_id: UUID
+    module_id: UUID
     lesson_id: UUID
 
 
 @dataclass(frozen=True, kw_only=True)
 class PracticeAdded(Event):
-    """Практическое задание добавлено в блок курса."""
+    """Практическое задание добавлено в модуль курса."""
 
     course_id: UUID
-    block_id: UUID
+    module_id: UUID
     practice_id: UUID
 
 
@@ -83,5 +83,5 @@ class PracticeDeleted(Event):
     """Практическое задание помечено как удалённое."""
 
     course_id: UUID
-    block_id: UUID
+    module_id: UUID
     practice_id: UUID

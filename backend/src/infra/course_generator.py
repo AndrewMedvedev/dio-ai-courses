@@ -19,8 +19,8 @@ class GeneratedLesson:
 
 
 @dataclass(slots=True)
-class GeneratedBlock:
-    """Сгенерированный черновик блока курса."""
+class GeneratedModule:
+    """Сгенерированный черновик модуля курса."""
 
     title: str
     description: str
@@ -36,7 +36,7 @@ class GeneratedCourseDraft:
     title: str
     description: str
     tags: list[str]
-    blocks: list[GeneratedBlock] = field(default_factory=list)
+    modules: list[GeneratedModule] = field(default_factory=list)
 
 
 class AgentState(TypedDict):
@@ -45,8 +45,8 @@ class AgentState(TypedDict):
     topic: str
     target_audience: str
     difficulty: str
-    blocks_count: int
-    lessons_per_block: int
+    modules_count: int
+    lessons_per_module: int
     reasoning: NotRequired[str]
     draft: NotRequired[GeneratedCourseDraft]
 
@@ -62,20 +62,20 @@ def _strip_json(payload: str) -> str:
     return text.strip()
 
 
-def _to_draft(data: dict, blocks_count: int, lessons_per_block: int, topic: str, difficulty: str) -> GeneratedCourseDraft:
+def _to_draft(data: dict, modules_count: int, lessons_per_module: int, topic: str, difficulty: str) -> GeneratedCourseDraft:
     """Преобразование JSON-ответа модели в черновик курса с заполнением пропусков."""
 
     title = str(data.get("title") or f"{topic} ({difficulty})")
     description = str(data.get("description") or f"Generated course about {topic}")
     tags = [str(x) for x in (data.get("tags") or ["generated", topic.lower()])]
 
-    raw_blocks = data.get("blocks") or []
-    blocks: list[GeneratedBlock] = []
+    raw_modules = data.get("modules") or []
+    modules: list[GeneratedModule] = []
 
-    for b in raw_blocks[:blocks_count]:
+    for b in raw_modules[:modules_count]:
         lesson_titles = b.get("lesson_titles") or []
         lessons: list[GeneratedLesson] = []
-        for idx, lesson_title in enumerate(lesson_titles[:lessons_per_block], start=1):
+        for idx, lesson_title in enumerate(lesson_titles[:lessons_per_module], start=1):
             lesson_name = str(lesson_title)
             lessons.append(
                 GeneratedLesson(
@@ -84,7 +84,7 @@ def _to_draft(data: dict, blocks_count: int, lessons_per_block: int, topic: str,
                 )
             )
 
-        while len(lessons) < lessons_per_block:
+        while len(lessons) < lessons_per_module:
             idx = len(lessons) + 1
             lesson_name = f"Lesson {idx}"
             lessons.append(
@@ -94,44 +94,44 @@ def _to_draft(data: dict, blocks_count: int, lessons_per_block: int, topic: str,
                 )
             )
 
-        blocks.append(
-            GeneratedBlock(
-                title=str(b.get("title") or f"Block {len(blocks) + 1}"),
-                description=str(b.get("description") or "Auto-generated block"),
+        modules.append(
+            GeneratedModule(
+                title=str(b.get("title") or f"Module {len(modules) + 1}"),
+                description=str(b.get("description") or "Auto-generated module"),
                 lessons=lessons,
-                practice_task=str(b.get("practice_task") or "Complete practical task for this block"),
+                practice_task=str(b.get("practice_task") or "Complete practical task for this module"),
                 practice_criteria=[str(x) for x in (b.get("practice_criteria") or ["Correctness", "Completeness"])],
             )
         )
 
-    while len(blocks) < blocks_count:
-        block_index = len(blocks) + 1
+    while len(modules) < modules_count:
+        module_index = len(modules) + 1
         lessons = [
             GeneratedLesson(
-                title=f"Lesson {block_index}.{i}",
-                content=f"Theory lesson {block_index}.{i} for {topic}. Edit in CRUD.",
+                title=f"Lesson {module_index}.{i}",
+                content=f"Theory lesson {module_index}.{i} for {topic}. Edit in CRUD.",
             )
-            for i in range(1, lessons_per_block + 1)
+            for i in range(1, lessons_per_module + 1)
         ]
-        blocks.append(
-            GeneratedBlock(
-                title=f"Block {block_index}: {topic}",
-                description="Auto-generated block",
+        modules.append(
+            GeneratedModule(
+                title=f"Module {module_index}: {topic}",
+                description="Auto-generated module",
                 lessons=lessons,
-                practice_task=f"Practice for block {block_index}",
+                practice_task=f"Practice for module {module_index}",
                 practice_criteria=["Correctness", "Completeness"],
             )
         )
 
-    return GeneratedCourseDraft(title=title, description=description, tags=tags, blocks=blocks)
+    return GeneratedCourseDraft(title=title, description=description, tags=tags, modules=modules)
 
 
 def generate_course_draft_with_langchain(
     topic: str,
     target_audience: str,
     difficulty: str,
-    blocks_count: int,
-    lessons_per_block: int,
+    modules_count: int,
+    lessons_per_module: int,
     llm_model: str,
 ) -> GeneratedCourseDraft | None:
     """Генерация черновика курса через LangChain/LangGraph при наличии зависимостей и ключа."""
@@ -173,7 +173,7 @@ def generate_course_draft_with_langchain(
             "  \"title\": string,\n"
             "  \"description\": string,\n"
             "  \"tags\": string[],\n"
-            "  \"blocks\": [\n"
+            "  \"modules\": [\n"
             "    {\n"
             "      \"title\": string,\n"
             "      \"description\": string,\n"
@@ -183,7 +183,7 @@ def generate_course_draft_with_langchain(
             "    }\n"
             "  ]\n"
             "}\n"
-            f"Create exactly {state['blocks_count']} blocks and {state['lessons_per_block']} lessons per block.\n"
+            f"Create exactly {state['modules_count']} modules and {state['lessons_per_module']} lessons per module.\n"
             f"Topic: {state['topic']}\n"
             f"Audience: {state['target_audience']}\n"
             f"Difficulty: {state['difficulty']}\n"
@@ -194,8 +194,8 @@ def generate_course_draft_with_langchain(
         data = json.loads(raw)
         draft = _to_draft(
             data,
-            blocks_count=state["blocks_count"],
-            lessons_per_block=state["lessons_per_block"],
+            modules_count=state["modules_count"],
+            lessons_per_module=state["lessons_per_module"],
             topic=state["topic"],
             difficulty=state["difficulty"],
         )
@@ -215,8 +215,8 @@ def generate_course_draft_with_langchain(
                 "topic": topic,
                 "target_audience": target_audience,
                 "difficulty": difficulty,
-                "blocks_count": blocks_count,
-                "lessons_per_block": lessons_per_block,
+                "modules_count": modules_count,
+                "lessons_per_module": lessons_per_module,
             }
         )
         return result.get("draft")

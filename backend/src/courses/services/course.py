@@ -6,11 +6,18 @@ from sqlalchemy.orm import Session
 
 from courses.domain.exceptions import (
     CourseConflictError,
+    CourseNotFoundError,
     CourseValidationError,
 )
 from courses.domain.repos import CourseRepository
-from courses.infra.queries import must_get_course
-from courses.mappers import map_course_to_domain, map_course_to_response
+from courses.domain.services import (
+    change_course_status,
+    ensure_can_publish as ensure_domain_course_can_publish,
+    mark_course_deleted,
+    update_course_details,
+)
+from courses.infra.mappers import map_course_to_domain
+from courses.mappers import map_course_model_to_response
 from courses.schemas import (
     CourseCreate,
     CourseListOut,
@@ -35,7 +42,7 @@ class CourseService:
         course = self.repository.create(payload)
         self.session.commit()
         self.session.refresh(course)
-        return serialize_course(must_get_course(self.session, course.id))
+        return map_course_model_to_response(get_course_or_raise(self.repository, course.id))
 
     def list(
         self,
@@ -63,23 +70,24 @@ class CourseService:
     def get(self, course_id: UUID) -> CourseOut:
         """Получить курс по идентификатору."""
 
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(get_course_or_raise(self.repository, course_id))
 
     def update(self, course_id: UUID, payload: CourseUpdate) -> CourseOut:
         """Обновить основные поля курса и его статус."""
 
-        course = must_get_course(self.session, course_id)
+        course = get_course_or_raise(self.repository, course_id)
         domain_course = map_course_to_domain(course)
 
         try:
-            domain_course.update_details(
+            update_course_details(
+                domain_course,
                 title=payload.title,
                 description=payload.description,
                 difficulty=payload.difficulty,
                 tags=payload.tags,
             )
             if payload.status is not None:
-                domain_course.change_status(payload.status)
+                change_course_status(domain_course, payload.status)
         except ValueError as exc:
             raise CourseValidationError(str(exc)) from exc
 
@@ -97,15 +105,15 @@ class CourseService:
 
         self.session.commit()
         self.session.refresh(course)
-        return serialize_course(must_get_course(self.session, course_id))
+        return map_course_model_to_response(get_course_or_raise(self.repository, course_id))
 
     def delete(self, course_id: UUID) -> None:
         """Удалить курс через soft-delete вместе с активным содержимым."""
 
-        course = must_get_course(self.session, course_id)
+        course = get_course_or_raise(self.repository, course_id)
         domain_course = map_course_to_domain(course)
         try:
-            domain_course.mark_deleted(current_datetime())
+            mark_course_deleted(domain_course, current_datetime())
         except ValueError as exc:
             raise CourseConflictError(str(exc)) from exc
 
@@ -113,17 +121,20 @@ class CourseService:
         self.session.commit()
 
 
-def serialize_course(course) -> CourseOut:
-    """Сериализовать ORM-курс в API-ответ через доменную модель."""
+def get_course_or_raise(repository: CourseRepository, course_id: UUID):
+    """Получить курс из репозитория или выбросить доменную ошибку."""
 
-    return map_course_to_response(map_course_to_domain(course))
+    course = repository.get(course_id)
+    if course is None:
+        raise CourseNotFoundError()
+    return course
 
 
 def ensure_can_publish(course) -> None:
     """Проверить, что ORM-курс можно опубликовать."""
 
     try:
-        map_course_to_domain(course).ensure_can_publish()
+        ensure_domain_course_can_publish(map_course_to_domain(course))
     except ValueError as exc:
         raise CourseValidationError(str(exc)) from exc
 
@@ -133,18 +144,18 @@ def apply_course_deletion(course, domain_course) -> None:
 
     course.deleted_at = domain_course.deleted_at
 
-    domain_blocks = {module.id: module for module in domain_course.modules}
-    for block in course.modules:
-        domain_block = domain_blocks.get(block.id)
-        if domain_block is None:
+    domain_modules = {module.id: module for module in domain_course.modules}
+    for module in course.modules:
+        domain_module = domain_modules.get(module.id)
+        if domain_module is None:
             continue
 
-        block.deleted_at = domain_block.deleted_at
-        domain_lessons = {lesson.id: lesson for lesson in domain_block.lessons}
-        for lesson in block.lessons:
+        module.deleted_at = domain_module.deleted_at
+        domain_lessons = {lesson.id: lesson for lesson in domain_module.lessons}
+        for lesson in module.lessons:
             domain_lesson = domain_lessons.get(lesson.id)
             if domain_lesson is not None:
                 lesson.deleted_at = domain_lesson.deleted_at
 
-        if block.practice is not None and domain_block.practice is not None:
-            block.practice.deleted_at = domain_block.practice.deleted_at
+        if module.practice is not None and domain_module.practice is not None:
+            module.practice.deleted_at = domain_module.practice.deleted_at

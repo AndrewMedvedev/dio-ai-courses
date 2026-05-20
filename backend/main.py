@@ -7,16 +7,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from ai_models.scheduler import scheduler as ai_models_scheduler
 from api.router import router as api_router
-from courses.content_router import router as content_router
 from courses.domain.exceptions import CourseAppError
-from courses.generation_router import router as generation_router
-from courses.progress_router import router as progress_router
-from courses.router import router as courses_router
+from courses.routers import router as courses_router
 
 
 @asynccontextmanager
@@ -42,7 +40,17 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.include_router(api_router)
+@app.exception_handler(CourseAppError)
+async def course_app_error_handler(_: Request, exc: CourseAppError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error_code": exc.error_code,
+            "message": exc.message,
+            "details": exc.details,
+        },
+    )
 
-for router in (courses_router, content_router, progress_router, generation_router):
-    app.include_router(router, prefix="/api/v1")
+
+app.include_router(api_router)
+app.include_router(courses_router, prefix="/api/v1")

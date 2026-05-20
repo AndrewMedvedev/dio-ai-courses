@@ -3,22 +3,36 @@ from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import String, and_, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from courses.domain.entities.course import Course as DomainCourse
-from courses.domain.vo import AttemptStatus, EnrollmentStatus
+from courses.domain.services import create_course
+from courses.domain.vo import EnrollmentStatus
 from courses.infra.models import (
-    Block,
     Course,
+    CourseGenerationTask,
     Enrollment,
+    GenerationStatus,
     Lesson,
     LessonCompletion,
+    Module,
     Practice,
-    PracticeAttempt,
-    PracticeSubmission,
 )
-from courses.infra.queries import course_query, create_block_nested
-from courses.schemas import CourseCreate, CourseListItem, CourseListOut, NestedBlockCreate
+from courses.schemas import CourseCreate, CourseListItem, CourseListOut, NestedModuleCreate
+from courses.schemas import GenerateCourseRequest
+
+
+def course_query():
+    """Базовый запрос курса с предзагрузкой модулей, уроков и практики."""
+
+    return (
+        select(Course)
+        .where(Course.deleted_at.is_(None))
+        .execution_options(populate_existing=True)
+        .options(
+            selectinload(Course.modules).selectinload(Module.lessons),
+            selectinload(Course.modules).selectinload(Module.practice),
+        )
+    )
 
 
 class SqlCourseRepository:
@@ -30,9 +44,9 @@ class SqlCourseRepository:
         self.session = session
 
     def create(self, payload: CourseCreate) -> Course:
-        """Создание курса с вложенными блоками из входных данных."""
+        """Создание курса с вложенными модулями из входных данных."""
 
-        domain_course = DomainCourse.create(
+        domain_course = create_course(
             title=payload.title,
             description=payload.description,
             difficulty=payload.difficulty,
@@ -50,14 +64,12 @@ class SqlCourseRepository:
             final_assessment=payload.final_assessment,
             status=domain_course.status,
             popularity=domain_course.popularity,
-            created_at=domain_course.created_at,
-            updated_at=domain_course.updated_at,
         )
         self.session.add(course)
         self.session.flush()
 
-        for block_data in payload.blocks:
-            self.create_block_nested(course.id, block_data)
+        for module_data in payload.modules:
+            self.create_module_nested(course.id, module_data)
 
         return course
 
@@ -136,14 +148,14 @@ class SqlCourseRepository:
         self.session.expire_all()
         return self.session.scalar(course_query().where(Course.id == course_id))
 
-    def get_block(self, course_id: UUID, block_id: UUID) -> Block | None:
-        """Получение активного блока по курсу и идентификатору."""
+    def get_module(self, course_id: UUID, module_id: UUID) -> Module | None:
+        """Получение активного модуля по курсу и идентификатору."""
 
         return self.session.scalar(
-            select(Block).where(
-                Block.id == block_id,
-                Block.course_id == course_id,
-                Block.deleted_at.is_(None),
+            select(Module).where(
+                Module.id == module_id,
+                Module.course_id == course_id,
+                Module.deleted_at.is_(None),
             )
         )
 
@@ -152,58 +164,97 @@ class SqlCourseRepository:
 
         return self.session.scalar(
             select(Lesson)
-            .join(Block, Block.id == Lesson.module_id)
+            .join(Module, Module.id == Lesson.module_id)
             .where(
                 Lesson.id == lesson_id,
                 Lesson.deleted_at.is_(None),
-                Block.course_id == course_id,
-                Block.deleted_at.is_(None),
+                Module.course_id == course_id,
+                Module.deleted_at.is_(None),
             )
         )
 
-    def create_block_nested(self, course_id: UUID, payload: NestedBlockCreate) -> Block:
-        """Создание блока с вложенными уроками и практикой."""
+    def create_module_nested(self, course_id: UUID, payload: NestedModuleCreate) -> Module:
+        """Создание модуля с вложенными уроками и практикой."""
 
-        return create_block_nested(self.session, course_id, payload)
+        max_position = self.max_module_order(course_id)
+        module = Module(
+            course_id=course_id,
+            title=payload.title,
+            description=payload.description,
+            learning_objectives=payload.learning_objectives,
+            content_blocks=payload.content_blocks,
+            order=(max_position + 1) if max_position is not None else 1,
+        )
+        self.session.add(module)
+        self.session.flush()
 
-    def max_block_position(self, course_id: UUID) -> int | None:
-        """Получение максимальной позиции активного блока курса."""
+        for index, lesson_data in enumerate(payload.lessons, start=1):
+            self.session.add(
+                Lesson(
+                    module_id=module.id,
+                    title=lesson_data.title,
+                    content=lesson_data.content,
+                    learning_objectives=lesson_data.learning_objectives,
+                    content_blocks=lesson_data.content_blocks,
+                    estimated_time_minutes=lesson_data.estimated_time_minutes,
+                    position=index,
+                )
+            )
+
+        if payload.practice is not None:
+            self.session.add(
+                Practice(
+                    module_id=module.id,
+                    task=payload.practice.task,
+                    criteria=payload.practice.criteria,
+                    check_type=payload.practice.check_type,
+                    title=payload.practice.title,
+                    assignment_type=payload.practice.assignment_type,
+                    assignment_data=payload.practice.assignment_data,
+                    passing_score=payload.practice.passing_score,
+                )
+            )
+
+        return module
+
+    def max_module_order(self, course_id: UUID) -> int | None:
+        """Получение максимальной позиции активного модуля курса."""
 
         return self.session.scalar(
-            select(func.max(Block.order)).where(
-                Block.course_id == course_id,
-                Block.deleted_at.is_(None),
+            select(func.max(Module.order)).where(
+                Module.course_id == course_id,
+                Module.deleted_at.is_(None),
             )
         )
 
-    def max_lesson_position(self, block_id: UUID) -> int | None:
-        """Получение максимальной позиции активного урока блока."""
+    def max_lesson_position(self, module_id: UUID) -> int | None:
+        """Получение максимальной позиции активного урока модуля."""
 
         return self.session.scalar(
             select(func.max(Lesson.position)).where(
-                Lesson.module_id == block_id,
+                Lesson.module_id == module_id,
                 Lesson.deleted_at.is_(None),
             )
         )
 
-    def active_blocks(self, course_id: UUID) -> list[Block]:
-        """Получение активных блоков курса в порядке отображения."""
+    def active_modules(self, course_id: UUID) -> list[Module]:
+        """Получение активных модулей курса в порядке отображения."""
 
         return list(
             self.session.scalars(
-                select(Block)
-                .where(Block.course_id == course_id, Block.deleted_at.is_(None))
-                .order_by(Block.order)
+                select(Module)
+                .where(Module.course_id == course_id, Module.deleted_at.is_(None))
+                .order_by(Module.order)
             ).all()
         )
 
-    def active_lessons(self, block_id: UUID) -> list[Lesson]:
-        """Получение активных уроков блока в порядке отображения."""
+    def active_lessons(self, module_id: UUID) -> list[Lesson]:
+        """Получение активных уроков модуля в порядке отображения."""
 
         return list(
             self.session.scalars(
                 select(Lesson)
-                .where(Lesson.module_id == block_id, Lesson.deleted_at.is_(None))
+                .where(Lesson.module_id == module_id, Lesson.deleted_at.is_(None))
                 .order_by(Lesson.position)
             ).all()
         )
@@ -229,12 +280,32 @@ class SqlProgressRepository:
 
         return self.session.scalar(select(Enrollment).where(Enrollment.id == enrollment_id))
 
+    def get_course(self, course_id: UUID) -> Course | None:
+        """Получение курса по идентификатору."""
+
+        self.session.expire_all()
+        return self.session.scalar(course_query().where(Course.id == course_id))
+
+    def get_lesson(self, lesson_id: UUID, course_id: UUID) -> Lesson | None:
+        """Получение активного урока в рамках курса."""
+
+        return self.session.scalar(
+            select(Lesson)
+            .join(Module, Module.id == Lesson.module_id)
+            .where(
+                Lesson.id == lesson_id,
+                Lesson.deleted_at.is_(None),
+                Module.course_id == course_id,
+                Module.deleted_at.is_(None),
+            )
+        )
+
     def add_enrollment(
         self,
         *,
         user_id: int,
         course_id: UUID,
-        current_block_id: UUID | None,
+        current_module_id: UUID | None,
         current_lesson_id: UUID | None,
     ) -> Enrollment:
         """Создание записи прохождения курса."""
@@ -243,25 +314,25 @@ class SqlProgressRepository:
             user_id=user_id,
             course_id=course_id,
             status=EnrollmentStatus.IN_PROGRESS.value,
-            current_block_id=current_block_id,
+            current_module_id=current_module_id,
             current_lesson_id=current_lesson_id,
             completion_percent=0,
         )
         self.session.add(enrollment)
         return enrollment
 
-    def get_block_by_id(self, block_id: UUID) -> Block | None:
-        """Получение блока по идентификатору."""
+    def get_module_by_id(self, module_id: UUID) -> Module | None:
+        """Получение модуля по идентификатору."""
 
-        return self.session.scalar(select(Block).where(Block.id == block_id))
+        return self.session.scalar(select(Module).where(Module.id == module_id))
 
-    def active_block_lessons(self, block_id: UUID) -> list[Lesson]:
-        """Получение активных уроков блока в порядке отображения."""
+    def active_module_lessons(self, module_id: UUID) -> list[Lesson]:
+        """Получение активных уроков модуля в порядке отображения."""
 
         return list(
             self.session.scalars(
                 select(Lesson)
-                .where(Lesson.module_id == block_id, Lesson.deleted_at.is_(None))
+                .where(Lesson.module_id == module_id, Lesson.deleted_at.is_(None))
                 .order_by(Lesson.position)
             ).all()
         )
@@ -282,68 +353,38 @@ class SqlProgressRepository:
 
         self.session.add(LessonCompletion(enrollment_id=enrollment_id, lesson_id=lesson_id))
 
-    def find_in_progress_attempt(
-        self, enrollment_id: UUID, practice_id: UUID
-    ) -> PracticeAttempt | None:
-        """Поиск незавершённой попытки по практике."""
+    def count_completed_lessons(self, enrollment_id: UUID) -> int:
+        """Подсчёт завершённых уроков прохождения курса."""
 
         return self.session.scalar(
-            select(PracticeAttempt).where(
-                PracticeAttempt.enrollment_id == enrollment_id,
-                PracticeAttempt.practice_id == practice_id,
-                PracticeAttempt.status == AttemptStatus.IN_PROGRESS.value,
-            )
-        )
-
-    def count_attempts(self, enrollment_id: UUID, practice_id: UUID) -> int:
-        """Подсчёт количества попыток по практике."""
-
-        return self.session.scalar(
-            select(func.count(PracticeAttempt.id)).where(
-                PracticeAttempt.enrollment_id == enrollment_id,
-                PracticeAttempt.practice_id == practice_id,
-            )
+            select(func.count(LessonCompletion.id)).where(LessonCompletion.enrollment_id == enrollment_id)
         ) or 0
 
-    def add_attempt(self, enrollment_id: UUID, practice_id: UUID, attempt_no: int) -> PracticeAttempt:
-        """Создание новой попытки выполнения практики."""
 
-        attempt = PracticeAttempt(
-            enrollment_id=enrollment_id,
-            practice_id=practice_id,
-            attempt_no=attempt_no,
-            status=AttemptStatus.IN_PROGRESS.value,
+class SqlGenerationRepository:
+    """SQLAlchemy-реализация хранилища задач генерации курсов."""
+
+    def __init__(self, session: Session) -> None:
+        """Инициализация репозитория текущей сессией БД."""
+
+        self.session = session
+
+    def add_task(self, payload: GenerateCourseRequest) -> CourseGenerationTask:
+        """Создание задачи генерации курса."""
+
+        task = CourseGenerationTask(
+            topic=payload.topic,
+            target_audience=payload.target_audience,
+            difficulty=payload.difficulty,
+            llm_model=payload.llm_model,
+            modules_count=payload.modules_count,
+            lessons_per_module=payload.lessons_per_module,
+            status=GenerationStatus.PENDING.value,
         )
-        self.session.add(attempt)
-        return attempt
+        self.session.add(task)
+        return task
 
-    def get_attempt(self, attempt_id: UUID) -> PracticeAttempt | None:
-        """Получение попытки выполнения практики."""
+    def get_task(self, task_id: UUID) -> CourseGenerationTask | None:
+        """Получение задачи генерации курса."""
 
-        return self.session.scalar(select(PracticeAttempt).where(PracticeAttempt.id == attempt_id))
-
-    def add_submission(
-        self,
-        *,
-        attempt_id: UUID,
-        answer_type: str,
-        text_answer: str | None,
-        code_answer: str | None,
-        file_url: str | None,
-    ) -> None:
-        """Добавление ответа пользователя к попытке практики."""
-
-        self.session.add(
-            PracticeSubmission(
-                attempt_id=attempt_id,
-                answer_type=answer_type,
-                text_answer=text_answer,
-                code_answer=code_answer,
-                file_url=file_url,
-            )
-        )
-
-    def get_practice(self, practice_id: UUID) -> Practice | None:
-        """Получение практического задания по идентификатору."""
-
-        return self.session.scalar(select(Practice).where(Practice.id == practice_id))
+        return self.session.scalar(select(CourseGenerationTask).where(CourseGenerationTask.id == task_id))

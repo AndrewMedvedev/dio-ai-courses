@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 
-def _find_block(course_payload: dict, block_id: str) -> dict:
-    for block in course_payload["blocks"]:
-        if block["id"] == block_id:
-            return block
-    raise AssertionError(f"Block not found: {block_id}")
+def _find_module(course_payload: dict, module_id: str) -> dict:
+    for module in course_payload["modules"]:
+        if module["id"] == module_id:
+            return module
+    raise AssertionError(f"Module not found: {module_id}")
 
 
 def test_course_crud_lifecycle(client):
@@ -14,9 +14,9 @@ def test_course_crud_lifecycle(client):
         "description": "Intro to AI",
         "difficulty": "beginner",
         "tags": ["ai", "ml"],
-        "blocks": [
+        "modules": [
             {
-                "title": "Block 1",
+                "title": "Module 1",
                 "description": "Fundamentals",
                 "lessons": [
                     {"title": "Lesson 1", "content": "L1"},
@@ -35,7 +35,7 @@ def test_course_crud_lifecycle(client):
     course = create_resp.json()
     course_id = course["id"]
     assert course["status"] == "draft"
-    assert len(course["blocks"]) == 1
+    assert len(course["modules"]) == 1
 
     list_resp = client.get("/api/v1/courses", params={"status": "draft", "limit": 10, "page": 1})
     assert list_resp.status_code == 200
@@ -52,52 +52,52 @@ def test_course_crud_lifecycle(client):
     assert update_resp.status_code == 200
     assert update_resp.json()["title"] == "AI Basics Updated"
 
-    add_block_resp = client.post(
-        f"/api/v1/courses/{course_id}/blocks",
-        json={"title": "Block 2", "description": "Advanced"},
+    add_module_resp = client.post(
+        f"/api/v1/courses/{course_id}/modules",
+        json={"title": "Module 2", "description": "Advanced"},
     )
-    assert add_block_resp.status_code == 201
-    course = add_block_resp.json()
-    assert len(course["blocks"]) == 2
-    block_2_id = next(block["id"] for block in course["blocks"] if block["title"] == "Block 2")
+    assert add_module_resp.status_code == 201
+    course = add_module_resp.json()
+    assert len(course["modules"]) == 2
+    module_2_id = next(module["id"] for module in course["modules"] if module["title"] == "Module 2")
 
     add_lesson_1_resp = client.post(
-        f"/api/v1/courses/{course_id}/blocks/{block_2_id}/lessons",
+        f"/api/v1/courses/{course_id}/modules/{module_2_id}/lessons",
         json={"title": "B2 L1", "content": "content"},
     )
     assert add_lesson_1_resp.status_code == 201
     add_lesson_2_resp = client.post(
-        f"/api/v1/courses/{course_id}/blocks/{block_2_id}/lessons",
+        f"/api/v1/courses/{course_id}/modules/{module_2_id}/lessons",
         json={"title": "B2 L2", "content": "content"},
     )
     assert add_lesson_2_resp.status_code == 201
     course = add_lesson_2_resp.json()
 
-    block_2 = _find_block(course, block_2_id)
-    lesson_ids = [lesson["id"] for lesson in block_2["lessons"]]
+    module_2 = _find_module(course, module_2_id)
+    lesson_ids = [lesson["id"] for lesson in module_2["lessons"]]
     assert len(lesson_ids) == 2
 
     add_practice_resp = client.post(
-        f"/api/v1/courses/{course_id}/blocks/{block_2_id}/practice",
+        f"/api/v1/courses/{course_id}/modules/{module_2_id}/practice",
         json={"task": "Practice B2", "criteria": ["done"], "check_type": "manual"},
     )
     assert add_practice_resp.status_code == 201
-    assert _find_block(add_practice_resp.json(), block_2_id)["practice"]["task"] == "Practice B2"
+    assert _find_module(add_practice_resp.json(), module_2_id)["practice"]["task"] == "Practice B2"
 
-    original_block_ids = [block["id"] for block in add_practice_resp.json()["blocks"]]
-    reorder_blocks_resp = client.put(
-        f"/api/v1/courses/{course_id}/blocks/reorder",
-        json={"ids": list(reversed(original_block_ids))},
+    original_module_ids = [module["id"] for module in add_practice_resp.json()["modules"]]
+    reorder_modules_resp = client.put(
+        f"/api/v1/courses/{course_id}/modules/reorder",
+        json={"ids": list(reversed(original_module_ids))},
     )
-    assert reorder_blocks_resp.status_code == 200
-    assert [block["id"] for block in reorder_blocks_resp.json()["blocks"]] == list(reversed(original_block_ids))
+    assert reorder_modules_resp.status_code == 200
+    assert [module["id"] for module in reorder_modules_resp.json()["modules"]] == list(reversed(original_module_ids))
 
     reorder_lessons_resp = client.put(
-        f"/api/v1/courses/{course_id}/blocks/{block_2_id}/lessons/reorder",
+        f"/api/v1/courses/{course_id}/modules/{module_2_id}/lessons/reorder",
         json={"ids": list(reversed(lesson_ids))},
     )
     assert reorder_lessons_resp.status_code == 200
-    reordered_lesson_ids = [lesson["id"] for lesson in _find_block(reorder_lessons_resp.json(), block_2_id)["lessons"]]
+    reordered_lesson_ids = [lesson["id"] for lesson in _find_module(reorder_lessons_resp.json(), module_2_id)["lessons"]]
     assert reordered_lesson_ids == list(reversed(lesson_ids))
 
     publish_resp = client.patch(f"/api/v1/courses/{course_id}", json={"status": "published"})
@@ -130,9 +130,9 @@ def test_course_content_mutation_endpoints(client):
             "description": "Content checks",
             "difficulty": "beginner",
             "tags": ["content"],
-            "blocks": [
+            "modules": [
                 {
-                    "title": "Initial block",
+                    "title": "Initial module",
                     "description": "Initial description",
                     "lessons": [{"title": "Initial lesson", "content": "Initial content"}],
                     "practice": {
@@ -147,42 +147,42 @@ def test_course_content_mutation_endpoints(client):
     assert create_resp.status_code == 201
     course = create_resp.json()
     course_id = course["id"]
-    block_id = course["blocks"][0]["id"]
-    lesson_id = course["blocks"][0]["lessons"][0]["id"]
+    module_id = course["modules"][0]["id"]
+    lesson_id = course["modules"][0]["lessons"][0]["id"]
 
-    update_block_resp = client.patch(
-        f"/api/v1/courses/{course_id}/blocks/{block_id}",
-        json={"title": "Updated block", "description": "Updated description"},
+    update_module_resp = client.patch(
+        f"/api/v1/courses/{course_id}/modules/{module_id}",
+        json={"title": "Updated module", "description": "Updated description"},
     )
-    assert update_block_resp.status_code == 200
-    updated_block = _find_block(update_block_resp.json(), block_id)
-    assert updated_block["title"] == "Updated block"
-    assert updated_block["description"] == "Updated description"
+    assert update_module_resp.status_code == 200
+    updated_module = _find_module(update_module_resp.json(), module_id)
+    assert updated_module["title"] == "Updated module"
+    assert updated_module["description"] == "Updated description"
 
     update_lesson_resp = client.patch(
         f"/api/v1/courses/{course_id}/lessons/{lesson_id}",
         json={"title": "Updated lesson", "content": "Updated content"},
     )
     assert update_lesson_resp.status_code == 200
-    updated_lesson = _find_block(update_lesson_resp.json(), block_id)["lessons"][0]
+    updated_lesson = _find_module(update_lesson_resp.json(), module_id)["lessons"][0]
     assert updated_lesson["title"] == "Updated lesson"
     assert updated_lesson["content"] == "Updated content"
 
     update_practice_resp = client.put(
-        f"/api/v1/courses/{course_id}/blocks/{block_id}/practice",
+        f"/api/v1/courses/{course_id}/modules/{module_id}/practice",
         json={"task": "Updated practice", "criteria": ["updated"], "check_type": "manual"},
     )
     assert update_practice_resp.status_code == 200
-    assert _find_block(update_practice_resp.json(), block_id)["practice"]["task"] == "Updated practice"
+    assert _find_module(update_practice_resp.json(), module_id)["practice"]["task"] == "Updated practice"
 
-    delete_practice_resp = client.delete(f"/api/v1/courses/{course_id}/blocks/{block_id}/practice")
+    delete_practice_resp = client.delete(f"/api/v1/courses/{course_id}/modules/{module_id}/practice")
     assert delete_practice_resp.status_code == 200
-    assert _find_block(delete_practice_resp.json(), block_id)["practice"] is None
+    assert _find_module(delete_practice_resp.json(), module_id)["practice"] is None
 
     delete_lesson_resp = client.delete(f"/api/v1/courses/{course_id}/lessons/{lesson_id}")
     assert delete_lesson_resp.status_code == 200
-    assert _find_block(delete_lesson_resp.json(), block_id)["lessons"] == []
+    assert _find_module(delete_lesson_resp.json(), module_id)["lessons"] == []
 
-    delete_block_resp = client.delete(f"/api/v1/courses/{course_id}/blocks/{block_id}")
-    assert delete_block_resp.status_code == 200
-    assert delete_block_resp.json()["blocks"] == []
+    delete_module_resp = client.delete(f"/api/v1/courses/{course_id}/modules/{module_id}")
+    assert delete_module_resp.status_code == 200
+    assert delete_module_resp.json()["modules"] == []

@@ -42,8 +42,8 @@ class LessonUpdate:
 
 
 @dataclass(slots=True)
-class BlockCreate:
-    """Входные данные создания блока."""
+class ModuleCreate:
+    """Входные данные создания модуля."""
 
     title: str
     description: str = ""
@@ -52,8 +52,8 @@ class BlockCreate:
 
 
 @dataclass(slots=True)
-class BlockUpdate:
-    """Входные данные обновления блока."""
+class ModuleUpdate:
+    """Входные данные обновления модуля."""
 
     title: str | None = None
     description: str | None = None
@@ -62,8 +62,8 @@ class BlockUpdate:
 
 
 @dataclass(slots=True)
-class NestedBlockCreate:
-    """Входные данные вложенного блока при создании курса."""
+class NestedModuleCreate:
+    """Входные данные вложенного модуля при создании курса."""
 
     title: str
     description: str = ""
@@ -85,7 +85,7 @@ class CourseCreate:
     learning_objectives: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     final_assessment: dict[str, Any] | None = None
-    blocks: list[NestedBlockCreate] = field(default_factory=list)
+    modules: list[NestedModuleCreate] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -137,8 +137,8 @@ class PracticeOut:
 
 
 @dataclass(slots=True)
-class BlockOut:
-    """Ответ API с блоком курса."""
+class ModuleOut:
+    """Ответ API с модулем курса."""
 
     id: UUID
     title: str
@@ -167,7 +167,7 @@ class CourseOut:
     popularity: int
     created_at: datetime
     updated_at: datetime
-    blocks: list[BlockOut] = field(default_factory=list)
+    modules: list[ModuleOut] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -210,7 +210,7 @@ class ProgressOut:
     user_id: int
     course_id: UUID
     status: str
-    current_block_id: UUID | None
+    current_module_id: UUID | None
     current_lesson_id: UUID | None
     completion_percent: float
     started_at: datetime
@@ -225,64 +225,23 @@ class CompleteLessonRequest:
 
 
 @dataclass(slots=True)
-class StartAttemptRequest:
-    """Входные данные начала попытки практики."""
-
-    user_id: int
-
-
-@dataclass(slots=True)
-class AttemptOut:
-    """Ответ API с попыткой выполнения практики."""
-
-    id: UUID
-    enrollment_id: UUID
-    practice_id: UUID
-    attempt_no: int
-    status: str
-    started_at: datetime
-    checked_at: datetime | None
-    score: float | None
-    feedback: str | None
-
-
-@dataclass(slots=True)
-class SubmitAttemptRequest:
-    """Входные данные отправки ответа на практику."""
-
-    answer_type: str
-    text_answer: str | None = None
-    code_answer: str | None = None
-    file_url: str | None = None
-
-
-@dataclass(slots=True)
-class ReviewAttemptRequest:
-    """Входные данные проверки попытки практики."""
-
-    passed: bool
-    score: float | None = None
-    feedback: str | None = None
-
-
-@dataclass(slots=True)
 class GenerateCourseRequest:
     """Входные данные запуска генерации курса."""
 
     topic: str
     target_audience: str
     difficulty: str
-    blocks_count: int
-    lessons_per_block: int
+    modules_count: int
+    lessons_per_module: int
     llm_model: str
 
     def validate(self) -> None:
         """Валидация ограничений генерации курса."""
 
-        if self.blocks_count < 1 or self.blocks_count > 20:
-            raise ValueError("blocks_count must be in [1, 20]")
-        if self.lessons_per_block < 1 or self.lessons_per_block > 20:
-            raise ValueError("lessons_per_block must be in [1, 20]")
+        if self.modules_count < 1 or self.modules_count > 20:
+            raise ValueError("modules_count должен быть в диапазоне от 1 до 20")
+        if self.lessons_per_module < 1 or self.lessons_per_module > 20:
+            raise ValueError("lessons_per_module должен быть в диапазоне от 1 до 20")
 
 
 @dataclass(slots=True)
@@ -295,44 +254,10 @@ class GenerationTaskOut:
     target_audience: str
     difficulty: str
     llm_model: str
-    blocks_count: int
-    lessons_per_block: int
+    modules_count: int
+    lessons_per_module: int
     course_id: UUID | None
     error_message: str | None
     created_at: datetime
     updated_at: datetime
 
-
-def attempt_out_from_orm(attempt) -> AttemptOut:
-    """Преобразование ORM-попытки практики в ответ API."""
-
-    return AttemptOut(
-        id=attempt.id,
-        enrollment_id=attempt.enrollment_id,
-        practice_id=attempt.practice_id,
-        attempt_no=attempt.attempt_no,
-        status=attempt.status,
-        started_at=attempt.started_at,
-        checked_at=attempt.checked_at,
-        score=attempt.score,
-        feedback=attempt.feedback,
-    )
-
-
-def generation_task_out_from_orm(task) -> GenerationTaskOut:
-    """Преобразование ORM-задачи генерации в ответ API."""
-
-    return GenerationTaskOut(
-        id=task.id,
-        status=task.status,
-        topic=task.topic,
-        target_audience=task.target_audience,
-        difficulty=task.difficulty,
-        llm_model=task.llm_model,
-        blocks_count=task.blocks_count,
-        lessons_per_block=task.lessons_per_block,
-        course_id=task.course_id,
-        error_message=task.error_message,
-        created_at=task.created_at,
-        updated_at=task.updated_at,
-    )

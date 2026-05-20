@@ -1,85 +1,91 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
+
+from http import HTTPStatus
 from typing import Any
 
 
-@dataclass(slots=True)
 class CourseAppError(Exception):
     """Базовая ошибка домена курсов, которую API-слой превращает в HTTP-ответ."""
 
-    message: str
+    status_code: int = HTTPStatus.BAD_REQUEST
     error_code: str = "COURSE_ERROR"
-    status_code: int = 400
-    details: dict[str, Any] = field(default_factory=dict)
+    public_message: str = "Ошибка курса"
+
+    def __init__(
+        self,
+        message: str | None = None,
+        status_code: int | None = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | list[Any] | None = None,
+    ) -> None:
+        """Создать ошибку курса с публичным сообщением и деталями."""
+
+        self.message = message or self.public_message
+        self.status_code = status_code or self.status_code
+        self.error_code = error_code or self.error_code
+        self.details = details or {}
+        super().__init__(self.message)
 
 
 class CourseNotFoundError(CourseAppError):
     """Ошибка, когда курс не найден."""
 
-    def __init__(self, message: str = "Course not found") -> None:
-        super().__init__(message=message, error_code="COURSE_NOT_FOUND", status_code=404)
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "COURSE_NOT_FOUND"
+    public_message = "Курс не найден"
 
 
-class BlockNotFoundError(CourseAppError):
-    """Ошибка, когда блок курса не найден."""
+class ModuleNotFoundError(CourseAppError):
+    """Ошибка, когда модуль курса не найден."""
 
-    def __init__(self, message: str = "Block not found") -> None:
-        super().__init__(message=message, error_code="BLOCK_NOT_FOUND", status_code=404)
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "MODULE_NOT_FOUND"
+    public_message = "Модуль не найден"
 
 
 class LessonNotFoundError(CourseAppError):
     """Ошибка, когда урок курса не найден."""
 
-    def __init__(self, message: str = "Lesson not found") -> None:
-        super().__init__(message=message, error_code="LESSON_NOT_FOUND", status_code=404)
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "LESSON_NOT_FOUND"
+    public_message = "Урок не найден"
 
 
 class PracticeNotFoundError(CourseAppError):
     """Ошибка, когда практическое задание не найдено."""
 
-    def __init__(self, message: str = "Practice not found") -> None:
-        super().__init__(message=message, error_code="PRACTICE_NOT_FOUND", status_code=404)
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "PRACTICE_NOT_FOUND"
+    public_message = "Практическое задание не найдено"
 
 
 class EnrollmentNotFoundError(CourseAppError):
     """Ошибка, когда запись прохождения курса не найдена."""
 
-    def __init__(self, message: str = "Enrollment not found") -> None:
-        super().__init__(message=message, error_code="ENROLLMENT_NOT_FOUND", status_code=404)
-
-
-class AttemptNotFoundError(CourseAppError):
-    """Ошибка, когда попытка выполнения практики не найдена."""
-
-    def __init__(self, message: str = "Attempt not found") -> None:
-        super().__init__(message=message, error_code="ATTEMPT_NOT_FOUND", status_code=404)
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "ENROLLMENT_NOT_FOUND"
+    public_message = "Прохождение курса не найдено"
 
 
 class GenerationTaskNotFoundError(CourseAppError):
     """Ошибка, когда задача генерации курса не найдена."""
 
-    def __init__(self, message: str = "Generation task not found") -> None:
-        super().__init__(message=message, error_code="GENERATION_TASK_NOT_FOUND", status_code=404)
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "GENERATION_TASK_NOT_FOUND"
+    public_message = "Задача генерации курса не найдена"
 
 
 class CourseValidationError(CourseAppError):
     """Ошибка валидации пользовательского сценария курсов."""
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
-        super().__init__(
-            message=message,
-            error_code="COURSE_VALIDATION_ERROR",
-            status_code=400,
-            details=details or {},
-        )
+    status_code = HTTPStatus.BAD_REQUEST
+    error_code = "COURSE_VALIDATION_ERROR"
+    public_message = "Ошибка валидации курса"
 
 
 class CourseConflictError(CourseAppError):
     """Ошибка конфликта состояния курса или вложенного контента."""
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
-        super().__init__(
-            message=message,
-            error_code="COURSE_CONFLICT",
-            status_code=409,
-            details=details or {},
-        )
+    status_code = HTTPStatus.CONFLICT
+    error_code = "COURSE_CONFLICT"
+    public_message = "Конфликт состояния курса"

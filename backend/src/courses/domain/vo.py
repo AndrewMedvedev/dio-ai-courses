@@ -16,14 +16,6 @@ class EnrollmentStatus(StrEnum):
     COMPLETED = "completed"
 
 
-class AttemptStatus(StrEnum):
-    """Статусы попытки выполнения практического задания."""
-
-    IN_PROGRESS = "in_progress"
-    PASSED = "passed"
-    FAILED = "failed"
-
-
 class GenerationStatus(StrEnum):
     """Статусы фоновой генерации курса."""
 

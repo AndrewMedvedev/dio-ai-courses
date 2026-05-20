@@ -2,21 +2,27 @@ from __future__ import annotations
 
 import pytest
 
-from courses.domain.entities.course import Course
 from courses.domain.events import (
-    BlockAdded,
     CourseCreated,
     CourseDeleted,
     CoursePublished,
+    ModuleAdded,
+)
+from courses.domain.services import (
+    active_modules,
+    append_module_to_course,
+    create_course,
+    mark_course_deleted,
+    publish_course,
 )
 from courses.domain.vo import CourseStatus
 from shared.utils.time import current_datetime
 
-from .factories import make_block, make_course
+from .factories import make_course, make_module
 
 
 def test_course_create_registers_created_event() -> None:
-    course = Course.create(
+    course = create_course(
         title="Python",
         description="Intro",
         difficulty="beginner",
@@ -31,50 +37,50 @@ def test_course_create_registers_created_event() -> None:
     assert events[0].course_id == course.id
 
 
-def test_publish_requires_active_blocks_with_lessons() -> None:
-    course = make_course(blocks=[])
+def test_publish_requires_active_modules_with_lessons() -> None:
+    course = make_course(modules=[])
 
-    with pytest.raises(ValueError, match="without blocks"):
-        course.publish()
+    with pytest.raises(ValueError, match="без модулей"):
+        publish_course(course)
 
-    course = make_course(blocks=[make_block(lessons=[])])
+    course = make_course(modules=[make_module(lessons=[])])
 
-    with pytest.raises(ValueError, match="without lessons"):
-        course.publish()
+    with pytest.raises(ValueError, match="без уроков"):
+        publish_course(course)
 
 
 def test_publish_changes_status_and_registers_event() -> None:
     course = make_course()
 
-    course.publish()
+    publish_course(course)
     events = list(course.collect_events())
 
     assert course.status == CourseStatus.PUBLISHED.value
     assert any(isinstance(event, CoursePublished) for event in events)
 
 
-def test_add_block_registers_event() -> None:
-    course = make_course(blocks=[])
-    block = make_block()
+def test_append_module_registers_event() -> None:
+    course = make_course(modules=[])
+    module = make_module()
 
-    course.add_block(block)
+    append_module_to_course(course, module)
     events = list(course.collect_events())
 
-    assert course.active_blocks == [block]
-    assert any(isinstance(event, BlockAdded) for event in events)
+    assert active_modules(course) == [module]
+    assert any(isinstance(event, ModuleAdded) for event in events)
 
 
 def test_published_course_cannot_be_deleted() -> None:
     course = make_course(status=CourseStatus.PUBLISHED.value)
 
-    with pytest.raises(ValueError, match="Cannot delete published course"):
-        course.mark_deleted(current_datetime())
+    with pytest.raises(ValueError, match="Нельзя удалить опубликованный курс"):
+        mark_course_deleted(course, current_datetime())
 
 
 def test_course_mark_deleted_registers_deleted_event() -> None:
     course = make_course()
 
-    course.mark_deleted(current_datetime())
+    mark_course_deleted(course, current_datetime())
     events = list(course.collect_events())
 
     assert any(isinstance(event, CourseDeleted) for event in events)

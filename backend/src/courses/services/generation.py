@@ -2,17 +2,67 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from courses.schemas import GenerationTaskOut, generation_task_out_from_orm
+from sqlalchemy.orm import Session
+
+from courses.domain.exceptions import CourseValidationError, GenerationTaskNotFoundError
+from courses.domain.repos import GenerationRepository
+from courses.mappers import map_generation_task_to_response
+from courses.schemas import GenerateCourseRequest, GenerationTaskOut
 from infra.course_generator import generate_course_draft_with_langchain
 from courses.infra.models import (
-    Block,
     Course,
     CourseGenerationTask,
     CourseStatus,
     GenerationStatus,
     Lesson,
+    Module,
     Practice,
 )
+from infra.db.conn import SessionLocal
+
+
+class GenerationService:
+    """Сервис пользовательских сценариев генерации курсов."""
+
+    def __init__(self, session: Session, repository: GenerationRepository) -> None:
+        """Инициализация сервиса с сессией БД и репозиторием генерации."""
+
+        self.session = session
+        self.repository = repository
+
+    def create_task(self, payload: GenerateCourseRequest) -> GenerationTaskOut:
+        """Создать задачу генерации курса."""
+
+        try:
+            payload.validate()
+        except ValueError as exc:
+            raise CourseValidationError(str(exc)) from exc
+
+        task = self.repository.add_task(payload)
+        self.session.commit()
+        self.session.refresh(task)
+        return map_generation_task_to_response(task)
+
+    def get_task(self, task_id: UUID) -> GenerationTaskOut:
+        """Получить состояние задачи генерации курса."""
+
+        task = self.repository.get_task(task_id)
+        if task is None:
+            raise GenerationTaskNotFoundError()
+        return map_generation_task_to_response(task)
+
+
+def run_generation_task(task_id: UUID) -> None:
+    """Запуск фоновой задачи генерации курса."""
+
+    db = SessionLocal()
+    try:
+        task = db.get(CourseGenerationTask, task_id)
+        if task is None:
+            return
+        generate_course_job(db, task)
+    finally:
+        db.close()
 
 
 def _create_fallback_course(db, task: CourseGenerationTask) -> UUID:
@@ -20,7 +70,7 @@ def _create_fallback_course(db, task: CourseGenerationTask) -> UUID:
 
     course = Course(
         title=f"{task.topic}",
-        description=f"Generated course for {task.target_audience}",
+        description=f"Сгенерированный курс для аудитории: {task.target_audience}",
         difficulty=task.difficulty,
         tags=["generated", task.topic.lower()],
         status=CourseStatus.DRAFT.value,
@@ -28,32 +78,32 @@ def _create_fallback_course(db, task: CourseGenerationTask) -> UUID:
     db.add(course)
     db.flush()
 
-    for block_index in range(1, task.blocks_count + 1):
-        block = Block(
+    for module_index in range(1, task.modules_count + 1):
+        module = Module(
             course_id=course.id,
-            title=f"Block {block_index}: {task.topic}",
-            description=f"Auto-generated block {block_index}",
-            order=block_index,
+            title=f"Модуль {module_index}: {task.topic}",
+            description=f"Автоматически сгенерированный модуль {module_index}",
+            order=module_index,
         )
-        db.add(block)
+        db.add(module)
         db.flush()
 
-        for lesson_index in range(1, task.lessons_per_block + 1):
+        for lesson_index in range(1, task.lessons_per_module + 1):
             db.add(
                 Lesson(
-                    module_id=block.id,
-                    title=f"Lesson {block_index}.{lesson_index}",
+                    module_id=module.id,
+                    title=f"Урок {module_index}.{lesson_index}",
                     content=(
-                        f"Theory lesson {block_index}.{lesson_index} for {task.topic}. "
-                        "You can edit this content in course CRUD."
+                        f"Теоретический урок {module_index}.{lesson_index} по теме {task.topic}. "
+                        "Этот материал можно отредактировать в управлении курсом."
                     ),
                     content_blocks=[
                         {
                             "content_type": "text",
                             "payload": {
                                 "md_content": (
-                                    f"Theory lesson {block_index}.{lesson_index} for {task.topic}. "
-                                    "You can edit this content in course CRUD."
+                                    f"Теоретический урок {module_index}.{lesson_index} по теме {task.topic}. "
+                                    "Этот материал можно отредактировать в управлении курсом."
                                 )
                             },
                             "ai_generated": True,
@@ -65,9 +115,9 @@ def _create_fallback_course(db, task: CourseGenerationTask) -> UUID:
 
         db.add(
             Practice(
-                module_id=block.id,
-                task=f"Practice for block {block_index}",
-                criteria=["Correctness", "Completeness"],
+                module_id=module.id,
+                task=f"Практическое задание для модуля {module_index}",
+                criteria=["Корректность", "Полнота выполнения"],
                 check_type="manual",
             )
         )
@@ -82,8 +132,8 @@ def _create_langchain_course(db, task: CourseGenerationTask) -> UUID | None:
         topic=task.topic,
         target_audience=task.target_audience,
         difficulty=task.difficulty,
-        blocks_count=task.blocks_count,
-        lessons_per_block=task.lessons_per_block,
+        modules_count=task.modules_count,
+        lessons_per_module=task.lessons_per_module,
         llm_model=task.llm_model,
     )
     if draft is None:
@@ -99,20 +149,20 @@ def _create_langchain_course(db, task: CourseGenerationTask) -> UUID | None:
     db.add(course)
     db.flush()
 
-    for block_index, generated_block in enumerate(draft.blocks, start=1):
-        block = Block(
+    for module_index, generated_module in enumerate(draft.modules, start=1):
+        module = Module(
             course_id=course.id,
-            title=generated_block.title,
-            description=generated_block.description,
-            order=block_index,
+            title=generated_module.title,
+            description=generated_module.description,
+            order=module_index,
         )
-        db.add(block)
+        db.add(module)
         db.flush()
 
-        for lesson_index, generated_lesson in enumerate(generated_block.lessons, start=1):
+        for lesson_index, generated_lesson in enumerate(generated_module.lessons, start=1):
             db.add(
                 Lesson(
-                    module_id=block.id,
+                    module_id=module.id,
                     title=generated_lesson.title,
                     content=generated_lesson.content,
                     content_blocks=[
@@ -128,9 +178,9 @@ def _create_langchain_course(db, task: CourseGenerationTask) -> UUID | None:
 
         db.add(
             Practice(
-                module_id=block.id,
-                task=generated_block.practice_task,
-                criteria=generated_block.practice_criteria,
+                module_id=module.id,
+                task=generated_module.practice_task,
+                criteria=generated_module.practice_criteria,
                 check_type="manual",
             )
         )
@@ -158,4 +208,4 @@ def generate_course_job(db, task: CourseGenerationTask) -> GenerationTaskOut:
         db.commit()
 
     db.refresh(task)
-    return generation_task_out_from_orm(task)
+    return map_generation_task_to_response(task)

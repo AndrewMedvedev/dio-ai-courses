@@ -2,20 +2,25 @@ from __future__ import annotations
 
 import pytest
 
-from courses.domain.entities.course import Practice
+from courses.domain.entities import Practice
 from courses.domain.events import (
-    BlockDeleted,
     LessonDeleted,
+    ModuleDeleted,
     PracticeAdded,
     PracticeDeleted,
 )
+from courses.domain.services import (
+    active_practice,
+    attach_practice_to_module,
+    mark_module_deleted,
+)
 from shared.utils.time import current_datetime
 
-from .factories import make_block
+from .factories import make_module
 
 
-def test_block_practice_can_be_attached_once() -> None:
-    block = make_block()
+def test_module_practice_can_be_attached_once() -> None:
+    module = make_module()
     practice = Practice(
         id="practice-1",
         task="Solve task",
@@ -24,19 +29,19 @@ def test_block_practice_can_be_attached_once() -> None:
         created_at=current_datetime(),
     )
 
-    block.attach_practice(practice, course_id="course-1")
+    attach_practice_to_module(module, practice, course_id="course-1")
 
-    with pytest.raises(ValueError, match="already exists"):
-        block.attach_practice(practice, course_id="course-1")
+    with pytest.raises(ValueError, match="Практика уже существует"):
+        attach_practice_to_module(module, practice, course_id="course-1")
 
-    events = list(block.collect_events())
-    assert block.active_practice == practice
+    events = list(module.collect_events())
+    assert active_practice(module) == practice
     assert any(isinstance(event, PracticeAdded) for event in events)
 
 
-def test_block_mark_deleted_cascades_to_active_content_and_events() -> None:
-    block = make_block()
-    block.practice = Practice(
+def test_module_mark_deleted_cascades_to_active_content_and_events() -> None:
+    module = make_module()
+    module.practice = Practice(
         id="practice-1",
         task="Solve task",
         criteria=["Correctness"],
@@ -45,12 +50,12 @@ def test_block_mark_deleted_cascades_to_active_content_and_events() -> None:
     )
     deleted_at = current_datetime()
 
-    block.mark_deleted(deleted_at, course_id="course-1")
-    events = list(block.collect_events())
+    mark_module_deleted(module, deleted_at, course_id="course-1")
+    events = list(module.collect_events())
 
-    assert block.deleted_at == deleted_at
-    assert block.lessons[0].deleted_at == deleted_at
-    assert block.practice.deleted_at == deleted_at
+    assert module.deleted_at == deleted_at
+    assert module.lessons[0].deleted_at == deleted_at
+    assert module.practice.deleted_at == deleted_at
     assert any(isinstance(event, LessonDeleted) for event in events)
     assert any(isinstance(event, PracticeDeleted) for event in events)
-    assert any(isinstance(event, BlockDeleted) for event in events)
+    assert any(isinstance(event, ModuleDeleted) for event in events)

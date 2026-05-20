@@ -5,27 +5,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Generic, TypeVar
-from uuid import UUID, uuid4
 
 from shared.domain.entities import AggregateRoot, Entity
-from shared.utils.time import current_datetime
-
-from ..events import (
-    BlockAdded,
-    BlockDeleted,
-    CourseArchived,
-    CourseCreated,
-    CourseDeleted,
-    CoursePublished,
-    LessonAdded,
-    LessonDeleted,
-    PracticeAdded,
-    PracticeDeleted,
-)
-from ..vo import CourseStatus
 
 class ContentType(StrEnum):
-    """Тип контента внутри блока"""
+    """Тип контента внутри учебного контент-блока"""
 
     TEXT = "text"
     VIDEO = "video"
@@ -48,6 +32,8 @@ ContentBlockT = TypeVar("ContentBlockT", bound=ContentBlock)
 
 @dataclass(kw_only=True, slots=True)
 class TextBlock(ContentBlock):
+    """Блок с текстовым теоретическим материалом."""
+
     content_type: ContentType = ContentType.TEXT
     md_content: str = field(
         metadata={"description": "Markdown текст теоретического материала"}
@@ -203,7 +189,7 @@ class Module(Entity, Generic[ContentBlockT, AssignmentT]):
     )
     content_blocks: list[ContentBlockT] = field(
         default_factory=list,
-        metadata={"description": "Контент блоки с материалом для изучения"},
+        metadata={"description": "Контент-блоки с материалом для изучения"},
     )
     assignment: AssignmentT | None = field(
         default=None,
@@ -212,102 +198,10 @@ class Module(Entity, Generic[ContentBlockT, AssignmentT]):
     lessons: list[Lesson] = field(default_factory=list)
     practice: Practice | None = None
 
-    @property
-    def position(self) -> int:
-        """Совместимое имя для старого API, где модуль назывался блоком."""
-
-        return self.order
-
-    @position.setter
-    def position(self, value: int) -> None:
-        self.order = value
-
-    @property
-    def active_lessons(self) -> list[Lesson]:
-        """Получить активные уроки блока без soft-delete записей."""
-
-        return [lesson for lesson in self.lessons if not lesson.is_deleted]
-
-    @property
-    def active_practice(self) -> Practice | None:
-        """Получить активную практику блока, если она есть."""
-
-        if self.practice is None or self.practice.is_deleted:
-            return None
-        return self.practice
-
-    def rename(self, title: str) -> None:
-        """Переименовать блок."""
-
-        self.title = title
-
-    def update_description(self, description: str) -> None:
-        """Обновить описание блока."""
-
-        self.description = description
-
-    def reorder(self, order: int) -> None:
-        """Изменить позицию блока."""
-
-        self.order = order
-
-    def append_content_block(self, content_block: ContentBlockT) -> None:
-        self.content_blocks.append(content_block)
-
-    def add_assignment(self, assignment: AssignmentT) -> None:
-        self.assignment = assignment
-
-    def add_lesson(self, lesson: Lesson, *, course_id: UUID) -> None:
-        """Добавить урок в блок и зарегистрировать доменное событие."""
-
-        self.lessons.append(lesson)
-        self.register_event(
-            LessonAdded(course_id=course_id, block_id=self.id, lesson_id=lesson.id)
-        )
-
-    def attach_practice(self, practice: Practice, *, course_id: UUID) -> None:
-        """Прикрепить практику к блоку и проверить единственность активной практики."""
-
-        if self.active_practice is not None:
-            raise ValueError("Practice already exists for this block")
-        self.practice = practice
-        self.register_event(
-            PracticeAdded(course_id=course_id, block_id=self.id, practice_id=practice.id)
-        )
-
-    def mark_deleted(self, deleted_at: datetime, *, course_id: UUID) -> None:
-        """Пометить блок и активный вложенный контент как удаленные."""
-
-        if self.is_deleted:
-            return
-
-        self.deleted_at = deleted_at
-        for lesson in self.active_lessons:
-            lesson.mark_deleted(deleted_at)
-            self.register_event(
-                LessonDeleted(course_id=course_id, block_id=self.id, lesson_id=lesson.id)
-            )
-
-        practice = self.active_practice
-        if practice is not None:
-            practice.mark_deleted(deleted_at)
-            self.register_event(
-                PracticeDeleted(
-                    course_id=course_id,
-                    block_id=self.id,
-                    practice_id=practice.id,
-                )
-            )
-
-        self.register_event(BlockDeleted(course_id=course_id, block_id=self.id))
-
-
-Block = Module
-
 
 @dataclass(kw_only=True, slots=True)
 class Lesson(Entity):
-    """Урок внутри блока образовательного курса."""
+    """Урок внутри модуля образовательного курса."""
 
     title: str
     content: str
@@ -325,25 +219,10 @@ class Lesson(Entity):
         metadata={"description": "Примерное время прохождения урока в минутах"},
     )
 
-    def rename(self, title: str) -> None:
-        """Переименовать урок."""
-
-        self.title = title
-
-    def update_content(self, content: str) -> None:
-        """Обновить содержимое урока."""
-
-        self.content = content
-
-    def mark_deleted(self, deleted_at: datetime) -> None:
-        """Пометить урок как удаленный."""
-
-        self.deleted_at = deleted_at
-
 
 @dataclass(kw_only=True, slots=True)
 class Practice(Entity):
-    """Практическое задание для закрепления материала блока."""
+    """Практическое задание для закрепления материала модуля."""
 
     task: str
     criteria: list[str]
@@ -361,18 +240,6 @@ class Practice(Entity):
         default=61,
         metadata={"description": "Минимальный балл для успешной сдачи практики"},
     )
-
-    def update(self, *, task: str, criteria: list[str], check_type: str) -> None:
-        """Обновить параметры практического задания."""
-
-        self.task = task
-        self.criteria = criteria
-        self.check_type = check_type
-
-    def mark_deleted(self, deleted_at: datetime) -> None:
-        """Пометить практическое задание как удаленное."""
-
-        self.deleted_at = deleted_at
 
 
 @dataclass(slots=True)
@@ -429,126 +296,3 @@ class Course(AggregateRoot):
         metadata={"description": "Финальное задание курса"},
     )
     modules: list[Module] = field(default_factory=list)
-
-    @property
-    def blocks(self) -> list[Module]:
-        """Совместимое имя для старого API, где модули назывались блоками."""
-
-        return self.modules
-
-    @blocks.setter
-    def blocks(self, value: list[Module]) -> None:
-        self.modules = value
-
-    @classmethod
-    def create(
-        cls,
-        *,
-        title: str,
-        description: str,
-        difficulty: str,
-        tags: list[str],
-    ) -> Course:
-        """Создать черновик курса и зарегистрировать доменное событие."""
-
-        now = current_datetime()
-        course = cls(
-            id=uuid4(),
-            title=title,
-            description=description,
-            difficulty=difficulty,
-            tags=tags,
-            status=CourseStatus.DRAFT.value,
-            popularity=0,
-            created_at=now,
-            updated_at=now,
-        )
-        course.register_event(CourseCreated(course_id=course.id, title=course.title))
-        return course
-
-    @property
-    def active_blocks(self) -> list[Module]:
-        """Получить активные блоки курса без soft-delete записей."""
-
-        return [module for module in self.modules if not module.is_deleted]
-
-    def update_details(
-        self,
-        *,
-        title: str | None = None,
-        description: str | None = None,
-        difficulty: str | None = None,
-        tags: list[str] | None = None,
-    ) -> None:
-        """Обновить основные поля курса."""
-
-        if title is not None:
-            self.title = title
-        if description is not None:
-            self.description = description
-        if difficulty is not None:
-            self.difficulty = difficulty
-        if tags is not None:
-            self.tags = tags
-
-    def change_status(self, status: str) -> None:
-        """Изменить статус курса с проверкой доменных правил."""
-
-        if status not in {item.value for item in CourseStatus}:
-            raise ValueError("Invalid course status")
-
-        if status == CourseStatus.PUBLISHED.value:
-            self.publish()
-            return
-
-        if status == CourseStatus.ARCHIVED.value and self.status != status:
-            self.register_event(CourseArchived(course_id=self.id))
-
-        self.status = status
-
-    def ensure_can_publish(self) -> None:
-        """Проверить, что курс можно опубликовать."""
-
-        blocks = self.active_blocks
-        if not blocks:
-            raise ValueError("Cannot publish course without blocks")
-
-        for block in blocks:
-            if not block.active_lessons:
-                raise ValueError("Cannot publish block without lessons")
-
-    def publish(self) -> None:
-        """Опубликовать курс после проверки инвариантов."""
-
-        self.ensure_can_publish()
-        if self.status != CourseStatus.PUBLISHED.value:
-            self.register_event(CoursePublished(course_id=self.id))
-        self.status = CourseStatus.PUBLISHED.value
-
-    def add_block(self, block: Module) -> None:
-        """Добавить блок в агрегат курса."""
-
-        self.modules.append(block)
-        self.register_event(BlockAdded(course_id=self.id, block_id=block.id))
-
-    def append_module(self, module: Module) -> None:
-        self.add_block(module)
-
-    def add_final_assessment(self, final_assessment: FinalAssessment) -> None:
-        self.final_assessment = final_assessment
-
-    def mark_deleted(self, deleted_at: datetime) -> None:
-        """Пометить курс и активный вложенный контент как удалённые."""
-
-        if self.status == CourseStatus.PUBLISHED.value:
-            raise ValueError("Cannot delete published course. Switch status to archived first.")
-        if self.is_deleted:
-            return
-
-        self.deleted_at = deleted_at
-        for block in self.active_blocks:
-            block.mark_deleted(deleted_at, course_id=self.id)
-            for event in block.collect_events():
-                self.register_event(event)
-
-        self.register_event(CourseDeleted(course_id=self.id))

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import courses.generation_router as generation_router
+import courses.routers.generation as generation_router
 
 
 def test_create_generation_task_and_get_status(client, monkeypatch):
@@ -10,8 +10,8 @@ def test_create_generation_task_and_get_status(client, monkeypatch):
         "topic": "Python for analysts",
         "target_audience": "junior analysts",
         "difficulty": "beginner",
-        "blocks_count": 2,
-        "lessons_per_block": 2,
+        "modules_count": 2,
+        "lessons_per_module": 2,
         "llm_model": "gpt://folder/real-model/latest",
     }
     create_resp = client.post("/api/v1/course-generation", json=payload)
