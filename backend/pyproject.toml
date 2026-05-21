@@ -152,3 +152,10 @@ ignore_names = [
     "delete",
     "head",
 ]
+
+[dependency-groups]
+dev = [
+    "apscheduler>=3.11.2",
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+]

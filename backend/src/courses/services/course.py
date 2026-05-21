@@ -20,6 +20,7 @@ from courses.infra.mappers import map_course_to_domain
 from courses.mappers import map_course_model_to_response
 from courses.schemas import (
     CourseCreate,
+    CourseListItem,
     CourseListOut,
     CourseOut,
     CourseUpdate,
@@ -31,8 +32,6 @@ class CourseService:
     """Сервис пользовательских сценариев жизненного цикла курса."""
 
     def __init__(self, session: Session, repository: CourseRepository) -> None:
-        """Инициализировать сервис с сессией БД и репозиторием курсов."""
-
         self.session = session
         self.repository = repository
 
@@ -57,7 +56,7 @@ class CourseService:
     ) -> CourseListOut:
         """Получить страницу курсов с фильтрами, поиском и сортировкой."""
 
-        return self.repository.list(
+        courses, total = self.repository.list(
             page=page,
             limit=limit,
             status_filter=status_filter,
@@ -66,6 +65,22 @@ class CourseService:
             search=search,
             sort=sort,
         )
+        offset = (page - 1) * limit
+        items = [
+            CourseListItem(
+                id=course.id,
+                title=course.title,
+                description=course.description,
+                difficulty=course.difficulty,
+                tags=course.tags or [],
+                status=course.status,
+                popularity=course.popularity,
+                created_at=course.created_at,
+            )
+            for course in courses
+        ]
+        next_page = page + 1 if (offset + len(items)) < total else None
+        return CourseListOut(items=items, total=total, page=page, limit=limit, next_page=next_page)
 
     def get(self, course_id: UUID) -> CourseOut:
         """Получить курс по идентификатору."""

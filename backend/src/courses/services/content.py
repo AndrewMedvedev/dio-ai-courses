@@ -20,7 +20,6 @@ from courses.domain.services import (
     assert_reorder_matches_lessons,
     mark_module_deleted,
 )
-from courses.infra.models import Lesson, Module, Practice
 from courses.infra.mappers import map_course_to_domain, map_module_to_domain
 from courses.mappers import map_course_model_to_response
 from courses.schemas import (
@@ -39,8 +38,6 @@ class ContentService:
     """Сервис пользовательских сценариев управления содержимым курса."""
 
     def __init__(self, session: Session, repository: CourseRepository) -> None:
-        """Инициализировать сервис с сессией БД и репозиторием курсов."""
-
         self.session = session
         self.repository = repository
 
@@ -48,16 +45,7 @@ class ContentService:
         """Создать модуль курса в следующей доступной позиции."""
 
         self._get_course_or_raise(course_id)
-        max_position = self.repository.max_module_order(course_id)
-        module = Module(
-            course_id=course_id,
-            title=payload.title,
-            description=payload.description,
-            learning_objectives=payload.learning_objectives,
-            content_blocks=payload.content_blocks,
-            order=(max_position + 1) if max_position is not None else 1,
-        )
-        self.session.add(module)
+        self.repository.add_module(course_id, payload)
         self.session.commit()
         return map_course_model_to_response(self._get_course_or_raise(course_id))
 
@@ -114,18 +102,7 @@ class ContentService:
         module = self.repository.get_module(course_id, module_id)
         if module is None:
             raise ModuleNotFoundError()
-        max_position = self.repository.max_lesson_position(module.id)
-        self.session.add(
-            Lesson(
-                module_id=module.id,
-                title=payload.title,
-                content=payload.content,
-                learning_objectives=payload.learning_objectives,
-                content_blocks=payload.content_blocks,
-                estimated_time_minutes=payload.estimated_time_minutes,
-                position=(max_position + 1) if max_position is not None else 1,
-            )
-        )
+        self.repository.add_lesson(module.id, payload)
         self.session.commit()
         return map_course_model_to_response(self._get_course_or_raise(course_id))
 
@@ -188,18 +165,7 @@ class ContentService:
         if active_domain_practice(domain_module) is not None:
             raise CourseConflictError("Практика уже существует для этого модуля")
 
-        self.session.add(
-            Practice(
-                module_id=module.id,
-                task=payload.task,
-                criteria=payload.criteria,
-                check_type=payload.check_type,
-                title=payload.title,
-                assignment_type=payload.assignment_type,
-                assignment_data=payload.assignment_data,
-                passing_score=payload.passing_score,
-            )
-        )
+        self.repository.add_practice(module.id, payload)
         self.session.commit()
         return map_course_model_to_response(self._get_course_or_raise(course_id))
 
@@ -237,8 +203,6 @@ class ContentService:
         return map_course_model_to_response(self._get_course_or_raise(course_id))
 
     def _get_course_or_raise(self, course_id: UUID):
-        """Получить курс из репозитория или выбросить доменную ошибку."""
-
         course = self.repository.get(course_id)
         if course is None:
             raise CourseNotFoundError()

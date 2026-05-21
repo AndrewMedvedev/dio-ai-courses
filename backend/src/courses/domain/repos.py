@@ -11,6 +11,10 @@ class CourseRepository(Protocol):
         """Создать курс из входных данных."""
         ...
 
+    def create_draft(self, *, title: str, description: str, difficulty: str, tags: list) -> Any:
+        """Создать пустой черновик курса (без модулей)."""
+        ...
+
     def list(
         self,
         *,
@@ -21,8 +25,8 @@ class CourseRepository(Protocol):
         tags: str | None,
         search: str | None,
         sort: str,
-    ) -> Any:
-        """Получить страницу курсов с фильтрами и сортировкой."""
+    ) -> tuple[Any, int]:
+        """Получить страницу курсов с фильтрами и сортировкой. Возвращает (список, total)."""
         ...
 
     def get(self, course_id: UUID) -> Any:
@@ -37,8 +41,16 @@ class CourseRepository(Protocol):
         """Получить активный урок курса."""
         ...
 
-    def create_module_nested(self, course_id: UUID, payload: Any) -> Any:
-        """Создать модуль с вложенными уроками и практикой."""
+    def add_module(self, course_id: UUID, payload: Any) -> Any:
+        """Создать модуль курса."""
+        ...
+
+    def add_lesson(self, module_id: UUID, payload: Any) -> Any:
+        """Создать урок модуля."""
+        ...
+
+    def add_practice(self, module_id: UUID, payload: Any) -> Any:
+        """Создать практическое задание модуля."""
         ...
 
     def max_module_order(self, course_id: UUID) -> int | None:
