@@ -1,10 +1,10 @@
 import logging
 
-from src.core.database import session_factory
-from src.core.settings import settings
-from src.iam.database.repository import SqlUserRepository
-from src.iam.domain.services import create_super_admin
-from src.iam.security import hash_password
+from ..core.database import session_factory
+from ..core.settings import settings
+from ..iam.database.repository import SqlUserRepository
+from ..iam.domain.services import create_super_admin
+from ..iam.security import hash_password
 
 logger = logging.getLogger(__name__)
 

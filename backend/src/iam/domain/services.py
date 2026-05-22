@@ -24,7 +24,10 @@ def create_super_admin(email: str, password_hash: str) -> User:
 
 
 def create_user(
-    email: EmailStr, username: str, password: str, role: UserRole = UserRole.USER
+    email: EmailStr,
+    username: str,
+    password: str,
+    role: UserRole = UserRole.USER,
 ) -> User:
     return User(
         username=Username(username),
@@ -35,7 +38,9 @@ def create_user(
 
 
 def create_invitation(
-    email: EmailStr, role: UserRole = UserRole.USER, invited_by: UUID | None = None
+    email: EmailStr,
+    role: UserRole = UserRole.USER,
+    invited_by: UUID | None = None,
 ) -> Invitation:
     return Invitation(
         email=email,

@@ -1,8 +1,7 @@
-from typing import Any
-
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Any
 
 import aiosmtplib
 import html2text
@@ -25,7 +24,7 @@ class SmtpMailSender:
     def __init__(self, smtp_host: str, smtp_port: int, use_tls: bool = True) -> None:
         self.smtp_config = {"hostname": smtp_host, "port": smtp_port, "use_tls": use_tls}
 
-    async def send(
+    async def send(  # noqa: PLR0913
         self,
         to: str | list[str],
         subject: str,

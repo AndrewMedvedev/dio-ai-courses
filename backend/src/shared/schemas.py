@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any, TypeVar
+
+from collections.abc import Callable
 
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
