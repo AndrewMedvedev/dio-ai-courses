@@ -5,7 +5,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from src.iam.database.models import UserOrm, InvitationOrm  # noqa: F401
+import src.iam.database.models  # noqa: F401
 from src.core.database import Base
 from src.core.settings import settings
 

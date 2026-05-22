@@ -76,6 +76,7 @@ backend/secrets/
 *.db
 *.sqlite
 *.sqlite3
+backend/.chroma/
 
 # --- Uploads / media (runtime) ---
 backend/media/
