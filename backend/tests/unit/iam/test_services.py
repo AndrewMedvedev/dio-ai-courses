@@ -6,8 +6,13 @@ import pytest
 from pydantic import SecretStr
 
 from src.iam.domain.dataclasses import Invitation, User
-from src.iam.domain.exceptions import InvitationExpiredError, UnauthorizedError
-from src.iam.schemas import Tokens, UserCreateForm
+from src.iam.domain.exceptions import (
+    InvitationExpiredError,
+    PermissionDeniedError,
+    UnauthorizedError,
+)
+from src.iam.domain.vo import Username, UserRole
+from src.iam.schemas import InvitationCreate, Tokens, UserCreateForm
 from src.iam.security import hash_password
 from src.iam.services import AuthService, InvitationService
 from src.shared.domain.exceptions import NotFoundError
@@ -59,25 +64,30 @@ def invitation_service(mock_invitation_repo, mock_user_repo, mock_mail_sender, m
 @pytest.fixture
 def mock_invitation_service():
     service = AsyncMock()
+    service.create_invitation = AsyncMock()
     service.send_invitation = AsyncMock()
+    service.send_an_invitation_to_the_admin = AsyncMock()
+    service.verify = AsyncMock()
     return service
 
 
 @pytest.fixture
-def auth_service(mock_session, mock_user_repo, mock_invitation_service):
+def auth_service(mock_invitation_repo, mock_session, mock_user_repo, mock_invitation_service):
     return AuthService(
         session=mock_session,
         user_repo=mock_user_repo,
         invitation_service=mock_invitation_service,
+        invitation_repo=mock_invitation_repo,
     )
 
 
 def build_user(email: str, password_hash: str, is_verify: bool = True) -> User:
     return User(
-        username="test-user",
+        username=Username("test-user"),
         email=email,
         password_hash=SecretStr(password_hash),
         is_verify=is_verify,
+        role=UserRole.ADMIN,
     )
 
 
@@ -89,6 +99,7 @@ def build_invitation(
         expires_at=expires_at or current_datetime() + timedelta(days=1),
         invited_by=invited_by,
         is_used=is_used,
+        assigned_role=UserRole.USER,
     )
 
 
@@ -101,9 +112,8 @@ class TestInvitationService:
         invited_by = uuid4()
         mock_invitation_repo.get_active_by_email.return_value = None
 
-        invitation = await invitation_service.send_invitation(email=email, invited_by=invited_by)
+        invitation = await invitation_service.create_invitation(email, invited_by)
 
-        mock_invitation_repo.get_active_by_email.assert_awaited_once_with(email)
         mock_invitation_repo.create.assert_awaited_once()
         mock_session.commit.assert_awaited_once()
         mock_mail_sender.send.assert_awaited_once()
@@ -115,16 +125,46 @@ class TestInvitationService:
         assert mock_mail_sender.send.call_args.kwargs["to"] == email
 
     @pytest.mark.asyncio
+    async def test_send_an_invitation_to_the_admin(  # noqa: PLR6301
+        self, invitation_service, mock_invitation_repo, mock_user_repo, mock_session
+    ):
+        email = "verify@example.com"
+        invited_by = uuid4()
+        invitation = InvitationCreate(email=email, role=UserRole.MODERATOR)
+        user = build_user(email=email, password_hash=hash_password("Password1!"), is_verify=False)
+
+        mock_user_repo.read.return_value = user
+
+        invitation = await invitation_service.send_an_invitation_to_the_admin(
+            invitation, invited_by
+        )
+
+        assert isinstance(invitation, dict)
+
+    @pytest.mark.asyncio
+    async def test_raises_permission_send_an_invitation_to_the_admin(  # noqa: PLR6301
+        self, invitation_service, mock_invitation_repo, mock_user_repo, mock_session
+    ):
+        email = "verify@example.com"
+        invited_by = uuid4()
+        invitation = InvitationCreate(email=email, role=UserRole.SUPER_ADMIN)
+        user = build_user(email=email, password_hash=hash_password("Password1!"), is_verify=False)
+
+        mock_user_repo.read.return_value = user
+
+        with pytest.raises(PermissionDeniedError, match="Недостаточно прав"):
+            await invitation_service.send_an_invitation_to_the_admin(invitation, invited_by)
+
+    @pytest.mark.asyncio
     async def test_send_invitation_reuses_existing_invitation(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo, mock_session, mock_mail_sender
     ):
         email = "existing@example.com"
         invitation = build_invitation(email=email)
-        mock_invitation_repo.get_active_by_email.return_value = invitation
 
-        result = await invitation_service.send_invitation(email=email)
+        # Передаём объект, а не email — именно такая сигнатура у send_invitation
+        result = await invitation_service.send_invitation(invitation)
 
-        mock_invitation_repo.get_active_by_email.assert_awaited_once_with(email)
         mock_invitation_repo.create.assert_not_awaited()
         mock_session.commit.assert_not_awaited()
         mock_mail_sender.send.assert_awaited_once()
@@ -177,8 +217,17 @@ class TestInvitationService:
 class TestAuthService:
     @pytest.mark.asyncio
     async def test_registration_creates_user_and_sends_invitation(  # noqa: PLR6301
-        self, auth_service, mock_user_repo, mock_invitation_service, mock_session
+        self,
+        auth_service,
+        mock_user_repo,
+        mock_invitation_service,
+        mock_invitation_repo,
+        mock_session,
     ):
+        # Без этого AsyncMock truthy — код не доходит до create
+        mock_user_repo.get_by_email.return_value = None
+        mock_invitation_repo.get_active_by_email.return_value = None
+
         form = UserCreateForm(
             username="newuser",
             email="newuser@example.com",
@@ -188,9 +237,9 @@ class TestAuthService:
         result = await auth_service.registration(form=form)
 
         mock_user_repo.create.assert_awaited_once()
-        mock_invitation_service.send_invitation.assert_awaited_once_with(form.email)
+        mock_invitation_service.create_invitation.assert_awaited_once_with(form.email)
         mock_session.commit.assert_awaited_once()
-        assert "Письмо" in result
+        assert "Письмо" in result["message"]
 
     @pytest.mark.asyncio
     async def test_authenticate_returns_tokens_for_verified_user(  # noqa: PLR6301
@@ -207,18 +256,21 @@ class TestAuthService:
 
     @pytest.mark.asyncio
     async def test_authenticate_sends_confirmation_for_unverified_user(  # noqa: PLR6301
-        self, auth_service, mock_user_repo, mock_invitation_service
+        self, auth_service, mock_user_repo, mock_invitation_service, mock_invitation_repo
     ):
         email = "pending@example.com"
         password = "Password1!"
         user = build_user(email=email, password_hash=hash_password(password), is_verify=False)
         mock_user_repo.get_by_email.return_value = user
+        # None → попадаем в ветку create_invitation(email)
+        mock_invitation_repo.get_active_by_email.return_value = None
 
         result = await auth_service.authenticate(email, password)
 
-        mock_invitation_service.send_invitation.assert_awaited_once_with(email=email)
-        assert isinstance(result, str)
-        assert "Письмо" in result
+        # Сервис вызывает create_invitation, а не send_invitation
+        mock_invitation_service.create_invitation.assert_awaited_once_with(email)
+        assert isinstance(result, dict)
+        assert "Письмо" in result["message"]
 
     @pytest.mark.asyncio
     async def test_authenticate_raises_when_user_not_found(self, auth_service, mock_user_repo):  # noqa: PLR6301

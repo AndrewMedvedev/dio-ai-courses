@@ -43,31 +43,10 @@ class TestValidateToken:
     def test_validate_token_correct_access_token(self):  # noqa: PLR6301
         user_id = uuid4()
         email = "support@example.com"
+        user_role = UserRole.USER
 
         with freeze_time("2026-03-26 10:00:00"):
-            access_token = create_access_token(
-                user_id=user_id, email=email, user_role=UserRole.USER
-            )
-
-            payload = validate_token(access_token)
-
-            assert payload["sub"] == str(user_id)
-            assert payload["email"] == email
-            assert payload["type"] == "access"
-            assert "counterparty_id" not in payload
-
-            assert isinstance(payload["iat"], (int, float))
-            assert isinstance(payload["exp"], (int, float))
-            assert payload["exp"] > payload["iat"]
-
-    def test_validate_token_correct_access_token_with_counterparty(self):  # noqa: PLR6301
-        user_id = uuid4()
-        email = "support@example.com"
-
-        with freeze_time("2026-03-26 10:00:00"):
-            access_token = create_access_token(
-                user_id=user_id, email=email, user_role=UserRole.USER
-            )
+            access_token = create_access_token(user_id=user_id, email=email, user_role=user_role)
 
             payload = validate_token(access_token)
 
@@ -75,6 +54,9 @@ class TestValidateToken:
             assert payload["email"] == email
             assert payload["type"] == "access"
             assert payload["role"] == user_role.value
+            assert isinstance(payload["iat"], (int, float))
+            assert isinstance(payload["exp"], (int, float))
+            assert payload["exp"] > payload["iat"]
 
     def test_validate_token_correct_refresh_token(self):  # noqa: PLR6301
         user_id = uuid4()
@@ -87,6 +69,7 @@ class TestValidateToken:
             assert payload["sub"] == str(user_id)
             assert payload["type"] == "refresh"
             assert "email" not in payload
+            assert "role" not in payload
 
             assert isinstance(payload["iat"], (int, float))
             assert isinstance(payload["exp"], (int, float))
@@ -94,10 +77,11 @@ class TestValidateToken:
     def test_validate_token_expired_raises_unauthorized(self):  # noqa: PLR6301
         user_id = uuid4()
         email = "test@example.com"
+        user_role = UserRole.USER
 
         # Создания токена в прошлом времени (чтобы он сразу был просрочен)
         with freeze_time("2026-03-26 10:00:00"):
-            access_token = create_access_token(user_id=user_id, email=email)
+            access_token = create_access_token(user_id=user_id, email=email, user_role=user_role)
 
         # перемотка времени на час (токен уже истёк)
         with freeze_time("2026-03-26 11:00:00"):  # +1 час
@@ -135,6 +119,7 @@ class TestCreateAccessToken:
     def test_create_and_validate_access_token(self):  # noqa: PLR6301
         user_id = uuid4()
         email = "support@example.com"
+        user_role = UserRole.USER
 
         with freeze_time("2026-03-26 10:00:00"):
             expected_iat = current_datetime().timestamp()
@@ -142,7 +127,7 @@ class TestCreateAccessToken:
                 expires_in=timedelta(minutes=settings.jwt.access_token_expires_in_minutes)
             )
 
-            access_token = create_access_token(user_id=user_id, email=email)
+            access_token = create_access_token(user_id=user_id, email=email, user_role=user_role)
             payload = validate_token(access_token)
 
             assert payload["sub"] == f"{user_id}"
@@ -155,6 +140,7 @@ class TestCreateAccessToken:
     def test_create_and_validate_access_token_with_counterparty(self):  # noqa: PLR6301
         user_id = uuid4()
         email = "support@example.com"
+        user_role = UserRole.USER
 
         with freeze_time("2026-03-26 10:00:00"):
             expected_iat = current_datetime().timestamp()
@@ -162,7 +148,7 @@ class TestCreateAccessToken:
                 expires_in=timedelta(minutes=settings.jwt.access_token_expires_in_minutes)
             )
 
-            access_token = create_access_token(user_id=user_id, email=email)
+            access_token = create_access_token(user_id=user_id, email=email, user_role=user_role)
             payload = validate_token(access_token)
 
             assert payload["sub"] == f"{user_id}"
