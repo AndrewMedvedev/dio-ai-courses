@@ -1,9 +1,10 @@
 import uuid
+from uuid import UUID
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from infra.db.base import Base
-from uuid import UUID
 
 
 class AIModelDB(Base):
@@ -23,4 +24,3 @@ class UserModelPreferenceDB(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[UUID] = mapped_column(nullable=False, unique=True)
     model_id: Mapped[UUID] = mapped_column(ForeignKey("ai_models.id"), nullable=False)
-

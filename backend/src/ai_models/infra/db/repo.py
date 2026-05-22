@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from uuid import UUID
 
 from .models import AIModelDB, UserModelPreferenceDB
@@ -31,11 +32,7 @@ class UserModelPreferenceRepository:
         self.session = session
 
     def upsert(self, user_id: UUID, model_id: UUID) -> UserModelPreferenceDB:
-        existing = (
-            self.session.query(UserModelPreferenceDB)
-            .filter_by(user_id=user_id)
-            .first()
-        )
+        existing = self.session.query(UserModelPreferenceDB).filter_by(user_id=user_id).first()
         if existing:
             existing.model_id = model_id
             self.session.commit()
@@ -46,8 +43,4 @@ class UserModelPreferenceRepository:
         return preference
 
     def get_by_user(self, user_id: UUID) -> UserModelPreferenceDB | None:
-        return (
-            self.session.query(UserModelPreferenceDB)
-            .filter_by(user_id=user_id)
-            .first()
-        )
+        return self.session.query(UserModelPreferenceDB).filter_by(user_id=user_id).first()

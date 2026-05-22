@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from typing import Any, Generic, TypeVar
+
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Generic, TypeVar
 
 from shared.domain.entities import AggregateRoot, Entity
+
 
 class ContentType(StrEnum):
     """Тип контента внутри учебного контент-блока"""
@@ -35,9 +37,7 @@ class TextBlock(ContentBlock):
     """Блок с текстовым теоретическим материалом."""
 
     content_type: ContentType = ContentType.TEXT
-    md_content: str = field(
-        metadata={"description": "Markdown текст теоретического материала"}
-    )
+    md_content: str = field(metadata={"description": "Markdown текст теоретического материала"})
 
 
 @dataclass(kw_only=True, slots=True)
@@ -132,9 +132,7 @@ class Assignment(ABC):
     description: str = field(
         metadata={"description": "Детальное описание задания / постановка задачи"}
     )
-    evaluation_criteria: list[str] = field(
-        metadata={"description": "Критерии для оценки работы"}
-    )
+    evaluation_criteria: list[str] = field(metadata={"description": "Критерии для оценки работы"})
     passing_score: int = field(
         default=61,
         metadata={
@@ -182,21 +180,13 @@ class Module(Entity, Generic[ContentBlockT, AssignmentT]):
 
     title: str
     description: str
-    order: int
+    position: int
     learning_objectives: list[str] = field(
         default_factory=list,
         metadata={"description": "Цели обучения модуля"},
     )
-    content_blocks: list[ContentBlockT] = field(
-        default_factory=list,
-        metadata={"description": "Контент-блоки с материалом для изучения"},
-    )
-    assignment: AssignmentT | None = field(
-        default=None,
-        metadata={"description": "Задание для закрепления материала"},
-    )
     lessons: list[Lesson] = field(default_factory=list)
-    practice: Practice | None = None
+    practice: Practice
 
 
 @dataclass(kw_only=True, slots=True)
@@ -204,7 +194,7 @@ class Lesson(Entity):
     """Урок внутри модуля образовательного курса."""
 
     title: str
-    content: str
+    description: str
     position: int
     learning_objectives: list[str] = field(
         default_factory=list,
@@ -214,29 +204,21 @@ class Lesson(Entity):
         default_factory=list,
         metadata={"description": "Структурированные блоки с материалом для изучения"},
     )
-    estimated_time_minutes: int | None = field(
-        default=None,
-        metadata={"description": "Примерное время прохождения урока в минутах"},
-    )
 
 
 @dataclass(kw_only=True, slots=True)
 class Practice(Entity):
     """Практическое задание для закрепления материала модуля."""
 
-    task: str
-    criteria: list[str]
-    check_type: str
     title: str = field(default="", metadata={"description": "Название задания"})
     assignment_type: str = field(
         default="manual",
         metadata={"description": "Тип практического задания"},
     )
-    assignment_data: Assignment | dict[str, Any] | None = field(
-        default=None,
+    assignment_data: Assignment | dict[str, Any] = field(
         metadata={"description": "Структурированное описание практического задания"},
     )
-    passing_score: int = field(
+    passing_score: float = field(
         default=61,
         metadata={"description": "Минимальный балл для успешной сдачи практики"},
     )
@@ -254,9 +236,7 @@ class FinalAssessment:
             )
         }
     )
-    evaluation_criteria: list[str] = field(
-        metadata={"description": "Критерии для оценки"}
-    )
+    evaluation_criteria: list[str] = field(metadata={"description": "Критерии для оценки"})
     version: int = field(
         default=0,
         metadata={
@@ -274,7 +254,6 @@ class Course(AggregateRoot):
 
     title: str
     description: str
-    difficulty: str
     tags: list[str]
     status: str
     popularity: int
@@ -291,8 +270,5 @@ class Course(AggregateRoot):
         default_factory=list,
         metadata={"description": "Цели обучения курса"},
     )
-    final_assessment: FinalAssessment | None = field(
-        default=None,
-        metadata={"description": "Финальное задание курса"},
-    )
+
     modules: list[Module] = field(default_factory=list)
