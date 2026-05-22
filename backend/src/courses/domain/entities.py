@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from typing import TypeVar
 
 from abc import ABC
 from dataclasses import dataclass, field
@@ -175,18 +175,17 @@ class GitHubAssignment(Assignment):
 
 
 @dataclass(kw_only=True, slots=True)
-class Module(Entity, Generic[ContentBlockT, AssignmentT]):
+class Module(Entity):
     """Модуль - часть образовательного курса."""
 
     title: str
     description: str
-    position: int
+    order: int
     learning_objectives: list[str] = field(
         default_factory=list,
         metadata={"description": "Цели обучения модуля"},
     )
     lessons: list[Lesson] = field(default_factory=list)
-    practice: Practice
 
 
 @dataclass(kw_only=True, slots=True)
@@ -195,7 +194,7 @@ class Lesson(Entity):
 
     title: str
     description: str
-    position: int
+    order: int
     learning_objectives: list[str] = field(
         default_factory=list,
         metadata={"description": "Цели обучения урока"},
@@ -215,7 +214,7 @@ class Practice(Entity):
         default="manual",
         metadata={"description": "Тип практического задания"},
     )
-    assignment_data: Assignment | dict[str, Any] = field(
+    assignment_data: Assignment = field(
         metadata={"description": "Структурированное описание практического задания"},
     )
     passing_score: float = field(
@@ -225,7 +224,7 @@ class Practice(Entity):
 
 
 @dataclass(slots=True)
-class FinalAssessment:
+class FinalAssessment(Entity):
     """Финальный ассессмент в конце курса."""
 
     task: str = field(
