@@ -36,8 +36,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="Ticket management system",
-    description="REST API тикет-системы компании **ДИО-Консалт**",
+    title="Ai courses system",
+    description="REST API системы-ai-курсов ",
     version="0.1.0",
     lifespan=lifespan,
 )
