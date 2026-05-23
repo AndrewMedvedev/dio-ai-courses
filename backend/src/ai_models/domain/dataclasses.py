@@ -12,7 +12,7 @@ class AIModel(Entity):
     description: str | None = None
     context_parametrs: str | None = None
 
-    def mark_is_active(self) -> None:
+    def mark_is_not_active(self) -> None:
         self.is_active = False
 
 

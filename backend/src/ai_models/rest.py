@@ -6,7 +6,7 @@ from ..core.settings import settings
 YANDEX_CLOUD_AI_MODELS_URL = "https://llm.api.cloud.yandex.net/v1/models"
 
 
-def format_answer(data: list[dict]) -> list:
+def format_answer(data: list[str]) -> set:
     models: list = []
     for i in data:
         if (
@@ -18,10 +18,10 @@ def format_answer(data: list[dict]) -> list:
             *_, model, status = name.split("/")
             if status != "deprecated":
                 models.append(model)
-    return models
+    return set(models)
 
 
-async def get_yandex_ai_models() -> list[dict]:
+async def get_yandex_ai_models() -> set:
     async with (
         ClientSession() as session,
         session.get(

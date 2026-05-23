@@ -8,7 +8,10 @@ def create_user_preference(user_id: UUID, model_id: UUID) -> UserModelPreference
 
 
 def create_ai_model(
-    name: str, provider: str, description: str | None = None, context_parametrs: str | None = None
+    name: str,
+    provider: str = "YANDEX",
+    description: str | None = None,
+    context_parametrs: str | None = None,
 ) -> AIModel:
     return AIModel(
         name=name, provider=provider, description=description, context_parametrs=context_parametrs
