@@ -1,17 +1,18 @@
-from ai.core.entities.course import (
+from ..domain.entities import (
     AnyAssignment,
     AnyContentBlock,
     AssignmentType,
     ContentType,
-    DetailedAnswerTest,
+    Lesson,
     Module,
 )
+from ..schemas import DetailedAnswerTest
 
 
 def get_assignment_context(assignment: AnyAssignment) -> str:
     assignment_type_map = {
         AssignmentType.FILE_UPLOAD: "Задание с загрузкой файла",
-        AssignmentType.GITHUB: "Задание на платформе GitHub"
+        AssignmentType.GITHUB: "Задание на платформе GitHub",
     }
     context = (
         f"## Практическое задание: '{assignment.title}'\n"
@@ -23,12 +24,9 @@ def get_assignment_context(assignment: AnyAssignment) -> str:
                 "### Постановка задачи\n"
                 f"{assignment.description}\n\n"
                 "### Инструкция по оформлению\n"
-                f"{assignment.submission_instructions}\n\n"
+                f"{assignment.submission_instructions}\n\n"  # type: ignore  # noqa: PGH003
             )
-    context += (
-        "### Критерии оценивания"
-        f"{'\n - '.join(assignment.evaluation_criteria)}"
-    )
+    context += f"### Критерии оценивания{'\n - '.join(assignment.evaluation_criteria)}"
     context += "\n"
     return context
 
@@ -39,42 +37,61 @@ def get_content_blocks_context(content_blocks: list[AnyContentBlock]) -> str:
         context += f"### {content_block.content_type.value}\n"
         match content_block.content_type:
             case ContentType.TEXT:
-                context += f"{content_block.md_content}\n\n"
+                context += f"{content_block.md_content}\n\n"  # type: ignore  # noqa: PGH003
             case ContentType.VIDEO:
                 context += (
-                    f"Платформа: {content_block.platform}\n"
-                    f"Ссылка на видео: {content_block.url}\n"
-                    f"Название видео: {content_block.title}\n"
+                    f"Платформа: {content_block.platform}\n"  # type: ignore  # noqa: PGH003
+                    f"Ссылка на видео: {content_block.url}\n"  # type: ignore  # noqa: PGH003
+                    f"Название видео: {content_block.title}\n"  # type: ignore  # noqa: PGH003
                     "Вопросы для обсуждения:\n"
-                    f" - {'\n - '.join(content_block.discussion_questions)}"
+                    f" - {'\n - '.join(content_block.discussion_questions)}"  # type: ignore  # noqa: PGH003
                 )
             case ContentType.QUIZ:
                 context += (
                     "Вопросы для самопроверки:\n"
-                    f" - {'\n - '.join([
-                        f"вопрос: {question}; ответ: {answer}"
-                        for question, answer in content_block.questions
-                    ])}"
+                    f" - {
+                        '\n - '.join([
+                            f'вопрос: {question}; ответ: {answer}'
+                            for question, answer in content_block.questions  # type: ignore
+                        ])
+                    }"
                 )
             case ContentType.PROGRAM_CODE:
                 context = (
-                    f"```{content_block.language}\n{content_block.code}\n```\n\n"
-                    f"Объяснение: {content_block.explanation}"
+                    f"```{content_block.language}\n{content_block.code}\n```\n\n"  # type: ignore  # noqa: PGH003
+                    f"Объяснение: {content_block.explanation}"  # type: ignore  # noqa: PGH003
                 )
             case ContentType.MERMAID:
                 context += (
-                    f"Название диаграммы: {content_block.title}\n"
-                    f"Диаграмма:\n{content_block.mermaid_code}\n"
-                    f"Объяснение: {content_block.explanation}"
+                    f"Название диаграммы: {content_block.title}\n"  # type: ignore  # noqa: PGH003
+                    f"Диаграмма:\n{content_block.mermaid_code}\n"  # type: ignore  # noqa: PGH003
+                    f"Объяснение: {content_block.explanation}"  # type: ignore  # noqa: PGH003
                 )
         context += "\n\n"
     return context
 
 
+def get_lesson_context(
+    lesson: Lesson, include_content_blocks: bool = True, include_assignment: bool = False
+) -> str:
+    """Получение LLM-friendly контекста текущего модуля в Markdown формате."""
+
+    context = (
+        f"# Модуль [{lesson.order}]: '{lesson.title}'\n"
+        f"**Описание**: {lesson.description}\n\n"
+        "**Цели обучения**:\n"
+        f" - {f'{lesson.learning_objectives}'}"
+        "\n\n"
+    )
+    if lesson.content_blocks and include_content_blocks:
+        context += get_content_blocks_context(lesson.content_blocks)  # type: ignore  # noqa: PGH003
+    if include_assignment and lesson.assignment is not None:
+        context += get_assignment_context(lesson.assignment)
+    return context
+
+
 def get_module_context(
-        module: Module,
-        include_content_blocks: bool = True,
-        include_assignment: bool = False
+    module: Module, include_content_blocks: bool = True, include_assignment: bool = False
 ) -> str:
     """Получение LLM-friendly контекста текущего модуля в Markdown формате."""
 

@@ -9,7 +9,7 @@ from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
 from langchain_openai import ChatOpenAI
 
 from ai.schemas import AssignmentResult
-from ai.core.entities.course import AnyAssignment
+from src.ai.domain.entities import AnyAssignment
 from ai.settings import settings
 from ai.utils.formatting import get_assignment_context
 
@@ -54,7 +54,7 @@ SYSTEM_PROMPT = """\
 
 
 async def call_assignment_checker(
-        assignment: AnyAssignment, submission_data: dict[str, Any]
+    assignment: AnyAssignment, submission_data: dict[str, Any]
 ) -> AssignmentResult:
     """Вызвать агента для проверки практических заданий"""
 

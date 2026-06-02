@@ -11,14 +11,17 @@ from shared.domain.entities import AggregateRoot, Entity
 
 
 class ContentType(StrEnum):
-    """Тип контента внутри учебного контент-блока"""
+    """Тип контента внутри блока"""
 
-    TEXT = "text"
-    VIDEO = "video"
-    PROGRAM_CODE = "program_code"
-    MERMAID = "mermaid"
-    QUIZ = "quiz"
-    LINK = "link"
+    TEXT = "text"  # Текстовый контент / лекция
+    VIDEO = "video"  # Видео из стороннего источника
+    PROGRAM_CODE = "program_code"  # Пример кода
+    MERMAID = "mermaid"  # Mermaid диаграмма
+    QUIZ = "quiz"  # Вопросы для самопроверки
+    LINK = "link"  # Внешняя ссылка на источник
+    MATH_FORMULA = "math_formula"  # математическая, физическая, логическая формула
+    CHEMICAL_FORMULA = "chemical_formula"  # химическая формула
+    MUSICAL_NOTATION = "musical_notation"  # нотная запись
 
 
 @dataclass(kw_only=True, slots=True)
@@ -114,6 +117,27 @@ class LinkBlock(ContentBlock):
     title: str = field(metadata={"description": "Название прикрепленного материала"})
     url: str = field(metadata={"description": "Ссылка на внешний источник"})
     ai_generated: bool = False
+
+
+@dataclass(kw_only=True, slots=True)
+class FormulaBlock:
+    formula: str = field(..., description="формула")
+    explanation: str = field(..., description="Пояснение к формуле")
+
+
+@dataclass(kw_only=True, slots=True)
+class MathBlock(FormulaBlock, ContentBlock):
+    content_type: ContentType = ContentType.MATH_FORMULA
+
+
+@dataclass(kw_only=True, slots=True)
+class ChemicalBlock(FormulaBlock, ContentBlock):
+    content_type: ContentType = ContentType.CHEMICAL_FORMULA
+
+
+@dataclass(kw_only=True, slots=True)
+class MusicalBlock(FormulaBlock, ContentBlock):
+    content_type: ContentType = ContentType.MUSICAL_NOTATION
 
 
 class AssignmentType(StrEnum):

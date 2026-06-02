@@ -26,6 +26,9 @@ class GeneratedContentType(StrEnum):
     PROGRAM_CODE = "program_code"  # Пример кода
     MERMAID = "mermaid"  # Mermaid диаграмма
     QUIZ = "quiz"  # Вопросы для самопроверки
+    MATH_FORMULA = "math_formula"  # математическая, физическая, логическая формула
+    CHEMICAL_FORMULA = "chemical_formula"  # химическая формула
+    MUSICAL_NOTATION = "musical_notation"  # нотная запись
 
 
 class Knowledge(BaseModel):
@@ -39,18 +42,18 @@ class Knowledge(BaseModel):
          - data - информация полученная из материалов преподавателя
          - web_research - информация полученная в ходе изучения предметной области
          - theory - теоретический материал уже созданного курса
-        """
+        """,
     )
     source: str = Field(
         ...,
-        description="Источник полученных знаний, например имя файла, URL адрес, название ресурса"
+        description="Источник полученных знаний, например имя файла, URL адрес, название ресурса",
     )
     text: str = Field(..., description="Полезная информация, которую необходимо запомнить")
     score: NonNegativeFloat = Field(
         ...,
         ge=0.0,
         le=1.0,
-        description="Насколько полезна информация, где 1 максимально релевантная информация"
+        description="Насколько полезна информация, где 1 максимально релевантная информация",
     )
 
 

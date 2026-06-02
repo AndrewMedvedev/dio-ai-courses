@@ -3,18 +3,20 @@
 import logging
 
 from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
-from langchain_openai import ChatOpenAI
+from langchain.agents.structured_output import ToolStrategy
+from langchain.messages import HumanMessage
 
-from ai.core.entities.course import (
+from src.ai.domain.entities import (
     AnyAssignment,
     AssignmentType,
     FileUploadAssignment,
     GitHubAssignment,
+    Lesson,
     Module,
 )
-from ai.settings import settings
-from ai.utils.formatting import get_module_context
+
+from ....domain.dependencies import model
+from ....utils.formatting import get_lesson_context
 
 logger = logging.getLogger(__name__)
 
@@ -141,22 +143,9 @@ SYSTEM_PROMPTS = {
      - обработку ошибок (город не найден, таймаут)
      - минимум 2 unit-теста на ключевые функции.
     В README опишите установку, запуск и примеры запросов."
-    """
+    """,
 }
 
-# model = ChatOpenAI(
-#     api_key=settings.yandexcloud.api_key,
-#     model=settings.yandexcloud.qwen3_235b,
-#     base_url=settings.yandexcloud.base_url,
-#     temperature=0.2,
-# )
-
-model = ChatOpenAI(
-    api_key=settings.deepseek.api_key,
-    base_url=settings.deepseek.base_url,
-    model=settings.deepseek.deepseek_chat,
-    temperature=0.2,
-)
 
 config = {
     AssignmentType.FILE_UPLOAD: {
@@ -170,7 +159,30 @@ config = {
 }
 
 
-async def call_practice_agent(assignment_type: AssignmentType, module: Module) -> AnyAssignment:
+async def call_lesson_practice_agent(
+    assignment_type: AssignmentType, lesson: Lesson
+) -> AnyAssignment:
+    """Вызывает агента - генератора практических заданий для урока
+
+    :param assignment_type: Тип практического задания.
+    :param lesson: Урок по которому нужно сгенерировать задание.
+    """
+
+    logger.info("Calling practice agent for assignment type `%s` ...", assignment_type.value)
+    agent = create_agent(model=model, **config.get(assignment_type, {}))  # type: ignore  # noqa: PGH003
+    prompt_template = (
+        "## Теоретический материал пройденного урока:\n\n"
+        "<THEORY>"
+        f"{get_lesson_context(lesson)}\n"
+        f"</THEORY>"
+    )
+    result = await agent.ainvoke({"messages": [HumanMessage(content=prompt_template)]})
+    return result["structured_response"]
+
+
+async def call_module_practice_agent(
+    assignment_type: AssignmentType, module: Module
+) -> AnyAssignment:
     """Вызывает агента - генератора практических заданий для модуля
 
     :param assignment_type: Тип практического задания.
@@ -178,12 +190,12 @@ async def call_practice_agent(assignment_type: AssignmentType, module: Module) -
     """
 
     logger.info("Calling practice agent for assignment type `%s` ...", assignment_type.value)
-    agent = create_agent(model=model, **config.get(assignment_type, {}))
+    agent = create_agent(model=model, **config.get(assignment_type, {}))  # type: ignore  # noqa: PGH003
     prompt_template = (
         "## Теоретический материал пройденного модуля:\n\n"
         "<THEORY>"
         f"{get_module_context(module)}\n"
         f"</THEORY>"
     )
-    result = await agent.ainvoke({"messages": [("human", prompt_template)]})
+    result = await agent.ainvoke({"messages": [HumanMessage(content=prompt_template)]})
     return result["structured_response"]

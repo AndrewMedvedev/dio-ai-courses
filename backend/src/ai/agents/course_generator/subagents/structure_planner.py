@@ -2,10 +2,10 @@
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from ai.settings import settings
+from ....domain.dependencies import model
+from ....domain.vo import DifficultyLevel
 
 SYSTEM_PROMPT = """\
 ## Роль
@@ -31,27 +31,14 @@ SYSTEM_PROMPT = """\
 
 """
 
-# model = ChatOpenAI(
-#     api_key=settings.yandexcloud.api_key,
-#     model=settings.yandexcloud.qwen3_235b,
-#     base_url=settings.yandexcloud.base_url,
-#     temperature=0.5,
-#     max_retries=3
-# )
-
-model = ChatOpenAI(
-    api_key=settings.deepseek.api_key,
-    base_url=settings.deepseek.base_url,
-    model=settings.deepseek.deepseek_chat,
-    temperature=0.5,
-)
-
 
 class CourseStructure(BaseModel):
     """JSON output для структуры курса"""
 
     title: str = Field(description="Название курса")
     description: str = Field(description="Описание курса")
+    difficulty: DifficultyLevel = Field(description="Уровень сложности курса")
+    tags: list[str] = Field(description="Список тегов курса для поиска и категоризации.")
     audience_description: str = Field(description="Описание целевой аудитории курса")
     learning_objectives: list[str] = Field(description="Цели обучения на курс")
     module_descriptions: list[str] = Field(
@@ -66,8 +53,6 @@ class CourseStructure(BaseModel):
     final_assessment_description: str = Field(description="Описание финального ассессмента")
 
 
-structure_planner_agent = create_agent(
-    model=model,
-    system_prompt=SYSTEM_PROMPT,
-    response_format=ProviderStrategy(CourseStructure)
+course_planner_agent = create_agent(
+    model=model, system_prompt=SYSTEM_PROMPT, response_format=ProviderStrategy(CourseStructure)
 )

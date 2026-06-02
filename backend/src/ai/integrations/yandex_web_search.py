@@ -9,16 +9,12 @@ import xml.etree.ElementTree as ET  # noqa: S405
 
 import aiohttp
 
-from ai.settings import settings
+from ...core.settings import settings
 
 BASE_URL = "https://searchapi.api.cloud.yandex.net/v2/"
 OPERATIONS_URL = "https://operation.api.cloud.yandex.net/operations/"
 
-FamilyMode = Literal[
-    "FAMILY_MODE_NONE",
-    "FAMILY_MODE_MODERATE",
-    "FAMILY_MODE_STRICT"
-]
+FamilyMode = Literal["FAMILY_MODE_NONE", "FAMILY_MODE_MODERATE", "FAMILY_MODE_STRICT"]
 
 
 class YandexSearchAPIError(Exception):
@@ -30,7 +26,7 @@ class YandexSearchTimeoutError(YandexSearchAPIError):
 
 
 def _build_payload(
-        query: str, family_mode: FamilyMode = "FAMILY_MODE_NONE", page: int | None = None
+    query: str, family_mode: FamilyMode = "FAMILY_MODE_NONE", page: int | None = None
 ) -> dict[str, Any]:
     return {
         "query": {
@@ -38,10 +34,10 @@ def _build_payload(
             "queryText": query,
             "familyMode": family_mode,
             "page": page if page is not None else 0,
-            "fixTypoMode": "FIX_TYPO_MODE_ON"
+            "fixTypoMode": "FIX_TYPO_MODE_ON",
         },
         "l10n": "LOCALIZATION_RU",
-        "responseFormat": "FORMAT_XML"
+        "responseFormat": "FORMAT_XML",
     }
 
 
@@ -118,9 +114,10 @@ async def search(query: str) -> list[dict[str, Any]]:
         "Content-Type": "application/json",
     }
     payload = _build_payload(query)
-    async with aiohttp.ClientSession(base_url=BASE_URL) as session, session.post(
-        url="templates/search", headers=headers, json=payload
-    ) as response:
+    async with (
+        aiohttp.ClientSession(base_url=BASE_URL) as session,
+        session.post(url="templates/search", headers=headers, json=payload) as response,
+    ):
         data = await response.text()
         xml_content = base64.b64decode(json.loads(data)["rawData"]).decode("utf-8")
         return _parse_xml_response(xml_content)
@@ -128,9 +125,10 @@ async def search(query: str) -> list[dict[str, Any]]:
 
 async def _check_operation_status(operation_id: str) -> dict[str, Any]:
     headers = {"Authorization": f"Api-Key {settings.yandexcloud.api_key}"}
-    async with aiohttp.ClientSession(base_url=OPERATIONS_URL) as session, session.get(
-        url=f"{operation_id}", headers=headers
-    ) as response:
+    async with (
+        aiohttp.ClientSession(base_url=OPERATIONS_URL) as session,
+        session.get(url=f"{operation_id}", headers=headers) as response,
+    ):
         return await response.json()
 
 
@@ -150,9 +148,10 @@ async def search_async(query: str, interval: int = 1, max_wait: int = 300) -> li
         "Content-Type": "application/json",
     }
     payload = _build_payload(query)
-    async with aiohttp.ClientSession(base_url=BASE_URL) as session, session.post(
-            url="templates/searchAsync", headers=headers, json=payload
-    ) as response:
+    async with (
+        aiohttp.ClientSession(base_url=BASE_URL) as session,
+        session.post(url="templates/searchAsync", headers=headers, json=payload) as response,
+    ):
         data = await response.json()
         operation_id = data["id"]
 

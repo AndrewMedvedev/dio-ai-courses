@@ -4,7 +4,7 @@ from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
 from langchain_openai import ChatOpenAI
 
-from ai.core.entities.course import (
+from src.ai.domain.entities import (
     AnyKnowledgeTest,
     DetailedAnswerTest,
     Module,
@@ -30,9 +30,8 @@ model = ChatOpenAI(
 )
 
 config = {
-    TestType.MULTIPLE_CHOICE:
-        {
-            "system_prompt": """\
+    TestType.MULTIPLE_CHOICE: {
+        "system_prompt": """\
             ### Ограничения на размер ответа
              - Максимальная длина текста одного вопроса не должна превышать 600 символов
              «Максимальная длина формулировки вопроса (без вариантов) — 600 символов.
@@ -49,8 +48,8 @@ config = {
              - индекс правильного варианта ответа (индексация с 0),
              - баллы за вопрос (по умолчанию 1, если не указано иное).
             """,
-            "response_format": ToolStrategy(MultipleChoiceTest),
-        },
+        "response_format": ToolStrategy(MultipleChoiceTest),
+    },
     TestType.DETAILED_ANSWER: {
         "system_prompt": """\
         Ты - эксперт по созданию тестов для проверки понимания материала.
@@ -69,7 +68,7 @@ config = {
         а не простое воспроизведение.
         """,
         "response_format": ToolStrategy(DetailedAnswerTest),
-    }
+    },
 }
 
 

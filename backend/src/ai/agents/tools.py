@@ -7,12 +7,11 @@ from langchain.tools import tool
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
-from ai.integrations import rutube, yandex_web_search
-from ai.settings import settings
-from ai.utils.browser_automation import get_page_text
-
+from ...core.settings import settings
+from ..integrations import rutube, yandex_web_search
+from ..utils.browser_automation import get_page_text
 from .prompts import CODER_PROMPT, MERMAID_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ class SearchInput(BaseModel):
 @tool(
     "rutube_search",
     description="Выполняет поиск видео на платформе RuTube",
-    args_schema=SearchInput
+    args_schema=SearchInput,
 )
 async def rutube_search(search_query: str) -> list[dict[str, Any]]:
     return await rutube.search_videos(search_query)
@@ -71,14 +70,15 @@ class MermaidInput(BaseModel):
 )
 async def draw_mermaid(prompt: str) -> str:
     model = ChatOpenAI(
-        api_key=settings.yandexcloud.api_key,
-        model=settings.yandexcloud.qwen3_235b,
-        base_url=settings.yandexcloud.base_url,
+        api_key=SecretStr(settings.yandex_cloud.api_key),
+        model=settings.yandex_cloud.qwen3_235b,
+        base_url=settings.yandex_cloud.base_url,
         temperature=0.3,
-     )
+    )
     chain = (
         ChatPromptTemplate.from_messages([
-            ("system", MERMAID_PROMPT), MessagesPlaceholder("messages")
+            ("system", MERMAID_PROMPT),
+            MessagesPlaceholder("messages"),
         ])
         | model
         | StrOutputParser()
@@ -98,11 +98,11 @@ class CoderInput(BaseModel):
 )
 async def write_code(language: str, prompt: str) -> str:
     model = ChatOpenAI(
-        api_key=settings.yandexcloud.api_key,
-        model=settings.yandexcloud.qwen3_235b,
-        base_url=settings.yandexcloud.base_url,
+        api_key=SecretStr(settings.yandex_cloud.api_key),
+        model=settings.yandex_cloud.qwen3_235b,
+        base_url=settings.yandex_cloud.base_url,
         temperature=0.2,
-        max_tokens=3000,
+        max_completion_tokens=3000,
         max_retries=3,
     )
     chain = ChatPromptTemplate.from_template(CODER_PROMPT) | model | StrOutputParser()
@@ -126,7 +126,7 @@ def search_videos(search_query: str) -> list[dict[str, Any]]:
     Подходит для получения актуальной информации из интернета.
     Используй этот инструмент экономно.
     """,
-    args_schema=SearchInput
+    args_schema=SearchInput,
 )
 def web_search(search_query: str) -> list[dict[str, Any]]:
     return DDGS().text(search_query, region="ru-ru", max_results=10)

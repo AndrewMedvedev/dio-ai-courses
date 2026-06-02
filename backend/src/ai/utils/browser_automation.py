@@ -1,10 +1,9 @@
 import logging
 import random
 
-import html2text
+import html_to_markdown
 from bs4 import BeautifulSoup
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,7 @@ CHROME_VERSIONS: tuple[str, ...] = (
     "117.0.0.0",
     "116.0.0.0",
     "115.0.0.0",
-    "114.0.0.0"
+    "114.0.0.0",
 )
 # Возможные устройства для создания правдоподобных отпечатков браузера
 PLATFORMS: tuple[str, ...] = (
@@ -166,7 +165,10 @@ SCRIPTS: tuple[str, ...] = (
     CANVAS_SPOOFING_SCRIPT,
     FINGERPRINT_SPOOFING_SCRIPT
     % (
-        "ru-RU", "ru", random.choice(PLATFORMS), random.choice([4, 8, 12, 16])  # noqa: S311
+        "ru-RU",
+        "ru",
+        random.choice(PLATFORMS),
+        random.choice([4, 8, 12, 16]),  # noqa: S311
     ),
     WEBGL_SPOOFING_SCRIPT,
 )
@@ -214,7 +216,15 @@ def _extract_markdown_text(soup: BeautifulSoup) -> str:
     """Извлечение текста со страницы в формате Markdown"""
 
     for element in soup.find_all({
-        "script", "style", "svg", "path", "meta", "link", "nav", "footer", "header"
+        "script",
+        "style",
+        "svg",
+        "path",
+        "meta",
+        "link",
+        "nav",
+        "footer",
+        "header",
     }):
         element.decompose()
     body = soup.find("body")
@@ -222,10 +232,9 @@ def _extract_markdown_text(soup: BeautifulSoup) -> str:
         return ""
     # Основные семантические элементы в порядке важности
     elements = body.find_all({"h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "td", "th"})
-    converter = html2text.HTML2Text()
-    converter.body_width = 0
-    converter.ignore_images = True
-    return "\n".join(converter.handle(str(element)).strip() for element in elements)
+    return "\n".join([
+        html_to_markdown.convert(str(element)).content or "" for element in elements
+    ])
 
 
 async def get_page_text(url: str, headless: bool = False) -> str:
@@ -235,15 +244,19 @@ async def get_page_text(url: str, headless: bool = False) -> str:
         browser = await playwright.chromium.launch(headless=headless)
         page = await _get_current_page(browser)
         logger.info("Opening `%s` page ...", url)
-        await page.goto(url)
+
         try:
-            await page.wait_for_load_state("networkidle", timeout=5_000)
-        except PlaywrightTimeoutError:
+            await page.goto(url, timeout=60000)
+            await page.wait_for_load_state("networkidle", timeout=60000)
+            await page.wait_for_load_state("load", timeout=60000)
+            await page.wait_for_load_state("domcontentloaded", timeout=60000)
+        except Exception:
             # Fallback в случае неудачного ожидания загрузки страницы
             logger.warning(
                 "Fallback networkidle timeout for `%s` page, using domcontentloaded", page.url
             )
-            await page.wait_for_load_state("domcontentloaded")
+            return f"Не получилось открыть страницу {url}"
+
         page_content = await page.content()
         soup = BeautifulSoup(page_content, "html.parser")
         return _extract_markdown_text(soup)

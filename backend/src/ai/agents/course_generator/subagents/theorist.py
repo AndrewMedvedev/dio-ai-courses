@@ -5,19 +5,21 @@ from uuid import uuid4
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
-from langchain_openai import ChatOpenAI
+from langchain.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
-from ai.core.entities.course import (
+from ....domain.dependencies import model
+from ....domain.entities import (
     AnyContentBlock,
+    ChemicalBlock,
     CodeBlock,
     ContentType,
+    MathBlock,
     MermaidBlock,
+    MusicalBlock,
     QuizBlock,
     TextBlock,
 )
-from ai.settings import settings
-
 from ...schemas import CourseContext, GeneratedContentType
 from ..tools import knowledge_search
 
@@ -91,22 +93,49 @@ SYSTEM_PROMPTS = {
         C --> E((Завершение))
         D --> E
     ```
-    """
+    """,
+    ContentType.MATH_FORMULA: """\
+    Ты — ИИ-агент, эксперт по LaTeX. Твоя задача: преобразовать текстовое описание формулы в корректный LaTeX-код, который сможет отрисовать KaTeX или MathJax.
+
+    Правила:
+    - Всегда заключай LaTeX в блок \\( ... \\) для инлайн-формул и \\[ ... \\] для display-формул.
+    - Используй только стандартные пакеты (amsmath, amssymb). Без кастомных команд.
+    - Для дробей: \\frac{{числитель}}{{знаменатель}}.
+    - Для корней: \\sqrt{{выражение}} или \\sqrt[n]{{выражение}}.
+    - Для индексов: a_{{b}} (нижний), a^{{b}} (верхний).
+    - Для греческих букв: \\alpha, \\beta, \\gamma, \\delta, \\epsilon, \\zeta, \\eta, \\theta, \\lambda, \\mu, \\pi, \\rho, \\sigma, \\tau, \\phi, \\psi, \\omega.
+    - Для логических операций: \\land (∧), \\lor (∨), \\lnot (¬), \\to (→), \\leftrightarrow (↔), \\forall (∀), \\exists (∃).
+
+""",  # noqa: E501
+    ContentType.CHEMICAL_FORMULA: """\
+    Ты — ИИ-агент по химическим формулам. Твоя задача: записать химическую реакцию или молекулу в формате mhchem (расширение LaTeX).
+
+    Правила:
+    - Используй команду \\ce{{ ... }}.
+    - Стрелки: -> (прямая), <- (обратная), <-> (равновесие).
+    - Ионы: Fe^{{2+}}, SO4^{{2-}}.
+    - Индексы: H2O (автоматически), но можно уточнять: H_2O.
+    - Состояния: (г), (ж), (тв), (р-р).
+    - Условия над стрелкой: \\xrightarrow{{условие}}.
+""",  # noqa: E501
+    ContentType.MUSICAL_NOTATION: """\
+    Ты — ИИ-агент по нотной записи. Твой выход должен быть готов для рендеринга через VexFlow или abcjs.
+
+    Предпочтительный формат: VexFlow JSON (простые ноты) или ABC-нотация.
+    Если запрос сложный — используй ABC-нотацию, так как она проще для ИИ и есть библиотеки под неё.
+
+    Правила:
+    - Для одноголосной мелодии используй ABC:
+      X:1
+      M:4/4
+      L:1/8
+      K:C
+      CDEF GABc ||
+
+    - Указывай размер (M:), длительность (L:), тональность (K:).
+""",  # noqa: E501
 }
 
-# model = ChatOpenAI(
-#     api_key=settings.yandexcloud.api_key,
-#     model=settings.yandexcloud.qwen3_235b,
-#     base_url=settings.yandexcloud.base_url,
-#     temperature=0.2,
-# )
-
-model = ChatOpenAI(
-    api_key=settings.deepseek.api_key,
-    base_url=settings.deepseek.base_url,
-    model=settings.deepseek.deepseek_chat,
-    temperature=0.2,
-)
 
 config = {
     GeneratedContentType.PROGRAM_CODE: {
@@ -125,13 +154,25 @@ config = {
     },
     GeneratedContentType.MERMAID: {
         "system_prompt": SYSTEM_PROMPTS[ContentType.MERMAID],
-        "response_format": ProviderStrategy(MermaidBlock)
-    }
+        "response_format": ProviderStrategy(MermaidBlock),
+    },
+    GeneratedContentType.MATH_FORMULA: {
+        "system_prompt": SYSTEM_PROMPTS[ContentType.MATH_FORMULA],
+        "response_format": ProviderStrategy(MathBlock),
+    },
+    GeneratedContentType.CHEMICAL_FORMULA: {
+        "system_prompt": SYSTEM_PROMPTS[ContentType.CHEMICAL_FORMULA],
+        "response_format": ProviderStrategy(ChemicalBlock),
+    },
+    GeneratedContentType.MUSICAL_NOTATION: {
+        "system_prompt": SYSTEM_PROMPTS[ContentType.MUSICAL_NOTATION],
+        "response_format": ProviderStrategy(MusicalBlock),
+    },
 }
 
 
 async def call_theory_agent(
-        content_type: GeneratedContentType, prompt: str, context: CourseContext
+    content_type: GeneratedContentType, prompt: str, context: CourseContext
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -146,11 +187,11 @@ async def call_theory_agent(
         model=model,
         context_schema=CourseContext,
         checkpointer=InMemorySaver(),
-        **config.get(content_type, {})
+        **config.get(content_type, {}),  # type: ignore  # noqa: PGH003,
     )
     result = await agent.ainvoke(
-        {"messages": [("human", prompt)]},
+        {"messages": [HumanMessage(content=prompt)]},
         context=context,
-        config={"configurable": {"thread_id": f"{uuid4()}"}}
+        config={"configurable": {"thread_id": f"{uuid4()}"}},
     )
     return result["structured_response"]

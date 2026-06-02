@@ -10,7 +10,7 @@ TIMEZONE = "Asia/Yekaterinburg"
 timezone = pytz.timezone(TIMEZONE)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
+CHROMA_PATH = BASE_DIR / ".chroma"
 ENV_FILE = BASE_DIR / ".env"
 ENV_DEV_FILE = BASE_DIR / ".env.dev"  # Среда для разработки
 
@@ -114,12 +114,29 @@ class YandexCloudSettings(BaseSettings):
     endpoint_url: str = "https://storage.yandexcloud.net/"
 
     @property
-    def gemma_3_27b_it(self) -> str:
-        return f"gpt://{self.folder_id}/gemma-3-27b-it/latest"
+    def deepseek_v32(self) -> str:
+        """DeepSeek V3.2, 128k токенов"""
+        return f"gpt://{self.folder_id}/deepseek-v32/latest"
 
     @property
-    def aliceai_llm(self) -> str:
-        return f"gpt://{self.folder_id}/aliceai-llm"
+    def gpt_oss_120b(self) -> str:
+        """gpt-oss-120b, 128k токенов"""
+        return f"gpt://{self.folder_id}/gpt-oss-120b/latest"
+
+    @property
+    def gpt_oss_20b(self) -> str:
+        """gpt-oss-20b, 128k токенов"""
+        return f"gpt://{self.folder_id}/gpt-oss-20b/latest"
+
+    @property
+    def qwen3_6_35b(self) -> str:
+        """Qwen3.6 35B, 256k токенов"""
+        return f"gpt://{self.folder_id}/qwen3.6-35b-a3b/latest"
+
+    @property
+    def qwen3_5_35b(self) -> str:
+        """Qwen3.5 35B, 256k токенов (URI действителен до 28 мая 2026)"""
+        return f"gpt://{self.folder_id}/qwen3.5-35b-a3b-fp8/latest"
 
     @property
     def qwen3_235b(self) -> str:
@@ -128,6 +145,14 @@ class YandexCloudSettings(BaseSettings):
     @property
     def yandexgpt_rc(self) -> str:
         return f"gpt://{self.folder_id}/yandexgpt/rc"
+
+
+class LangSmithSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="LANGSMITH_")
+    tracing: bool = True
+    endpoint: str = ""
+    api_key: str = ""
+    project: str = ""
 
 
 class LanguageToolSettings(BaseSettings):
@@ -164,6 +189,22 @@ class AdminSettings(BaseSettings):
     password: str = "admin"
 
 
+class HuggingFaceSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="HF_")
+
+    space_url: str = "http://localhost:8001"
+
+
+class SearchSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="AI_SEARCH_")
+
+    family_mode: Literal[
+        "FAMILY_MODE_NONE",
+        "FAMILY_MODE_MODERATE",
+        "FAMILY_MODE_STRICT",
+    ] = "FAMILY_MODE_NONE"
+
+
 class Settings(BaseSettings):
     secret_key: str = "<SECRET_KEY>"
     frontend_url: str = "http://localhost:3000"
@@ -179,6 +220,9 @@ class Settings(BaseSettings):
     yandex_cloud: YandexCloudSettings = YandexCloudSettings()
     language_tool: LanguageToolSettings = LanguageToolSettings()
     admin: AdminSettings = AdminSettings()
+    huggingface: HuggingFaceSettings = HuggingFaceSettings()
+    search: SearchSettings = SearchSettings()
+    tracing: LangSmithSettings = LangSmithSettings()
 
 
 settings = Settings()

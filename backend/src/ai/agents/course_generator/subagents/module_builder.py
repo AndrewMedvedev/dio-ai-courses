@@ -1,84 +1,48 @@
 # Суб агент - для создания образовательного модуля
 
-from typing import NotRequired, TypedDict
+from typing import Final, NotRequired, TypedDict
 
 import logging
 import time
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
+from langchain.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
-from ai.core.entities.course import AssignmentType, Module
-from ai.settings import settings
-from ai.utils.formatting import get_content_blocks_context, get_module_context
-
-from .... import rag
-from ...schemas import CourseContext, GeneratedContentType
-from .practician import call_practice_agent
-from .theorist import call_theory_agent
+from .....core.settings import settings
+from ....domain.entities import BasicInfo, Lesson, Module
+from ....domain.services import create_module
+from ...schemas import CourseContext
+from .lesson_builder import lesson_builder_agent
 
 logger = logging.getLogger(__name__)
 
-# model = ChatOpenAI(
-#     api_key=settings.yandexcloud.api_key,
-#     model=settings.yandexcloud.qwen3_235b,
-#     base_url=settings.yandexcloud.base_url,
-#     temperature=0.2,
-#     max_retries=3
-# )
-
-model = ChatOpenAI(
-    api_key=settings.deepseek.api_key,
-    base_url=settings.deepseek.base_url,
-    model=settings.deepseek.deepseek_chat,
-    temperature=0.3,
-)
-
 
 class ModuleStructure(BaseModel):
-    """Структура модуля"""
+    """Структура модуля, создаваемая планировщиком (агент-архитектор)."""
 
     title: str = Field(description="Название модуля для студента")
     description: str = Field(description="Описание модуля для студента")
     learning_objectives: list[str] = Field(description="Цели обучения модуля")
-    content_plan: list[tuple[GeneratedContentType, str]] = Field(
+    lessons_descriptions: list[str] = Field(
         description="""\
-        Детальные промпты для генерации контент блоков с теоретическим материалом.
-        (должны быть в том порядке, в котором блоки будут идти внутри модуля)
-        Для каждого блока content_plan создавай детальный промпт, который:
-         1. Учитывает контекст курса и модуля
-         2. Содержит конкретный указания по содержанию
-         3. Указывает стиль изложения
-         4. Задаёт структуру контента
-         5. Включает примеры если необходимо
-
-        Виды контент блоков:
-         - text - теоретический материал/лекция
-         - program_code - пример с кодом и объяснением (укажи в промпте язык
-           на котором нужно написать код)
-         - mermaid - mermaid диаграмма (напиши только промпт для её генерации)
-         - quiz - вопросы для самопроверки
-
-        Идеальное количество контент блоков 4-5
-        """,
-        min_length=3,
-        max_length=7,
+        Описание каждого урока по порядку, здесь должно быть:
+         - ключевые темы / подтемы (то, без чего модуль невозможен)
+         - цели обучения урока
+         - план по достижению образовательных целей
+         """,
+        max_length=10,
     )
-    assignment_specification: tuple[AssignmentType, str] = Field(
-        description="""\
-        Детальный промпт для агента-практика (practician), который на основе этого промпта
-        создаст практическое задание для студентов.
 
-        Промпт должен:
-         - Чётко описывать, какое задание нужно создать (тест, загрузка файла, github-репозиторий).
-         - Указывать темы модуля, которые должно проверять задание.
-         - Определять уровень сложности и ожидаемый результат.
-         - Содержать конкретные инструкции: например, для теста — примерные вопросы и количество,
-           для file_upload — описание задачи и требования к формату сдачи.
-        """
+    assignment_specification: tuple[str, str] = Field(
+        description="""\
+Детальный промпт для агента-практика (practician).
+Первый элемент кортежа — тип задания (например, "test", "file_upload", "github_repo").
+Второй элемент — подробный промпт с описанием задания, тем, критериев проверки и формата сдачи.
+"""
     )
 
 
@@ -96,81 +60,84 @@ class AgentState(TypedDict):
 
 async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure | Module]:
     """Планирование структуры модуля"""
+    planner: Final[ChatOpenAI] = ChatOpenAI(
+        api_key=SecretStr(settings.yandex_cloud.api_key),
+        base_url=settings.yandex_cloud.base_url,
+        model=settings.yandex_cloud.gpt_oss_120b,
+        temperature=0.2,
+        max_retries=3,
+        max_completion_tokens=90000,
+    )
 
     module_structure_planner = create_agent(
-        model=model,
+        model=planner,
         system_prompt="""\
         Ты полезный ассистент для планирования структуры образовательного модуля
-        по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль контентом
+        по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
         и заданиями.
         """,
         response_format=ProviderStrategy(ModuleStructure),
     )
     prompt_template = f"""\
     Сгенерируй структуру модуля используя следующую информацию:
-     - **Целевая аудитория курса:** {state['audience_description']}
-     - **Цели обучения курса:** {state['learning_objectives']}
-     - **Порядковый номер модуля:** {state['order']}
-     - **Описание модуля:** {state['module_description']}
+     - **Целевая аудитория курса:** {state["audience_description"]}
+     - **Цели обучения курса:** {state["learning_objectives"]}
+     - **Порядковый номер модуля:** {state["order"]}
+     - **Описание модуля:** {state["module_description"]}
     """
     logger.info(
         "Planning %s - module structure by description: '%s ...'",
-        state["order"], state["module_description"][:100]
+        state["order"],
+        state["module_description"][:100],
     )
-    result = await module_structure_planner.ainvoke({"messages": [("human", prompt_template)]})
+    result = await module_structure_planner.ainvoke({"messages": [HumanMessage(prompt_template)]})
     module_structure = result["structured_response"]
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
-    module = Module(
+    module = create_module(
         title=module_structure.title,
         description=module_structure.description,
         learning_objectives=module_structure.learning_objectives,
-        order=state["order"]
+        order=state["order"],
     )
     return {"module_structure": module_structure, "module": module}
 
 
-async def generate_content_blocks(state: AgentState) -> dict[str, Module]:
-    """Генерация контент блоков с помощью субагента - теоретика,
-    используя сгенерированный план
-    """
+async def generate_lessons(state: AgentState) -> dict[str, Module]:
+    """Генерация уроков по структуре модуля"""
 
-    module_structure, module = state["module_structure"], state["module"]
-    logger.info("Starting generate %s content blocks ...", len(module_structure.content_plan))
-    for i, (content_type, prompt) in enumerate(module_structure.content_plan, 1):
-        start_time = time.monotonic()
-        progress_percent = round((i / len(module_structure.content_plan)) * 100, 2)
+    module_structure, module = state["module_structure"], state["module"]  # type: ignore  # noqa: PGH003
+    start_time = time.monotonic()
+    total_modules = len(module_structure.lessons_descriptions)  # type: ignore  # noqa: PGH003
+    logger.info("Start generate %s lessons ...", total_modules)
+    for order, lesson_description in enumerate(module_structure.lessons_descriptions):  # type: ignore  # noqa: PGH003
         logger.info(
-            "%s%% Generating `%s` content block for current plan: '%s'",
-            progress_percent, content_type.value, prompt[:100]
+            "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
         )
-        prompt_template = (
-            "# Контекст текущего модуля:\n"
-            f"{get_module_context(module, include_content_blocks=False)}\n\n"
-            f"# Сгенерируй контент блок с заданным типом - '{content_type.value}':\n"
-            f"**Промпт**: {prompt}"
+        result = await lesson_builder_agent.ainvoke({
+            "course_context": state["course_context"],
+            "audience_description": state["audience_description"],
+            "learning_objectives": module_structure.learning_objectives,
+            "order": order,
+            "lesson_description": lesson_description,
+        })  # type: ignore  # noqa: PGH003
+        module.append_lesson(result["lesson"])
+        lesson: Lesson = result["lesson"]
+        module.append_basic_info(
+            BasicInfo(
+                title=lesson.title,
+                description=lesson.description,
+                learning_objectives=lesson.learning_objectives,
+                order=order,
+            )
         )
-        content_block = await call_theory_agent(
-            content_type, prompt_template, context=state["course_context"]
-        )
-        module.append_content_block(content_block)
-        elapsed_time = time.monotonic() - start_time
-        logger.info(
-            "Added `%s` content block in module, generation time - %s seconds",
-            content_type.value, round(elapsed_time, 2)
-        )
+        progress_percent = round((order / total_modules) * 100, 2)
+        logger.info("lessons generation progress %s%%", progress_percent)
     logger.info(
-        "Saving generated content blocks of `%s` module to knowledge base ...", module.title
-    )
-    rag.indexing(
-        text=get_content_blocks_context(module.content_blocks),
-        metadata={
-            "tenant_id": state["course_context"].course_id,
-            "module_id": f"{module.id}",
-            "source": f"{module.title}",
-            "category": "theory"
-        }
+        "Successfully generated %s lessons, spent time %s seconds",
+        total_modules,
+        round(time.monotonic() - start_time, 2),
     )
     return {"module": module}
 
@@ -178,23 +145,15 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Module]:
 async def generate_assignment(state: AgentState) -> dict[str, Module]:
     """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
-    module_structure, module = state["module_structure"], state["module"]
+    module_structure, module = state["module_structure"], state["module"]  # type: ignore  # noqa: PGH003
     assignment_type, prompt = module_structure.assignment_specification
-    prompt_template = (
-        "## Контекст текущего модуля:\n"
-        "<MODULE>\n"
-        f"{get_module_context(module)}\n"
-        "</MODULE>\n\n"
-        "## Создай практическое задание учитывая запрос и материал модуля:\n"
-        f"**Промпт:**{prompt}"
-    )
-    logger.info(
-        "Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt
-    )
+
+    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_practice_agent(
-        assignment_type, prompt_template, context=state["course_context"]
+        assignment_type,
+        module,
     )
-    module.add_assignment(assignment)
+    module.add_final_assessment(assignment)
     return {"module": module}
 
 
@@ -202,12 +161,12 @@ async def generate_assignment(state: AgentState) -> dict[str, Module]:
 graph = StateGraph(AgentState)
 
 graph.add_node("plan_module_structure", plan_module_structure)
-graph.add_node("generate_content_blocks", generate_content_blocks)
-graph.add_node("generate_assignment", generate_assignment)
+graph.add_node("generate_lessons", generate_lessons)
+
 
 graph.add_edge(START, "plan_module_structure")
-graph.add_edge("plan_module_structure", "generate_content_blocks")
-graph.add_edge("generate_content_blocks", "generate_assignment")
-graph.add_edge("generate_assignment", END)
+graph.add_edge("plan_module_structure", "generate_lessons")
+
+graph.add_edge("generate_lessons", END)
 
 module_builder_agent = graph.compile()
