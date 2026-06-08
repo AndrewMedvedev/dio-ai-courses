@@ -5,7 +5,7 @@ import logging
 import time
 from collections.abc import Callable
 from itertools import starmap
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import aiohttp
 import chromadb
@@ -56,6 +56,11 @@ async def get_embeddings(texts: list[str], batch_size: int = 10) -> list[list[fl
     return embeddings
 
 
+def _sanitize_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Конвертирует несовместимые типы в строки для ChromaDB."""
+    return {k: str(v) if isinstance(v, UUID) else v for k, v in metadata.items()}
+
+
 async def index_document(
     index_name: str, text: str, metadata: dict[str, Any] | None = None
 ) -> list[str]:
@@ -80,7 +85,7 @@ async def index_document(
         ids=ids,
         documents=chunks,
         embeddings=embeddings,
-        metadatas=[metadata.copy() for _ in range(len(chunks))],
+        metadatas=[_sanitize_metadata(metadata).copy() for _ in range(len(chunks))],
     )
     logger.info("Finished indexing text, time %s seconds", round(time.monotonic() - start_time, 2))
     return ids

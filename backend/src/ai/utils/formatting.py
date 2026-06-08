@@ -54,30 +54,42 @@ def get_content_blocks_context(content_blocks: list[AnyContentBlock]) -> str:
                             f'вопрос: {question}; ответ: {answer}'
                             for question, answer in content_block.questions  # type: ignore
                         ])
-                    }"
+                    }"  # noqa: PGH003
                 )
             case ContentType.PROGRAM_CODE:
-                context = (
+                context += (
                     f"```{content_block.language}\n{content_block.code}\n```\n\n"  # type: ignore  # noqa: PGH003
                     f"Объяснение: {content_block.explanation}"  # type: ignore  # noqa: PGH003
                 )
             case ContentType.MERMAID:
                 context += (
                     f"Название диаграммы: {content_block.title}\n"  # type: ignore  # noqa: PGH003
-                    f"Диаграмма:\n{content_block.mermaid_code}\n"  # type: ignore  # noqa: PGH003
+                    f"Диаграмма:\n{content_block.md_content}\n"  # type: ignore  # noqa: PGH003
                     f"Объяснение: {content_block.explanation}"  # type: ignore  # noqa: PGH003
                 )
+            case (
+                ContentType.MATH_FORMULA
+                | ContentType.CHEMICAL_FORMULA
+                | ContentType.MUSICAL_NOTATION
+            ):
+                context += (
+                    f"Формула:\n{content_block.formula}\n"  # type: ignore  # noqa: PGH003
+                    f"Объяснение: {content_block.explanation}"  # type: ignore  # noqa: PGH003
+                )
+
         context += "\n\n"
     return context
 
 
 def get_lesson_context(
-    lesson: Lesson, include_content_blocks: bool = True, include_assignment: bool = False
+    lesson: Lesson,
+    include_content_blocks: bool = True,
+    include_assignment: bool = False,
 ) -> str:
-    """Получение LLM-friendly контекста текущего модуля в Markdown формате."""
+    """Получение LLM-friendly контекста текущего урока в Markdown формате."""
 
     context = (
-        f"# Модуль [{lesson.order}]: '{lesson.title}'\n"
+        f"# Урок [{lesson.order}]: '{lesson.title}'\n"
         f"**Описание**: {lesson.description}\n\n"
         "**Цели обучения**:\n"
         f" - {f'{lesson.learning_objectives}'}"

@@ -176,7 +176,9 @@ async def call_lesson_practice_agent(
         f"{get_lesson_context(lesson)}\n"
         f"</THEORY>"
     )
-    result = await agent.ainvoke({"messages": [HumanMessage(content=prompt_template)]})
+    result = await agent.with_retry(stop_after_attempt=3).ainvoke({
+        "messages": [HumanMessage(content=prompt_template)]
+    })
     return result["structured_response"]
 
 

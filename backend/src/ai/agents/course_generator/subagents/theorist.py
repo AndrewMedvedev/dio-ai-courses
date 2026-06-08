@@ -1,4 +1,4 @@
-# Суб агент - теоретик
+from typing import Final
 
 import logging
 from uuid import uuid4
@@ -6,9 +6,11 @@ from uuid import uuid4
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
 from langchain.messages import HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.runnables import RunnableConfig
+from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
-from ....domain.dependencies import model
+from .....core.settings import settings
 from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
@@ -21,9 +23,20 @@ from ....domain.entities import (
     TextBlock,
 )
 from ...schemas import CourseContext, GeneratedContentType
+from ..checkpointer import checkpoint
 from ..tools import knowledge_search
 
 logger = logging.getLogger(__name__)
+
+
+model: Final[ChatOpenAI] = ChatOpenAI(
+    api_key=SecretStr(settings.yandex_cloud.api_key),
+    base_url=settings.yandex_cloud.base_url,
+    model=settings.yandex_cloud.gpt_oss_120b,
+    temperature=0.2,
+    max_retries=3,
+    max_completion_tokens=60000,
+)
 
 SYSTEM_PROMPTS = {
     ContentType.PROGRAM_CODE: """\
@@ -95,7 +108,7 @@ SYSTEM_PROMPTS = {
     ```
     """,
     ContentType.MATH_FORMULA: """\
-    Ты — ИИ-агент, эксперт по LaTeX. Твоя задача: преобразовать текстовое описание формулы в корректный LaTeX-код, который сможет отрисовать KaTeX или MathJax.
+    Ты — эксперт по LaTeX. Твоя задача: преобразовать текстовое описание формулы в корректный LaTeX-код, который сможет отрисовать KaTeX или MathJax.
 
     Правила:
     - Всегда заключай LaTeX в блок \\( ... \\) для инлайн-формул и \\[ ... \\] для display-формул.
@@ -108,7 +121,7 @@ SYSTEM_PROMPTS = {
 
 """,  # noqa: E501
     ContentType.CHEMICAL_FORMULA: """\
-    Ты — ИИ-агент по химическим формулам. Твоя задача: записать химическую реакцию или молекулу в формате mhchem (расширение LaTeX).
+    Ты — эксперт по химическим формулам. Твоя задача: записать химическую реакцию или молекулу в формате mhchem (расширение LaTeX).
 
     Правила:
     - Используй команду \\ce{{ ... }}.
@@ -119,7 +132,7 @@ SYSTEM_PROMPTS = {
     - Условия над стрелкой: \\xrightarrow{{условие}}.
 """,  # noqa: E501
     ContentType.MUSICAL_NOTATION: """\
-    Ты — ИИ-агент по нотной записи. Твой выход должен быть готов для рендеринга через VexFlow или abcjs.
+    Ты — эксперт по нотной записи. Твой выход должен быть готов для рендеринга через VexFlow или abcjs.
 
     Предпочтительный формат: VexFlow JSON (простые ноты) или ABC-нотация.
     Если запрос сложный — используй ABC-нотацию, так как она проще для ИИ и есть библиотеки под неё.
@@ -172,7 +185,10 @@ config = {
 
 
 async def call_theory_agent(
-    content_type: GeneratedContentType, prompt: str, context: CourseContext
+    content_type: GeneratedContentType,
+    prompt: str,
+    context: CourseContext,
+    key: str,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -186,12 +202,13 @@ async def call_theory_agent(
     agent = create_agent(
         model=model,
         context_schema=CourseContext,
-        checkpointer=InMemorySaver(),
+        checkpointer=checkpoint,
         **config.get(content_type, {}),  # type: ignore  # noqa: PGH003,
     )
-    result = await agent.ainvoke(
+
+    result = await agent.with_retry(stop_after_attempt=3).ainvoke(
         {"messages": [HumanMessage(content=prompt)]},
         context=context,
-        config={"configurable": {"thread_id": f"{uuid4()}"}},
+        config=RunnableConfig(configurable={"thread_id": f"{key}:key:{uuid4()}"}),
     )
     return result["structured_response"]

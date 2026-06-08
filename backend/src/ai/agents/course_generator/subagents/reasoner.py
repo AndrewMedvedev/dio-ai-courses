@@ -25,7 +25,9 @@ logger = logging.getLogger(__name__)
 async def call_critique_agent(runtime: ToolRuntime[GenerationContext]) -> str:
     prompt = runtime.context.prompt
     critic_agent = create_agent(model=model, system_prompt=CRITIC_PROMPT.format(prompt=prompt))
-    result = await critic_agent.ainvoke({"messages": runtime.state["messages"]})
+    result = await critic_agent.with_retry(stop_after_attempt=3).ainvoke({
+        "messages": runtime.state["messages"]
+    })
     return result["messages"][-1].content
 
 
@@ -58,7 +60,7 @@ async def call_researcher_agent(runtime: ToolRuntime[GenerationContext], task: s
         checkpointer=InMemorySaver(),
     )
     # Исправление 3: передаём сообщения как список кортежей
-    result = await researcher_agent.ainvoke(
+    result = await researcher_agent.with_retry(stop_after_attempt=3).ainvoke(
         input={"messages": [HumanMessage(content=task)]},
         context=runtime.context,
         config={"configurable": {"thread_id": str(uuid4())}},

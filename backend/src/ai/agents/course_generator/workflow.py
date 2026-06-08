@@ -5,8 +5,10 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
+from .checkpointer import checkpoint
 from .nodes import (
     AgentState,
     GenerationContext,
@@ -26,7 +28,7 @@ graph.add_edge("reasoning", "plan_course_structure")
 graph.add_edge("plan_course_structure", "generate_modules")
 graph.add_edge("generate_modules", END)
 
-agent = graph.compile()
+agent = graph.compile(checkpointer=checkpoint)
 
 prompt = """Создай учебный курс по работе с конфигурацией «1С:Зарплата и управление персоналом», редакция 3.1.
 Целевая аудитория — начинающие специалисты по кадровому учёту и расчёту зарплаты.
@@ -52,14 +54,17 @@ class UUIDEncoder(json.JSONEncoder):
 
 async def main():
     configure_logging()
-
-    result = await agent.ainvoke({
-        "generation_context": GenerationContext(
-            user_id=uuid4(),
-            course_id=uuid4(),
-            prompt=prompt,
-        )
-    })
+    course_id = uuid4()
+    result = await agent.ainvoke(
+        {
+            "generation_context": GenerationContext(
+                user_id=uuid4(),
+                course_id=course_id,
+                prompt=prompt,
+            )
+        },
+        config=RunnableConfig(configurable={"thread_id": f"course:{course_id}"}),
+    )
 
     # Преобразуем результат в сериализуемый словарь
     # Вариант 1: если result — это словарь с Pydantic-моделями

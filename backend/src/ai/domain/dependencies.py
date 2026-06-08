@@ -11,5 +11,5 @@ model: Final[ChatOpenAI] = ChatOpenAI(
     model=settings.yandex_cloud.gpt_oss_120b,
     temperature=0.2,
     max_retries=3,
-    max_completion_tokens=125000,
+    max_completion_tokens=120000,
 )

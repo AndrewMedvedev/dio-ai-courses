@@ -1,16 +1,17 @@
-# Суб агент - планировщик структуры курса
+from typing import Final
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
-from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field, SecretStr
 
-from ....domain.dependencies import model
+from .....core.settings import settings
 from ....domain.vo import DifficultyLevel
 
 SYSTEM_PROMPT = """\
 ## Роль
 Ты профессиональный методист (педагогический дизайнер), который проектирует логику обучения,
-модули и практические задания для достижения образовательных целей.
+модули, уроки и практические задания для достижения образовательных целей.
 
 ## Твоя задача
 Твоя задача построить сценарий курса по модульной логике используя инсайты
@@ -27,7 +28,7 @@ SYSTEM_PROMPT = """\
 
 ## Важно учесть
 Ты создаёшь только план и общую структуру,
-по которой будут наполнять модули контентом следующие агенты
+по которой будут наполнять уроки контентом следующие агенты
 
 """
 
@@ -51,6 +52,16 @@ class CourseStructure(BaseModel):
         max_length=10,
     )
     final_assessment_description: str = Field(description="Описание финального ассессмента")
+
+
+model: Final[ChatOpenAI] = ChatOpenAI(
+    api_key=SecretStr(settings.yandex_cloud.api_key),
+    base_url=settings.yandex_cloud.base_url,
+    model=settings.yandex_cloud.gpt_oss_120b,
+    temperature=0.2,
+    max_retries=3,
+    max_completion_tokens=80000,
+)
 
 
 course_planner_agent = create_agent(

@@ -5,8 +5,9 @@ import time
 from uuid import uuid4
 
 from langchain.messages import HumanMessage
+from langchain_core.runnables import RunnableConfig
 
-from ...domain.entities import BasicInfo, Course, Module
+from ...domain.entities import Course
 from ...domain.services import create_course
 from ...domain.vo import CourseStatus
 from ..schemas import GenerationContext
@@ -31,7 +32,7 @@ async def reasoning(state: AgentState) -> dict[str, str]:
         return {"thinks": state.get("thinks", "")}
     start_time = time.monotonic()
     logger.info("Course generator in reasoning state ...")
-    result = await reasoner_agent.ainvoke(
+    result = await reasoner_agent.with_retry(stop_after_attempt=3).ainvoke(
         {"messages": []},
         context=state["generation_context"],
         config={"configurable": {"thread_id": f"{uuid4()}"}},
@@ -45,7 +46,7 @@ async def plan_course_structure(state: AgentState) -> dict:
     """Планирование структуры курса используя информацию, полученную в ходе размышлений"""
 
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
-    result = await course_planner_agent.ainvoke({
+    result = await course_planner_agent.with_retry(stop_after_attempt=3).ainvoke({
         "messages": [HumanMessage(content=state.get("thinks", ""))]
     })
     course_structure: CourseStructure = result["structured_response"]
@@ -71,26 +72,23 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
     total_modules = len(course_structure.module_descriptions)  # type: ignore  # noqa: PGH003
     logger.info("Start generate %s modules ...", total_modules)
     for order, module_description in enumerate(course_structure.module_descriptions):  # type: ignore  # noqa: PGH003
+        module_thread_id = f"course:{state['generation_context'].course_id}:module:{order}"
         logger.info(
             "Generating module - %s, by description: '%s ...'", order, module_description[:150]
         )
-        result = await module_builder_agent.ainvoke({
-            "course_context": state["generation_context"],
-            "audience_description": course_structure.audience_description,
-            "learning_objectives": course_structure.learning_objectives,
-            "order": order,
-            "module_description": module_description,
-        })  # type: ignore  # noqa: PGH003
-        module: Module = result["module"]
+        result = await module_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
+            {
+                "course_context": state["generation_context"],
+                "audience_description": course_structure.audience_description,
+                "learning_objectives": course_structure.learning_objectives,
+                "order": order,
+                "module_description": module_description,  # type: ignore  # noqa: PGH003
+            },
+            config=RunnableConfig(configurable={"thread_id": module_thread_id}),
+            # ← передаём явно
+        )  # type: ignore  # noqa: PGH003
         course.append_module(result["module"])
-        course.append_basic_info(
-            BasicInfo(
-                title=module.title,
-                description=module.description,
-                learning_objectives=module.learning_objectives,
-                order=order,
-            )
-        )
+
         progress_percent = round((order / total_modules) * 100, 2)
         logger.info("Modules generation progress %s%%", progress_percent)
     logger.info(
@@ -99,8 +97,3 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
         round(time.monotonic() - start_time, 2),
     )
     return {"course": course}
-
-
-async def generate_final_assessment(state: AgentState) -> dict[str, Course]:
-    """Генерация финального ассессмента в образовательный курс"""
-    return {}

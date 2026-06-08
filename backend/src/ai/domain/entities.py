@@ -331,24 +331,6 @@ class Practice(Entity):
 
 
 @dataclass(kw_only=True, slots=True)
-class BasicInfo:
-    """Базова информация для пользователя
-
-    Attributes:
-        title: Название
-        description: Описание.
-        order: Порядковый номер.
-        learning_objectives: Список целей.
-
-    """
-
-    title: str
-    description: str
-    learning_objectives: list[str] = field(default_factory=list)
-    order: int
-
-
-@dataclass(kw_only=True, slots=True)
 class Module(Entity):
     """Модуль курса.
 
@@ -370,16 +352,12 @@ class Module(Entity):
     order: int
     learning_objectives: list[str] = field(default_factory=list)
     assignment: Assignment | dict[str, Any] | None = None
-    lesson_basic_info: list[BasicInfo] = field(default_factory=list)
     lessons: list[Lesson] = field(default_factory=list)
     practice: Practice | None = None
     final_assessment: FinalAssessment | None = None
 
     def append_lesson(self, module: Lesson) -> None:
         self.lessons.append(module)
-
-    def append_basic_info(self, data: BasicInfo) -> None:
-        self.lesson_basic_info.append(data)
 
     def add_final_assessment(self, final_assessment: FinalAssessment) -> None:
         self.final_assessment = final_assessment
@@ -428,15 +406,12 @@ class Course(AggregateRoot):
     creator_id: UUID
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
-    module_basic_info: list[BasicInfo] = field(default_factory=list)
+
     modules: list[Module] = field(default_factory=list)
     final_assessment: FinalAssessment | None = None
 
     def append_module(self, module: Module) -> None:
         self.modules.append(module)
-
-    def append_basic_info(self, data: BasicInfo) -> None:
-        self.module_basic_info.append(data)
 
 
 @dataclass(kw_only=True, slots=True)
