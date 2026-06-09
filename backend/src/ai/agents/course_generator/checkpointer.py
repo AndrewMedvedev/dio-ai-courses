@@ -1,17 +1,20 @@
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from redis.asyncio import Redis
 
+from ....core.settings import settings
+
 client = Redis(
-    host="localhost",  # из настроек
-    port=6379,
-    db=0,
+    host=settings.redis.host,  # из настроек
+    port=settings.redis.port,
+    db=settings.redis.db,
+    password=settings.redis.password,
     decode_responses=False,  # ← обязательно False для RedisSaver
 )
 
 checkpoint = AsyncRedisSaver(
     redis_client=client,
     ttl={
-        "default_ttl": 60 * 5,  # Истекать контрольные точки через 60 минут
+        "default_ttl": 60 * 5,  # Истекают контрольные точки через 5 часов
         "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # noqa: E501
     },
 )

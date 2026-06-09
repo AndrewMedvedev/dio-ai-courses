@@ -2,22 +2,26 @@ from typing import NotRequired, TypedDict
 
 import logging
 import time
+from asyncio import TaskGroup
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
 from langchain.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import SecretStr
 
+from .....core.database import session_factory
 from .....core.settings import settings
 from .... import rag
-from ....domain.entities import AssignmentType, Lesson
+from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....domain.services import create_lesson
+from ....infra.repository import SqlLessonRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
-from ...schemas import CourseContext, GeneratedContentType
+from ...schemas import CourseContext
 from ..checkpointer import checkpoint
 from .practician import call_lesson_practice_agent
+from .prompts import LessonStructure
 from .theorist import call_theory_agent
 
 logger = logging.getLogger(__name__)
@@ -30,121 +34,6 @@ model = ChatOpenAI(
     temperature=0.2,
     max_retries=3,
 )
-
-
-class LessonStructure(BaseModel):
-    """План одного урока для последующей генерации агентом."""
-
-    title: str = Field(description="Название урока")
-    description: str = Field(description="Описание урока")
-    learning_objectives: list[str] = Field(description="Цели обучения урока")
-    content_plan: list[tuple[GeneratedContentType, str]] = Field(
-        description="""\
-        Список детальных и подробных промптов для генерации контент-блоков урока.
-
-        === ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА ===
-
-        1. КОЛИЧЕСТВО: от 4 до 5 блоков. Не меньше, не больше.
-
-        2. ОДИН ЭЛЕМЕНТ = ОДИН ПРОМПТ. Нельзя объединять несколько тем в одном элементе.
-
-        3. ПРОМПТ — это подробное текстовое задание для агента, а НЕ:
-           - название файла или раздела
-           - одно слово или короткая фраза
-           - повторение заголовка урока
-
-        4. КАЖДЫЙ ПРОМПТ должен содержать:
-           а) Конкретную тему или концепцию, которую нужно раскрыть
-           б) Ключевые аспекты и подпункты для освещения
-           в) Стиль изложения (академический, практический, с примерами и т.д.)
-           г) Целевую аудиторию и её уровень подготовки
-           д) Конкретные примеры или кейсы, если уместно
-
-        === ВЫБОР ТИПА КОНТЕНТ-БЛОКА ===
-
-        Выбирай тип строго по смыслу контента:
-
-        - **text** — теоретический материал, объяснения понятий, описания процессов,
-          историческая справка. Используй когда нужен связный текст без формул и кода.
-
-        - **program_code** — работающий пример кода с построчными комментариями.
-          ОБЯЗАТЕЛЬНО укажи в промпте язык программирования.
-          Используй когда нужно показать реализацию алгоритма, API, паттерн и т.п.
-
-        - **mermaid** — структурные диаграммы: схемы архитектуры, блок-схемы алгоритмов,
-          ER-диаграммы, sequence-диаграммы, диаграммы состояний, mind map.
-          Используй когда нужно ВИЗУАЛИЗИРОВАТЬ связи, процессы или структуру.
-          НЕ используй для математических формул — для них есть math_formula.
-
-        - **quiz** — вопросы для самопроверки понимания материала.
-          Добавляй ОДИН раз в конце урока или после сложного теоретического блока.
-          Промпт должен указывать, какие именно знания проверяются.
-
-        - **math_formula** — математические, физические, статистические или логические формулы
-          и их вывод. Используй когда есть уравнения, теоремы, формулы расчёта.
-
-        - **chemical_formula** — химические формулы, уравнения реакций, структурные формулы
-          молекул. Используй ТОЛЬКО для химии.
-
-        - **musical_notation** — НОТНАЯ ЗАПИСЬ в виде визуального нотного стана
-          (отображается как изображение нот, НЕ воспроизводится как звук).
-          Используй ТОЛЬКО когда нужно показать нотную запись музыкального фрагмента
-          в контексте урока по музыкальной теории или сольфеджио.
-          НЕ используй для математических формул, схем или чего-либо не связанного с нотами.
-
-        === ЗАПРЕЩЕНО ===
-        - Использовать musical_notation для чего-либо кроме реальных нотных записей
-        - Указывать один и тот же тип для всех блоков
-        - Писать короткие промпты (менее 3–4 предложений)
-        - Создавать более одного quiz-блока на урок
-
-        === ПРИМЕР ХОРОШЕГО ПРОМПТА для блока `text` ===
-        "Напиши теоретический блок для студентов уровня junior, знакомых с основами Python,
-        на тему 'Принцип инверсии зависимостей (DIP) в SOLID'. Раскрой следующие аспекты:
-        1) что такое зависимость между модулями и почему она проблематична;
-        2) суть принципа DIP — зависеть от абстракций, а не от конкретных реализаций;
-        3) отличие DIP от Dependency Injection. Приведи бытовую аналогию
-        (например, розетка и вилка) и краткий пример из веб-разработки.
-        Стиль — доступный, с акцентом на понимание 'зачем', а не только 'что'."
-        """,
-        min_length=3,
-        max_length=7,
-    )
-    assignment_specification: tuple[AssignmentType, str] = Field(
-        description="""\
-        Детальный промпт для агента-практика (practician), который создаст практическое задание.
-
-        Промпт ОБЯЗАТЕЛЬНО должен включать:
-
-        1. ТИП ЗАДАНИЯ — одно из: тест (quiz), загрузка файла (file_upload),
-           GitHub-репозиторий (github). Выбери тип, соответствующий уровню и теме урока.
-
-        2. ТЕМЫ ДЛЯ ПРОВЕРКИ — конкретный перечень понятий и навыков из урока,
-           которые задание должно проверить.
-
-        3. УРОВЕНЬ СЛОЖНОСТИ — начальный / средний / продвинутый.
-
-        4. КОНКРЕТНЫЕ ТРЕБОВАНИЯ К ЗАДАНИЮ:
-           - Для quiz: количество вопросов (рекомендуется 5–10), их типы
-             (единственный выбор, множественный выбор, открытый вопрос),
-             примерные формулировки 2–3 вопросов.
-           - Для file_upload: описание задачи, требования к содержанию файла,
-             допустимые форматы (pdf, docx, ipynb и т.д.), критерии оценки.
-           - Для github: описание проекта или задачи, требования к структуре репозитория,
-             обязательные файлы (README, requirements.txt и т.д.), критерии проверки кода.
-
-        5. ОЖИДАЕМЫЙ РЕЗУЛЬТАТ — что студент должен продемонстрировать выполнив задание.
-
-        Пример хорошего промпта для quiz:
-        "Создай тест на 7 вопросов для проверки знаний по теме 'REST API и HTTP-методы'
-        (уровень junior). Вопросы должны проверять: понимание идемпотентности методов GET/PUT/DELETE,
-        отличие 200/201/204/404/422 кодов ответа, правила именования ресурсов в URL.
-        Формат: 5 вопросов с единственным выбором из 4 вариантов + 2 вопроса на соответствие.
-        Примерные вопросы: 'Какой HTTP-метод следует использовать для частичного обновления ресурса?',
-        'Какой статус-код вернуть при успешном создании ресурса?'.
-        Ожидаемый результат: студент набирает не менее 70% правильных ответов."
-        """  # noqa: E501
-    )
 
 
 class AgentState(TypedDict):
@@ -218,6 +107,43 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
     return {"lesson_structure": lesson_structure, "lesson": lesson}
 
 
+async def build_content_block(
+    order: int,
+    content_type: ContentType,
+    course_context: CourseContext,
+    content_plan: list[tuple[ContentType, str]],
+    prompt: str,
+    lesson: Lesson,
+) -> tuple[int, AnyContentBlock]:
+    start_time = time.monotonic()
+    progress_percent = round((order / len(content_plan)) * 100, 2)  # type: ignore  # noqa: PGH003
+    logger.info(
+        "%s%% Generating `%s` content block for current plan: '%s'",
+        progress_percent,
+        content_type.value,
+        prompt[:100],
+    )
+
+    prompt_template = (
+        "# Контекст текущего урока:\n"
+        f"{get_lesson_context(lesson, include_content_blocks=False)}\n\n"  # type: ignore  # noqa: PGH003
+        f"# Сгенерируй контент блок с заданным типом - '{content_type.value}':\n"
+        f"**Промпт**: {prompt}"
+    )
+    content_block = await call_theory_agent(
+        content_type,
+        prompt_template,
+        context=course_context,
+    )
+    elapsed_time = time.monotonic() - start_time
+    logger.info(
+        "Added `%s` content block in module, generation time - %s seconds",
+        content_type.value,
+        round(elapsed_time, 2),
+    )
+    return order, content_block  # ← возвращаем order, чтобы потом отсортировать
+
+
 async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
@@ -225,34 +151,24 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
 
     lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # noqa: PGH003
     logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))  # type: ignore  # noqa: PGH003
-    for i, (content_type, prompt) in enumerate(lesson_structure.content_plan, 1):  # type: ignore  # noqa: PGH003
-        start_time = time.monotonic()
-        progress_percent = round((i / len(lesson_structure.content_plan)) * 100, 2)  # type: ignore  # noqa: PGH003
-        logger.info(
-            "%s%% Generating `%s` content block for current plan: '%s'",
-            progress_percent,
-            content_type.value,
-            prompt[:100],
-        )
-        prompt_template = (
-            "# Контекст текущего урока:\n"
-            f"{get_lesson_context(lesson, include_content_blocks=False)}\n\n"  # type: ignore  # noqa: PGH003
-            f"# Сгенерируй контент блок с заданным типом - '{content_type.value}':\n"
-            f"**Промпт**: {prompt}"
-        )
-        lesson_thread_id = (
-            f"course:{state['course_context'].course_id}:module:{state['order']}:lesson:{i}"
-        )
-        content_block = await call_theory_agent(
-            content_type, prompt_template, context=state["course_context"], key=lesson_thread_id
-        )
-        lesson.append_content_block(content_block)  # type: ignore  # noqa: PGH003
-        elapsed_time = time.monotonic() - start_time
-        logger.info(
-            "Added `%s` content block in module, generation time - %s seconds",
-            content_type.value,
-            round(elapsed_time, 2),
-        )
+
+    async with TaskGroup() as tg:
+        tasks = [
+            tg.create_task(
+                build_content_block(
+                    order=order,
+                    content_type=content_type,
+                    course_context=state["course_context"],
+                    content_plan=lesson_structure.content_plan,
+                    prompt=prompt,
+                    lesson=lesson,
+                )
+            )
+            for order, (content_type, prompt) in enumerate(lesson_structure.content_plan, 1)
+        ]
+    content_by_order = sorted(task.result() for task in tasks)
+    for _, content in content_by_order:
+        lesson.append_content_block(content)
     logger.info(
         "Saving generated content blocks of `%s` module to knowledge base ...",
         lesson.title,  # type: ignore  # noqa: PGH003
@@ -285,16 +201,26 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
     return {"lesson": lesson}
 
 
+async def save_lesson(state: AgentState) -> None:
+    async with session_factory() as session:
+        repos = SqlLessonRepository(session)
+        lesson = state["lesson"]  # type: ignore  # noqa: PGH003
+        logger.info("Saving lesson '%s' to database ...", lesson.title)
+        await repos.create(lesson)
+        await session.commit()
+
+
 # Создание рабочего пространства для агента
 graph = StateGraph(AgentState)
 
 graph.add_node("plan_lesson_structure", plan_lesson_structure)
 graph.add_node("generate_content_blocks", generate_content_blocks)
 graph.add_node("generate_assignment", generate_assignment)
-
+graph.add_node("save_lesson", save_lesson)
 graph.add_edge(START, "plan_lesson_structure")
 graph.add_edge("plan_lesson_structure", "generate_content_blocks")
 graph.add_edge("generate_content_blocks", "generate_assignment")
-graph.add_edge("generate_assignment", END)
+graph.add_edge("generate_assignment", "save_lesson")
+graph.add_edge("save_lesson", END)
 
 lesson_builder_agent = graph.compile(checkpointer=checkpoint)

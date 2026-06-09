@@ -6,29 +6,8 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import END, START, StateGraph
 
-from .checkpointer import checkpoint
-from .nodes import (
-    AgentState,
-    GenerationContext,
-    generate_modules,
-    plan_course_structure,
-    reasoning,
-)
-
-graph = StateGraph(AgentState)
-
-graph.add_node("reasoning", reasoning)
-graph.add_node("plan_course_structure", plan_course_structure)
-graph.add_node("generate_modules", generate_modules)
-
-graph.add_edge(START, "reasoning")
-graph.add_edge("reasoning", "plan_course_structure")
-graph.add_edge("plan_course_structure", "generate_modules")
-graph.add_edge("generate_modules", END)
-
-agent = graph.compile(checkpointer=checkpoint)
+from .nodes import GenerationContext, agent
 
 prompt = """Создай учебный курс по работе с конфигурацией «1С:Зарплата и управление персоналом», редакция 3.1.
 Целевая аудитория — начинающие специалисты по кадровому учёту и расчёту зарплаты.

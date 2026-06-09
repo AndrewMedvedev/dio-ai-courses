@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from ..shared.dependencies import SessionDep
-from .database.repository import SqlAIModelRepository, SqlUserModelPreferenceRepository
+from .infra.repository import SqlAIModelRepository, SqlUserModelPreferenceRepository
 from .services import UserModelService
 
 

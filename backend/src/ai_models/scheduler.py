@@ -7,8 +7,8 @@ from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped
 
 from ..core.database import session_factory  # фабрика сессий, не get_db
 from ..shared.schemas import PageParams
-from .database.repository import SqlAIModelRepository
 from .domain.services import create_ai_model
+from .infra.repository import SqlAIModelRepository
 from .rest import get_yandex_ai_models
 
 logger = logging.getLogger(__name__)

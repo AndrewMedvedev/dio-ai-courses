@@ -16,6 +16,21 @@ services:
       timeout: 3s
       retries: 3
 
+
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
   maildev:
     image: maildev/maildev
     environment:
@@ -29,6 +44,14 @@ services:
       driver: "json-file"
       options:
         max-size: "1m"
+
+  browserless:
+    image: ghcr.io/browserless/chromium:v2.44.0
+    environment:
+      - CONNECTION_TIMEOUT=60000
+      - KEEP_ALIVE=true
+    ports:
+      - "3000:3999"
 
   # backend:
   #   build:

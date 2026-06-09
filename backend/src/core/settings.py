@@ -223,6 +223,7 @@ class Settings(BaseSettings):
     huggingface: HuggingFaceSettings = HuggingFaceSettings()
     search: SearchSettings = SearchSettings()
     tracing: LangSmithSettings = LangSmithSettings()
+    chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
 
 
 settings = Settings()

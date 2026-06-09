@@ -5,13 +5,14 @@ from typing import Any
 import logging
 
 from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
+from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 
 from ai.schemas import AssignmentResult
-from src.ai.domain.entities import AnyAssignment
-from ai.settings import settings
 from ai.utils.formatting import get_assignment_context
+from src.ai.domain.entities import AnyAssignment
+
+from ...core.settings import settings
 
 logger = logging.getLogger(__name__)
 

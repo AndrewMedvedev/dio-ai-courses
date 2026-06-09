@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from src.ai_models.database.repository import (
+from src.ai_models.infra.repository import (
     AIModelMapper,
     AIModelOrm,
     UserModelPreferenceMapper,

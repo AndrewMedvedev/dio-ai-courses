@@ -308,6 +308,16 @@ class Lesson(Entity):
 
 
 @dataclass(kw_only=True, slots=True)
+class LessonBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    order: int
+    learning_objectives: list[str] = field(default_factory=list)
+    estimated_time_minutes: int | None = None
+
+
+@dataclass(kw_only=True, slots=True)
 class Practice(Entity):
     """Практическое задание (устаревшая модель? используется в Module).
 
@@ -343,24 +353,22 @@ class Module(Entity):
         assignment: Задание модуля (может быть Assignment или сырой dict).
         lesson_basic_info: Список {"order": int, "title": str}.
         lessons: Список уроков модуля.
-        practice: Практическое задание (устаревшее, лучше использовать assignment).
-        final_assessment: Финальный ассессмент в конце курса
+
+
     """
 
     title: str
     description: str
     order: int
     learning_objectives: list[str] = field(default_factory=list)
-    assignment: Assignment | dict[str, Any] | None = None
     lessons: list[Lesson] = field(default_factory=list)
-    practice: Practice | None = None
-    final_assessment: FinalAssessment | None = None
+    assignment: AnyAssignment | None = None
 
     def append_lesson(self, module: Lesson) -> None:
         self.lessons.append(module)
 
-    def add_final_assessment(self, final_assessment: FinalAssessment) -> None:
-        self.final_assessment = final_assessment
+    def add_assignment(self, assignment: AnyAssignment) -> None:
+        self.assignment = assignment
 
 
 @dataclass(slots=True)
@@ -388,7 +396,7 @@ class Course(AggregateRoot):
         difficulty: Уровень сложности (beginner, intermediate, advanced).
         tags: Список тегов для поиска и категоризации.
         status: Статус курса (draft, published, archived).
-        popularity: Число записей/оценок популярности.
+        popularity: оценок популярности.
         creator_id: UUID создателя курса.
         image_url: Ссылка на обложку курса (опционально).
         learning_objectives: Список целей курса.
@@ -406,7 +414,6 @@ class Course(AggregateRoot):
     creator_id: UUID
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
-
     modules: list[Module] = field(default_factory=list)
     final_assessment: FinalAssessment | None = None
 

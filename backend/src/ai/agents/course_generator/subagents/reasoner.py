@@ -3,18 +3,17 @@
 from typing import Any
 
 import logging
-from uuid import uuid4
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import ModelRequest, ToolCallLimitMiddleware, dynamic_prompt
 from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel, Field
 
 from ....domain.dependencies import model
 from ...schemas import GenerationContext
 from ...tools import browse_page, web_search
+from ..checkpointer import checkpoint
 from ..tools import knowledge_search, save_knowledge
 from .prompts import CRITIC_PROMPT, REASONER_PROMPT, RESEARCHER_PROMPT
 
@@ -57,13 +56,12 @@ async def call_researcher_agent(runtime: ToolRuntime[GenerationContext], task: s
             ),
         ],
         context_schema=GenerationContext,
-        checkpointer=InMemorySaver(),
+        checkpointer=checkpoint,
     )
     # Исправление 3: передаём сообщения как список кортежей
     result = await researcher_agent.with_retry(stop_after_attempt=3).ainvoke(
         input={"messages": [HumanMessage(content=task)]},
         context=runtime.context,
-        config={"configurable": {"thread_id": str(uuid4())}},
     )  # type: ignore  # noqa: PGH003
 
     return result["messages"][-1].content
@@ -84,5 +82,5 @@ reasoner_agent = create_agent(
     ],
     tools=[call_researcher_agent, call_critique_agent],
     context_schema=GenerationContext,
-    checkpointer=InMemorySaver(),
+    checkpointer=checkpoint,
 )  # type: ignore  # noqa: PGH003

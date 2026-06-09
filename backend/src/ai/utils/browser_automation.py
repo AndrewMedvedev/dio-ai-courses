@@ -5,6 +5,8 @@ import html_to_markdown
 from bs4 import BeautifulSoup
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
+from ...core.settings import settings
+
 logger = logging.getLogger(__name__)
 
 FINGERPRINT_SPOOFING_SCRIPT = """
@@ -167,7 +169,7 @@ SCRIPTS: tuple[str, ...] = (
     % (
         "ru-RU",
         "ru",
-        random.choice(PLATFORMS),
+        random.choice(PLATFORMS),  # noqa: S311
         random.choice([4, 8, 12, 16]),  # noqa: S311
     ),
     WEBGL_SPOOFING_SCRIPT,
@@ -182,8 +184,8 @@ async def _create_new_stealth_context(browser: Browser) -> BrowserContext:
     """
     screen_resolution = generate_screen_resolution()
     context = await browser.new_context(
-        viewport=screen_resolution,
-        screen=screen_resolution,
+        viewport=screen_resolution,  # type: ignore  # noqa: PGH003
+        screen=screen_resolution,  # type: ignore  # noqa: PGH003
         user_agent=generate_user_agent(),
         accept_downloads=False,
         ignore_https_errors=True,
@@ -237,11 +239,11 @@ def _extract_markdown_text(soup: BeautifulSoup) -> str:
     ])
 
 
-async def get_page_text(url: str, headless: bool = False) -> str:
+async def get_page_text(url: str) -> str:
     """Получает текст со страницы в формате Markdown"""
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=headless)
+        browser = await playwright.chromium.connect(endpoint=settings.chromium_ws_endpoint)
         page = await _get_current_page(browser)
         logger.info("Opening `%s` page ...", url)
 
@@ -250,7 +252,7 @@ async def get_page_text(url: str, headless: bool = False) -> str:
             await page.wait_for_load_state("networkidle", timeout=60000)
             await page.wait_for_load_state("load", timeout=60000)
             await page.wait_for_load_state("domcontentloaded", timeout=60000)
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Fallback в случае неудачного ожидания загрузки страницы
             logger.warning(
                 "Fallback networkidle timeout for `%s` page, using domcontentloaded", page.url

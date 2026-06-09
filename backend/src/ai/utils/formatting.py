@@ -4,7 +4,6 @@ from ..domain.entities import (
     AssignmentType,
     ContentType,
     Lesson,
-    Module,
 )
 from ..schemas import DetailedAnswerTest
 
@@ -99,25 +98,6 @@ def get_lesson_context(
         context += get_content_blocks_context(lesson.content_blocks)  # type: ignore  # noqa: PGH003
     if include_assignment and lesson.assignment is not None:
         context += get_assignment_context(lesson.assignment)
-    return context
-
-
-def get_module_context(
-    module: Module, include_content_blocks: bool = True, include_assignment: bool = False
-) -> str:
-    """Получение LLM-friendly контекста текущего модуля в Markdown формате."""
-
-    context = (
-        f"# Модуль [{module.order}]: '{module.title}'\n"
-        f"**Описание**: {module.description}\n\n"
-        "**Цели обучения**:\n"
-        f" - {f'{module.learning_objectives}'}"
-        "\n\n"
-    )
-    if module.content_blocks and include_content_blocks:
-        context += get_content_blocks_context(module.content_blocks)
-    if include_assignment and module.assignment is not None:
-        context += get_assignment_context(module.assignment)
     return context
 
 

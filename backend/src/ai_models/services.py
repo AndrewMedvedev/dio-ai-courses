@@ -3,9 +3,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..shared.schemas import PageParams
-from .database.repository import SqlAIModelRepository, SqlUserModelPreferenceRepository
 from .domain.dataclasses import UserModelPreference
 from .domain.services import create_user_preference
+from .infra.repository import SqlAIModelRepository, SqlUserModelPreferenceRepository
 
 
 class ModelService:

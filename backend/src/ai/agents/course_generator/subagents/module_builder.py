@@ -2,6 +2,8 @@ from typing import Final, NotRequired, TypedDict
 
 import logging
 import time
+from asyncio import TaskGroup
+from uuid import UUID
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
@@ -9,75 +11,20 @@ from langchain.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import SecretStr
 
+from .....core.database import session_factory
 from .....core.settings import settings
-from ....domain.entities import Module
+from ....domain.entities import Lesson, Module
 from ....domain.services import create_module
+from ....infra.repository import SqlLessonRepository, SqlModuleRepository
 from ...schemas import CourseContext
 from ..checkpointer import checkpoint
 from .lesson_builder import lesson_builder_agent
+from .practician import call_module_practice_agent
+from .prompts import ModuleStructure
 
 logger = logging.getLogger(__name__)
-
-
-class ModuleStructure(BaseModel):
-    """Структура модуля, создаваемая планировщиком (агент-архитектор)."""
-
-    title: str = Field(description="Название модуля для студента")
-    description: str = Field(description="Описание модуля для студента")
-    learning_objectives: list[str] = Field(description="Цели обучения модуля")
-    lessons_descriptions: list[str] = Field(
-        description="""\
-
-Список описаний уроков модуля.
-
-ВАЖНО:
-
-- Один элемент списка = один урок.
-
-- Каждый урок должен быть описан в отдельной строке массива.
-
-- Нельзя объединять несколько уроков в одном элементе списка.
-
-- Количество элементов в lessons_descriptions должно точно соответствовать количеству уроков в модуле.
-
-- Каждый элемент должен содержать информацию ТОЛЬКО об одном уроке.
-
-Подробное описание каждого урока по порядку, здесь должно быть:
-        - ключевые темы / подтемы (то, без чего модуль невозможен)
-        - цели обучения урока
-        - план по достижению образовательных целей
-
-Пример корректного результата:
-
-[
-
-    "Урок 1.d Введение в Python. Темы: переменные, типы данных. Цель: освоить базовый синтаксис. План: изучение переменных → работа с типами данных → практика.",
-
-    "Урок 2. Условные конструкции. Темы: if, elif, else. Цель: научиться управлять потоком выполнения программы. План: изучение синтаксиса → решение задач."
-
-]
-
-Пример НЕКОРРЕКТНОГО результата:
-
-[
-
-    "Урок 1 ... Урок 2 ... Урок 3 ..."
-
-]
-
-""",  # noqa: E501
-        max_length=10,
-    )
-
-    assignment_specification: tuple[str, str] = Field(
-        description="""\
-Детальный промпт для агента-практика (practician).
-Первый элемент кортежа — тип задания (например, "test", "file_upload", "github_repo").
-Второй элемент — подробный промпт с описанием задания, тем, критериев проверки и формата сдачи.
-"""
-    )
 
 
 class AgentState(TypedDict):
@@ -140,6 +87,32 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
     return {"module_structure": module_structure, "module": module}
 
 
+async def build_lesson(
+    module_order: int,
+    order: int,
+    lesson_description: str,
+    course_id: UUID,
+    audience_description: str,
+    learning_objectives: list[str],
+    course_context: CourseContext,
+) -> tuple[int, Lesson]:
+    lesson_thread_id = f"course:{course_id}:module:{module_order}:lesson:{order}"
+    logger.info(
+        "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
+    )
+    result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
+        {
+            "course_context": course_context,
+            "audience_description": audience_description,
+            "learning_objectives": learning_objectives,
+            "order": order,
+            "lesson_description": lesson_description,
+        },  # type: ignore  # noqa: PGH003
+        config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
+    )  # type: ignore  # noqa: PGH003
+    return order, result["lesson"]  # ← возвращаем order, чтобы потом отсортировать
+
+
 async def generate_lessons(state: AgentState) -> dict[str, Module]:
     """Генерация уроков по структуре модуля"""
 
@@ -147,27 +120,27 @@ async def generate_lessons(state: AgentState) -> dict[str, Module]:
     start_time = time.monotonic()
     total_modules = len(module_structure.lessons_descriptions)  # type: ignore  # noqa: PGH003
     logger.info("Start generate %s lessons ...", total_modules)
-    for order, lesson_description in enumerate(module_structure.lessons_descriptions):  # type: ignore  # noqa: PGH003
-        lesson_thread_id = (
-            f"course:{state['course_context'].course_id}:module:{state['order']}:lesson:{order}"
-        )
-        logger.info(
-            "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
-        )
-        result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
-            {
-                "course_context": state["course_context"],
-                "audience_description": state["audience_description"],
-                "learning_objectives": module_structure.learning_objectives,
-                "order": order,
-                "lesson_description": lesson_description,
-            },  # type: ignore  # noqa: PGH003
-            config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-        )  # type: ignore  # noqa: PGH003
-        module.append_lesson(result["lesson"])
+    async with TaskGroup() as tg:
+        tasks = [
+            tg.create_task(
+                build_lesson(
+                    order=order,
+                    module_order=state["order"],
+                    lesson_description=desc,
+                    course_id=state["course_context"].course_id,
+                    audience_description=state["audience_description"],
+                    learning_objectives=module_structure.learning_objectives,
+                    course_context=state["course_context"],
+                )
+            )
+            for order, desc in enumerate(module_structure.lessons_descriptions)
+        ]
 
-        progress_percent = round((order / total_modules) * 100, 2)
-        logger.info("lessons generation progress %s%%", progress_percent)
+    # Собираем результаты в правильном порядке
+    lessons_by_order = sorted(task.result() for task in tasks)
+    for _, lesson in lessons_by_order:
+        module.append_lesson(lesson)
+
     logger.info(
         "Successfully generated %s lessons, spent time %s seconds",
         total_modules,
@@ -183,12 +156,24 @@ async def generate_assignment(state: AgentState) -> dict[str, Module]:
     assignment_type, prompt = module_structure.assignment_specification
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)  # type: ignore  # noqa: PGH003
-    assignment = await call_practice_agent(  # type: ignore  # noqa: PGH003
-        assignment_type,
-        module,
-    )
-    module.add_final_assessment(assignment)
+    assignment = await call_module_practice_agent(assignment_type=assignment_type, module=module)
+    module.add_assignment(assignment)
     return {"module": module}
+
+
+async def save_module(state: AgentState) -> None:
+    async with session_factory() as session:
+        module_repos = SqlModuleRepository(session)
+        lesson_repos = SqlLessonRepository(session)
+        module = state["module"]  # type: ignore  # noqa: PGH003
+        await module_repos.create(module)
+        await lesson_repos.assign_module(
+            lesson_ids=[lesson.id for lesson in module.lessons],
+            module_id=module.id,
+        )
+        logger.info("Saving module '%s' to database ...", module.title)
+
+        await session.commit()
 
 
 # Создание рабочего пространства для агента
@@ -196,11 +181,12 @@ graph = StateGraph(AgentState)
 
 graph.add_node("plan_module_structure", plan_module_structure)
 graph.add_node("generate_lessons", generate_lessons)
-
-
+graph.add_node("generate_assignment", generate_assignment)
+graph.add_node("save_module", save_module)
 graph.add_edge(START, "plan_module_structure")
 graph.add_edge("plan_module_structure", "generate_lessons")
-
-graph.add_edge("generate_lessons", END)
+graph.add_edge("generate_lessons", "generate_assignment")
+graph.add_edge("generate_assignment", "save_module")
+graph.add_edge("save_module", END)
 
 module_builder_agent = graph.compile(checkpointer=checkpoint)
