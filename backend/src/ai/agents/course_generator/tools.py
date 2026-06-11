@@ -2,10 +2,12 @@ from typing import Literal
 
 import logging
 
+from aiohttp import ClientSession
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field, NonNegativeFloat
 
-from ... import rag
+from ....core.databases import qdrant_client
+from ...infra.repository import VectorRepository
 from ..schemas import CourseContext
 
 INDEX_NAME = "main-index"
@@ -44,35 +46,36 @@ class SaveKnowledgeInput(BaseModel):
     args_schema=SaveKnowledgeInput,
 )
 async def save_knowledge(
-        runtime: ToolRuntime[CourseContext],
-        source: str,
-        text: str,
-        score: float,
-        category: Literal["data", "web_research", "theory"] = "web_research",
+    runtime: ToolRuntime[CourseContext],
+    source: str,
+    text: str,
+    score: float,
+    category: Literal["data", "web_research", "theory"] = "web_research",
 ) -> None:
     logger.info(
         "Saving `%s` knowledge from %s, score %s%%, text: '%s ...'",
-        category, source, score, text[:150]
+        category,
+        source,
+        score,
+        text[:150],
     )
-    await rag.index_document(
-        index_name=INDEX_NAME,
-        text=text,
-        metadata={
-            "tenant_id": str(runtime.context.course_id),
-            "source": source,
-            "category": category,
-            "score": score,
-        }
-    )
+    async with ClientSession() as session:
+        await VectorRepository(client=qdrant_client, session=session).index_document(
+            text=text,
+            metadata={
+                "tenant_id": str(runtime.context.course_id),
+                "source": source,
+                "category": category,
+                "score": score,
+            },
+        )
 
 
 class KnowledgeSearchInput(BaseModel):
     search_query: str = Field(description="Запрос для поиска информации")
-    category: Literal[
-        "data",
-        "web_research",
-        "theory"
-    ] | None = Field(default=None, description="Тип информации, который нужно найти")
+    category: Literal["data", "web_research", "theory"] | None = Field(
+        default=None, description="Тип информации, который нужно найти"
+    )
 
 
 @tool(
@@ -81,22 +84,22 @@ class KnowledgeSearchInput(BaseModel):
     args_schema=KnowledgeSearchInput,
 )
 async def knowledge_search(
-        runtime: ToolRuntime[CourseContext],
-        search_query: str,
-        category: Literal["data", "web_research", "theory"] | None = None
+    runtime: ToolRuntime[CourseContext],
+    search_query: str,
+    category: Literal["data", "web_research", "theory"] | None = None,
 ) -> str:
-    meta_filter = {}
-    tenant_filter = {"tenant_id": str(runtime.context.course_id)}
+    meta_filter = {"tenant_id": str(runtime.context.course_id)}
     if category is not None:
         logger.info(
             "Searching knowledge by category - `%s` and query: '%s ...'",
-            category, search_query[:100]
+            category,
+            search_query[:100],
         )
-        meta_filter["$and"] = [tenant_filter, {"category": category}]
+        meta_filter["category"] = category
     else:
         logger.info("Searching knowledge by query `%s`", search_query[:100])
-        meta_filter.update(**tenant_filter)
-    docs = await rag.retrieve_documents(
-        index_name=INDEX_NAME, query=search_query, metadata_filter=meta_filter
-    )
+    async with ClientSession() as session:
+        docs = await VectorRepository(client=qdrant_client, session=session).retrieve_documents(
+            query=search_query, metadata_filters=meta_filter
+        )
     return "\n\n".join(docs)

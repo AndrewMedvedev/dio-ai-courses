@@ -5,7 +5,7 @@ import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
 from apscheduler.triggers.cron import CronTrigger  # type: ignore[import-untyped]
 
-from ..core.database import session_factory  # фабрика сессий, не get_db
+from ..core.databases import session_factory  # фабрика сессий, не get_db
 from ..shared.schemas import PageParams
 from .domain.services import create_ai_model
 from .infra.repository import SqlAIModelRepository

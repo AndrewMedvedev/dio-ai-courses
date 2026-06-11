@@ -5,8 +5,8 @@ from langchain.agents.structured_output import ProviderStrategy
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from .....core.databases import checkpointer
 from .....core.settings import settings
-from ..checkpointer import checkpoint
 from .prompts import PLANNER_PROMPT, CourseStructure
 
 model: Final[ChatOpenAI] = ChatOpenAI(
@@ -23,5 +23,5 @@ course_planner_agent = create_agent(
     model=model,
     system_prompt=PLANNER_PROMPT,
     response_format=ProviderStrategy(CourseStructure),
-    checkpointer=checkpoint,
+    checkpointer=checkpointer,
 )

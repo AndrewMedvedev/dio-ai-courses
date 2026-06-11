@@ -50,6 +50,18 @@ class RedisSettings(BaseSettings):
         return f"redis://{self.host}:{self.port}/{self.db}"
 
 
+class QdrantSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="QDRANT_")
+
+    host: str = "localhost"
+    port: int = 6379
+    password: str = "<PASSWORD>"
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+
 class MinIOSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MINIO_")
 
@@ -189,12 +201,6 @@ class AdminSettings(BaseSettings):
     password: str = "admin"
 
 
-class HuggingFaceSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="HF_")
-
-    space_url: str = "http://localhost:8001"
-
-
 class SearchSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="AI_SEARCH_")
 
@@ -220,9 +226,11 @@ class Settings(BaseSettings):
     yandex_cloud: YandexCloudSettings = YandexCloudSettings()
     language_tool: LanguageToolSettings = LanguageToolSettings()
     admin: AdminSettings = AdminSettings()
-    huggingface: HuggingFaceSettings = HuggingFaceSettings()
     search: SearchSettings = SearchSettings()
     tracing: LangSmithSettings = LangSmithSettings()
+    qdrant: QdrantSettings = QdrantSettings()
+    embeddings: str = "http://localhost:8001/embeddings"
+    reranks: str = "http://localhost:8002/reranks"
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
 
 

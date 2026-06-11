@@ -13,13 +13,12 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from pydantic import SecretStr
 
-from .....core.database import session_factory
+from .....core.databases import checkpointer, session_factory
 from .....core.settings import settings
 from ....domain.entities import Lesson, Module
 from ....domain.services import create_module
 from ....infra.repository import SqlLessonRepository, SqlModuleRepository
 from ...schemas import CourseContext
-from ..checkpointer import checkpoint
 from .lesson_builder import lesson_builder_agent
 from .practician import call_module_practice_agent
 from .prompts import ModuleStructure
@@ -189,4 +188,4 @@ graph.add_edge("generate_lessons", "generate_assignment")
 graph.add_edge("generate_assignment", "save_module")
 graph.add_edge("save_module", END)
 
-module_builder_agent = graph.compile(checkpointer=checkpoint)
+module_builder_agent = graph.compile(checkpointer=checkpointer)

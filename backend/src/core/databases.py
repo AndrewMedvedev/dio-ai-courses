@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+from qdrant_client import AsyncQdrantClient
+from redis.asyncio import Redis
 from sqlalchemy import DateTime, func
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
@@ -13,6 +16,25 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .settings import settings
+
+qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
+
+
+redis_client = Redis(
+    host=settings.redis.host,  # из настроек
+    port=settings.redis.port,
+    db=settings.redis.db,
+    password=settings.redis.password,
+    decode_responses=False,  # ← обязательно False для RedisSaver
+)
+
+checkpointer = AsyncRedisSaver(
+    redis_client=redis_client,
+    ttl={
+        "default_ttl": 60 * 5,  # Истекают контрольные точки через 5 часов
+        "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # noqa: E501
+    },
+)
 
 engine = create_async_engine(url=settings.postgres.sqlalchemy_url, echo=True)
 sessionmaker = async_sessionmaker(

@@ -1,10 +1,22 @@
-from uuid import UUID
+from typing import Any
 
+import logging
+import time
+from operator import itemgetter
+from uuid import UUID, uuid4
+
+from aiohttp import ClientSession
+from fastembed.sparse import SparseTextEmbedding
+from qdrant_client import AsyncQdrantClient, models
 from sqlalchemy import select, update
 
 from ...shared.infra.repos import ModelMapper, SqlAlchemyRepository
+from ..domain.dependencies import splitter
 from ..domain.entities import Course, Lesson, LessonBasicInfo, Module
+from ..rest import get_embeddings, get_reranks
 from .models import CourseOrm, LessonOrm, ModuleOrm
+
+logger = logging.getLogger(__name__)
 
 
 class LessonMapper(ModelMapper[Lesson, LessonOrm]):
@@ -167,3 +179,168 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
 class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     model = CourseOrm
     model_mapper = CourseMapper  # type: ignore  # noqa: PGH003
+
+
+class VectorRepository:
+    """
+
+    Async RAG repository:
+
+    Dense (embeddings) + BM25 + Qdrant + Reranker.
+
+    """
+
+    def __init__(
+        self,
+        client: AsyncQdrantClient,
+        session: ClientSession,
+        collection_name: str = "MAIN_COLLECTION",
+    ):
+        self.client = client
+        self.collection_name = collection_name
+
+        self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+        self.session = session
+
+    async def index_document(self, text: str, metadata: dict[str, Any] | None = None) -> None:
+        """Асинхронная индексация"""
+
+        if not text.strip():
+            logger.warning("Attempted to index empty text!")
+            return
+
+        start_time = time.monotonic()
+        logger.info("Starting index document text, length %s characters", len(text))
+        chunks = splitter.split_text(text)
+        points = []
+        for chunk in chunks:
+            dense_vector = await get_embeddings(texts=[chunk], session=self.session)
+            sparse = next(self.sparse_model.embed([chunk]))  # type: ignore  # noqa: PGH003
+            indices = [i.indices.tolist() for i in sparse]
+            values = [i.values.tolist() for i in sparse]
+            points.append(
+                models.PointStruct(
+                    id=str(uuid4()),
+                    vector={
+                        "dense": dense_vector[0],
+                        "bm25": models.SparseVector(
+                            indices=indices[0],
+                            values=values[0],
+                        ),
+                    },
+                    payload=metadata or {},
+                )
+            )
+
+        await self.client.upsert(
+            collection_name=self.collection_name,
+            points=points,
+            wait=True,
+        )
+        logger.info(
+            "Finished indexing text, time %s seconds", round(time.monotonic() - start_time, 2)
+        )
+
+    async def retrieve_documents(
+        self,
+        query: str,
+        limit: int = 5,
+        prefetch_limit: int = 25,
+        metadata_filters: dict[str, Any] | None = None,
+    ) -> list[str]:
+        """
+
+        Hybrid search: Dense + BM25 + RRF + Rerank.
+
+        """
+
+        dense_query = await get_embeddings(texts=[query], session=self.session)
+
+        sparse_query = next(self.sparse_model.embed([query]))  # type: ignore  # noqa: PGH003
+
+        if metadata_filters:
+            conditions: list[models.FieldCondition] = []
+
+            for key, value in metadata_filters.items():
+                if isinstance(value, list):
+                    conditions.append(
+                        models.FieldCondition(
+                            key=key,
+                            match=models.MatchAny(any=value),
+                        )
+                    )
+
+                else:
+                    conditions.append(
+                        models.FieldCondition(
+                            key=key,
+                            match=models.MatchValue(value=value),
+                        )
+                    )
+
+            qdrant_filter = models.Filter(must=conditions)  # type: ignore  # noqa: PGH003
+
+        response = await self.client.query_points(
+            collection_name=self.collection_name,
+            prefetch=[
+                models.Prefetch(
+                    query=dense_query,
+                    using="dense",
+                    limit=prefetch_limit,
+                    filter=qdrant_filter,
+                ),
+                models.Prefetch(
+                    query=models.SparseVector(
+                        indices=sparse_query.indices.tolist(),
+                        values=sparse_query.values.tolist(),
+                    ),
+                    using="bm25",
+                    limit=prefetch_limit,
+                    filter=qdrant_filter,
+                ),
+            ],
+            query=models.FusionQuery(
+                fusion=models.Fusion.RRF,
+            ),
+            limit=prefetch_limit,
+            with_payload=True,
+        )
+
+        candidates = []
+
+        texts = []
+
+        for p in response.points:
+            payload = p.payload or {}
+
+            text = payload.get("text", "")
+            candidates.append({
+                "id": p.id,
+                "text": text,
+                "payload": payload,
+            })
+
+            texts.append(text)
+
+        if not texts:
+            return []
+        scores = await get_reranks(query=query, documents=texts, session=self.session)
+
+        reranked = sorted(
+            zip(candidates, scores, strict=True),
+            key=itemgetter(1),
+            reverse=True,
+        )[:limit]
+
+        return [
+            (
+                f"**Relevance score:** {round(score, 2)}\n"  # type: ignore  # noqa: PGH003
+                f"**Source:** {metadata.get('source', '')}\n"
+                f"**Category:** {metadata.get('category', '')}\n"
+                "**Document:**\n"
+                f"{document}"
+            )
+            for (item, score) in reranked
+            for document in [item["text"]]
+            for metadata in [item["payload"]]
+        ]

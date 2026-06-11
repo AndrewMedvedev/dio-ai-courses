@@ -4,7 +4,7 @@ from fastapi import Depends, Query
 from pydantic import PositiveInt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.database import get_db
+from ..core.databases import get_db
 from ..core.settings import settings
 from .infra.mail import SmtpMailSender
 from .schemas import PageParams

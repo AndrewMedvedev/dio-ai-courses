@@ -10,10 +10,10 @@ from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
+from .....core.databases import checkpointer
 from ....domain.dependencies import model
 from ...schemas import GenerationContext
 from ...tools import browse_page, web_search
-from ..checkpointer import checkpoint
 from ..tools import knowledge_search, save_knowledge
 from .prompts import CRITIC_PROMPT, REASONER_PROMPT, RESEARCHER_PROMPT
 
@@ -56,7 +56,7 @@ async def call_researcher_agent(runtime: ToolRuntime[GenerationContext], task: s
             ),
         ],
         context_schema=GenerationContext,
-        checkpointer=checkpoint,
+        checkpointer=checkpointer,
     )
     # Исправление 3: передаём сообщения как список кортежей
     result = await researcher_agent.with_retry(stop_after_attempt=3).ainvoke(
@@ -82,5 +82,5 @@ reasoner_agent = create_agent(
     ],
     tools=[call_researcher_agent, call_critique_agent],
     context_schema=GenerationContext,
-    checkpointer=checkpoint,
+    checkpointer=checkpointer,
 )  # type: ignore  # noqa: PGH003

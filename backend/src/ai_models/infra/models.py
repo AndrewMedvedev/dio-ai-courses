@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ...core.database import Base
+from ...core.databases import Base
 
 
 class AIModelOrm(Base):

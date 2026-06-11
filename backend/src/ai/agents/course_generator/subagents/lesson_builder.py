@@ -4,6 +4,7 @@ import logging
 import time
 from asyncio import TaskGroup
 
+from aiohttp import ClientSession
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
 from langchain.messages import HumanMessage
@@ -11,15 +12,13 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from pydantic import SecretStr
 
-from .....core.database import session_factory
+from .....core.databases import checkpointer, qdrant_client, session_factory
 from .....core.settings import settings
-from .... import rag
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....domain.services import create_lesson
-from ....infra.repository import SqlLessonRepository
+from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import CourseContext
-from ..checkpointer import checkpoint
 from .practician import call_lesson_practice_agent
 from .prompts import LessonStructure
 from .theorist import call_theory_agent
@@ -173,16 +172,7 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
         "Saving generated content blocks of `%s` module to knowledge base ...",
         lesson.title,  # type: ignore  # noqa: PGH003
     )
-    await rag.index_document(
-        index_name="MAIN_INDEX",
-        text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # noqa: PGH003
-        metadata={
-            "tenant_id": state["course_context"].course_id,
-            "module_id": f"{lesson.id}",
-            "source": f"{lesson.title}",
-            "category": "theory",
-        },
-    )
+
     return {"lesson": lesson}
 
 
@@ -202,9 +192,23 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
 
 
 async def save_lesson(state: AgentState) -> None:
-    async with session_factory() as session:
-        repos = SqlLessonRepository(session)
+
+    async with session_factory() as session, ClientSession() as aio_session:
         lesson = state["lesson"]  # type: ignore  # noqa: PGH003
+        vector_repos = VectorRepository(client=qdrant_client, session=aio_session)
+
+        await vector_repos.index_document(
+            text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # noqa: PGH003
+            metadata={
+                "tenant_id": state["course_context"].course_id,
+                "module_id": f"{lesson.id}",
+                "source": f"{lesson.title}",
+                "category": "theory",
+            },
+        )
+
+        repos = SqlLessonRepository(session)
+
         logger.info("Saving lesson '%s' to database ...", lesson.title)
         await repos.create(lesson)
         await session.commit()
@@ -223,4 +227,4 @@ graph.add_edge("generate_content_blocks", "generate_assignment")
 graph.add_edge("generate_assignment", "save_lesson")
 graph.add_edge("save_lesson", END)
 
-lesson_builder_agent = graph.compile(checkpointer=checkpoint)
+lesson_builder_agent = graph.compile(checkpointer=checkpointer)

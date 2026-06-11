@@ -8,13 +8,12 @@ from langchain.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from ....core.database import session_factory
+from ....core.databases import checkpointer, session_factory
 from ...domain.entities import Course, Module
 from ...domain.services import create_course
 from ...domain.vo import CourseStatus
 from ...infra.repository import SqlCourseRepository, SqlModuleRepository
 from ..schemas import GenerationContext
-from .checkpointer import checkpoint
 from .subagents.module_builder import module_builder_agent
 from .subagents.reasoner import reasoner_agent
 from .subagents.structure_planner import CourseStructure, course_planner_agent
@@ -165,4 +164,4 @@ graph.add_edge("plan_course_structure", "generate_modules")
 graph.add_edge("generate_modules", "save_course")
 graph.add_edge("save_course", END)
 
-agent = graph.compile(checkpointer=checkpoint)
+agent = graph.compile(checkpointer=checkpointer)

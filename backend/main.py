@@ -7,10 +7,12 @@ import uvicorn
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from qdrant_client import models
 
 from src.ai_models.router import ai_models_router
 from src.ai_models.scheduler import run_weekly_sync
 from src.ai_models.scheduler import scheduler as ai_models_scheduler
+from src.core.databases import qdrant_client
 from src.core.logging import configure_logging
 from src.core.settings import settings
 from src.iam.routers import router as iam_router
@@ -31,6 +33,19 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await run_weekly_sync()
     ai_models_scheduler.start()
     ai_models_scheduler.shutdown()
+
+    exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
+    if not exists:
+        await qdrant_client.create_collection(
+            collection_name="MAIN_COLLECTION",
+            vectors_config={
+                "dense": models.VectorParams(
+                    size=1024,
+                    distance=models.Distance.COSINE,
+                )
+            },
+            sparse_vectors_config={"bm25": models.SparseVectorParams()},
+        )
 
     yield
 
