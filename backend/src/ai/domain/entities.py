@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from abc import ABC
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -292,6 +290,7 @@ class Lesson(Entity):
         assignment: Практическое задание
     """
 
+    module_id: UUID
     title: str
     description: str
     order: int
@@ -318,29 +317,6 @@ class LessonBasicInfo:
 
 
 @dataclass(kw_only=True, slots=True)
-class Practice(Entity):
-    """Практическое задание (устаревшая модель? используется в Module).
-
-    Attributes:
-        task: Текст задания.
-        criteria: Список критериев оценки.
-        check_type: Способ проверки (например, "auto", "manual").
-        title: Заголовок задания (может быть пустым).
-        assignment_type: Тип задания (строка, дублирует enum).
-        assignment_data: Детали задания (модель Assignment или сырой dict).
-        passing_score: Минимальный балл (float, от 0 до 100).
-    """
-
-    task: str
-    criteria: list[str]
-    check_type: str
-    title: str = ""
-    assignment_type: str = "manual"
-    assignment_data: Assignment | dict[str, Any] | None = None
-    passing_score: float = 61
-
-
-@dataclass(kw_only=True, slots=True)
 class Module(Entity):
     """Модуль курса.
 
@@ -357,6 +333,7 @@ class Module(Entity):
 
     """
 
+    course_id: UUID
     title: str
     description: str
     order: int

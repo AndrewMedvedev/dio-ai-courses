@@ -3,8 +3,8 @@ from typing import NotRequired, TypedDict
 import logging
 import time
 from asyncio import TaskGroup
+from uuid import UUID
 
-from aiohttp import ClientSession
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
 from langchain.messages import HumanMessage
@@ -39,6 +39,7 @@ class AgentState(TypedDict):
     """Состояние агента для создания модулей"""
 
     course_context: CourseContext  # Контекстные данные курса
+    module_id: UUID
     audience_description: str  # Описание целевой аудитории курса
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер урока
@@ -98,6 +99,7 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
     lesson = create_lesson(
+        module_id=state["module_id"],
         title=lesson_structure.title,
         description=lesson_structure.description,
         learning_objectives=lesson_structure.learning_objectives,
@@ -192,16 +194,15 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
 
 
 async def save_lesson(state: AgentState) -> None:
-
-    async with session_factory() as session, ClientSession() as aio_session:
+    async with session_factory() as session:
         lesson = state["lesson"]  # type: ignore  # noqa: PGH003
-        vector_repos = VectorRepository(client=qdrant_client, session=aio_session)
+        vector_repos = VectorRepository(client=qdrant_client)
 
         await vector_repos.index_document(
             text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # noqa: PGH003
             metadata={
-                "tenant_id": state["course_context"].course_id,
-                "module_id": f"{lesson.id}",
+                "course_id": state["course_context"].course_id,
+                "lesson_id": f"{lesson.id}",
                 "source": f"{lesson.title}",
                 "category": "theory",
             },

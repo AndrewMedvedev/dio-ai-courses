@@ -2,18 +2,16 @@ from typing import Any
 
 import logging
 import time
-from operator import itemgetter
 from uuid import UUID, uuid4
 
-from aiohttp import ClientSession
 from fastembed.sparse import SparseTextEmbedding
 from qdrant_client import AsyncQdrantClient, models
 from sqlalchemy import select, update
 
+from ...core.retrieval_components import embed, rerank
 from ...shared.infra.repos import ModelMapper, SqlAlchemyRepository
 from ..domain.dependencies import splitter
 from ..domain.entities import Course, Lesson, LessonBasicInfo, Module
-from ..rest import get_embeddings, get_reranks
 from .models import CourseOrm, LessonOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
@@ -183,24 +181,19 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
 
 class VectorRepository:
     """
-
     Async RAG repository:
 
     Dense (embeddings) + BM25 + Qdrant + Reranker.
-
     """
 
     def __init__(
         self,
         client: AsyncQdrantClient,
-        session: ClientSession,
         collection_name: str = "MAIN_COLLECTION",
     ):
         self.client = client
         self.collection_name = collection_name
-
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
-        self.session = session
 
     async def index_document(self, text: str, metadata: dict[str, Any] | None = None) -> None:
         """Асинхронная индексация"""
@@ -214,7 +207,7 @@ class VectorRepository:
         chunks = splitter.split_text(text)
         points = []
         for chunk in chunks:
-            dense_vector = await get_embeddings(texts=[chunk], session=self.session)
+            dense_vector = await embed(inputs=[text])
             sparse = next(self.sparse_model.embed([chunk]))  # type: ignore  # noqa: PGH003
             indices = [i.indices.tolist() for i in sparse]
             values = [i.values.tolist() for i in sparse]
@@ -248,16 +241,11 @@ class VectorRepository:
         prefetch_limit: int = 25,
         metadata_filters: dict[str, Any] | None = None,
     ) -> list[str]:
-        """
-
-        Hybrid search: Dense + BM25 + RRF + Rerank.
-
-        """
-
-        dense_query = await get_embeddings(texts=[query], session=self.session)
-
+        """Hybrid search: Dense + BM25 + RRF + Rerank."""
+        dense_query = await embed(inputs=[query])
         sparse_query = next(self.sparse_model.embed([query]))  # type: ignore  # noqa: PGH003
 
+        qdrant_filter = None
         if metadata_filters:
             conditions: list[models.FieldCondition] = []
 
@@ -269,7 +257,6 @@ class VectorRepository:
                             match=models.MatchAny(any=value),
                         )
                     )
-
                 else:
                     conditions.append(
                         models.FieldCondition(
@@ -307,40 +294,32 @@ class VectorRepository:
         )
 
         candidates = []
-
         texts = []
 
         for p in response.points:
             payload = p.payload or {}
-
             text = payload.get("text", "")
             candidates.append({
                 "id": p.id,
                 "text": text,
                 "payload": payload,
             })
-
             texts.append(text)
 
         if not texts:
             return []
-        scores = await get_reranks(query=query, documents=texts, session=self.session)
 
-        reranked = sorted(
-            zip(candidates, scores, strict=True),
-            key=itemgetter(1),
-            reverse=True,
-        )[:limit]
+        # rerank возвращает list[dict] с index, relevance_score, document
+        # уже отсортирован по relevance_score desc, берём топ limit
+        rerank_results = await rerank(query=query, documents=texts, top_n=limit)
 
         return [
             (
-                f"**Relevance score:** {round(score, 2)}\n"  # type: ignore  # noqa: PGH003
-                f"**Source:** {metadata.get('source', '')}\n"
-                f"**Category:** {metadata.get('category', '')}\n"
+                f"**Relevance score:** {round(r['relevance_score'], 2)}\n"
+                f"**Source:** {candidates[r['index']]['payload'].get('source', '')}\n"
+                f"**Category:** {candidates[r['index']]['payload'].get('category', '')}\n"
                 "**Document:**\n"
-                f"{document}"
+                f"{r['document']}"
             )
-            for (item, score) in reranked
-            for document in [item["text"]]
-            for metadata in [item["payload"]]
+            for r in rerank_results
         ]

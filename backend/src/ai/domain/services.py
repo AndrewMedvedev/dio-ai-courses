@@ -27,12 +27,14 @@ def create_course(
 
 
 def create_module(
+    cousre_id: UUID,
     title: str,
     description: str,
     order: int,
     learning_objectives: list[str],
 ) -> Module:
     return Module(
+        course_id=cousre_id,
         title=title,
         description=description,
         learning_objectives=learning_objectives,
@@ -41,8 +43,16 @@ def create_module(
 
 
 def create_lesson(
-    title: str, description: str, order: int, learning_objectives: list[str]
+    module_id: UUID,
+    title: str,
+    description: str,
+    order: int,
+    learning_objectives: list[str],
 ) -> Lesson:
     return Lesson(
-        title=title, description=description, learning_objectives=learning_objectives, order=order
+        module_id=module_id,
+        title=title,
+        description=description,
+        learning_objectives=learning_objectives,
+        order=order,
     )

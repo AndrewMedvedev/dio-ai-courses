@@ -17,7 +17,7 @@ from .....core.databases import checkpointer, session_factory
 from .....core.settings import settings
 from ....domain.entities import Lesson, Module
 from ....domain.services import create_module
-from ....infra.repository import SqlLessonRepository, SqlModuleRepository
+from ....infra.repository import SqlModuleRepository
 from ...schemas import CourseContext
 from .lesson_builder import lesson_builder_agent
 from .practician import call_module_practice_agent
@@ -78,6 +78,7 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
     module = create_module(
+        cousre_id=state["course_context"].course_id,
         title=module_structure.title,
         description=module_structure.description,
         learning_objectives=module_structure.learning_objectives,
@@ -86,10 +87,21 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
     return {"module_structure": module_structure, "module": module}
 
 
+async def save_module(state: AgentState) -> None:
+    async with session_factory() as session:
+        module_repos = SqlModuleRepository(session)
+        module = state["module"]  # type: ignore  # noqa: PGH003
+        await module_repos.create(module)
+        logger.info("Saving module '%s' to database ...", module.title)
+
+        await session.commit()
+
+
 async def build_lesson(
     module_order: int,
     order: int,
     lesson_description: str,
+    module_id: UUID,
     course_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
@@ -102,6 +114,7 @@ async def build_lesson(
     result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
         {
             "course_context": course_context,
+            "module_id": module_id,
             "audience_description": audience_description,
             "learning_objectives": learning_objectives,
             "order": order,
@@ -126,6 +139,7 @@ async def generate_lessons(state: AgentState) -> dict[str, Module]:
                     order=order,
                     module_order=state["order"],
                     lesson_description=desc,
+                    module_id=module.id,
                     course_id=state["course_context"].course_id,
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure.learning_objectives,
@@ -160,32 +174,18 @@ async def generate_assignment(state: AgentState) -> dict[str, Module]:
     return {"module": module}
 
 
-async def save_module(state: AgentState) -> None:
-    async with session_factory() as session:
-        module_repos = SqlModuleRepository(session)
-        lesson_repos = SqlLessonRepository(session)
-        module = state["module"]  # type: ignore  # noqa: PGH003
-        await module_repos.create(module)
-        await lesson_repos.assign_module(
-            lesson_ids=[lesson.id for lesson in module.lessons],
-            module_id=module.id,
-        )
-        logger.info("Saving module '%s' to database ...", module.title)
-
-        await session.commit()
-
-
 # Создание рабочего пространства для агента
 graph = StateGraph(AgentState)
 
 graph.add_node("plan_module_structure", plan_module_structure)
+graph.add_node("save_module", save_module)
 graph.add_node("generate_lessons", generate_lessons)
 graph.add_node("generate_assignment", generate_assignment)
-graph.add_node("save_module", save_module)
+
 graph.add_edge(START, "plan_module_structure")
-graph.add_edge("plan_module_structure", "generate_lessons")
+graph.add_edge("plan_module_structure", "save_module")
+graph.add_edge("save_module", "generate_lessons")
 graph.add_edge("generate_lessons", "generate_assignment")
-graph.add_edge("generate_assignment", "save_module")
-graph.add_edge("save_module", END)
+graph.add_edge("generate_assignment", END)
 
 module_builder_agent = graph.compile(checkpointer=checkpointer)

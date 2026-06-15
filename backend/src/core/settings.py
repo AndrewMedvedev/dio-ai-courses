@@ -211,6 +211,21 @@ class SearchSettings(BaseSettings):
     ] = "FAMILY_MODE_NONE"
 
 
+class EmbeddingsSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_")
+
+    base_url: str = "http://localhost:7997/"
+    model_name: str = "deepvk/USER-bge-m3"
+    dimensions: int = 1024
+
+
+class RerankersSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="RERANKERS_")
+
+    base_url: str = "http://localhost:7997/"
+    model_name: str = "BAAI/bge-reranker-v2-m3"
+
+
 class Settings(BaseSettings):
     secret_key: str = "<SECRET_KEY>"
     frontend_url: str = "http://localhost:3000"
@@ -229,8 +244,8 @@ class Settings(BaseSettings):
     search: SearchSettings = SearchSettings()
     tracing: LangSmithSettings = LangSmithSettings()
     qdrant: QdrantSettings = QdrantSettings()
-    embeddings: str = "http://localhost:8001/embeddings"
-    reranks: str = "http://localhost:8002/reranks"
+    embeddings: EmbeddingsSettings = EmbeddingsSettings()
+    rerankers: RerankersSettings = RerankersSettings()
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
 
 

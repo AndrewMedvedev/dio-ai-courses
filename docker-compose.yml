@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16.9
+    container_name: postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -20,7 +21,10 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: redis
     restart: always
+    depends_on:
+      - postgres
     ports:
       - "6379:6379"
     volumes:
@@ -30,10 +34,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 3
+
+
   qdrant:
     image: qdrant/qdrant:v1.15.4
     container_name: qdrant
-    restart: unless-stopped
+    restart: always
+    depends_on:
+      - redis
     ports:
       - "6333:6333" # REST API
       - "6334:6334" # gRPC
@@ -51,6 +59,9 @@ services:
 
   maildev:
     image: maildev/maildev
+    container_name: maildev
+    depends_on:
+      - qdrant
     environment:
       - TZ=Asia/Yekaterinburg
       - MAILDEV_WEB_PORT=1080
@@ -65,11 +76,37 @@ services:
 
   browserless:
     image: ghcr.io/browserless/chromium:v2.44.0
+    container_name: browserless
+    depends_on:
+      - maildev
     environment:
       - CONNECTION_TIMEOUT=60000
       - KEEP_ALIVE=true
     ports:
       - "3000:3999"
+
+
+  infinity:
+    image: michaelf34/infinity:latest-cpu
+    container_name: infinity
+    depends_on:
+      - browserless
+    ports:
+      - "7997:7997"
+    volumes:
+      - ./hf_cache:/app/.cache
+    environment:
+      - HF_HOME=/app/.cache
+      - INFINITY_ANONYMOUS_USAGE=0
+    command: >
+      v2
+      --model-id deepvk/USER-bge-m3
+      --model-id BAAI/bge-reranker-v2-m3
+      --port 7997
+      --engine torch
+      --device cpu
+      --batch-size 32
+    restart: unless-stopped
 
   # backend:
   #   build:

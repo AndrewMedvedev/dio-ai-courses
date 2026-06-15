@@ -12,7 +12,7 @@ from ....core.databases import checkpointer, session_factory
 from ...domain.entities import Course, Module
 from ...domain.services import create_course
 from ...domain.vo import CourseStatus
-from ...infra.repository import SqlCourseRepository, SqlModuleRepository
+from ...infra.repository import SqlCourseRepository
 from ..schemas import GenerationContext
 from .subagents.module_builder import module_builder_agent
 from .subagents.reasoner import reasoner_agent
@@ -72,6 +72,17 @@ async def plan_course_structure(state: AgentState) -> dict:
     )
     logger.info("Added `title`, `description` and `learning_objectives` in course")
     return {"course_structure": course_structure, "course": course}
+
+
+async def save_course(state: AgentState) -> None:
+    async with session_factory() as session:
+        course_repos = SqlCourseRepository(session)
+
+        course = state["course"]  # type: ignore  # noqa: PGH003
+        await course_repos.create(course)
+        logger.info("Saving course '%s' to database ...", course.title)
+
+        await session.commit()
 
 
 async def build_module(
@@ -136,32 +147,18 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
     return {"course": course}
 
 
-async def save_course(state: AgentState) -> None:
-    async with session_factory() as session:
-        course_repos = SqlCourseRepository(session)
-        module_repos = SqlModuleRepository(session)
-
-        course = state["course"]  # type: ignore  # noqa: PGH003
-        await course_repos.create(course)
-        await module_repos.assign_course(
-            module_ids=[module.id for module in course.modules],
-            course_id=course.id,
-        )
-        logger.info("Saving course '%s' to database ...", course.title)
-
-        await session.commit()
-
-
 graph = StateGraph(AgentState)
 
 graph.add_node("reasoning", reasoning)
 graph.add_node("plan_course_structure", plan_course_structure)
-graph.add_node("generate_modules", generate_modules)
 graph.add_node("save_course", save_course)
+graph.add_node("generate_modules", generate_modules)
+
+
 graph.add_edge(START, "reasoning")
 graph.add_edge("reasoning", "plan_course_structure")
-graph.add_edge("plan_course_structure", "generate_modules")
-graph.add_edge("generate_modules", "save_course")
-graph.add_edge("save_course", END)
+graph.add_edge("plan_course_structure", "save_course")
+graph.add_edge("save_course", "generate_modules")
+graph.add_edge("generate_modules", END)
 
 agent = graph.compile(checkpointer=checkpointer)
