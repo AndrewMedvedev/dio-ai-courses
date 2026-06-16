@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 
@@ -260,4 +261,3 @@ class GenerationTaskOut:
     error_message: str | None
     created_at: datetime
     updated_at: datetime
-

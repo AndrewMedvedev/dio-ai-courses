@@ -1,17 +1,50 @@
 import asyncio
 import json
 import logging
+from asyncio import run
+from collections.abc import Awaitable, Callable
+from dataclasses import asdict
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from celery import Task  # type: ignore  # noqa: PGH003
 from langchain_core.runnables import RunnableConfig
 
+from ....core.infrastructure import celery_client
+from ...domain.services import PermissionResult
 from .nodes import GenerationContext, agent
 
 prompt = """Создай учебный курс по работе с конфигурацией «1С:Зарплата и управление персоналом», редакция 3.1.
 Целевая аудитория — начинающие специалисты по кадровому учёту и расчёту зарплаты.
 """
+
+
+def task(**task_kwargs) -> Callable[[Callable[..., Awaitable]], Task]:
+    def decorator(coro_func: Callable[..., Awaitable]) -> Task:
+        @celery_client.task(**task_kwargs)
+        @wraps(coro_func)
+        def wrapper(*args, **kwargs):
+            return run(coro_func(*args, **kwargs))  # type: ignore  # noqa: PGH003
+
+        return wrapper  # type: ignore  # noqa: PGH003
+
+    return decorator
+
+
+@task(name="generate_course")
+async def generate_course(generation_context: dict) -> dict:
+    try:
+        await agent.ainvoke(
+            {"generation_context": generation_context},  # type: ignore  # noqa: PGH003
+            config=RunnableConfig(
+                configurable={"thread_id": f"course:{generation_context['course_id']}"}
+            ),
+        )
+    except Exception as e:  # noqa: BLE001
+        return asdict(PermissionResult(allowed=False, reason=str(e)))
+    return asdict(PermissionResult(True))
 
 
 def configure_logging(level=logging.INFO):

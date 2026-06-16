@@ -4,15 +4,10 @@ import logging
 
 from ddgs import DDGS
 from langchain.tools import tool
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field
 
-from ...core.settings import settings
 from ..integrations import rutube, yandex_web_search
 from ..utils.browser_automation import get_page_text
-from .prompts import CODER_PROMPT, MERMAID_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -57,56 +52,6 @@ class BrowsePageInput(BaseModel):
 )
 async def browse_page(link: str) -> str:
     return await get_page_text(link)
-
-
-class MermaidInput(BaseModel):
-    prompt: str = Field(description="Промпт для генерации mermaid диаграммы")
-
-
-@tool(
-    "draw_mermaid",
-    description="Рисует mermaid диаграмму по описанию, возвращает Markdown с mermaid-блоком",
-    args_schema=MermaidInput,
-)
-async def draw_mermaid(prompt: str) -> str:
-    model = ChatOpenAI(
-        api_key=SecretStr(settings.yandex_cloud.api_key),
-        model=settings.yandex_cloud.qwen3_235b,
-        base_url=settings.yandex_cloud.base_url,
-        temperature=0.3,
-    )
-    chain = (
-        ChatPromptTemplate.from_messages([
-            ("system", MERMAID_PROMPT),
-            MessagesPlaceholder("messages"),
-        ])
-        | model
-        | StrOutputParser()
-    )
-    return await chain.ainvoke({"messages": [("human", prompt)]})
-
-
-class CoderInput(BaseModel):
-    language: str = Field(description="Язык программирования на котором нужно написать код")
-    prompt: str = Field(description="Твоё техническое задание или запрос для написания кода")
-
-
-@tool(
-    "write_code",
-    description="Пишет качественный программный код",
-    args_schema=CoderInput,
-)
-async def write_code(language: str, prompt: str) -> str:
-    model = ChatOpenAI(
-        api_key=SecretStr(settings.yandex_cloud.api_key),
-        model=settings.yandex_cloud.qwen3_235b,
-        base_url=settings.yandex_cloud.base_url,
-        temperature=0.2,
-        max_completion_tokens=3000,
-        max_retries=3,
-    )
-    chain = ChatPromptTemplate.from_template(CODER_PROMPT) | model | StrOutputParser()
-    return await chain.ainvoke({"language": language, "prompt": prompt})
 
 
 @tool(

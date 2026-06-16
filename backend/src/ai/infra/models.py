@@ -6,7 +6,7 @@ from sqlalchemy import TEXT, Enum, ForeignKey, Index, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ...core.databases import Base
+from ...core.infrastructure import Base
 from ..domain.vo import CourseStatus, CourseUserRole, DifficultyLevel
 
 

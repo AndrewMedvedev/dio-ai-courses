@@ -13,12 +13,12 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from pydantic import SecretStr
 
-from .....core.databases import checkpointer, session_factory
+from .....core.infrastructure import checkpointer, session_factory
 from .....core.settings import settings
 from ....domain.entities import Lesson, Module
 from ....domain.services import create_module
 from ....infra.repository import SqlModuleRepository
-from ...schemas import CourseContext
+from ...schemas import GenerationContext
 from .lesson_builder import lesson_builder_agent
 from .practician import call_module_practice_agent
 from .prompts import ModuleStructure
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class AgentState(TypedDict):
     """Состояние агента для создания модулей"""
 
-    course_context: CourseContext  # Контекстные данные курса
+    generation_context: GenerationContext
     audience_description: str  # Описание целевой аудитории курса
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер модуля
@@ -78,7 +78,7 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
     module = create_module(
-        cousre_id=state["course_context"].course_id,
+        cousre_id=state["generation_context"].course_id,
         title=module_structure.title,
         description=module_structure.description,
         learning_objectives=module_structure.learning_objectives,
@@ -101,19 +101,20 @@ async def build_lesson(
     module_order: int,
     order: int,
     lesson_description: str,
+    generation_context: GenerationContext,
     module_id: UUID,
-    course_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
-    course_context: CourseContext,
 ) -> tuple[int, Lesson]:
-    lesson_thread_id = f"course:{course_id}:module:{module_order}:lesson:{order}"
+    lesson_thread_id = (
+        f"course:{generation_context.course_id}:module:{module_order}:lesson:{order}"
+    )
     logger.info(
         "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
     )
     result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
         {
-            "course_context": course_context,
+            "generation_context": generation_context,
             "module_id": module_id,
             "audience_description": audience_description,
             "learning_objectives": learning_objectives,
@@ -139,11 +140,10 @@ async def generate_lessons(state: AgentState) -> dict[str, Module]:
                     order=order,
                     module_order=state["order"],
                     lesson_description=desc,
+                    generation_context=state["generation_context"],
                     module_id=module.id,
-                    course_id=state["course_context"].course_id,
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure.learning_objectives,
-                    course_context=state["course_context"],
                 )
             )
             for order, desc in enumerate(module_structure.lessons_descriptions)

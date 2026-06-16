@@ -6,28 +6,25 @@ import logging
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-
-from ai.schemas import AssignmentResult
-from ai.utils.formatting import get_assignment_context
-from src.ai.domain.entities import AnyAssignment
+from pydantic import SecretStr
 
 from ...core.settings import settings
+from ..domain.entities import AnyAssignment
+from ..schemas import AssignmentResult
+from ..utils.formatting import get_assignment_context
 
 logger = logging.getLogger(__name__)
 
-# model = ChatOpenAI(
-#     api_key=settings.yandexcloud.api_key,
-#     model=settings.yandexcloud.qwen3_235b,
-#     base_url=settings.yandexcloud.base_url,
-#     temperature=0.3,
-# )
 
 model = ChatOpenAI(
-    api_key=settings.deepseek.api_key,
-    base_url=settings.deepseek.base_url,
-    model=settings.deepseek.deepseek_chat,
-    temperature=0.3,
+    api_key=SecretStr(settings.yandex_cloud.api_key),
+    base_url=settings.yandex_cloud.base_url,
+    model=settings.yandex_cloud.gpt_oss_120b,
+    temperature=0.2,
+    max_retries=3,
+    max_completion_tokens=100000,
 )
 
 SYSTEM_PROMPT = """\
@@ -73,5 +70,7 @@ async def call_assignment_checker(
         "**Содержимое файла:**\n"
         f"{submission_data.get('md_text')}"
     )
-    result = await agent.ainvoke({"messages": [("human", prompt_template)]})
+    result = await agent.with_retry(stop_after_attempt=3).ainvoke({
+        "messages": [HumanMessage(content=prompt_template)]
+    })
     return result["structured_response"]

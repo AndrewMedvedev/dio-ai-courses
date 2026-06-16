@@ -1,32 +1,25 @@
 # Агент для проверки теоретических знаний
 
 from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy, ToolStrategy
+from langchain.agents.structured_output import ToolStrategy
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
-from src.ai.domain.entities import (
-    AnyKnowledgeTest,
-    DetailedAnswerTest,
-    Module,
-    MultipleChoiceTest,
-    TestType,
+from ...core.settings import settings
+from ..domain.entities import (
+    Lesson,
 )
-from ai.settings import settings
-from ai.utils.formatting import get_module_context
-
-# model = ChatOpenAI(
-#     api_key=settings.yandexcloud.api_key,
-#     model=settings.yandexcloud.qwen3_235b,
-#     base_url=settings.yandexcloud.base_url,
-#     temperature=0.2,
-#     max_retries=3
-# )
+from ..schemas import AnyKnowledgeTest, DetailedAnswerTest, MultipleChoiceTest, TestType
+from ..utils.formatting import get_lesson_context
 
 model = ChatOpenAI(
-    api_key=settings.deepseek.api_key,
-    base_url=settings.deepseek.base_url,
-    model=settings.deepseek.deepseek_chat,
+    api_key=SecretStr(settings.yandex_cloud.api_key),
+    base_url=settings.yandex_cloud.base_url,
+    model=settings.yandex_cloud.gpt_oss_120b,
     temperature=0.2,
+    max_retries=3,
+    max_completion_tokens=100000,
 )
 
 config = {
@@ -72,15 +65,15 @@ config = {
 }
 
 
-async def call_knowledge_tester(test_type: TestType, module: Module) -> AnyKnowledgeTest:
+async def call_knowledge_tester(test_type: TestType, lesson: Lesson) -> AnyKnowledgeTest:
     """Вызвать агента для генерации тестирования"""
 
-    agent = create_agent(model=model, **config.get(test_type, {}))
+    agent = create_agent(model=model, **config.get(test_type, {}))  # type: ignore  # noqa: PGH003
     prompt_template = (
-        "## Теоретический материал пройденного модуля:\n\n"
+        "## Теоретический материал пройденного урока:\n\n"
         "<THEORY>"
-        f"{get_module_context(module)}\n"
+        f"{get_lesson_context(lesson)}\n"
         f"</THEORY>"
     )
-    result = await agent.ainvoke({"messages": [("human", prompt_template)]})
+    result = await agent.ainvoke({"messages": [HumanMessage(content=prompt_template)]})
     return result["structured_response"]

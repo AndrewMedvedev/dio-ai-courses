@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from celery import Celery  # type: ignore  # noqa: PGH003
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from qdrant_client import AsyncQdrantClient
 from redis.asyncio import Redis
@@ -19,6 +20,15 @@ from .settings import settings
 
 qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
 
+celery_client = Celery(main="tasks", broker=settings.rabbit.url, backend=f"{settings.redis.url}/1")
+
+celery_client.conf.update(
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    timezone="UTC",
+    task_track_started=True,
+)
 
 redis_client = Redis(
     host=settings.redis.host,  # из настроек
@@ -69,4 +79,4 @@ async def create_tables() -> None:
 
 async def get_db() -> AsyncSession:  # type: ignore  # noqa: PGH003
     async with session_factory() as session:
-        yield session  # type: ignore  # noqa: PGH003
+        yield session  # type: ignore  # noqa: ASYNC119, PGH003

@@ -660,3 +660,27 @@ CONTENT_BLOCK_PROMPTS = {
     - Указывай размер (M:), длительность (L:), тональность (K:).
 """,  # noqa: E501
 }
+
+
+class SummarizeLesson(BaseModel):
+    order: int = Field(..., description="Порядковый номер урока.")
+    title: str = Field(..., description="Заголовок урока.")
+    summary: str = Field(
+        ...,
+        description="краткий связный текст (5–10 предложений), который суммирует:"
+        "- что было изучено (ключевые концепции)"
+        "- как это связано с целями урока"
+        "- итоговый вывод для студента",
+    )
+    topics: list[str] = Field(
+        ..., description="список конкретных тем/понятий, которые введены или углублены."
+    )
+    skills: list[str] = Field(
+        ..., description="список навыков, которые студент должен приобрести."
+    )
+    assignment_type: str = Field(..., description="Тип задания.")
+    assignment_details: str = Field(..., description="Суть задания.")
+    difficult_points: list[str] = Field(
+        ...,
+        description="список потенциально сложных мест, которые могут вызвать затруднения у студентов.",  # noqa: E501
+    )

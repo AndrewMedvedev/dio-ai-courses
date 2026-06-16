@@ -8,7 +8,7 @@ from langchain.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from ....core.databases import checkpointer, session_factory
+from ....core.infrastructure import checkpointer, session_factory
 from ...domain.entities import Course, Module
 from ...domain.services import create_course
 from ...domain.vo import CourseStatus
@@ -55,13 +55,12 @@ async def plan_course_structure(state: AgentState) -> dict:
         {"messages": [HumanMessage(content=state.get("thinks", ""))]},
         config=RunnableConfig(
             configurable={
-                "thread_id": f"course:{state['generation_context'].course_id}:plan_course_structure"  # noqa: E501
+                "thread_id": f"course:{state['generation_context'].course_id}:plan_course_structure"
             }
         ),
     )
     course_structure: CourseStructure = result["structured_response"]
     course = create_course(
-        cousre_id=state["generation_context"].course_id,
         creator_id=state["generation_context"].user_id,
         difficulty=course_structure.difficulty,
         status=CourseStatus.IN_GENERATION,
@@ -86,9 +85,9 @@ async def save_course(state: AgentState) -> None:
 
 
 async def build_module(
+    generation_context: GenerationContext,
     order: int,
     module_description: str,
-    generation_context: GenerationContext,
     audience_description: str,
     learning_objectives: list[str],
 ) -> tuple[int, Module]:
@@ -98,7 +97,7 @@ async def build_module(
     )
     result = await module_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
         {
-            "course_context": generation_context,
+            "generation_context": generation_context,
             "audience_description": audience_description,
             "learning_objectives": learning_objectives,
             "order": order,
@@ -124,9 +123,9 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
         tasks = [
             tg.create_task(
                 build_module(
+                    generation_context=state["generation_context"],
                     order=order,
                     module_description=desc,
-                    generation_context=state["generation_context"],
                     audience_description=course_structure.audience_description,
                     learning_objectives=course_structure.learning_objectives,
                 )

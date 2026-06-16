@@ -2,11 +2,10 @@ from typing import Literal
 
 import logging
 
-from aiohttp import ClientSession
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field, NonNegativeFloat
 
-from ....core.databases import qdrant_client
+from ....core.infrastructure import qdrant_client
 from ...infra.repository import VectorRepository
 from ..schemas import CourseContext
 
@@ -59,16 +58,16 @@ async def save_knowledge(
         score,
         text[:150],
     )
-    async with ClientSession() as session:
-        await VectorRepository(client=qdrant_client, session=session).index_document(
-            text=text,
-            metadata={
-                "tenant_id": str(runtime.context.course_id),
-                "source": source,
-                "category": category,
-                "score": score,
-            },
-        )
+
+    await VectorRepository(client=qdrant_client).index_document(
+        text=text,
+        metadata={
+            "course_id": str(runtime.context.course_id),
+            "source": source,
+            "category": category,
+            "score": score,
+        },
+    )
 
 
 class KnowledgeSearchInput(BaseModel):
@@ -98,8 +97,8 @@ async def knowledge_search(
         meta_filter["category"] = category
     else:
         logger.info("Searching knowledge by query `%s`", search_query[:100])
-    async with ClientSession() as session:
-        docs = await VectorRepository(client=qdrant_client, session=session).retrieve_documents(
-            query=search_query, metadata_filters=meta_filter
-        )
+
+    docs = await VectorRepository(client=qdrant_client).retrieve_documents(
+        query=search_query, metadata_filters=meta_filter
+    )
     return "\n\n".join(docs)

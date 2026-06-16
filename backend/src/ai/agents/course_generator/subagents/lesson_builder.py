@@ -12,13 +12,13 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from pydantic import SecretStr
 
-from .....core.databases import checkpointer, qdrant_client, session_factory
+from .....core.infrastructure import checkpointer, qdrant_client, session_factory
 from .....core.settings import settings
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....domain.services import create_lesson
 from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
-from ...schemas import CourseContext
+from ...schemas import GenerationContext
 from .practician import call_lesson_practice_agent
 from .prompts import LessonStructure
 from .theorist import call_theory_agent
@@ -38,7 +38,7 @@ model = ChatOpenAI(
 class AgentState(TypedDict):
     """Состояние агента для создания модулей"""
 
-    course_context: CourseContext  # Контекстные данные курса
+    generation_context: GenerationContext
     module_id: UUID
     audience_description: str  # Описание целевой аудитории курса
     learning_objectives: list[str]  # Цели обучения курса
@@ -111,7 +111,7 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
 async def build_content_block(
     order: int,
     content_type: ContentType,
-    course_context: CourseContext,
+    generation_context: GenerationContext,
     content_plan: list[tuple[ContentType, str]],
     prompt: str,
     lesson: Lesson,
@@ -132,9 +132,9 @@ async def build_content_block(
         f"**Промпт**: {prompt}"
     )
     content_block = await call_theory_agent(
-        content_type,
-        prompt_template,
-        context=course_context,
+        content_type=content_type,
+        context=generation_context,
+        prompt=prompt_template,
     )
     elapsed_time = time.monotonic() - start_time
     logger.info(
@@ -158,8 +158,8 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
             tg.create_task(
                 build_content_block(
                     order=order,
+                    generation_context=state["generation_context"],
                     content_type=content_type,
-                    course_context=state["course_context"],
                     content_plan=lesson_structure.content_plan,
                     prompt=prompt,
                     lesson=lesson,
@@ -196,22 +196,19 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
 async def save_lesson(state: AgentState) -> None:
     async with session_factory() as session:
         lesson = state["lesson"]  # type: ignore  # noqa: PGH003
-        vector_repos = VectorRepository(client=qdrant_client)
 
-        await vector_repos.index_document(
+        await VectorRepository(client=qdrant_client).index_document(
             text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # noqa: PGH003
             metadata={
-                "course_id": state["course_context"].course_id,
+                "course_id": state["generation_context"].course_id,
                 "lesson_id": f"{lesson.id}",
                 "source": f"{lesson.title}",
                 "category": "theory",
             },
         )
 
-        repos = SqlLessonRepository(session)
-
         logger.info("Saving lesson '%s' to database ...", lesson.title)
-        await repos.create(lesson)
+        await SqlLessonRepository(session).create(lesson)
         await session.commit()
 
 

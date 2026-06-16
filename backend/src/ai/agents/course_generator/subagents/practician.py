@@ -18,8 +18,7 @@ from src.ai.domain.entities import (
 
 from ....domain.dependencies import model
 from ....utils.formatting import get_lesson_context
-from ...schemas import SummarizeLesson
-from .prompts import ASSIGNMENT_PROMPTS, SUMMARIZE_LESSON_PROMPT
+from .prompts import ASSIGNMENT_PROMPTS, SUMMARIZE_LESSON_PROMPT, SummarizeLesson
 
 logger = logging.getLogger(__name__)
 

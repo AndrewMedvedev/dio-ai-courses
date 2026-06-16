@@ -20,7 +20,7 @@ from ....domain.entities import (
     QuizBlock,
     TextBlock,
 )
-from ...schemas import CourseContext
+from ...schemas import GenerationContext
 from ..tools import knowledge_search
 from .prompts import CONTENT_BLOCK_PROMPTS
 
@@ -73,8 +73,8 @@ config = {
 
 async def call_theory_agent(
     content_type: ContentType,
+    context: GenerationContext,
     prompt: str,
-    context: CourseContext,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -87,12 +87,11 @@ async def call_theory_agent(
     logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
     agent = create_agent(
         model=model,
-        context_schema=CourseContext,
+        context_schema=GenerationContext,
         **config.get(content_type, {}),  # type: ignore  # noqa: PGH003,
     )
 
     result = await agent.with_retry(stop_after_attempt=3).ainvoke(
-        {"messages": [HumanMessage(content=prompt)]},
-        context=context,
+        {"messages": [HumanMessage(content=prompt)]}, context=context
     )
     return result["structured_response"]

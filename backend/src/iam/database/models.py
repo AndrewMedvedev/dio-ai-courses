@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ...core.databases import Base
+from ...core.infrastructure import Base
 from ..domain.vo import UserRole
 
 

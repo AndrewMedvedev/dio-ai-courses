@@ -1,6 +1,6 @@
 import logging
 
-from ..core.databases import session_factory
+from ..core.infrastructure import session_factory
 from ..core.settings import settings
 from ..iam.database.repository import SqlUserRepository
 from ..iam.domain.services import create_super_admin

@@ -37,19 +37,6 @@ class PostgresSettings(BaseSettings):
         return f"postgresql+{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
-class RedisSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="REDIS_")
-
-    host: str = "localhost"
-    port: int = 6379
-    db: int = 0
-    password: str = "<PASSWORD>"
-
-    @property
-    def url(self) -> str:
-        return f"redis://{self.host}:{self.port}/{self.db}"
-
-
 class QdrantSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="QDRANT_")
 
@@ -62,25 +49,30 @@ class QdrantSettings(BaseSettings):
         return f"http://{self.host}:{self.port}"
 
 
-class MinIOSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="MINIO_")
-
-    access_key_id: str = "<ACCESS_KEY_ID>"
-    secret_access_key: str = "<SECRET_ACCESS_KEY>"
-    endpoint_url: str = "http://localhost:9900"
-
-
-class ImgProxySettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="IMGPROXY_")
+class RabbitSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="RABBIT_")
 
     host: str = "localhost"
-    port: int = 8081
-    key: str = "<KEY>"
-    salt: str = "<SALT>"
+    port: int = 5672
+    user: str = "guest"
+    password: str = "quest"
 
     @property
     def url(self) -> str:
-        return f"http://{self.host}:{self.port}"
+        return f"amqp://{self.user}:{self.password}@{self.host}:{self.port}/"
+
+
+class RedisSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="REDIS_")
+
+    host: str = "localhost"
+    port: int = 6379
+    db: int = 0
+    password: str = "<PASSWORD>"
+
+    @property
+    def url(self) -> str:
+        return f"redis://{self.host}:{self.port}/{self.db}"
 
 
 class JWTSettings(BaseSettings):
@@ -99,19 +91,6 @@ class MailSettings(BaseSettings):
     smtp_password: str = ""
     default_from_email: str = "diocon@mail.ru"
     support_email: str = "diocon.support@mail.ru"
-
-
-class RabbitSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="RABBIT_")
-
-    host: str = "localhost"
-    port: int = 5672
-    user: str = "guest"
-    password: str = "quest"
-
-    @property
-    def url(self) -> str:
-        return f"amqp://{self.user}:{self.password}@{self.host}:{self.port}/"
 
 
 class YandexCloudSettings(BaseSettings):
@@ -167,18 +146,6 @@ class LangSmithSettings(BaseSettings):
     project: str = ""
 
 
-class LanguageToolSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="LANGTOOL_")
-
-    host: str = "localhost"
-    port: int = 8010
-    language: str = "ru-RU"
-
-    @property
-    def url(self) -> str:
-        return f"http://{self.host}:{self.port}"
-
-
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="APP_")
 
@@ -232,18 +199,15 @@ class Settings(BaseSettings):
 
     app: AppSettings = AppSettings()
     postgres: PostgresSettings = PostgresSettings()
+    qdrant: QdrantSettings = QdrantSettings()
+    rabbit: RabbitSettings = RabbitSettings()
     redis: RedisSettings = RedisSettings()
-    minio: MinIOSettings = MinIOSettings()
-    imgproxy: ImgProxySettings = ImgProxySettings()
     jwt: JWTSettings = JWTSettings()
     mail: MailSettings = MailSettings()
-    rabbit: RabbitSettings = RabbitSettings()
     yandex_cloud: YandexCloudSettings = YandexCloudSettings()
-    language_tool: LanguageToolSettings = LanguageToolSettings()
     admin: AdminSettings = AdminSettings()
     search: SearchSettings = SearchSettings()
     tracing: LangSmithSettings = LangSmithSettings()
-    qdrant: QdrantSettings = QdrantSettings()
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"

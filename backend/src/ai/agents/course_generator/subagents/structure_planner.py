@@ -5,7 +5,7 @@ from langchain.agents.structured_output import ProviderStrategy
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from .....core.databases import checkpointer
+from .....core.infrastructure import checkpointer
 from .....core.settings import settings
 from .prompts import PLANNER_PROMPT, CourseStructure
 

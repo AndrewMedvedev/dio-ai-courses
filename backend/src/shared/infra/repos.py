@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.databases import Base
+from ...core.infrastructure import Base
 from ..domain.entities import Entity
 from ..domain.exceptions import NotFoundError
 from ..schemas import Page, PageParams

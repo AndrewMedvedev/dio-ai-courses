@@ -1,11 +1,25 @@
+from dataclasses import dataclass
 from uuid import UUID
 
 from .entities import Course, Lesson, Module
 from .vo import CourseStatus, DifficultyLevel
 
 
+@dataclass(frozen=True)
+class PermissionResult:
+    """
+    Результат проверки прав
+    """
+
+    allowed: bool
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.allowed and self.reason is None:
+            raise ValueError("Reason required, when not allowed")
+
+
 def create_course(
-    cousre_id: UUID,
     creator_id: UUID,
     difficulty: DifficultyLevel,
     status: CourseStatus,
@@ -15,7 +29,6 @@ def create_course(
     tags: list[str],
 ) -> Course:
     return Course(
-        id=cousre_id,
         creator_id=creator_id,
         difficulty=difficulty,
         status=status,

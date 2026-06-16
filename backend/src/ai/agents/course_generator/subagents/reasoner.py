@@ -10,7 +10,7 @@ from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
 
-from .....core.databases import checkpointer
+from .....core.infrastructure import checkpointer
 from ....domain.dependencies import model
 from ...schemas import GenerationContext
 from ...tools import browse_page, web_search

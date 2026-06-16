@@ -12,7 +12,7 @@ from qdrant_client import models
 from src.ai_models.router import ai_models_router
 from src.ai_models.scheduler import run_weekly_sync
 from src.ai_models.scheduler import scheduler as ai_models_scheduler
-from src.core.databases import qdrant_client
+from src.core.infrastructure import qdrant_client
 from src.core.logging import configure_logging
 from src.core.settings import settings
 from src.iam.routers import router as iam_router
