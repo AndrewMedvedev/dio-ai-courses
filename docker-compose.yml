@@ -104,28 +104,28 @@ services:
     ports:
       - "3000:3999"
 
-  infinity:
-    image: michaelf34/infinity:latest-cpu
+  # infinity:
+  #   image: michaelf34/infinity:latest-cpu
 
-    container_name: infinity
-    depends_on:
-      - browserless
-    ports:
-      - "7997:7997"
-    volumes:
-      - ./hf_cache:/app/.cache
-    environment:
-      - HF_HOME=/app/.cache
-      - INFINITY_ANONYMOUS_USAGE=0
-    command: >
-      v2
-      --model-id deepvk/USER-bge-m3
-      --model-id BAAI/bge-reranker-v2-m3
-      --port 7997
-      --engine torch
-      --device cpu
-      --batch-size 32
-    restart: unless-stopped
+  #   container_name: infinity
+  #   depends_on:
+  #     - browserless
+  #   ports:
+  #     - "7997:7997"
+  #   volumes:
+  #     - ./hf_cache:/app/.cache
+  #   environment:
+  #     - HF_HOME=/app/.cache
+  #     - INFINITY_ANONYMOUS_USAGE=0
+  #   command: >
+  #     v2
+  #     --model-id deepvk/USER-bge-m3
+  #     --model-id BAAI/bge-reranker-v2-m3
+  #     --port 7997
+  #     --engine torch
+  #     --device cpu
+  #     --batch-size 32
+  #   restart: unless-stopped
 
   # backend:
   #   build:

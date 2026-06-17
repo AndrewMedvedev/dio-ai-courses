@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from http import HTTPStatus
+from fastapi import status
 
 
 class CourseAppError(Exception):
     """Базовая ошибка домена курсов, которую API-слой превращает в HTTP-ответ."""
 
-    status_code: int = HTTPStatus.BAD_REQUEST
+    status_code: int = status.HTTP_400_BAD_REQUEST
     error_code: str = "COURSE_ERROR"
     public_message: str = "Ошибка курса"
 
@@ -31,7 +31,7 @@ class CourseAppError(Exception):
 class CourseNotFoundError(CourseAppError):
     """Ошибка, когда курс не найден."""
 
-    status_code = HTTPStatus.NOT_FOUND
+    status_code = status.HTTP_404_NOT_FOUND
     error_code = "COURSE_NOT_FOUND"
     public_message = "Курс не найден"
 
@@ -39,7 +39,7 @@ class CourseNotFoundError(CourseAppError):
 class ModuleNotFoundError(CourseAppError):
     """Ошибка, когда модуль курса не найден."""
 
-    status_code = HTTPStatus.NOT_FOUND
+    status_code = status.HTTP_404_NOT_FOUND
     error_code = "MODULE_NOT_FOUND"
     public_message = "Модуль не найден"
 
@@ -47,7 +47,7 @@ class ModuleNotFoundError(CourseAppError):
 class LessonNotFoundError(CourseAppError):
     """Ошибка, когда урок курса не найден."""
 
-    status_code = HTTPStatus.NOT_FOUND
+    status_code = status.HTTP_404_NOT_FOUND
     error_code = "LESSON_NOT_FOUND"
     public_message = "Урок не найден"
 
@@ -55,7 +55,7 @@ class LessonNotFoundError(CourseAppError):
 class PracticeNotFoundError(CourseAppError):
     """Ошибка, когда практическое задание не найдено."""
 
-    status_code = HTTPStatus.NOT_FOUND
+    status_code = status.HTTP_404_NOT_FOUND
     error_code = "PRACTICE_NOT_FOUND"
     public_message = "Практическое задание не найдено"
 
@@ -63,7 +63,7 @@ class PracticeNotFoundError(CourseAppError):
 class EnrollmentNotFoundError(CourseAppError):
     """Ошибка, когда запись прохождения курса не найдена."""
 
-    status_code = HTTPStatus.NOT_FOUND
+    status_code = status.HTTP_404_NOT_FOUND
     error_code = "ENROLLMENT_NOT_FOUND"
     public_message = "Прохождение курса не найдено"
 
@@ -71,7 +71,7 @@ class EnrollmentNotFoundError(CourseAppError):
 class GenerationTaskNotFoundError(CourseAppError):
     """Ошибка, когда задача генерации курса не найдена."""
 
-    status_code = HTTPStatus.NOT_FOUND
+    status_code = status.HTTP_404_NOT_FOUND
     error_code = "GENERATION_TASK_NOT_FOUND"
     public_message = "Задача генерации курса не найдена"
 
@@ -79,7 +79,7 @@ class GenerationTaskNotFoundError(CourseAppError):
 class CourseValidationError(CourseAppError):
     """Ошибка валидации пользовательского сценария курсов."""
 
-    status_code = HTTPStatus.BAD_REQUEST
+    status_code = status.HTTP_400_BAD_REQUEST
     error_code = "COURSE_VALIDATION_ERROR"
     public_message = "Ошибка валидации курса"
 
@@ -87,6 +87,6 @@ class CourseValidationError(CourseAppError):
 class CourseConflictError(CourseAppError):
     """Ошибка конфликта состояния курса или вложенного контента."""
 
-    status_code = HTTPStatus.CONFLICT
+    status_code = status.HTTP_409_CONFLICT
     error_code = "COURSE_CONFLICT"
     public_message = "Конфликт состояния курса"

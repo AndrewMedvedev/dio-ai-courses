@@ -4,8 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from courses.dependencies import ContentServiceDep
-from courses.schemas import (
+from features.dependencies import ContentServiceDep
+from features.schemas import (
     ModuleCreate,
     ModuleUpdate,
     CourseOut,
@@ -30,7 +30,9 @@ def create_module(course_id: UUID, payload: ModuleCreate, service: ContentServic
     return service.create_module(course_id, payload)
 
 
-@router.patch("/{course_id}/modules/{module_id}", response_model=CourseOut, summary="Обновить модуль курса")
+@router.patch(
+    "/{course_id}/modules/{module_id}", response_model=CourseOut, summary="Обновить модуль курса"
+)
 def update_module(
     course_id: UUID,
     module_id: UUID,
@@ -42,14 +44,18 @@ def update_module(
     return service.update_module(course_id, module_id, payload)
 
 
-@router.delete("/{course_id}/modules/{module_id}", response_model=CourseOut, summary="Удалить модуль курса")
+@router.delete(
+    "/{course_id}/modules/{module_id}", response_model=CourseOut, summary="Удалить модуль курса"
+)
 def delete_module(course_id: UUID, module_id: UUID, service: ContentServiceDep) -> CourseOut:
     """Удаление модуля курса через soft-delete."""
 
     return service.delete_module(course_id, module_id)
 
 
-@router.put("/{course_id}/modules/reorder", response_model=CourseOut, summary="Изменить порядок модулей")
+@router.put(
+    "/{course_id}/modules/reorder", response_model=CourseOut, summary="Изменить порядок модулей"
+)
 def reorder_modules(
     course_id: UUID,
     payload: ReorderPayload,
@@ -77,7 +83,9 @@ def create_lesson(
     return service.create_lesson(course_id, module_id, payload)
 
 
-@router.patch("/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Обновить урок")
+@router.patch(
+    "/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Обновить урок"
+)
 def update_lesson(
     course_id: UUID,
     lesson_id: UUID,
@@ -89,7 +97,9 @@ def update_lesson(
     return service.update_lesson(course_id, lesson_id, payload)
 
 
-@router.delete("/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Удалить урок")
+@router.delete(
+    "/{course_id}/lessons/{lesson_id}", response_model=CourseOut, summary="Удалить урок"
+)
 def delete_lesson(course_id: UUID, lesson_id: UUID, service: ContentServiceDep) -> CourseOut:
     """Удаление урока через soft-delete."""
 
@@ -129,7 +139,11 @@ def create_practice(
     return service.create_practice(course_id, module_id, payload)
 
 
-@router.put("/{course_id}/modules/{module_id}/practice", response_model=CourseOut, summary="Обновить практику")
+@router.put(
+    "/{course_id}/modules/{module_id}/practice",
+    response_model=CourseOut,
+    summary="Обновить практику",
+)
 def update_practice(
     course_id: UUID,
     module_id: UUID,
@@ -141,7 +155,11 @@ def update_practice(
     return service.update_practice(course_id, module_id, payload)
 
 
-@router.delete("/{course_id}/modules/{module_id}/practice", response_model=CourseOut, summary="Удалить практику")
+@router.delete(
+    "/{course_id}/modules/{module_id}/practice",
+    response_model=CourseOut,
+    summary="Удалить практику",
+)
 def delete_practice(course_id: UUID, module_id: UUID, service: ContentServiceDep) -> CourseOut:
     """Удаление практического задания через soft-delete."""
 

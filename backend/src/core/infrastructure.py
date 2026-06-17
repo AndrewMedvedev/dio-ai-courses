@@ -20,7 +20,9 @@ from .settings import settings
 
 qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
 
-celery_client = Celery(main="tasks", broker=settings.rabbit.url, backend=f"{settings.redis.url}/1")
+celery_client = Celery(
+    main="tasks", broker=f"{settings.redis.url}/0", backend=f"{settings.redis.url}/1"
+)
 
 celery_client.conf.update(
     task_serializer="json",

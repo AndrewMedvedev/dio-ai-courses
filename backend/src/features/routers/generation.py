@@ -8,8 +8,8 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, status
 from fastapi.responses import StreamingResponse
 
-from courses.dependencies import GenerationServiceDep
-from courses.schemas import (
+from features.dependencies import GenerationServiceDep
+from features.schemas import (
     GenerateCourseRequest,
     GenerationTaskOut,
 )
@@ -44,13 +44,16 @@ def get_generation_status(task_id: UUID, service: GenerationServiceDep) -> Gener
 
 
 @router.get("/{task_id}/stream", summary="SSE-поток статуса генерации")
-async def stream_generation_status(task_id: UUID, service: GenerationServiceDep) -> StreamingResponse:
+async def stream_generation_status(
+    task_id: UUID, service: GenerationServiceDep
+) -> StreamingResponse:
     """SSE-поток обновлений статуса задачи генерации курса."""
 
     # Проверяем существование задачи ДО начала стриминга — иначе 404 нельзя отдать корректно
     task = await asyncio.to_thread(service.get_task, task_id)
 
     if task.status in ("completed", "failed"):
+
         async def immediate():
             yield f"data: {json.dumps({'status': task.status, 'course_id': str(task.course_id) if task.course_id else None, 'error_message': task.error_message})}\n\n"
 

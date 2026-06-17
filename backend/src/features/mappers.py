@@ -1,18 +1,18 @@
-from courses.domain.entities import (
+from features.domain.entities import (
     Course as DomainCourse,
     Lesson as DomainLesson,
     Module as DomainModule,
     Practice as DomainPractice,
 )
-from courses.domain.services import active_lessons, active_modules, active_practice
+from features.domain.services import active_lessons, active_modules, active_practice
 from courses.infra.mappers import (
     assignment_to_json,
     content_blocks_to_json,
     final_assessment_to_json,
     map_course_to_domain,
 )
-from courses.schemas import CourseOut, LessonOut, ModuleOut, PracticeOut, ProgressOut
-from courses.schemas import GenerationTaskOut
+from features.schemas import CourseOut, LessonOut, ModuleOut, PracticeOut, ProgressOut
+from features.schemas import GenerationTaskOut
 
 
 def map_lesson_to_response(lesson: DomainLesson) -> LessonOut:

@@ -3,8 +3,12 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from courses.domain.repos import CourseRepository, GenerationRepository, ProgressRepository
-from courses.infra.repos import SqlCourseRepository, SqlGenerationRepository, SqlProgressRepository
+from features.domain.repos import CourseRepository, GenerationRepository, ProgressRepository
+from features.infra.repos import (
+    SqlCourseRepository,
+    SqlGenerationRepository,
+    SqlProgressRepository,
+)
 from courses.services.content import ContentService
 from courses.services.course import CourseService
 from courses.services.generation import GenerationService
@@ -55,7 +59,9 @@ def get_progress_service(session: SessionDep, repository: ProgressRepoDep) -> Pr
     return ProgressService(session=session, repository=repository)
 
 
-def get_generation_service(session: SessionDep, repository: GenerationRepoDep) -> GenerationService:
+def get_generation_service(
+    session: SessionDep, repository: GenerationRepoDep
+) -> GenerationService:
     """Создание сервиса генерации курсов для текущего запроса."""
 
     return GenerationService(session=session, repository=repository)

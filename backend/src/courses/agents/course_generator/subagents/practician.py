@@ -7,7 +7,7 @@ from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain.messages import HumanMessage
 
-from src.ai.domain.entities import (
+from src.courses.domain.entities import (
     AnyAssignment,
     AssignmentType,
     FileUploadAssignment,

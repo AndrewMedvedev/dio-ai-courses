@@ -4,8 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Response, status
 
-from courses.dependencies import CourseServiceDep
-from courses.schemas import (
+from features.dependencies import CourseServiceDep
+from features.schemas import (
     CourseCreate,
     CourseListOut,
     CourseOut,
@@ -15,7 +15,9 @@ from courses.schemas import (
 router = APIRouter(prefix="/courses", tags=["Курсы"])
 
 
-@router.post("", response_model=CourseOut, status_code=status.HTTP_201_CREATED, summary="Создать курс")
+@router.post(
+    "", response_model=CourseOut, status_code=status.HTTP_201_CREATED, summary="Создать курс"
+)
 def create_course(payload: CourseCreate, service: CourseServiceDep) -> CourseOut:
     """Создание курса."""
 

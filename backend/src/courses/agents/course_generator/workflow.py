@@ -75,7 +75,7 @@ async def main():
                 prompt=prompt,
             )
         },
-        config=RunnableConfig(configurable={"thread_id": f"course:{course_id}"}),
+        config=RunnableConfig(configurable={"course_id": f"course:{course_id}"}),
     )
 
     # Преобразуем результат в сериализуемый словарь

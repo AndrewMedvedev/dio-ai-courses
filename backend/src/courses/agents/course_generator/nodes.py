@@ -55,7 +55,7 @@ async def plan_course_structure(state: AgentState) -> dict:
         {"messages": [HumanMessage(content=state.get("thinks", ""))]},
         config=RunnableConfig(
             configurable={
-                "thread_id": f"course:{state['generation_context'].course_id}:plan_course_structure"
+                "thread_id": f"course:{state['generation_context'].course_id}:plan_course_structure"  # noqa: E501
             }
         ),
     )
