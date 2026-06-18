@@ -9,128 +9,21 @@ from qdrant_client import AsyncQdrantClient, models
 from sqlalchemy import select, update
 
 from ...core.retrieval_components import embed, rerank
-from ...shared.infra.repos import ModelMapper, SqlAlchemyRepository
+from ...shared.infra.repos import SqlAlchemyRepository
 from ..domain.dependencies import splitter
-from ..domain.entities import Course, Lesson, LessonBasicInfo, Module
+from ..domain.entities import (
+    BasicInfo,
+    Course,
+    CourseBasicInfo,
+    Lesson,
+    LessonBasicInfo,
+    Module,
+    ModuleBasicInfo,
+)
+from .mappers import CourseMapper, LessonMapper, ModuleMapper
 from .models import CourseOrm, LessonOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
-
-
-class LessonMapper(ModelMapper[Lesson, LessonOrm]):
-    @staticmethod
-    def to_entity(model: LessonOrm) -> Lesson:
-        return Lesson(
-            id=model.id,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-            title=model.title,
-            description=model.description,
-            order=model.order,  # type: ignore  # noqa: PGH003
-            learning_objectives=model.learning_objectives,
-            content_blocks=model.content_blocks,  # type: ignore  # noqa: PGH003
-            estimated_time_minutes=model.estimated_time_minutes,
-            assignment=model.assignment,  # type: ignore  # noqa: PGH003
-        )
-
-    @staticmethod
-    def from_entity(entity: Lesson) -> LessonOrm:
-        return LessonOrm(
-            id=entity.id,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at,
-            title=entity.title,
-            description=entity.description,
-            order=entity.order,
-            learning_objectives=entity.learning_objectives,
-            content_blocks=entity.content_blocks,
-            estimated_time_minutes=entity.estimated_time_minutes,
-            assignment=entity.assignment,
-            # module_id не передаём — проставляется через assign_module
-        )
-
-    @staticmethod
-    def basic_info_mapper(row: tuple) -> LessonBasicInfo:
-        return LessonBasicInfo(
-            id=row.id,  # type: ignore  # noqa: PGH003
-            title=row.title,  # type: ignore  # noqa: PGH003
-            description=row.description,  # type: ignore  # noqa: PGH003
-            order=row.order,  # type: ignore  # noqa: PGH003
-            learning_objectives=row.learning_objectives,  # type: ignore  # noqa: PGH003
-            estimated_time_minutes=row.estimated_time_minutes,  # type: ignore  # noqa: PGH003
-        )
-
-
-class ModuleMapper(ModelMapper[Module, ModuleOrm]):
-    @staticmethod
-    def to_entity(model: ModuleOrm) -> Module:
-        return Module(
-            id=model.id,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-            title=model.title,
-            description=model.description,
-            order=model.order,  # type: ignore  # noqa: PGH003
-            learning_objectives=model.learning_objectives,
-            assignment=model.assignment,  # type: ignore  # noqa: PGH003
-            # маппим каждый LessonOrm в доменный Lesson
-            lessons=[LessonMapper.to_entity(lesson) for lesson in model.lessons],
-        )
-
-    @staticmethod
-    def from_entity(entity: Module) -> ModuleOrm:
-        return ModuleOrm(
-            id=entity.id,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at,
-            title=entity.title,
-            description=entity.description,
-            order=entity.order,
-            learning_objectives=entity.learning_objectives,
-            assignment=entity.assignment,
-        )
-
-
-class CourseMapper(ModelMapper[Course, CourseOrm]):
-    @staticmethod
-    def to_entity(model: CourseOrm) -> Course:
-        return Course(
-            id=model.id,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-            title=model.title,
-            description=model.description,
-            difficulty=model.difficulty,
-            tags=model.tags,
-            status=model.status,
-            popularity=model.popularity,
-            creator_id=model.creator_id,
-            image_url=model.image_url,
-            learning_objectives=model.learning_objectives,
-            final_assessment=model.final_assessment,  # type: ignore  # noqa: PGH003
-            # маппим каждый ModuleOrm в доменный Module
-            modules=[ModuleMapper.to_entity(module) for module in model.modules],
-        )
-
-    @staticmethod
-    def from_entity(entity: Course) -> CourseOrm:
-        return CourseOrm(
-            id=entity.id,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at,
-            title=entity.title,
-            description=entity.description,
-            difficulty=entity.difficulty,
-            tags=entity.tags,
-            status=entity.status,
-            popularity=entity.popularity,
-            creator_id=entity.creator_id,
-            image_url=entity.image_url,
-            learning_objectives=entity.learning_objectives,
-            final_assessment=entity.final_assessment,
-            # modules не передаём — модули уже в БД,
-            # course_id им проставит assign_course
-        )
 
 
 class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
@@ -173,10 +66,88 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
 
         await self.session.execute(stmt)
 
+    async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
+        lessons_stmt = (
+            select(
+                LessonOrm.id,
+                LessonOrm.order,
+            )
+            .where(LessonOrm.module_id == module_id)
+            .order_by(LessonOrm.order)
+        )
+
+        lessons_result = await self.session.execute(lessons_stmt)
+
+        return [
+            BasicInfo(
+                id=row.id,
+                order=row.order,
+            )
+            for row in lessons_result.all()
+        ]
+
+    async def get_by_id_basic_info(self, module_id: UUID) -> ModuleBasicInfo | None:
+        module_stmt = select(
+            self.model.id,
+            self.model.title,
+            self.model.description,
+            self.model.order,
+            self.model.learning_objectives,
+        ).where(self.model.id == module_id)
+
+        module_result = await self.session.execute(module_stmt)
+        module_row = module_result.one_or_none()
+
+        if module_row is None:
+            return None
+        lessons = await self.select_lessons_by_id_module(module_id=module_id)
+
+        return self.model_mapper.basic_info_mapper(module_row, lessons)  # type: ignore  # noqa: PGH003
+
 
 class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     model = CourseOrm
     model_mapper = CourseMapper  # type: ignore  # noqa: PGH003
+
+    async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:
+        modules_stmt = (
+            select(
+                ModuleOrm.id,
+                ModuleOrm.order,
+            )
+            .where(ModuleOrm.course_id == course_id)
+            .order_by(ModuleOrm.order)
+        )
+
+        modules_result = await self.session.execute(modules_stmt)
+
+        return [
+            BasicInfo(
+                id=row.id,
+                order=row.order,
+            )
+            for row in modules_result.all()
+        ]
+
+    async def get_by_id_basic_info(self, course_id: UUID) -> CourseBasicInfo | None:
+        course_stmt = select(
+            self.model.id,
+            self.model.title,
+            self.model.description,
+            self.model.difficulty,
+            self.model.tags,
+            self.model.learning_objectives,
+        ).where(self.model.id == course_id)
+
+        course_result = await self.session.execute(course_stmt)
+        course_row = course_result.one_or_none()
+
+        if course_row is None:
+            return None
+
+        modules = await self.select_modules_by_id_course(course_id)
+
+        return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore  # noqa: PGH003
 
 
 class VectorRepository:

@@ -317,6 +317,33 @@ class LessonBasicInfo:
 
 
 @dataclass(kw_only=True, slots=True)
+class BasicInfo:
+    id: UUID
+    order: int
+
+
+@dataclass(kw_only=True, slots=True)
+class ModuleBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    order: int
+    learning_objectives: list[str] = field(default_factory=list)
+    lessons: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
+
+
+@dataclass(kw_only=True, slots=True)
+class CourseBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    difficulty: DifficultyLevel
+    tags: list[str]
+    learning_objectives: list[str] = field(default_factory=list)
+    modules: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
+
+
+@dataclass(kw_only=True, slots=True)
 class Module(Entity):
     """Модуль курса.
 

@@ -26,7 +26,7 @@ class CourseOrm(Base):
 
     modules: Mapped[list[ModuleOrm]] = relationship(
         back_populates="course",
-        order_by="ModuleOrm.order",
+        order_by="ModuleOrm.id",
     )
     users: Mapped[list[CourseUserOrm]] = relationship(back_populates="course")
 
@@ -44,7 +44,7 @@ class ModuleOrm(Base):
     course: Mapped[CourseOrm | None] = relationship(back_populates="modules")
     lessons: Mapped[list[LessonOrm]] = relationship(
         back_populates="module",
-        order_by="LessonOrm.order",
+        order_by="LessonOrm.id",
     )
 
     __table_args__ = (Index("ix_modules_course_id", "course_id"),)

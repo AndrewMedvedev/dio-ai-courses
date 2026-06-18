@@ -3,7 +3,6 @@ import json
 import logging
 from asyncio import run
 from collections.abc import Awaitable, Callable
-from dataclasses import asdict
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
@@ -13,7 +12,6 @@ from celery import Task  # type: ignore  # noqa: PGH003
 from langchain_core.runnables import RunnableConfig
 
 from ....core.infrastructure import celery_client
-from ...domain.services import PermissionResult
 from .nodes import GenerationContext, agent
 
 prompt = """Создай учебный курс по работе с конфигурацией «1С:Зарплата и управление персоналом», редакция 3.1.
@@ -43,8 +41,9 @@ async def generate_course(generation_context: dict) -> dict:
             ),
         )
     except Exception as e:  # noqa: BLE001
-        return asdict(PermissionResult(allowed=False, reason=str(e)))
-    return asdict(PermissionResult(True))
+        return {"allowed": False, "reason": str(e)}
+
+    return {"allowed": True}
 
 
 def configure_logging(level=logging.INFO):
