@@ -6,7 +6,7 @@ from enum import StrEnum
 from uuid import UUID
 
 from ...shared.domain.entities import AggregateRoot, Entity
-from .vo import CourseStatus, CourseUserRole, DifficultyLevel
+from .vo import CourseStatus, CourseUserRole, DifficultyLevel, DocumentNodeType
 
 
 class ContentType(StrEnum):
@@ -438,3 +438,12 @@ class CourseUser(Entity):
     course_id: UUID
     user_id: UUID
     role: CourseUserRole
+
+
+@dataclass(kw_only=True, slots=True)
+class Document(Entity):
+    owner_id: UUID
+    parent_node_id: UUID | None
+    node_type: DocumentNodeType
+    title: str | None
+    content: str | None

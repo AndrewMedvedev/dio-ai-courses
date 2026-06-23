@@ -9,7 +9,7 @@ import src.iam.database.models  # noqa: F401
 import src.ai_models.infra.models
 from src.core.infrastructure import Base
 from src.core.settings import settings
-
+import src.courses.infra.models
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

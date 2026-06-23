@@ -2,18 +2,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..shared.schemas import PageParams
 from .domain.dataclasses import UserModelPreference
 from .domain.services import create_user_preference
-from .infra.repository import SqlAIModelRepository, SqlUserModelPreferenceRepository
-
-
-class ModelService:
-    def __init__(self, session: AsyncSession, ai_model_repo: SqlAIModelRepository) -> None:
-        self.session = session
-        self.ai_model_repo = ai_model_repo
-
-    async def get_models(self, params: PageParams): ...
+from .infra.repository import SqlUserModelPreferenceRepository
 
 
 class UserModelService:

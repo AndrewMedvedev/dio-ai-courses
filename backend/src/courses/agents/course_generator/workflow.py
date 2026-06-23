@@ -10,13 +10,26 @@ from uuid import UUID, uuid4
 
 from celery import Task  # type: ignore  # noqa: PGH003
 from langchain_core.runnables import RunnableConfig
+from qdrant_client import models
 
-from ....core.infrastructure import celery_client
+from ....core.infrastructure import celery_client, checkpointer, qdrant_client
 from .nodes import GenerationContext, agent
 
-prompt = """Создай учебный курс по работе с конфигурацией «1С:Зарплата и управление персоналом», редакция 3.1.
-Целевая аудитория — начинающие специалисты по кадровому учёту и расчёту зарплаты.
-"""
+prompt = """Разработай учебный курс по Docker для разработчиков, которые уже пишут код, но хотят освоить контейнеризацию для локальной разработки, CI/CD и деплоя.
+
+Целевая аудитория — разработчики (Java, Python, Go, .NET) с опытом от 1 года, знакомые с Linux-командами, но не работавшие с Docker.
+
+Ключевые темы курса:
+
+Оптимизация Dockerfile (многоступенчатая сборка, кэширование слоёв, минимальные базовые образы).
+Работа с переменными окружения и секретами.
+Docker Compose для локального окружения (разработка + тестирование).
+Взаимодействие с реестрами (Docker Hub, приватные registry).
+Основы оркестрации (введение в Docker Swarm / Kubernetes — только базовые концепции).
+Интеграция Docker в CI/CD (на примере GitHub Actions или GitLab CI).
+Практика: контейнеризация реального микросервиса с БД, кешем и очередью.
+Добавь сравнительные таблицы (Docker vs виртуализация, Compose vs Swarm), рекомендации по безопасности и производительности.
+"""  # noqa: E501
 
 
 def task(**task_kwargs) -> Callable[[Callable[..., Awaitable]], Task]:
@@ -66,6 +79,19 @@ class UUIDEncoder(json.JSONEncoder):
 async def main():
     configure_logging()
     course_id = uuid4()
+    await checkpointer.setup()
+    exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
+    if not exists:
+        await qdrant_client.create_collection(
+            collection_name="MAIN_COLLECTION",
+            vectors_config={
+                "dense": models.VectorParams(
+                    size=1024,
+                    distance=models.Distance.COSINE,
+                )
+            },
+            sparse_vectors_config={"bm25": models.SparseVectorParams()},
+        )
     result = await agent.ainvoke(
         {
             "generation_context": GenerationContext(
@@ -74,7 +100,7 @@ async def main():
                 prompt=prompt,
             )
         },
-        config=RunnableConfig(configurable={"course_id": f"course:{course_id}"}),
+        config=RunnableConfig(configurable={"thread_id": f"course:{course_id}"}),
     )
 
     # Преобразуем результат в сериализуемый словарь

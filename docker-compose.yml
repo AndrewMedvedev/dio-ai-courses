@@ -18,7 +18,7 @@ services:
       retries: 3
 
   qdrant:
-    image: qdrant/qdrant:v1.15.4
+    image: qdrant/qdrant:v1.18.0
     container_name: qdrant
     restart: always
     depends_on:
@@ -58,15 +58,15 @@ services:
       retries: 5
 
 
-
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack:latest
     container_name: redis
     restart: always
     depends_on:
       - rabbitmq
     ports:
       - "6379:6379"
+      - "8001:8001" # Redis Insight UI
     volumes:
       - redis_data:/data
     healthcheck:
@@ -74,6 +74,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 3
+
 
 
   maildev:
@@ -94,7 +95,7 @@ services:
         max-size: "1m"
 
   browserless:
-    image: ghcr.io/browserless/chromium:v2.44.0
+    image: ghcr.io/browserless/chromium:v2.44.
     container_name: browserless
     depends_on:
       - maildev

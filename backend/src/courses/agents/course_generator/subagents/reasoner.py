@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from .....core.infrastructure import checkpointer
 from ....domain.dependencies import model
+from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from ...tools import browse_page, web_search
 from ..tools import knowledge_search, save_knowledge
@@ -24,9 +25,10 @@ logger = logging.getLogger(__name__)
 async def call_critique_agent(runtime: ToolRuntime[GenerationContext]) -> str:
     prompt = runtime.context.prompt
     critic_agent = create_agent(model=model, system_prompt=CRITIC_PROMPT.format(prompt=prompt))
-    result = await critic_agent.with_retry(stop_after_attempt=3).ainvoke({
-        "messages": runtime.state["messages"]
-    })
+    result = await call_llm(agent=critic_agent, input={"messages": runtime.state["messages"]})
+    # result = await critic_agent.with_retry(stop_after_attempt=3).ainvoke({
+    #     "messages": runtime.state["messages"]
+    # })
     return result["messages"][-1].content
 
 
@@ -47,22 +49,29 @@ async def call_researcher_agent(runtime: ToolRuntime[GenerationContext], task: s
         system_prompt=RESEARCHER_PROMPT,
         tools=[knowledge_search, web_search, browse_page, save_knowledge],
         middleware=[
-            # Исправление 4: явное указание типов для ToolCallLimitMiddleware
             ToolCallLimitMiddleware[Any, GenerationContext](
-                tool_name="web_search", run_limit=2, thread_limit=4
-            ),
+                tool_name="web_search", run_limit=3, thread_limit=4
+            ),  # type: ignore  # noqa: PGH003
             ToolCallLimitMiddleware[Any, GenerationContext](
-                tool_name="browse_page", run_limit=2, thread_limit=4
-            ),
+                tool_name="browse_page", run_limit=3, thread_limit=4
+            ),  # type: ignore  # noqa: PGH003
+            ToolCallLimitMiddleware[Any, GenerationContext](
+                tool_name="knowledge_search", run_limit=3, thread_limit=5
+            ),  # type: ignore  # noqa: PGH003
         ],
         context_schema=GenerationContext,
         checkpointer=checkpointer,
     )
     # Исправление 3: передаём сообщения как список кортежей
-    result = await researcher_agent.with_retry(stop_after_attempt=3).ainvoke(
+    result = await call_llm(
+        agent=researcher_agent,
         input={"messages": [HumanMessage(content=task)]},
         context=runtime.context,
-    )  # type: ignore  # noqa: PGH003
+    )
+    # result = await researcher_agent.with_retry(stop_after_attempt=3).ainvoke(
+    #     input={"messages": [HumanMessage(content=task)]},
+    #     context=runtime.context,
+    # )  # type: ignore  # noqa: PGH003
 
     return result["messages"][-1].content
 

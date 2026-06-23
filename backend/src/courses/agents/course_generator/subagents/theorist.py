@@ -1,14 +1,10 @@
-from typing import Final
-
 import logging
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
 from langchain.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 
-from .....core.settings import settings
+from ....domain.dependencies import model
 from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
@@ -20,6 +16,7 @@ from ....domain.entities import (
     QuizBlock,
     TextBlock,
 )
+from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from ..tools import knowledge_search
 from .prompts import CONTENT_BLOCK_PROMPTS
@@ -27,14 +24,14 @@ from .prompts import CONTENT_BLOCK_PROMPTS
 logger = logging.getLogger(__name__)
 
 
-model: Final[ChatOpenAI] = ChatOpenAI(
-    api_key=SecretStr(settings.yandex_cloud.api_key),
-    base_url=settings.yandex_cloud.base_url,
-    model=settings.yandex_cloud.gpt_oss_120b,
-    temperature=0.2,
-    max_retries=3,
-    max_completion_tokens=60000,
-)
+# model: Final[ChatOpenAI] = ChatOpenAI(
+#     api_key=SecretStr(settings.yandex_cloud.api_key),
+#     base_url=settings.yandex_cloud.base_url,
+#     model=settings.yandex_cloud.gpt_oss_120b,
+#     temperature=0.2,
+#     max_retries=3,
+#     max_completion_tokens=65000,
+# )
 
 
 config = {
@@ -90,8 +87,10 @@ async def call_theory_agent(
         context_schema=GenerationContext,
         **config.get(content_type, {}),  # type: ignore  # noqa: PGH003,
     )
-
-    result = await agent.with_retry(stop_after_attempt=3).ainvoke(
-        {"messages": [HumanMessage(content=prompt)]}, context=context
+    result = await call_llm(
+        agent=agent, input={"messages": [HumanMessage(content=prompt)]}, context=context
     )
+    # result = await agent.with_retry(stop_after_attempt=3).ainvoke(
+    #     {"messages": [HumanMessage(content=prompt)]}, context=context
+    # )
     return result["structured_response"]

@@ -55,3 +55,9 @@ class GenerationStatus(StrEnum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class DocumentNodeType(StrEnum):
+    TOC = "toc"
+    HEADING = "heading"
+    TEXT = "text"

@@ -48,6 +48,7 @@ checkpointer = AsyncRedisSaver(
     },
 )
 
+
 engine = create_async_engine(url=settings.postgres.sqlalchemy_url, echo=True)
 sessionmaker = async_sessionmaker(
     engine, class_=AsyncSession, autoflush=False, expire_on_commit=False

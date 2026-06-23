@@ -9,6 +9,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from ....core.infrastructure import checkpointer, session_factory
+from ...agents.concurrency import call_llm
 from ...domain.entities import Course, Module
 from ...domain.services import create_course
 from ...domain.vo import CourseStatus
@@ -35,13 +36,21 @@ async def reasoning(state: AgentState) -> dict[str, str]:
         return {"thinks": state.get("thinks", "")}
     start_time = time.monotonic()
     logger.info("Course generator in reasoning state ...")
-    result = await reasoner_agent.with_retry(stop_after_attempt=3).ainvoke(
-        {"messages": []},
+    result = await call_llm(
+        agent=reasoner_agent,
+        input={"messages": [HumanMessage(content="Generate course reasoning")]},
         context=state["generation_context"],
         config=RunnableConfig(
             configurable={"thread_id": f"course:{state['generation_context'].course_id}:reasoning"}
         ),
     )
+    # result = await reasoner_agent.with_retry(stop_after_attempt=3).ainvoke(
+    #     {"messages": []},
+    #     context=state["generation_context"],
+    #     config=RunnableConfig(
+    #         configurable={"thread_id": f"course:{state['generation_context'].course_id}:reasoning"}
+    #     ),
+    # )
     elapsed_time = time.monotonic() - start_time
     logger.info("Reasoning finished, time spent %s seconds", round(elapsed_time, 2))
     return {"thinks": result["messages"][-1].content}
@@ -51,14 +60,23 @@ async def plan_course_structure(state: AgentState) -> dict:
     """Планирование структуры курса используя информацию, полученную в ходе размышлений"""
 
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
-    result = await course_planner_agent.with_retry(stop_after_attempt=3).ainvoke(
-        {"messages": [HumanMessage(content=state.get("thinks", ""))]},
+    result = await call_llm(
+        agent=course_planner_agent,
+        input={"messages": [HumanMessage(content=state.get("thinks", ""))]},
         config=RunnableConfig(
             configurable={
                 "thread_id": f"course:{state['generation_context'].course_id}:plan_course_structure"  # noqa: E501
             }
         ),
     )
+    # result = await course_planner_agent.with_retry(stop_after_attempt=3).ainvoke(
+    #     {"messages": [HumanMessage(content=state.get("thinks", ""))]},
+    #     config=RunnableConfig(
+    #         configurable={
+    #             "thread_id": f"course:{state['generation_context'].course_id}:plan_course_structure"  # noqa: E501
+    #         }
+    #     ),
+    # )
     course_structure: CourseStructure = result["structured_response"]
     course = create_course(
         creator_id=state["generation_context"].user_id,
@@ -95,16 +113,27 @@ async def build_module(
     logger.info(
         "Generating module - %s, by description: '%s ...'", order, module_description[:150]
     )
-    result = await module_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
-        {
+    result = await call_llm(
+        agent=module_builder_agent,
+        input={
             "generation_context": generation_context,
             "audience_description": audience_description,
             "learning_objectives": learning_objectives,
             "order": order,
             "module_description": module_description,
-        },  # type: ignore  # noqa: PGH003
+        },
         config=RunnableConfig(configurable={"thread_id": module_thread_id}),
     )
+    # result = await module_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
+    #     {
+    #         "generation_context": generation_context,
+    #         "audience_description": audience_description,
+    #         "learning_objectives": learning_objectives,
+    #         "order": order,
+    #         "module_description": module_description,
+    #     },  # type: ignore  # noqa: PGH003
+    #     config=RunnableConfig(configurable={"thread_id": module_thread_id}),
+    # )
     return order, result["module"]  # ← возвращаем order, чтобы потом отсортировать
 
 

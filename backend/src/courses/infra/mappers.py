@@ -5,12 +5,13 @@ from ..domain.entities import (
     BasicInfo,
     Course,
     CourseBasicInfo,
+    Document,
     Lesson,
     LessonBasicInfo,
     Module,
     ModuleBasicInfo,
 )
-from .models import CourseOrm, LessonOrm, ModuleOrm
+from .models import CourseOrm, DocumentOrm, LessonOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
 
@@ -151,4 +152,32 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             tags=row.tags,  # type: ignore  # noqa: PGH003
             learning_objectives=row.learning_objectives,  # type: ignore  # noqa: PGH003
             modules=modules,
+        )
+
+
+class DocumentMapper(ModelMapper[Document, DocumentOrm]):
+    @staticmethod
+    def to_entity(model: DocumentOrm) -> Document:
+        return Document(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            owner_id=model.owner_id,
+            parent_node_id=model.parent_node_id,
+            node_type=model.node_type,
+            title=model.title,
+            content=model.content,
+        )
+
+    @staticmethod
+    def from_entity(entity: Document) -> DocumentOrm:
+        return DocumentOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            owner_id=entity.owner_id,
+            parent_node_id=entity.parent_node_id,
+            node_type=entity.node_type,
+            title=entity.title,
+            content=entity.content,
         )

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import TEXT, Enum, ForeignKey, Index, Integer, UniqueConstraint
+from sqlalchemy import TEXT, CheckConstraint, Enum, ForeignKey, Index, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...core.infrastructure import Base
-from ..domain.vo import CourseStatus, CourseUserRole, DifficultyLevel
+from ..domain.vo import CourseStatus, CourseUserRole, DifficultyLevel, DocumentNodeType
 
 
 class CourseOrm(Base):
@@ -79,4 +79,60 @@ class CourseUserOrm(Base):
     __table_args__ = (
         UniqueConstraint("course_id", "user_id", name="uq_course_user"),
         Index("ix_course_users_user_id", "user_id"),
+    )
+
+
+class DocumentOrm(Base):
+    __tablename__ = "documents"
+
+    owner_id: Mapped[UUID] = mapped_column(nullable=False)
+
+    # ── Дерево ────────────────────────────────────────────────────────────────
+    parent_node_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
+    node_type: Mapped[DocumentNodeType] = mapped_column(index=True)
+
+    # Заголовок (для TOC + HEADING)
+    title: Mapped[str | None] = mapped_column(TEXT, index=True)
+
+    # Текст (только для TEXT leaf-узлов)
+    content: Mapped[str | None] = mapped_column(TEXT)
+
+    # ── Relations ─────────────────────────────────────────────────────────────
+
+    # FIX 1: Mapped[Optional[...]] — parent_node может быть None у TOC-корня.
+    # FIX 2: foreign_keys явно указан, иначе SQLAlchemy выбрасывает
+    #         AmbiguousForeignKeysError для self-referential таблиц.
+    parent_node: Mapped[DocumentOrm | None] = relationship(
+        "DocumentOrm",
+        remote_side="DocumentOrm.id",
+        back_populates="children",
+        foreign_keys="[DocumentOrm.parent_node_id]",
+    )
+
+    # FIX 3: passive_deletes=True — доверяем CASCADE на уровне БД.
+    #         Без него SQLAlchemy загружает всё дерево потомков в память
+    #         и удаляет по одному (катастрофа для больших деревьев).
+    # FIX 2 (продолжение): foreign_keys обязателен и здесь.
+    children: Mapped[list[DocumentOrm]] = relationship(
+        "DocumentOrm",
+        back_populates="parent_node",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="DocumentOrm.position",
+        foreign_keys="[DocumentOrm.parent_node_id]",
+    )
+
+    # ── Indexes & constraints ──────────────────────────────────────────────────
+    __table_args__ = (
+        Index("ix_doc_owner_parent", "owner_id", "parent_node_id"),
+        Index("ix_doc_owner_type", "owner_id", "node_type"),
+        # FIX 4: Защита только от прямой самоссылки — циклы A→B→A
+        #         не покрываются; полная защита требует триггера или
+        #         проверки на уровне приложения (см. pipeline ниже).
+        CheckConstraint("id != parent_node_id", name="ck_no_self_parent"),
     )

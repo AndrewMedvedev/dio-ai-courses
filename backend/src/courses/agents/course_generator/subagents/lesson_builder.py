@@ -13,11 +13,11 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import SecretStr
 
 from .....core.infrastructure import checkpointer, qdrant_client, session_factory
-from .....core.settings import settings
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....domain.services import create_lesson
 from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
+from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from .practician import call_lesson_practice_agent
 from .prompts import LessonStructure
@@ -26,10 +26,18 @@ from .theorist import call_theory_agent
 logger = logging.getLogger(__name__)
 
 
+# model = ChatOpenAI(
+#     api_key=SecretStr(settings.yandex_cloud.api_key),
+#     base_url=settings.yandex_cloud.base_url,
+#     model=settings.yandex_cloud.gpt_oss_120b,
+#     temperature=0.2,
+#     max_retries=3,
+# )
+
 model = ChatOpenAI(
-    api_key=SecretStr(settings.yandex_cloud.api_key),
-    base_url=settings.yandex_cloud.base_url,
-    model=settings.yandex_cloud.gpt_oss_120b,
+    base_url="http://10.1.50.193:1234/v1",
+    model="qwen/qwen3.6-27b",
+    api_key=SecretStr("dummy"),
     temperature=0.2,
     max_retries=3,
 )
@@ -91,9 +99,12 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
         state["order"],
         state["lesson_description"][:100],
     )
-    result = await lesson_structure_planner.with_retry(stop_after_attempt=3).ainvoke({
-        "messages": [HumanMessage(content=prompt_template)]
-    })
+    result = await call_llm(
+        agent=lesson_structure_planner, input={"messages": [HumanMessage(content=prompt_template)]}
+    )
+    # result = await lesson_structure_planner.with_retry(stop_after_attempt=3).ainvoke({
+    #     "messages": [HumanMessage(content=prompt_template)]
+    # })
     lesson_structure = result["structured_response"]
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."

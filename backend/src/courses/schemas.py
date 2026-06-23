@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from enum import StrEnum
+from pathlib import Path
 from uuid import UUID
 
 from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, PositiveInt
@@ -88,3 +89,8 @@ class DetailedAnswerTest(KnowledgeTest):
 
 
 AnyKnowledgeTest = DetailedAnswerTest | MultipleChoiceTest
+
+
+class FileForm(BaseModel):
+    file_path: Path
+    file: bytes

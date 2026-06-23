@@ -18,6 +18,7 @@ from src.courses.domain.entities import (
 
 from ....domain.dependencies import model
 from ....utils.formatting import get_lesson_context
+from ...concurrency import call_llm
 from .prompts import ASSIGNMENT_PROMPTS, SUMMARIZE_LESSON_PROMPT, SummarizeLesson
 
 logger = logging.getLogger(__name__)
@@ -54,9 +55,12 @@ async def call_lesson_practice_agent(
         f"{get_lesson_context(lesson)}\n"
         f"</THEORY>"
     )
-    result = await agent.with_retry(stop_after_attempt=3).ainvoke({
-        "messages": [HumanMessage(content=prompt_template)]
-    })
+    result = await call_llm(
+        agent=agent, input={"messages": [HumanMessage(content=prompt_template)]}
+    )
+    # result = await agent.with_retry(stop_after_attempt=3).ainvoke({
+    #     "messages": [HumanMessage(content=prompt_template)]
+    # })
     return result["structured_response"]
 
 
@@ -73,9 +77,12 @@ async def summarize_lesson(lesson: Lesson) -> SummarizeLesson:
         f"{get_lesson_context(lesson)}\n"
         f"</THEORY>"
     )
-    result = await agent.with_retry(stop_after_attempt=3).ainvoke({
-        "messages": [HumanMessage(content=prompt_template)]
-    })
+    result = await call_llm(
+        agent=agent, input={"messages": [HumanMessage(content=prompt_template)]}
+    )
+    # result = await agent.with_retry(stop_after_attempt=3).ainvoke({
+    #     "messages": [HumanMessage(content=prompt_template)]
+    # })
     return result["structured_response"]
 
 
@@ -97,7 +104,10 @@ async def call_module_practice_agent(
     prompt_template = (
         f"## Теоретический материал пройденного модуля:\n\n<THEORY>{lessons_summarize}\n</THEORY>"
     )
-    result = await agent.with_retry(stop_after_attempt=3).ainvoke({
-        "messages": [HumanMessage(content=prompt_template)]
-    })
+    result = await call_llm(
+        agent=agent, input={"messages": [HumanMessage(content=prompt_template)]}
+    )
+    # result = await agent.with_retry(stop_after_attempt=3).ainvoke({
+    #     "messages": [HumanMessage(content=prompt_template)]
+    # })
     return result["structured_response"]

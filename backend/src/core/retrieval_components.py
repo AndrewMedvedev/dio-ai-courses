@@ -5,7 +5,7 @@ from openai import AsyncOpenAI
 
 from .settings import settings
 
-embeddings = AsyncOpenAI(base_url=settings.embeddings.base_url)
+embeddings = AsyncOpenAI(base_url=settings.embeddings.base_url, api_key="dummy")
 
 
 async def embed(
@@ -17,7 +17,6 @@ async def embed(
         model=settings.embeddings.model_name,
         input=inputs,
         dimensions=settings.embeddings.dimensions,
-        encoding_format="base64",
     )
 
     # Сохранение порядка как при передаче текста

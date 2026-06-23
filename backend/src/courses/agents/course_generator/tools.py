@@ -101,4 +101,11 @@ async def knowledge_search(
     docs = await VectorRepository(client=qdrant_client).retrieve_documents(
         query=search_query, metadata_filters=meta_filter
     )
+    if docs == []:
+        return (
+            f"По запросу '{search_query}' (категория: {category or 'любая'}) "
+            "в базе знаний ничего не найдено. Не повторяй этот запрос с похожей "
+            "формулировкой — либо измени категорию, либо переходи к следующему "
+            "шагу плана без этой информации."
+        )
     return "\n\n".join(docs)

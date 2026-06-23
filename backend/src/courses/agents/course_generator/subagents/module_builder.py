@@ -14,10 +14,10 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import SecretStr
 
 from .....core.infrastructure import checkpointer, session_factory
-from .....core.settings import settings
 from ....domain.entities import Lesson, Module
 from ....domain.services import create_module
 from ....infra.repository import SqlModuleRepository
+from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from .lesson_builder import lesson_builder_agent
 from .practician import call_module_practice_agent
@@ -40,13 +40,21 @@ class AgentState(TypedDict):
 
 async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure | Module]:
     """Планирование структуры модуля"""
+    # planner: Final[ChatOpenAI] = ChatOpenAI(
+    #     api_key=SecretStr(settings.yandex_cloud.api_key),
+    #     base_url=settings.yandex_cloud.base_url,
+    #     model=settings.yandex_cloud.gpt_oss_120b,
+    #     temperature=0.2,
+    #     max_retries=3,
+    #     max_completion_tokens=70000,
+    # )
     planner: Final[ChatOpenAI] = ChatOpenAI(
-        api_key=SecretStr(settings.yandex_cloud.api_key),
-        base_url=settings.yandex_cloud.base_url,
-        model=settings.yandex_cloud.gpt_oss_120b,
+        base_url="http://10.1.50.193:1234/v1",
+        model="qwen/qwen3.6-27b",
+        api_key=SecretStr("dummy"),
         temperature=0.2,
         max_retries=3,
-        max_completion_tokens=70000,
+        max_completion_tokens=65000,
     )
 
     module_structure_planner = create_agent(
@@ -70,9 +78,12 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
         state["order"],
         state["module_description"][:100],
     )
-    result = await module_structure_planner.with_retry(stop_after_attempt=3).ainvoke({
-        "messages": [HumanMessage(prompt_template)]
-    })
+    result = await call_llm(
+        agent=module_structure_planner, input={"messages": [HumanMessage(prompt_template)]}
+    )
+    # result = await module_structure_planner.with_retry(stop_after_attempt=3).ainvoke({
+    #     "messages": [HumanMessage(prompt_template)]
+    # })
     module_structure = result["structured_response"]
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
@@ -112,17 +123,29 @@ async def build_lesson(
     logger.info(
         "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
     )
-    result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
-        {
+    result = await call_llm(
+        agent=lesson_builder_agent,
+        input={
             "generation_context": generation_context,
             "module_id": module_id,
             "audience_description": audience_description,
             "learning_objectives": learning_objectives,
             "order": order,
             "lesson_description": lesson_description,
-        },  # type: ignore  # noqa: PGH003
+        },
         config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-    )  # type: ignore  # noqa: PGH003
+    )
+    # result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
+    #     {
+    #         "generation_context": generation_context,
+    #         "module_id": module_id,
+    #         "audience_description": audience_description,
+    #         "learning_objectives": learning_objectives,
+    #         "order": order,
+    #         "lesson_description": lesson_description,
+    #     },  # type: ignore  # noqa: PGH003
+    #     config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
+    # )  # type: ignore  # noqa: PGH003
     return order, result["lesson"]  # ← возвращаем order, чтобы потом отсортировать
 
 

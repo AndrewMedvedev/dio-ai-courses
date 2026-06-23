@@ -15,13 +15,15 @@ from ..domain.entities import (
     BasicInfo,
     Course,
     CourseBasicInfo,
+    Document,
     Lesson,
     LessonBasicInfo,
     Module,
     ModuleBasicInfo,
 )
-from .mappers import CourseMapper, LessonMapper, ModuleMapper
-from .models import CourseOrm, LessonOrm, ModuleOrm
+from ..domain.vo import DocumentNodeType
+from .mappers import CourseMapper, DocumentMapper, LessonMapper, ModuleMapper
+from .models import CourseOrm, DocumentOrm, LessonOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +152,50 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
         return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore  # noqa: PGH003
 
 
+class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
+    model = DocumentOrm
+    model_mapper = DocumentMapper  # type: ignore  # noqa: PGH003
+
+    # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
+    async def get_tocs(self, owner_id: UUID) -> list[Document | None]:
+        stmt = await self.session.execute(
+            select(DocumentOrm)
+            .where(
+                DocumentOrm.owner_id == owner_id,
+                DocumentOrm.node_type == DocumentNodeType.TOC,
+            )
+            .order_by(DocumentOrm.position)
+        )
+        result = stmt.scalars().all()
+        return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # noqa: PGH003
+
+    # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
+    async def get_headings(self, toc_id: UUID) -> list[Document | None]:
+        stmt = await self.session.execute(
+            select(DocumentOrm)
+            .where(
+                DocumentOrm.parent_node_id == toc_id,
+                DocumentOrm.node_type == DocumentNodeType.HEADING,
+            )
+            .order_by(DocumentOrm.position)
+        )
+        result = stmt.scalars().all()
+        return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # noqa: PGH003
+
+    # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
+    async def get_texts(self, heading_id: UUID) -> Document | None:
+        stmt = await self.session.execute(
+            select(DocumentOrm)
+            .where(
+                DocumentOrm.parent_node_id == heading_id,
+                DocumentOrm.node_type == DocumentNodeType.TEXT,
+            )
+            .order_by(DocumentOrm.position)
+        )
+        result = stmt.scalars().all()
+        return None if result is None else self.model_mapper.to_entity(result)  # type: ignore  # noqa: PGH003
+
+
 class VectorRepository:
     """
     Async RAG repository:
@@ -213,7 +259,7 @@ class VectorRepository:
         metadata_filters: dict[str, Any] | None = None,
     ) -> list[str]:
         """Hybrid search: Dense + BM25 + RRF + Rerank."""
-        dense_query = await embed(inputs=[query])
+        dense_query = (await embed(inputs=[query]))[0]
         sparse_query = next(self.sparse_model.embed([query]))  # type: ignore  # noqa: PGH003
 
         qdrant_filter = None

@@ -12,7 +12,7 @@ from qdrant_client import models
 from src.ai_models.router import ai_models_router
 from src.ai_models.scheduler import run_weekly_sync
 from src.ai_models.scheduler import scheduler as ai_models_scheduler
-from src.core.infrastructure import qdrant_client
+from src.core.infrastructure import checkpointer, qdrant_client
 from src.core.logging import configure_logging
 from src.core.settings import settings
 from src.iam.routers import router as iam_router
@@ -33,7 +33,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await run_weekly_sync()
     ai_models_scheduler.start()
     ai_models_scheduler.shutdown()
-
+    await checkpointer.setup()
     exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
     if not exists:
         await qdrant_client.create_collection(

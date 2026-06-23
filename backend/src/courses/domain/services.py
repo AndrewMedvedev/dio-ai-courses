@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from .entities import Course, Lesson, Module
-from .vo import CourseStatus, DifficultyLevel
+from .entities import Course, Document, Lesson, Module
+from .vo import CourseStatus, DifficultyLevel, DocumentNodeType
 
 
 @dataclass(frozen=True)
@@ -68,4 +68,20 @@ def create_lesson(
         description=description,
         learning_objectives=learning_objectives,
         order=order,
+    )
+
+
+def create_document(
+    owner_id: UUID,
+    node_type: DocumentNodeType,
+    parent_node_id: UUID | None = None,
+    title: str | None = None,
+    content: str | None = None,
+) -> Document:
+    return Document(
+        owner_id=owner_id,
+        parent_node_id=parent_node_id,
+        node_type=node_type,
+        title=title,
+        content=content,
     )

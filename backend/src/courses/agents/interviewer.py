@@ -35,7 +35,7 @@ class InterviewState(AgentState):
         "Вызывается ровно один раз, когда интервью полностью завершено."
     ),
 )
-def complete_interview(
+async def complete_interview(  # noqa: RUF029
     prompt: str,
     runtime: ToolRuntime[Context],
 ) -> Command:
