@@ -1,0 +1,26 @@
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class ToolCallParsed(BaseModel):
+    call_id: str
+    name: str
+    arguments: dict[str, Any]
+
+
+class ParsedLLMResponse(BaseModel):
+    """Полный парсинг ответа + вся история сообщений"""
+
+    # Полная история для передачи дальше в модель
+    messages: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="ПОЛНАЯ история: входные сообщения + ответы модели. Готово для следующего запроса.",  # noqa: E501
+    )
+
+    # Удобные поля для работы
+    output_text: str | None = Field(None, description="Финальный текст ответа модели")
+    tool_calls: list[ToolCallParsed] = Field(
+        default_factory=list, description="Вызовы инструментов"
+    )
+    reasoning: dict[str, Any] | None = Field(None, description="Рассуждения модели")

@@ -4,11 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from ..shared.schemas import Page, PageParams
-from .dependencies import AIModelsRepoDep, SessionDep
-from .domain.dataclasses import AIModel
-from .domain.services import create_ai_model
-from .schemas import AIModelSchema
+from ...shared.schemas import Page, PageParams
+from ..dependencies import AIModelsRepoDep, SessionDep
+from ..domain.dataclasses import AIModel
+from ..domain.services import create_ai_model
+from ..schemas import AIModelSchema
 
 ai_models_router = APIRouter(prefix="/models", tags=["AI Models"])
 

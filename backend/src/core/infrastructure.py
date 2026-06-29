@@ -1,8 +1,9 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from aiohttp import ClientSession
 from celery import Celery  # type: ignore  # noqa: PGH003
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from qdrant_client import AsyncQdrantClient
@@ -83,3 +84,8 @@ async def create_tables() -> None:
 async def get_db() -> AsyncSession:  # type: ignore  # noqa: PGH003
     async with session_factory() as session:
         yield session  # type: ignore  # noqa: ASYNC119, PGH003
+
+
+async def get_aio() -> AsyncGenerator[ClientSession]:
+    async with ClientSession() as session:
+        yield session

@@ -10,8 +10,6 @@ from fastapi.responses import JSONResponse
 from qdrant_client import models
 
 from src.ai_models.router import ai_models_router
-from src.ai_models.scheduler import run_weekly_sync
-from src.ai_models.scheduler import scheduler as ai_models_scheduler
 from src.core.infrastructure import checkpointer, qdrant_client
 from src.core.logging import configure_logging
 from src.core.settings import settings
@@ -30,9 +28,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     await run_cli_command(sys.executable, "-m", "alembic", "upgrade", "head")
     await run_cli_command(sys.executable, "-m", "src.cli", "create-first-admin")
-    await run_weekly_sync()
-    ai_models_scheduler.start()
-    ai_models_scheduler.shutdown()
+
     await checkpointer.setup()
     exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
     if not exists:

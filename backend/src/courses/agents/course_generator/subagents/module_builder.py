@@ -54,7 +54,7 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
         api_key=SecretStr("dummy"),
         temperature=0.2,
         max_retries=3,
-        max_completion_tokens=65000,
+        max_completion_tokens=230000,
     )
 
     module_structure_planner = create_agent(

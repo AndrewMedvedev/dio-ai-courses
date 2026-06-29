@@ -159,12 +159,10 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
     async def get_tocs(self, owner_id: UUID) -> list[Document | None]:
         stmt = await self.session.execute(
-            select(DocumentOrm)
-            .where(
+            select(DocumentOrm).where(
                 DocumentOrm.owner_id == owner_id,
                 DocumentOrm.node_type == DocumentNodeType.TOC,
             )
-            .order_by(DocumentOrm.position)
         )
         result = stmt.scalars().all()
         return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # noqa: PGH003
@@ -172,12 +170,10 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
     async def get_headings(self, toc_id: UUID) -> list[Document | None]:
         stmt = await self.session.execute(
-            select(DocumentOrm)
-            .where(
+            select(DocumentOrm).where(
                 DocumentOrm.parent_node_id == toc_id,
                 DocumentOrm.node_type == DocumentNodeType.HEADING,
             )
-            .order_by(DocumentOrm.position)
         )
         result = stmt.scalars().all()
         return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # noqa: PGH003
@@ -185,12 +181,10 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
     async def get_texts(self, heading_id: UUID) -> Document | None:
         stmt = await self.session.execute(
-            select(DocumentOrm)
-            .where(
+            select(DocumentOrm).where(
                 DocumentOrm.parent_node_id == heading_id,
                 DocumentOrm.node_type == DocumentNodeType.TEXT,
             )
-            .order_by(DocumentOrm.position)
         )
         result = stmt.scalars().all()
         return None if result is None else self.model_mapper.to_entity(result)  # type: ignore  # noqa: PGH003
@@ -224,18 +218,18 @@ class VectorRepository:
         chunks = splitter.split_text(text)
         points = []
         for chunk in chunks:
-            dense_vector = await embed(inputs=[text])
+            dense_vector = await embed(inputs=[chunk])
             sparse = next(self.sparse_model.embed([chunk]))  # type: ignore  # noqa: PGH003
-            indices = [i.indices.tolist() for i in sparse]
-            values = [i.values.tolist() for i in sparse]
+            indices = sparse.indices.tolist()
+            values = sparse.values.tolist()
             points.append(
                 models.PointStruct(
                     id=str(uuid4()),
                     vector={
                         "dense": dense_vector[0],
                         "bm25": models.SparseVector(
-                            indices=indices[0],
-                            values=values[0],
+                            indices=indices,
+                            values=values,
                         ),
                     },
                     payload=metadata or {},

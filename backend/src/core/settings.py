@@ -93,6 +93,13 @@ class MailSettings(BaseSettings):
     support_email: str = "diocon.support@mail.ru"
 
 
+class ProxyApi(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="PROXY_API_")
+
+    api_key: str = "<API_KEY>"
+    base_url: str = "https://openai.api.proxyapi.ru/v1"
+
+
 class YandexCloudSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="YANDEX_CLOUD_")
 
@@ -189,7 +196,7 @@ class EmbeddingsSettings(BaseSettings):
 class RerankersSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="RERANKERS_")
 
-    base_url: str = "http://localhost:7997/"
+    base_url: str = "http://localhost:7998/"
     model_name: str = "BAAI/bge-reranker-v2-m3"
 
 
@@ -204,6 +211,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     jwt: JWTSettings = JWTSettings()
     mail: MailSettings = MailSettings()
+    proxy_api: ProxyApi = ProxyApi()
     yandex_cloud: YandexCloudSettings = YandexCloudSettings()
     admin: AdminSettings = AdminSettings()
     search: SearchSettings = SearchSettings()

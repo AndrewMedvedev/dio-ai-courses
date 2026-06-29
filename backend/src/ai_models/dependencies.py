@@ -1,32 +1,25 @@
 from typing import Annotated
 
 from fastapi import Depends
+from openai import AsyncOpenAI
 
+from ..core.settings import settings
 from ..shared.dependencies import SessionDep
-from .infra.repository import SqlAIModelRepository, SqlUserModelPreferenceRepository
-from .services import UserModelService
+from .infra.repository import SqlAIModelRepository
+from .services import LLMRouter
 
-
-def get_user_preference_repo(session: SessionDep) -> SqlUserModelPreferenceRepository:
-    return SqlUserModelPreferenceRepository(session)
+client = AsyncOpenAI(api_key=settings.proxy_api.api_key, base_url=settings.proxy_api.base_url)
 
 
 def get_ai_model_repo(session: SessionDep) -> SqlAIModelRepository:
     return SqlAIModelRepository(session)
 
 
-UserRepoDep = Annotated[SqlUserModelPreferenceRepository, Depends(get_user_preference_repo)]
-
 AIModelsRepoDep = Annotated[SqlAIModelRepository, Depends(get_ai_model_repo)]
 
 
-def get_user_service(
-    session: SessionDep,
-    user_preference_repo: Annotated[
-        SqlUserModelPreferenceRepository, Depends(get_user_preference_repo)
-    ],
-) -> UserModelService:
-    return UserModelService(session=session, user_preference_repo=user_preference_repo)
+def get_llm_router(repository: AIModelsRepoDep) -> LLMRouter:
+    return LLMRouter(ai_model_repos=repository, client=client)
 
 
-UserServiceDep = Annotated[UserModelService, Depends(get_user_service)]
+LLMRouterDep = Annotated[LLMRouter, Depends(get_llm_router)]

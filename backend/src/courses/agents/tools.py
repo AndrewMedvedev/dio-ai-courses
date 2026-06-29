@@ -48,6 +48,7 @@ def web_search(search_query: str) -> list[dict[str, Any]]:
 
 
 class DocumentContext(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
     session: AsyncSession
     owner_id: UUID
 

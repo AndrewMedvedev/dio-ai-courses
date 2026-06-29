@@ -95,7 +95,7 @@ services:
         max-size: "1m"
 
   browserless:
-    image: ghcr.io/browserless/chromium:v2.44.
+    image: ghcr.io/browserless/chromium:v2.54.0
     container_name: browserless
     depends_on:
       - maildev
@@ -103,7 +103,7 @@ services:
       - CONNECTION_TIMEOUT=60000
       - KEEP_ALIVE=true
     ports:
-      - "3000:3999"
+      - "3000:3000"
 
   # infinity:
   #   image: michaelf34/infinity:latest-cpu

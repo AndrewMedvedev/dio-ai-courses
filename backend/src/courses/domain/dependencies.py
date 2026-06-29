@@ -18,7 +18,7 @@ model: Final[ChatOpenAI] = ChatOpenAI(
     api_key=SecretStr("dummy"),
     temperature=0.2,
     max_retries=3,
-    max_completion_tokens=65000,
+    max_completion_tokens=250000,
 )
 
 splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=50, length_function=len)

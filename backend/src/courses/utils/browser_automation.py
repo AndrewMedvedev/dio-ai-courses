@@ -243,7 +243,9 @@ async def get_page_text(url: str) -> str:
     """Получает текст со страницы в формате Markdown"""
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.connect(endpoint=settings.chromium_ws_endpoint)
+        browser = await playwright.chromium.connect_over_cdp(
+            endpoint_url=settings.chromium_ws_endpoint
+        )
         page = await _get_current_page(browser)
         logger.info("Opening `%s` page ...", url)
 
