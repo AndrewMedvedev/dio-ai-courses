@@ -3,8 +3,11 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID, uuid4
 
+import dramatiq
 from aiohttp import ClientSession
-from celery import Celery  # type: ignore  # noqa: PGH003
+from dramatiq.brokers.redis import RedisBroker
+from dramatiq.results import Results
+from dramatiq.results.backends import RedisBackend
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from qdrant_client import AsyncQdrantClient
 from redis.asyncio import Redis
@@ -19,19 +22,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .settings import settings
 
+redis_broker = RedisBroker(url=settings.redis.url)
+result_backend = RedisBackend()
+redis_broker.add_middleware(Results(backend=result_backend))
+dramatiq.set_broker(redis_broker)
+
 qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
 
-celery_client = Celery(
-    main="tasks", broker=f"{settings.redis.url}/0", backend=f"{settings.redis.url}/1"
-)
-
-celery_client.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    timezone="UTC",
-    task_track_started=True,
-)
 
 redis_client = Redis(
     host=settings.redis.host,  # из настроек
@@ -88,4 +85,4 @@ async def get_db() -> AsyncSession:  # type: ignore  # noqa: PGH003
 
 async def get_aio() -> AsyncGenerator[ClientSession]:
     async with ClientSession() as session:
-        yield session
+        yield session  # noqa: ASYNC119

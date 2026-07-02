@@ -219,6 +219,7 @@ class Settings(BaseSettings):
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
+    llm_router_url: str = ""
 
 
 settings = Settings()

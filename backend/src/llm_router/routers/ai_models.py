@@ -4,16 +4,16 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from ..shared.schemas import Page, PageParams
-from .dependencies import AIModelsRepoDep, SessionDep
-from .domain.dataclasses import AIModel
-from .domain.services import create_ai_model
-from .schemas import AIModelSchema
+from ...shared.schemas import Page, PageParams
+from ..dependencies import AIModelsRepoDep, SessionDep
+from ..domain.dataclasses import AIModel
+from ..domain.services import create_ai_model
+from ..schemas import AIModelSchema
 
-ai_models_router = APIRouter(prefix="/models", tags=["AI Models"])
+ai_models_router = APIRouter(prefix="/ai/models", tags=["AI Models"])
 
 
-@ai_models_router.post("/add", status_code=status.HTTP_201_CREATED)
+@ai_models_router.post("/create", status_code=status.HTTP_201_CREATED)
 async def add_model(schema: AIModelSchema, service: AIModelsRepoDep) -> AIModel:
     return await service.create(
         create_ai_model(

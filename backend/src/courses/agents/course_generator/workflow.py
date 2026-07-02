@@ -1,18 +1,15 @@
 import asyncio
 import json
 import logging
-from asyncio import run
-from collections.abc import Awaitable, Callable
 from datetime import datetime
-from functools import wraps
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from celery import Task  # type: ignore  # noqa: PGH003
+from dramatiq import actor
 from langchain_core.runnables import RunnableConfig
 from qdrant_client import models
 
-from ....core.infrastructure import celery_client, checkpointer, qdrant_client
+from ....core.infrastructure import checkpointer, qdrant_client
 from .nodes import GenerationContext, agent
 
 prompt = """Разработай учебный курс по Docker для разработчиков, которые уже пишут код, но хотят освоить контейнеризацию для локальной разработки, CI/CD и деплоя.
@@ -32,19 +29,11 @@ Docker Compose для локального окружения (разработ�
 """  # noqa: E501
 
 
-def task(**task_kwargs) -> Callable[[Callable[..., Awaitable]], Task]:
-    def decorator(coro_func: Callable[..., Awaitable]) -> Task:
-        @celery_client.task(**task_kwargs)
-        @wraps(coro_func)
-        def wrapper(*args, **kwargs):
-            return run(coro_func(*args, **kwargs))  # type: ignore  # noqa: PGH003
-
-        return wrapper  # type: ignore  # noqa: PGH003
-
-    return decorator
-
-
-@task(name="generate_course")
+@actor(
+    max_retries=3,  # сколько раз повторить при ошибке
+    min_backoff=1000,  # мин. задержка перед повтором (мс)
+    max_backoff=10000,  # макс. задержка (мс)
+)
 async def generate_course(generation_context: dict) -> dict:
     try:
         await agent.ainvoke(

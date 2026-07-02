@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from src.ai_models.domain.dataclasses import AIModel, UserModelPreference
+from src.llm_router.domain.dataclasses import AIModel, UserModelPreference
 
 
 def test_create_ai_model():

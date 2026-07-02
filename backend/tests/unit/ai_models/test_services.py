@@ -3,8 +3,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.ai_models.domain.dataclasses import UserModelPreference
-from src.ai_models.services import UserModelService
+from src.llm_router.domain.dataclasses import UserModelPreference
+from src.llm_router.services import UserModelService
 
 
 @pytest.fixture

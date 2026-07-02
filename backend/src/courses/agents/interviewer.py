@@ -44,14 +44,14 @@ async def complete_interview(  # noqa: RUF029
         course_id=runtime.context.course_id,
         prompt=prompt,
     )
-    result = generate_course.delay(generation_context.model_dump_json())
+    result = generate_course.send(generation_context.model_dump())
 
     return Command(
         update={
-            "task_id": result.id,
+            "task_id": result.message_id,
             "messages": [
                 ToolMessage(
-                    content=f"Курс поставлен в очередь на генерацию, task_id={result.id}",
+                    content=f"Курс поставлен в очередь на генерацию, task_id={result.message_id}",
                     tool_call_id=runtime.tool_call_id,
                 )
             ],

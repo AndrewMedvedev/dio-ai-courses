@@ -9,11 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from qdrant_client import models
 
-from src.ai_models.router import ai_models_router
 from src.core.infrastructure import checkpointer, qdrant_client
 from src.core.logging import configure_logging
 from src.core.settings import settings
 from src.iam.routers import router as iam_router
+from src.llm_router.routers import llm_router
 from src.shared.domain.exceptions import AppError
 from src.shared.infra.middlewares import LoggingMiddleware
 from src.shared.utils.cli import run_cli_command
@@ -57,7 +57,7 @@ app = FastAPI(
 router = APIRouter(prefix="/api/v1")
 
 router.include_router(iam_router)
-router.include_router(ai_models_router)
+router.include_router(llm_router)
 
 
 app.include_router(router)

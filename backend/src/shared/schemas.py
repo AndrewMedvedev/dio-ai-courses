@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypeVar
+from typing import Any, TypeVar
 
 from collections.abc import Callable
 
-from openai.types.responses import ToolParam
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
 R = TypeVar("R", bound=BaseModel)
@@ -60,30 +59,3 @@ class Page[T: Any](BaseModel):
             has_prev=self.has_prev,
             items=[mapper(item) for item in self.items],
         )
-
-
-class InvokeLLM(BaseModel):
-    input: str | list[dict]
-    tools: list[ToolParam] | None = None
-    instructions: str | None = None
-    reasoning: Literal["low", "medium", "high"] | None = None
-    temperature: float | None = None
-
-
-class ToolCallParsed(BaseModel):
-    call_id: str
-    name: str
-    arguments: dict[str, Any]
-
-
-class LLMResponse(BaseModel):
-    """Структурированный результат парсинга ответа от Responses API"""
-
-    output_text: dict | None = Field(None, description="Финальный текст ответа модели")
-    tool_calls: list[ToolCallParsed] = Field(
-        default_factory=list, description="Вызовы инструментов"
-    )
-    reasoning: dict[str, Any] | None = Field(
-        None, description="Цепочка рассуждений модели (если есть)"
-    )
-    messages: list[dict[str, Any]] = Field(default_factory=list, description="Сообщения от модели")

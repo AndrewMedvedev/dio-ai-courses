@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 import src.iam.database.models  # noqa: F401
-import src.ai_models.infra.models
+import src.llm_router.infra.models
 from src.core.infrastructure import Base
 from src.core.settings import settings
 import src.courses.infra.models
