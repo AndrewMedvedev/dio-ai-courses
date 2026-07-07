@@ -14,7 +14,6 @@ from pydantic import SecretStr
 
 from .....core.infrastructure import checkpointer, qdrant_client, session_factory
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
-from ....domain.services import create_lesson
 from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...concurrency import call_llm
@@ -109,7 +108,7 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
-    lesson = create_lesson(
+    lesson = Lesson(
         module_id=state["module_id"],
         title=lesson_structure.title,
         description=lesson_structure.description,

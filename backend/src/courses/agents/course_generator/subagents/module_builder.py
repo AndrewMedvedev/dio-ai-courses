@@ -15,7 +15,6 @@ from pydantic import SecretStr
 
 from .....core.infrastructure import checkpointer, session_factory
 from ....domain.entities import Lesson, Module
-from ....domain.services import create_module
 from ....infra.repository import SqlModuleRepository
 from ...concurrency import call_llm
 from ...schemas import GenerationContext
@@ -88,8 +87,8 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
-    module = create_module(
-        cousre_id=state["generation_context"].course_id,
+    module = Module(
+        course_id=state["generation_context"].course_id,
         title=module_structure.title,
         description=module_structure.description,
         learning_objectives=module_structure.learning_objectives,

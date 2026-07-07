@@ -10,6 +10,7 @@ from ....domain.entities import (
     ChemicalBlock,
     CodeBlock,
     ContentType,
+    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
@@ -43,6 +44,11 @@ config = {
         "tools": [knowledge_search],
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
         "response_format": ProviderStrategy(TextBlock),
+    },
+    ContentType.IMAGE: {
+        "tools": [knowledge_search],
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
+        "response_format": ProviderStrategy(ImageBlock),
     },
     ContentType.QUIZ: {
         "tools": [knowledge_search],

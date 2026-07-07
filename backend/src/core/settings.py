@@ -219,7 +219,10 @@ class Settings(BaseSettings):
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
-    llm_router_url: str = ""
+    text_llm_router_url: str = ""
+    image_llm_router_url: str = ""
+    text_ai_model: str = "gpt-4"
+    image_ai_model: str = "gpt-image-2"
 
 
 settings = Settings()

@@ -1,13 +1,17 @@
 from typing import Any
 
+import asyncio
 import json
 import re
+import uuid
 
 import orjson
 from json_repair import repair_json
 from openai.types.responses.response import Response
 
-from ..llm_service.schemas import LLMResponse, ToolCallParsed
+from ..core.infrastructure import redis_client
+from ..llm_service.schemas import LLMTextResponse, ToolCallParsed
+from ..shared.schemas import Page
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?```", re.DOTALL | re.IGNORECASE)
 _JSON_OBJECT_RE = re.compile(r"(\{[\s\S]*?\})", re.DOTALL)
@@ -60,7 +64,7 @@ def extract_json(text: str) -> dict:
 def parse_llm_response(  # noqa: C901
     response: Response,
     input_messages: list[dict[str, Any]] | str,
-) -> LLMResponse:
+) -> LLMTextResponse:
     """Улучшенный парсер ответа от OpenAI Responses API."""
 
     # Подготовка входных сообщений (как было у тебя)
@@ -111,8 +115,50 @@ def parse_llm_response(  # noqa: C901
         except json.JSONDecodeError:
             output_text = None  # или можно сохранить сырой текст: {"raw": output_buffer}
 
-    return LLMResponse(
+    return LLMTextResponse(
         messages=messages,
         output_text=output_text,
         tool_calls=tool_calls,
+        model=response.model,
+        total_tokens=response.usage.total_tokens,  # pyright: ignore[reportOptionalMemberAccess]
     )
+
+
+async def cache_ai_models(
+    func,
+    ttl: int = 60 * 60,
+    key: str = "ai_models",
+    *args,
+    **kwargs,
+) -> Page:
+    cached = await redis_client.get(key)
+    if cached is not None:
+        return Page.model_validate_json(cached)
+
+    lock_key = f"lock:{key}"
+    lock_id = str(uuid.uuid4())
+
+    # Пытаемся стать "тем, кто вычисляет"
+    got_lock = await redis_client.set(lock_key, lock_id, nx=True, ex=10)
+
+    if got_lock:
+        try:
+            result: Page = await func(*args, **kwargs)
+            await redis_client.set(key, result.model_dump_json(), ex=ttl)
+            return result
+        finally:
+            # Снимаем лок, только если он ещё наш
+            current = await redis_client.get(lock_key)
+            if current == lock_id:
+                await redis_client.delete(lock_key)
+    else:
+        # Кто-то другой уже считает — ждём и поллим кэш
+        for _ in range(50):  # например, до 5 секунд
+            await asyncio.sleep(0.1)
+            cached = await redis_client.get(key)
+            if cached is not None:
+                return Page.model_validate_json(cached)
+        # Не дождались — считаем сами, как fallback
+        result = await func(*args, **kwargs)
+        await redis_client.set(key, result.model_dump_json(), ex=ttl)
+        return result

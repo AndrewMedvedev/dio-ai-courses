@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import StrEnum, auto
 from uuid import UUID
 
 from ...shared.domain.entities import AggregateRoot, Entity
@@ -12,15 +12,15 @@ from .vo import CourseStatus, CourseUserRole, DifficultyLevel, DocumentNodeType
 class ContentType(StrEnum):
     """Тип контента внутри блока."""
 
-    TEXT = "text"  # Текстовый контент / лекция
-    VIDEO = "video"  # Видео из стороннего источника
-    PROGRAM_CODE = "program_code"  # Пример кода
-    MERMAID = "mermaid"  # Mermaid диаграмма
-    QUIZ = "quiz"  # Вопросы для самопроверки
-    LINK = "link"  # Внешняя ссылка на источник
-    MATH_FORMULA = "math_formula"  # Математическая, физическая, логическая формула
-    CHEMICAL_FORMULA = "chemical_formula"  # Химическая формула
-    MUSICAL_NOTATION = "musical_notation"  # Нотная запись
+    TEXT = auto()  # Текстовый контент / лекция
+    IMAGE = auto()  # Изображение
+    PROGRAM_CODE = auto()  # Пример кода
+    MERMAID = auto()  # Mermaid диаграмма
+    QUIZ = auto()  # Вопросы для самопроверки
+    LINK = auto()  # Внешняя ссылка на источник
+    MATH_FORMULA = auto()  # Математическая, физическая, логическая формула
+    CHEMICAL_FORMULA = auto()  # Химическая формула
+    MUSICAL_NOTATION = auto()  # Нотная запись
 
 
 @dataclass(kw_only=True, slots=True)
@@ -51,27 +51,17 @@ class TextBlock(ContentBlock):
 
 
 @dataclass(kw_only=True, slots=True)
-class VideoBlock(ContentBlock):
-    """Блок с видео контентом.
+class ImageBlock(ContentBlock):
+    """Блок с текстовым теоретическим материалом.
 
     Attributes:
-        content_type: Тип контента (всегда VIDEO).
+        content_type: Тип контента (всегда TEXT).
         ai_generated: Флаг AI-генерации.
-        url: Ссылка на видео (YouTube, Vimeo и т.п.).
-        platform: Название платформы (например, "YouTube", "Vimeo").
-        title: Название видео.
-        duration_seconds: Длительность в секундах.
-        key_moments: Список кортежей (временная метка, описание ключевого момента).
-        discussion_questions: Список вопросов для обсуждения после просмотра.
+        md_content: Текст лекции в формате Markdown.
     """
 
-    content_type: ContentType = ContentType.VIDEO
-    url: str
-    platform: str
-    title: str
-    duration_seconds: int
-    key_moments: list[tuple[str, str]] = field(default_factory=list)
-    discussion_questions: list[str] = field(default_factory=list)
+    content_type: ContentType = ContentType.IMAGE
+    image_url: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -198,7 +188,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 
 AnyContentBlock = (
     TextBlock
-    | VideoBlock
+    | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock
@@ -443,7 +433,16 @@ class CourseUser(Entity):
 @dataclass(kw_only=True, slots=True)
 class Document(Entity):
     owner_id: UUID
-    parent_node_id: UUID | None
+    parent_node_id: UUID | None = None
     node_type: DocumentNodeType
-    title: str | None
-    content: str | None
+    title: str | None = None
+    content: str | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class Chat(Entity):
+    user_id: UUID
+    messages: list[dict] = field(default_factory=list)
+
+    def replace_messages(self, messages: list[dict]) -> None:
+        self.messages = messages.copy()

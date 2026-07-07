@@ -67,6 +67,12 @@ class LessonOrm(Base):
     __table_args__ = (Index("ix_lessons_module_id", "module_id"),)
 
 
+class ChatOrm(Base):
+    __tablename__ = "chat"
+    user_id: Mapped[UUID]
+    messages: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+
+
 class CourseUserOrm(Base):
     __tablename__ = "course_users"
 
@@ -123,7 +129,6 @@ class DocumentOrm(Base):
         back_populates="parent_node",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        order_by="DocumentOrm.position",
         foreign_keys="[DocumentOrm.parent_node_id]",
     )
 

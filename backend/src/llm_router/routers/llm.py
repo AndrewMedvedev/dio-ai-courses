@@ -9,5 +9,5 @@ responses_router = APIRouter(prefix="/responses", tags=["LLM Router"])
 
 
 @responses_router.post(path="/")
-async def invoke(schema: LLMRequest, service: LLMRouterDep) -> LLMResponse:
-    return await service.call_llm(schema)
+async def invoke(schema: LLMRequest, service: LLMRouterDep, model: str | None) -> LLMResponse:
+    return await service.call_llm(schema=schema, model=model)

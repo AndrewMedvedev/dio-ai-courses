@@ -11,7 +11,6 @@ from langgraph.graph import END, START, StateGraph
 from ....core.infrastructure import checkpointer, session_factory
 from ...agents.concurrency import call_llm
 from ...domain.entities import Course, Module
-from ...domain.services import create_course
 from ...domain.vo import CourseStatus
 from ...infra.repository import SqlCourseRepository
 from ..schemas import GenerationContext
@@ -78,7 +77,7 @@ async def plan_course_structure(state: AgentState) -> dict:
     #     ),
     # )
     course_structure: CourseStructure = result["structured_response"]
-    course = create_course(
+    course = Course(
         creator_id=state["generation_context"].user_id,
         difficulty=course_structure.difficulty,
         status=CourseStatus.IN_GENERATION,

@@ -50,7 +50,7 @@ async def save_knowledge(
     text: str,
     score: float,
     category: Literal["data", "web_research", "theory"] = "web_research",
-) -> None:
+) -> str:
     logger.info(
         "Saving `%s` knowledge from %s, score %s%%, text: '%s ...'",
         category,
@@ -68,6 +68,7 @@ async def save_knowledge(
             "score": score,
         },
     )
+    return "Данные успешно сохранены в базу знаний курса"
 
 
 class KnowledgeSearchInput(BaseModel):

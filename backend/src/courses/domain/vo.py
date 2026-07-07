@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import StrEnum, auto
 
 
 class CourseUserRole(StrEnum):
@@ -24,12 +24,10 @@ def check_course_role(user_role: CourseUserRole, required: CourseUserRole) -> bo
 class CourseStatus(StrEnum):
     """Статусы жизненного цикла курса."""
 
-    IN_GENERATION = "in_generation"
-    GENERATED = "generated"
-    REVIEW = "review"
-    UNPUBLISHED = "unpublished"
-    PUBLISHED = "published"
-    ARCHIVED = "archived"
+    IN_GENERATION = auto()
+    DRAFT = auto()
+    PUBLISHED = auto()
+    ARCHIVED = auto()
 
 
 class DifficultyLevel(StrEnum):

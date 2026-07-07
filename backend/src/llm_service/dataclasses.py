@@ -8,6 +8,7 @@ from openai.types.responses import FunctionToolParam
 class StructuredTool:
     func: Callable
     name: str
+    runtime: bool
     args_schema: dict
 
     def to_tool_param(self) -> FunctionToolParam:

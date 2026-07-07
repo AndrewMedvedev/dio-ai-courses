@@ -3,6 +3,7 @@ import logging
 from ...shared.infra.repos import ModelMapper
 from ..domain.entities import (
     BasicInfo,
+    Chat,
     Course,
     CourseBasicInfo,
     Document,
@@ -11,9 +12,31 @@ from ..domain.entities import (
     Module,
     ModuleBasicInfo,
 )
-from .models import CourseOrm, DocumentOrm, LessonOrm, ModuleOrm
+from .models import ChatOrm, CourseOrm, DocumentOrm, LessonOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
+
+
+class ChatMapper(ModelMapper[Chat, ChatOrm]):
+    @staticmethod
+    def to_entity(model: ChatOrm) -> Chat:
+        return Chat(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            user_id=model.user_id,
+            messages=model.messages,
+        )
+
+    @staticmethod
+    def from_entity(entity: Chat) -> ChatOrm:
+        return ChatOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            user_id=entity.user_id,
+            messages=entity.messages,
+        )
 
 
 class LessonMapper(ModelMapper[Lesson, LessonOrm]):

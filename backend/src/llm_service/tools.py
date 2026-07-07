@@ -12,7 +12,7 @@ from .dataclasses import StructuredTool
 
 
 class InjectedToolArg:
-    """Маркер для injected параметров (не попадают в LLM)."""
+    """Маркер для injected параметров."""
 
 
 def _is_injected(annotation: Any) -> bool:
@@ -22,7 +22,7 @@ def _is_injected(annotation: Any) -> bool:
 
 
 def _build_args_model(func: Callable, model_name: str) -> type[BaseModel]:
-    """Создаёт Pydantic модель из сигнатуры."""
+    """Создаёт Pydantic модель, исключая 'runtime' и injected параметры."""
     sig = inspect.signature(func)
     hints = get_type_hints(func, include_extras=True)
     fields: dict[str, tuple[Any, Any]] = {}
@@ -30,7 +30,9 @@ def _build_args_model(func: Callable, model_name: str) -> type[BaseModel]:
     for name, param in sig.parameters.items():
         if name in {"self", "cls"} or param.kind in {param.VAR_POSITIONAL, param.VAR_KEYWORD}:
             continue
-        if _is_injected(hints.get(name, Any)):
+
+        # Исключаем runtime и injected параметры
+        if name == "runtime" or _is_injected(hints.get(name, Any)):
             continue
 
         annotation = hints.get(name, Any)
@@ -39,12 +41,11 @@ def _build_args_model(func: Callable, model_name: str) -> type[BaseModel]:
         default = param.default if param.default is not param.empty else PydanticUndefined
         fields[name] = (real_type, Field(default=default))
 
-    # Исправлено для mypy
-    return create_model(
+    return create_model(  # pyright: ignore[reportCallIssue, reportUnknownVariableType]
         model_name,
         __config__=ConfigDict(extra="forbid", arbitrary_types_allowed=True),
-        **fields,
-    )  # type: ignore  # noqa: PGH003
+        **fields,  # pyright: ignore[reportArgumentType]
+    )
 
 
 def tool(
@@ -53,7 +54,6 @@ def tool(
     name: str | None = None,
     description: str | None = None,
 ) -> StructuredTool | Callable[[Callable], StructuredTool]:
-    """Упрощённый @tool"""
 
     def decorator(func: Callable) -> StructuredTool:
         tool_name = name or (
@@ -77,10 +77,14 @@ def tool(
             },
         }
 
+        # Проверяем, есть ли параметр runtime в оригинальной функции
+        has_runtime = "runtime" in inspect.signature(func).parameters
+
         return StructuredTool(
             func=func,
             name=tool_name,
             args_schema=tool_schema,
+            runtime=has_runtime,  # ← добавляем флаг
         )
 
     if callable(name_or_callable):

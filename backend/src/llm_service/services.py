@@ -5,18 +5,19 @@ from pydantic import BaseModel
 
 from ..core.settings import settings
 from .dataclasses import StructuredTool
-from .schemas import LLMRequest, LLMResponse
+from .schemas import LLMImageRequest, LLMImageResponse, LLMTextRequest, LLMTextResponse
 
 
 class LLMService:
     def __init__(
         self,
+        session: ClientSession,
         tools: dict[str, StructuredTool] | None,
         response_format: str | None,
         system_prompt: str | None,
         reasoning: Literal["low", "medium", "high"] | None,
         temperature: float | None,
-        session: ClientSession,
+        runtime: BaseModel | None,
     ) -> None:
         self.tools = tools
         self.system_prompt = system_prompt
@@ -24,21 +25,36 @@ class LLMService:
         self.temperature = temperature
         self.response_format = response_format
         self.session = session
+        self.runtime = runtime
 
-    async def _send_request(self, schema: LLMRequest) -> LLMResponse:
+    async def _send_text_request(self, schema: LLMTextRequest) -> LLMTextResponse:
         answer = await self.session.post(
-            settings.llm_router_url, json=schema.model_dump(exclude_none=True)
+            settings.text_llm_router_url, json=schema.model_dump(exclude_none=True)
         )
         answer.raise_for_status()
         result = await answer.json()
-        return LLMResponse(**result)
+        return LLMTextResponse(**result)
 
-    async def invoke(
+    async def _send_image_request(self, schema: LLMImageRequest) -> LLMImageResponse:
+        answer = await self.session.post(
+            settings.image_llm_router_url, json=schema.model_dump(exclude_none=True)
+        )
+        answer.raise_for_status()
+        result = await answer.json()
+        return LLMImageResponse(**result)
+
+    async def invoke_image(
         self,
-        messages: list | str,
+        schema: LLMImageRequest,
+    ) -> LLMImageResponse:
+        return await self._send_image_request(schema)
+
+    async def invoke_text(
+        self,
+        messages: list[dict],
         schema: type[BaseModel] | None = None,
-    ) -> dict | LLMResponse:
-        answer = LLMRequest(
+    ) -> dict | LLMTextResponse:
+        answer = LLMTextRequest(
             input=messages,
             tools=[tool.to_tool_param() for tool in self.tools.values()] if self.tools else None,
             instructions=self.system_prompt,
@@ -46,19 +62,24 @@ class LLMService:
             temperature=self.temperature,
             text=schema.model_json_schema() if schema is not None else schema,
         )
-        result = await self._send_request(answer)
+        result = await self._send_text_request(answer)
         return await self._process_response(response=result, schema=schema)
 
     async def _process_response(
         self,
-        response: LLMResponse,
+        response: LLMTextResponse,
         schema: type[BaseModel] | None = None,
-    ) -> dict | LLMResponse:
+    ) -> dict | LLMTextResponse:
         if response.tool_calls:
             tool_call_results = []
             for tool in response.tool_calls:
                 try:
-                    tool_call_result = await self.tools[tool.name].func(tool.arguments)  # type: ignore  # noqa: PGH003
+                    callable_func = self.tools[tool.name]  # type: ignore  # noqa: PGH003
+                    tool_call_result = (
+                        await callable_func.func(**tool.arguments, runtime=self.runtime)
+                        if callable_func.runtime
+                        else await callable_func.func(**tool.arguments)
+                    )
 
                     tool_call_results.append({
                         "type": "function_call_output",
@@ -74,8 +95,6 @@ class LLMService:
                     })
             full_input = response.messages + tool_call_results
 
-            return await self.invoke(messages=full_input, schema=schema)
+            return await self.invoke_text(messages=full_input, schema=schema)
 
-        if response.output_text is None:
-            raise ValueError("LLM returned empty output_text")
-        return response.output_text
+        return response.output_text  # pyright: ignore[reportReturnType]

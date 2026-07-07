@@ -13,6 +13,7 @@ from ...shared.infra.repos import SqlAlchemyRepository
 from ..domain.dependencies import splitter
 from ..domain.entities import (
     BasicInfo,
+    Chat,
     Course,
     CourseBasicInfo,
     Document,
@@ -22,8 +23,8 @@ from ..domain.entities import (
     ModuleBasicInfo,
 )
 from ..domain.vo import DocumentNodeType
-from .mappers import CourseMapper, DocumentMapper, LessonMapper, ModuleMapper
-from .models import CourseOrm, DocumentOrm, LessonOrm, ModuleOrm
+from .mappers import ChatMapper, CourseMapper, DocumentMapper, LessonMapper, ModuleMapper
+from .models import ChatOrm, CourseOrm, DocumentOrm, LessonOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +189,11 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
         )
         result = stmt.scalars().all()
         return None if result is None else self.model_mapper.to_entity(result)  # type: ignore  # noqa: PGH003
+
+
+class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
+    model = ChatOrm
+    model_mapper = ChatMapper  # type: ignore  # noqa: PGH003
 
 
 class VectorRepository:
