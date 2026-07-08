@@ -1,7 +1,32 @@
+from __future__ import annotations
+
+from typing import Any, Literal
+
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from openai.types.responses import FunctionToolParam
+from pydantic import BaseModel
+
+
+@dataclass
+class ParamGroup:
+    """
+    Описывает связь между одним параметром исходной функции
+    и "плоскими" полями итоговой схемы инструмента.
+
+    kind="flat"  -> параметр обычного типа (str, int, Literal, ...).
+                    field_names содержит одно имя, совпадающее с именем параметра.
+    kind="model" -> параметр был аннотирован как Pydantic BaseModel.
+                    Его поля "расплющены" в top-level схему.
+                    field_names — имена этих полей в плоской схеме,
+                    model_cls — класс модели, который нужно пересобрать
+                    из плоских данных перед вызовом исходной функции.
+    """
+
+    kind: Literal["flat", "model"]
+    model_cls: type[BaseModel] | None
+    field_names: list[str]
 
 
 @dataclass
@@ -10,6 +35,45 @@ class StructuredTool:
     name: str
     runtime: bool
     args_schema: dict
+    args_model: type[BaseModel]
+    param_groups: dict[str, ParamGroup]
 
-    def to_tool_param(self) -> FunctionToolParam:
+    def to_tool_params(self) -> FunctionToolParam:
         return FunctionToolParam(type="function", **self.args_schema)  # type: ignore  # noqa: PGH003
+
+    @staticmethod
+    def to_tool_result(call_id: str, result: Any) -> dict:
+        return {
+            "type": "function_call_output",
+            "call_id": call_id,
+            "output": result,
+        }
+
+    def build_call_kwargs(self, validated: BaseModel, *, runtime: Any = None) -> dict[str, Any]:
+        """
+        Собирает kwargs для вызова исходной функции func:
+        - для "flat" параметров берёт значение как есть;
+        - для "model" параметров восстанавливает исходный BaseModel
+          из соответствующих плоских полей;
+        - добавляет runtime, если функция его ожидает.
+        """
+        flat = validated.model_dump()
+        call_kwargs: dict[str, Any] = {}
+
+        for param_name, group in self.param_groups.items():
+            if group.kind == "flat":
+                call_kwargs[param_name] = flat[group.field_names[0]]
+            else:
+                assert group.model_cls is not None
+                sub_data = {f: flat[f] for f in group.field_names}
+                call_kwargs[param_name] = group.model_cls(**sub_data)
+
+        if self.runtime:
+            call_kwargs["runtime"] = runtime
+
+        return call_kwargs
+
+    async def run_tool(self, raw_args: dict[str, Any], *, runtime: Any = None) -> Any:
+        validated = self.args_model.model_validate(raw_args)
+        call_kwargs = self.build_call_kwargs(validated, runtime=runtime)
+        return await self.func(**call_kwargs)

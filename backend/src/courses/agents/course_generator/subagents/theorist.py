@@ -1,23 +1,19 @@
 import logging
 
-from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy
-from langchain.messages import HumanMessage
+from aiohttp import ClientSession
 
-from ....domain.dependencies import model
+from .....llm_service import LLMService, Runtime
 from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
     ContentType,
-    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
     QuizBlock,
     TextBlock,
 )
-from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from ..tools import knowledge_search
 from .prompts import CONTENT_BLOCK_PROMPTS
@@ -25,51 +21,41 @@ from .prompts import CONTENT_BLOCK_PROMPTS
 logger = logging.getLogger(__name__)
 
 
-# model: Final[ChatOpenAI] = ChatOpenAI(
-#     api_key=SecretStr(settings.yandex_cloud.api_key),
-#     base_url=settings.yandex_cloud.base_url,
-#     model=settings.yandex_cloud.gpt_oss_120b,
-#     temperature=0.2,
-#     max_retries=3,
-#     max_completion_tokens=65000,
-# )
-
-
 config = {
     ContentType.PROGRAM_CODE: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.PROGRAM_CODE],
-        "response_format": ProviderStrategy(CodeBlock),
+        "response_format": CodeBlock,
     },
     ContentType.TEXT: {
-        "tools": [knowledge_search],
+        "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
-        "response_format": ProviderStrategy(TextBlock),
+        "response_format": TextBlock,
     },
-    ContentType.IMAGE: {
-        "tools": [knowledge_search],
-        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
-        "response_format": ProviderStrategy(ImageBlock),
-    },
+    # ContentType.IMAGE: {
+    #     "tools": [knowledge_search],
+    #     "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
+    #     "response_format": ImageBlock,
+    # },
     ContentType.QUIZ: {
-        "tools": [knowledge_search],
+        "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.QUIZ],
-        "response_format": ProviderStrategy(QuizBlock),
+        "response_format": QuizBlock,
     },
     ContentType.MERMAID: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MERMAID],
-        "response_format": ProviderStrategy(MermaidBlock),
+        "response_format": MermaidBlock,
     },
     ContentType.MATH_FORMULA: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MATH_FORMULA],
-        "response_format": ProviderStrategy(MathBlock),
+        "response_format": MathBlock,
     },
     ContentType.CHEMICAL_FORMULA: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.CHEMICAL_FORMULA],
-        "response_format": ProviderStrategy(ChemicalBlock),
+        "response_format": ChemicalBlock,
     },
     ContentType.MUSICAL_NOTATION: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MUSICAL_NOTATION],
-        "response_format": ProviderStrategy(MusicalBlock),
+        "response_format": MusicalBlock,
     },
 }
 
@@ -78,6 +64,7 @@ async def call_theory_agent(
     content_type: ContentType,
     context: GenerationContext,
     prompt: str,
+    session: ClientSession,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -88,15 +75,19 @@ async def call_theory_agent(
     """
 
     logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
-    agent = create_agent(
-        model=model,
-        context_schema=GenerationContext,
-        **config.get(content_type, {}),  # type: ignore  # noqa: PGH003,
+    content_config = config.get(content_type, {})
+    agent = LLMService(
+        session=session,
+        system_prompt=content_config.get("system_prompt", ""),
+        tools=content_config.get("tools", {}),
+        runtime=Runtime(context=context),
     )
-    result = await call_llm(
-        agent=agent, input={"messages": [HumanMessage(content=prompt)]}, context=context
+    response_format: AnyContentBlock = content_config.get("response_format", {})
+    result = await agent.invoke_text(
+        messages=[{"role": "user", "content": prompt}],
+        schema=response_format if response_format is None else None,
     )
-    # result = await agent.with_retry(stop_after_attempt=3).ainvoke(
-    #     {"messages": [HumanMessage(content=prompt)]}, context=context
-    # )
-    return result["structured_response"]
+
+    if response_format is not None:
+        return response_format.model_validate(result)  # pyright: ignore[reportAttributeAccessIssue]
+    return result  # pyright: ignore[reportReturnType]

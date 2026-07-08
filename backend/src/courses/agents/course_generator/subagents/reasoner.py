@@ -1,18 +1,12 @@
 # Агент - мыслитель, продумывает и рефлексирует над данными от преподавателя
 
-from typing import Any
 
 import logging
 
-from langchain.agents import create_agent
-from langchain.agents.middleware import ModelRequest, ToolCallLimitMiddleware, dynamic_prompt
-from langchain.tools import ToolRuntime, tool
-from langchain_core.messages import HumanMessage
+from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
-from .....core.infrastructure import checkpointer
-from ....domain.dependencies import model
-from ...concurrency import call_llm
+from .....llm_service import LLMService, Runtime, tool
 from ...schemas import GenerationContext
 from ...tools import browse_page, web_search
 from ..tools import knowledge_search, save_knowledge
@@ -21,15 +15,14 @@ from .prompts import CRITIC_PROMPT, REASONER_PROMPT, RESEARCHER_PROMPT
 logger = logging.getLogger(__name__)
 
 
-@tool("call_critique_agent", description="Вызвать агента критика")
-async def call_critique_agent(runtime: ToolRuntime[GenerationContext]) -> str:
-    prompt = runtime.context.prompt
-    critic_agent = create_agent(model=model, system_prompt=CRITIC_PROMPT.format(prompt=prompt))
-    result = await call_llm(agent=critic_agent, input={"messages": runtime.state["messages"]})
-    # result = await critic_agent.with_retry(stop_after_attempt=3).ainvoke({
-    #     "messages": runtime.state["messages"]
-    # })
-    return result["messages"][-1].content
+@tool(name="call_critique_agent", description="Вызвать агента критика")  # pyright: ignore[reportCallIssue]
+async def call_critique_agent(runtime: Runtime[GenerationContext, ClientSession]) -> dict:
+    prompt = runtime.context.prompt  # pyright: ignore[reportAttributeAccessIssue]
+    critic_agent = LLMService(
+        session=runtime.state,  # pyright: ignore[reportArgumentType]
+        system_prompt=CRITIC_PROMPT.format(prompt=prompt),
+    )
+    return await critic_agent.invoke_text(messages=runtime.messages)  # pyright: ignore[reportReturnType]
 
 
 class ResearchInput(BaseModel):
@@ -38,58 +31,41 @@ class ResearchInput(BaseModel):
     task: str = Field(description="Задача для исследования")
 
 
-@tool(
-    "call_researcher_agent",
+@tool(  # pyright: ignore[reportCallIssue]
+    name="call_researcher_agent",
     description="Вызвать агента исследователя",
-    args_schema=ResearchInput,
 )
-async def call_researcher_agent(runtime: ToolRuntime[GenerationContext], task: str) -> str:
-    researcher_agent = create_agent(
-        model=model,
+async def call_researcher_agent(
+    runtime: Runtime[GenerationContext, ClientSession],
+    schema: ResearchInput,
+) -> dict:
+    researcher_agent = LLMService(
+        session=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=RESEARCHER_PROMPT,
-        tools=[knowledge_search, web_search, browse_page, save_knowledge],
-        middleware=[
-            ToolCallLimitMiddleware[Any, GenerationContext](
-                tool_name="web_search", run_limit=3, thread_limit=4
-            ),  # type: ignore  # noqa: PGH003
-            ToolCallLimitMiddleware[Any, GenerationContext](
-                tool_name="browse_page", run_limit=3, thread_limit=4
-            ),  # type: ignore  # noqa: PGH003
-            ToolCallLimitMiddleware[Any, GenerationContext](
-                tool_name="knowledge_search", run_limit=3, thread_limit=5
-            ),  # type: ignore  # noqa: PGH003
-        ],
-        context_schema=GenerationContext,
-        checkpointer=checkpointer,
+        tools={  # pyright: ignore[reportArgumentType]
+            "knowledge_search": knowledge_search,
+            "web_search": web_search,
+            "browse_page": browse_page,
+            "save_knowledge": save_knowledge,
+        },
+        runtime=Runtime(
+            context=GenerationContext(**runtime.context.model_dump()), state=runtime.state
+        ),
     )
-    # Исправление 3: передаём сообщения как список кортежей
-    result = await call_llm(
-        agent=researcher_agent,
-        input={"messages": [HumanMessage(content=task)]},
-        context=runtime.context,
+
+    return await researcher_agent.invoke_text(messages=[{"role": "user", "content": schema.task}])  # pyright: ignore[reportReturnType]
+
+
+async def reasoner_agent(  # noqa: RUF029
+    runtime: Runtime[GenerationContext, ClientSession],
+) -> LLMService:
+
+    return LLMService(
+        session=runtime.state,  # pyright: ignore[reportArgumentType]
+        system_prompt=REASONER_PROMPT.format(prompt=runtime.context.prompt),  # pyright: ignore[reportAttributeAccessIssue]
+        tools={  # pyright: ignore[reportArgumentType]
+            "call_researcher_agent": call_researcher_agent,
+            "call_critique_agent": call_critique_agent,
+        },
+        runtime=runtime,
     )
-    # result = await researcher_agent.with_retry(stop_after_attempt=3).ainvoke(
-    #     input={"messages": [HumanMessage(content=task)]},
-    #     context=runtime.context,
-    # )  # type: ignore  # noqa: PGH003
-
-    return result["messages"][-1].content
-
-
-@dynamic_prompt
-def dynamic_reasoner_prompt(request: ModelRequest) -> str:
-    return REASONER_PROMPT.format(prompt=request.runtime.context.prompt)  # type: ignore  # noqa: PGH003
-
-
-reasoner_agent = create_agent(
-    model=model,
-    middleware=[
-        dynamic_reasoner_prompt,  # type: ignore  # noqa: PGH003
-        ToolCallLimitMiddleware[Any, GenerationContext](
-            tool_name="call_researcher_agent", run_limit=2, thread_limit=4
-        ),  # type: ignore  # noqa: PGH003
-    ],
-    tools=[call_researcher_agent, call_critique_agent],
-    context_schema=GenerationContext,
-    checkpointer=checkpointer,
-)  # type: ignore  # noqa: PGH003

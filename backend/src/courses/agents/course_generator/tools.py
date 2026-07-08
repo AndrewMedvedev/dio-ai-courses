@@ -1,11 +1,11 @@
-from typing import Literal
+from typing import Any, Literal
 
 import logging
 
-from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from ....core.infrastructure import qdrant_client
+from ....llm_service import Runtime, tool
 from ...infra.repository import VectorRepository
 from ..schemas import CourseContext
 
@@ -39,33 +39,29 @@ class SaveKnowledgeInput(BaseModel):
     )
 
 
-@tool(
-    "save_knowledge",
+@tool(  # pyright: ignore[reportCallIssue]
+    name="save_knowledge",
     description="Сохраняет информацию в базу знаний курса",
-    args_schema=SaveKnowledgeInput,
 )
 async def save_knowledge(
-    runtime: ToolRuntime[CourseContext],
-    source: str,
-    text: str,
-    score: float,
-    category: Literal["data", "web_research", "theory"] = "web_research",
+    runtime: Runtime[CourseContext, list[dict[str, Any]]],
+    schema: SaveKnowledgeInput,
 ) -> str:
     logger.info(
         "Saving `%s` knowledge from %s, score %s%%, text: '%s ...'",
-        category,
-        source,
-        score,
-        text[:150],
+        schema.category,
+        schema.source,
+        schema.score,
+        schema.text[:150],
     )
 
     await VectorRepository(client=qdrant_client).index_document(
-        text=text,
+        text=schema.text,
         metadata={
             "course_id": str(runtime.context.course_id),
-            "source": source,
-            "category": category,
-            "score": score,
+            "source": schema.source,
+            "category": schema.category,
+            "score": schema.score,
         },
     )
     return "Данные успешно сохранены в базу знаний курса"
@@ -78,33 +74,31 @@ class KnowledgeSearchInput(BaseModel):
     )
 
 
-@tool(
+@tool(  # pyright: ignore[reportCallIssue]
     "knowledge_search",
     description="Поиск информации в базе знаний курса",
-    args_schema=KnowledgeSearchInput,
 )
 async def knowledge_search(
-    runtime: ToolRuntime[CourseContext],
-    search_query: str,
-    category: Literal["data", "web_research", "theory"] | None = None,
+    runtime: Runtime[CourseContext, list[dict[str, Any]]],
+    schema: KnowledgeSearchInput,
 ) -> str:
     meta_filter = {"tenant_id": str(runtime.context.course_id)}
-    if category is not None:
+    if schema.category is not None:
         logger.info(
             "Searching knowledge by category - `%s` and query: '%s ...'",
-            category,
-            search_query[:100],
+            schema.category,
+            schema.search_query[:100],
         )
-        meta_filter["category"] = category
+        meta_filter["category"] = schema.category
     else:
-        logger.info("Searching knowledge by query `%s`", search_query[:100])
+        logger.info("Searching knowledge by query `%s`", schema.search_query[:100])
 
     docs = await VectorRepository(client=qdrant_client).retrieve_documents(
-        query=search_query, metadata_filters=meta_filter
+        query=schema.search_query, metadata_filters=meta_filter
     )
     if docs == []:
         return (
-            f"По запросу '{search_query}' (категория: {category or 'любая'}) "
+            f"По запросу '{schema.search_query}' (категория: {schema.category or 'любая'}) "
             "в базе знаний ничего не найдено. Не повторяй этот запрос с похожей "
             "формулировкой — либо измени категорию, либо переходи к следующему "
             "шагу плана без этой информации."

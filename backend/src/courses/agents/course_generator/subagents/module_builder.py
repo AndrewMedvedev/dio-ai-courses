@@ -1,22 +1,18 @@
-from typing import Final, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 import logging
 import time
 from asyncio import TaskGroup
 from uuid import UUID
 
-from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy
-from langchain.messages import HumanMessage
+from aiohttp import ClientSession
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from pydantic import SecretStr
 
 from .....core.infrastructure import checkpointer, session_factory
+from .....llm_service import LLMService
 from ....domain.entities import Lesson, Module
 from ....infra.repository import SqlModuleRepository
-from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from .lesson_builder import lesson_builder_agent
 from .practician import call_module_practice_agent
@@ -35,35 +31,20 @@ class AgentState(TypedDict):
     module_description: str  # Описание модуля из структуры курса
     module_structure: NotRequired[ModuleStructure]  # Структура/сценарий модуля
     module: NotRequired[Module]  # Сгенерированный модуль
+    session: ClientSession
 
 
 async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure | Module]:
     """Планирование структуры модуля"""
-    # planner: Final[ChatOpenAI] = ChatOpenAI(
-    #     api_key=SecretStr(settings.yandex_cloud.api_key),
-    #     base_url=settings.yandex_cloud.base_url,
-    #     model=settings.yandex_cloud.gpt_oss_120b,
-    #     temperature=0.2,
-    #     max_retries=3,
-    #     max_completion_tokens=70000,
-    # )
-    planner: Final[ChatOpenAI] = ChatOpenAI(
-        base_url="http://10.1.50.193:1234/v1",
-        model="qwen/qwen3.6-27b",
-        api_key=SecretStr("dummy"),
-        temperature=0.2,
-        max_retries=3,
-        max_completion_tokens=230000,
-    )
 
-    module_structure_planner = create_agent(
-        model=planner,
+    module_structure_planner = LLMService(
+        session=state["session"],
         system_prompt="""\
-        Ты полезный ассистент для планирования структуры образовательного модуля
-        по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
-        и заданиями.
-        """,
-        response_format=ProviderStrategy(ModuleStructure),
+    Ты полезный ассистент для планирования структуры образовательного модуля
+    по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
+    и заданиями.
+    """,
+        temperature=0.2,
     )
     prompt_template = f"""\
     Сгенерируй структуру модуля используя следующую информацию:
@@ -77,13 +58,11 @@ async def plan_module_structure(state: AgentState) -> dict[str, ModuleStructure 
         state["order"],
         state["module_description"][:100],
     )
-    result = await call_llm(
-        agent=module_structure_planner, input={"messages": [HumanMessage(prompt_template)]}
+    result = await module_structure_planner.invoke_text(
+        messages=[{"role": "user", "content": prompt_template}], schema=ModuleStructure
     )
-    # result = await module_structure_planner.with_retry(stop_after_attempt=3).ainvoke({
-    #     "messages": [HumanMessage(prompt_template)]
-    # })
-    module_structure = result["structured_response"]
+
+    module_structure = ModuleStructure.model_validate(result)
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
@@ -115,6 +94,7 @@ async def build_lesson(
     module_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
+    session: ClientSession,
 ) -> tuple[int, Lesson]:
     lesson_thread_id = (
         f"course:{generation_context.course_id}:module:{module_order}:lesson:{order}"
@@ -122,29 +102,18 @@ async def build_lesson(
     logger.info(
         "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
     )
-    result = await call_llm(
-        agent=lesson_builder_agent,
-        input={
+    result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
+        {
             "generation_context": generation_context,
             "module_id": module_id,
             "audience_description": audience_description,
             "learning_objectives": learning_objectives,
             "order": order,
             "lesson_description": lesson_description,
-        },
+            "session": session,
+        },  # type: ignore  # noqa: PGH003
         config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-    )
-    # result = await lesson_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
-    #     {
-    #         "generation_context": generation_context,
-    #         "module_id": module_id,
-    #         "audience_description": audience_description,
-    #         "learning_objectives": learning_objectives,
-    #         "order": order,
-    #         "lesson_description": lesson_description,
-    #     },  # type: ignore  # noqa: PGH003
-    #     config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-    # )  # type: ignore  # noqa: PGH003
+    )  # type: ignore  # noqa: PGH003
     return order, result["lesson"]  # ← возвращаем order, чтобы потом отсортировать
 
 
@@ -166,6 +135,7 @@ async def generate_lessons(state: AgentState) -> dict[str, Module]:
                     module_id=module.id,
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure.learning_objectives,
+                    session=state["session"],
                 )
             )
             for order, desc in enumerate(module_structure.lessons_descriptions)
@@ -191,7 +161,11 @@ async def generate_assignment(state: AgentState) -> dict[str, Module]:
     assignment_type, prompt = module_structure.assignment_specification
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)  # type: ignore  # noqa: PGH003
-    assignment = await call_module_practice_agent(assignment_type=assignment_type, module=module)
+    assignment = await call_module_practice_agent(
+        assignment_type=assignment_type,
+        module=module,
+        session=state["session"],
+    )
     module.add_assignment(assignment)
     return {"module": module}
 

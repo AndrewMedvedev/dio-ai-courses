@@ -10,6 +10,7 @@ from langchain_core.runnables import RunnableConfig
 from qdrant_client import models
 
 from ....core.infrastructure import checkpointer, qdrant_client
+from ....shared.dependencies import AioSessionDep
 from .nodes import GenerationContext, agent
 
 prompt = """Разработай учебный курс по Docker для разработчиков, которые уже пишут код, но хотят освоить контейнеризацию для локальной разработки, CI/CD и деплоя.
@@ -82,12 +83,13 @@ async def main():
             sparse_vectors_config={"bm25": models.SparseVectorParams()},
         )
     result = await agent.ainvoke(
-        {
+        {  # pyright: ignore[reportArgumentType]
             "generation_context": GenerationContext(
                 user_id=uuid4(),
                 course_id=course_id,
                 prompt=prompt,
-            )
+            ),
+            "session": AioSessionDep,
         },
         config=RunnableConfig(configurable={"thread_id": f"course:{course_id}"}),
     )

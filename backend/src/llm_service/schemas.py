@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 from openai.types.responses import ToolParam
 from pydantic import Base64Str, BaseModel, Field
+
+T = TypeVar("T")
+B = TypeVar("B", bound=BaseModel)
 
 
 class ToolCallParsed(BaseModel):
@@ -74,3 +77,9 @@ class LLMImageResponse(BaseModel):
     image: Base64Str = Field(description="Изображение в формате base64")
     model: str = Field(description="Идентификатор модели")
     total_tokens: int = Field(description="Количество токенов")
+
+
+class Runtime[B: BaseModel, T](BaseModel):
+    context: B
+    state: T | None = None
+    messages: list[dict[str, Any]] = Field(default_factory=list)

@@ -5,25 +5,30 @@ from pydantic import BaseModel
 
 from ..core.settings import settings
 from .dataclasses import StructuredTool
-from .schemas import LLMImageRequest, LLMImageResponse, LLMTextRequest, LLMTextResponse
+from .schemas import (
+    LLMImageRequest,
+    LLMImageResponse,
+    LLMTextRequest,
+    LLMTextResponse,
+    Runtime,
+    ToolCallParsed,
+)
 
 
 class LLMService:
     def __init__(
         self,
         session: ClientSession,
-        tools: dict[str, StructuredTool] | None,
-        response_format: str | None,
-        system_prompt: str | None,
-        reasoning: Literal["low", "medium", "high"] | None,
-        temperature: float | None,
-        runtime: BaseModel | None,
+        tools: dict[str, StructuredTool] | None = None,
+        system_prompt: str | None = None,
+        reasoning: Literal["low", "medium", "high"] | None = None,
+        temperature: float | None = None,
+        runtime: Runtime | None = None,
     ) -> None:
         self.tools = tools
         self.system_prompt = system_prompt
         self.reasoning = reasoning
         self.temperature = temperature
-        self.response_format = response_format
         self.session = session
         self.runtime = runtime
 
@@ -56,7 +61,7 @@ class LLMService:
     ) -> dict | LLMTextResponse:
         answer = LLMTextRequest(
             input=messages,
-            tools=[tool.to_tool_param() for tool in self.tools.values()] if self.tools else None,
+            tools=[tool.to_tool_params() for tool in self.tools.values()] if self.tools else None,
             instructions=self.system_prompt,
             reasoning=self.reasoning,  # type: ignore  # noqa: PGH003
             temperature=self.temperature,
@@ -64,6 +69,15 @@ class LLMService:
         )
         result = await self._send_text_request(answer)
         return await self._process_response(response=result, schema=schema)
+
+    async def _process_tool(self, callable_func: StructuredTool, tool: ToolCallParsed) -> dict:
+        if callable_func.runtime:
+            result = await callable_func.run_tool(raw_args=tool.arguments, runtime=self.runtime)
+            tool_call_result = callable_func.to_tool_result(call_id=tool.call_id, result=result)
+            self.runtime.messages.extend([tool.arguments, tool_call_result])  # pyright: ignore[reportOptionalMemberAccess]
+            return tool_call_result
+        result = await callable_func.run_tool(raw_args=tool.arguments)
+        return callable_func.to_tool_result(call_id=tool.call_id, result=result)
 
     async def _process_response(
         self,
@@ -73,19 +87,13 @@ class LLMService:
         if response.tool_calls:
             tool_call_results = []
             for tool in response.tool_calls:
+                callable_func = self.tools[tool.name]  # type: ignore  # noqa: PGH003
                 try:
-                    callable_func = self.tools[tool.name]  # type: ignore  # noqa: PGH003
-                    tool_call_result = (
-                        await callable_func.func(**tool.arguments, runtime=self.runtime)
-                        if callable_func.runtime
-                        else await callable_func.func(**tool.arguments)
+                    tool_call_result = await self._process_tool(
+                        callable_func=callable_func, tool=tool
                     )
 
-                    tool_call_results.append({
-                        "type": "function_call_output",
-                        "call_id": tool.call_id,
-                        "output": tool_call_result,
-                    })
+                    tool_call_results.append(tool_call_result)
 
                 except Exception as e:  # noqa: BLE001
                     tool_call_results.append({

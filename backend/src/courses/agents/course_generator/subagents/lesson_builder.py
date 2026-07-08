@@ -5,41 +5,20 @@ import time
 from asyncio import TaskGroup
 from uuid import UUID
 
-from langchain.agents import create_agent
-from langchain.agents.structured_output import ProviderStrategy
-from langchain.messages import HumanMessage
-from langchain_openai import ChatOpenAI
+from aiohttp import ClientSession
 from langgraph.graph import END, START, StateGraph
-from pydantic import SecretStr
 
 from .....core.infrastructure import checkpointer, qdrant_client, session_factory
+from .....llm_service import LLMService
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
-from ...concurrency import call_llm
 from ...schemas import GenerationContext
 from .practician import call_lesson_practice_agent
 from .prompts import LessonStructure
 from .theorist import call_theory_agent
 
 logger = logging.getLogger(__name__)
-
-
-# model = ChatOpenAI(
-#     api_key=SecretStr(settings.yandex_cloud.api_key),
-#     base_url=settings.yandex_cloud.base_url,
-#     model=settings.yandex_cloud.gpt_oss_120b,
-#     temperature=0.2,
-#     max_retries=3,
-# )
-
-model = ChatOpenAI(
-    base_url="http://10.1.50.193:1234/v1",
-    model="qwen/qwen3.6-27b",
-    api_key=SecretStr("dummy"),
-    temperature=0.2,
-    max_retries=3,
-)
 
 
 class AgentState(TypedDict):
@@ -53,30 +32,31 @@ class AgentState(TypedDict):
     lesson_description: str  # Описание урока из структуры модуля
     lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
     lesson: NotRequired[Lesson]  # Сгенерированный урок
+    session: ClientSession
 
 
 async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
-
-    lesson_structure_planner = create_agent(
-        model=model,
+    lesson_structure_planner = LLMService(
+        session=state["session"],
         system_prompt="""\
-        Ты опытный методист и разработчик образовательных курсов.
-        Твоя задача — спланировать детальную структуру одного урока: разбить материал
-        на логичные контент-блоки и составить для каждого исчерпывающий промпт,
-        по которому другой агент сможет самостоятельно сгенерировать качественный контент.
+    Ты опытный методист и разработчик образовательных курсов.
+    Твоя задача — спланировать детальную структуру одного урока: разбить материал
+    на логичные контент-блоки и составить для каждого исчерпывающий промпт,
+    по которому другой агент сможет самостоятельно сгенерировать качественный контент.
 
-        Принципы работы:
-        - Каждый промпт должен быть самодостаточным: агент-генератор не будет видеть
-          описание урока, только твой промпт.
-        - Выбирай тип контент-блока строго по смыслу: не используй musical_notation
-          для чего-либо кроме нотных записей; не используй mermaid для формул.
-        - Соблюдай дидактическую последовательность: от теории к практике,
-          от простого к сложному.
+    Принципы работы:
+    - Каждый промпт должен быть самодостаточным: агент-генератор не будет видеть
+      описание урока, только твой промпт.
+    - Выбирай тип контент-блока строго по смыслу: не используй musical_notation
+      для чего-либо кроме нотных записей; не используй mermaid для формул.
+    - Соблюдай дидактическую последовательность: от теории к практике,
+      от простого к сложному.
 
-        """,
-        response_format=ProviderStrategy(LessonStructure),
+    """,
+        temperature=0.2,
     )
+
     prompt_template = f"""\
     Спланируй структуру урока на основе следующих данных:
 
@@ -98,13 +78,11 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
         state["order"],
         state["lesson_description"][:100],
     )
-    result = await call_llm(
-        agent=lesson_structure_planner, input={"messages": [HumanMessage(content=prompt_template)]}
+    result: dict = await lesson_structure_planner.invoke_text(  # pyright: ignore[reportAssignmentType]
+        schema=LessonStructure, messages=[{"role": "user", "content": prompt_template}]
     )
-    # result = await lesson_structure_planner.with_retry(stop_after_attempt=3).ainvoke({
-    #     "messages": [HumanMessage(content=prompt_template)]
-    # })
-    lesson_structure = result["structured_response"]
+
+    lesson_structure = LessonStructure(**result)
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
@@ -125,6 +103,7 @@ async def build_content_block(
     content_plan: list[tuple[ContentType, str]],
     prompt: str,
     lesson: Lesson,
+    session: ClientSession,
 ) -> tuple[int, AnyContentBlock]:
     start_time = time.monotonic()
     progress_percent = round((order / len(content_plan)) * 100, 2)  # type: ignore  # noqa: PGH003
@@ -145,6 +124,7 @@ async def build_content_block(
         content_type=content_type,
         context=generation_context,
         prompt=prompt_template,
+        session=session,
     )
     elapsed_time = time.monotonic() - start_time
     logger.info(
@@ -173,6 +153,7 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
                     content_plan=lesson_structure.content_plan,
                     prompt=prompt,
                     lesson=lesson,
+                    session=state["session"],
                 )
             )
             for order, (content_type, prompt) in enumerate(lesson_structure.content_plan, 1)
@@ -196,8 +177,7 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_lesson_practice_agent(
-        lesson=lesson,
-        assignment_type=assignment_type,
+        lesson=lesson, assignment_type=assignment_type, session=state["session"]
     )
     lesson.add_assignment(assignment)
     return {"lesson": lesson}
