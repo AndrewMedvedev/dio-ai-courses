@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from tiktoken import get_encoding
 
 from .settings import settings
 
@@ -28,7 +29,7 @@ redis_broker.add_middleware(Results(backend=result_backend))
 dramatiq.set_broker(redis_broker)
 
 qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
-
+tokens_encoder = get_encoding("o200k_base")
 
 redis_client = Redis(
     host=settings.redis.host,  # из настроек
@@ -42,7 +43,7 @@ checkpointer = AsyncRedisSaver(
     redis_client=redis_client,
     ttl={
         "default_ttl": 60 * 10,  # Истекают контрольные точки через 5 часов
-        "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # noqa: E501
+        "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # ruff:ignore[line-too-long]
     },
 )
 
@@ -78,11 +79,11 @@ async def create_tables() -> None:
         await connection.run_sync(Base.metadata.create_all)
 
 
-async def get_db() -> AsyncSession:  # type: ignore  # noqa: PGH003
+async def get_db() -> AsyncSession:  # type: ignore  # ruff:ignore[blanket-type-ignore]
     async with session_factory() as session:
-        yield session  # type: ignore  # noqa: ASYNC119, PGH003
+        yield session  # type: ignore  # ruff:ignore[yield-in-context-manager-in-async-generator, blanket-type-ignore]
 
 
 async def get_aio() -> AsyncGenerator[ClientSession]:
     async with ClientSession() as session:
-        yield session  # noqa: ASYNC119
+        yield session  # ruff:ignore[yield-in-context-manager-in-async-generator]

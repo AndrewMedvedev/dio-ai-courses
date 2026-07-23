@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
 if TYPE_CHECKING:
-    from .middleware import AgentMiddleware
+    from .middleware import BaseAgentMiddleware
 from asyncio import Semaphore
 from collections.abc import Sequence
 
 from aiohttp import ClientSession
 from openai.lib._pydantic import to_strict_json_schema  # ruff:ignore[import-private-name]
 from openai.types.responses import ToolParam
-from pydantic import Base64Str, BaseModel, ConfigDict, Field
+from pydantic import Base64Str, BaseModel, ConfigDict, Field, TypeAdapter
 
 from .dataclasses import StructuredTool
 
@@ -37,7 +37,7 @@ class LLMTextRequest(BaseModel):
             "format": {
                 "type": "json_schema",
                 "name": schema.__name__,
-                "schema": to_strict_json_schema(schema),
+                "schema": to_strict_json_schema(TypeAdapter(schema)),
                 "strict": True,
             }
         }
@@ -97,7 +97,7 @@ class LLMServiceProtocol(Protocol):
 class LLMTextServiceProtocol(LLMServiceProtocol):
     system_prompt: str | None
     tools: dict[str, StructuredTool] | None
-    middlewares: Sequence[AgentMiddleware] | None
+    middlewares: Sequence[BaseAgentMiddleware] | None
     reasoning: Literal["low", "medium", "high"] | None
     temperature: float | None
     semaphore: Semaphore

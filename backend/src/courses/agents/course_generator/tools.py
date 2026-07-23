@@ -75,7 +75,8 @@ class KnowledgeSearchInput(BaseModel):
 
 
 @tool(  # pyright: ignore[reportCallIssue]
-    "knowledge_search", description="Поиск информации в базе знаний курса", call_limit=3
+    "knowledge_search",
+    description="Поиск информации в базе знаний курса",
 )
 async def knowledge_search(
     runtime: Runtime[CourseContext, list[dict[str, Any]]],

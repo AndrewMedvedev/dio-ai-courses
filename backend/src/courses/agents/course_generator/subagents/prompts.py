@@ -248,6 +248,13 @@ class AssignmentSpecification(BaseModel):
     prompt: str
 
 
+class ContentSpecification(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content_type: ContentType
+    prompt: str
+
+
 class LessonStructure(BaseModel):
     """План одного урока для последующей генерации агентом."""
 
@@ -256,7 +263,7 @@ class LessonStructure(BaseModel):
     title: str = Field(description="Название урока")
     description: str = Field(description="Описание урока")
     learning_objectives: list[str] = Field(description="Цели обучения урока")
-    content_plan: list[tuple[ContentType, str]] = Field(
+    content_plan: list[ContentSpecification] = Field(
         description="""\
         Список детальных и подробных промптов для генерации контент-блоков урока.
 

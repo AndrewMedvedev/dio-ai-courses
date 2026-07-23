@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from ..core.settings import settings
 from .dataclasses import StructuredTool
-from .middleware import AgentMiddleware
+from .middleware import BaseAgentMiddleware
 from .schemas import (
     LLMImageRequest,
     LLMImageResponse,
@@ -28,7 +28,7 @@ class LLMTextService:
         session: ClientSession,
         system_prompt: str | None = None,
         tools: dict[str, StructuredTool] | None = None,
-        middlewares: Sequence[AgentMiddleware] | None = None,
+        middlewares: Sequence[BaseAgentMiddleware] | None = None,
         reasoning: Literal["low", "medium", "high"] | None = None,
         temperature: float | None = None,
         runtime: Runtime | None = None,
@@ -111,7 +111,7 @@ class LLMTextService:
         return handler
 
     def _wrap_with(
-        self, mw: AgentMiddleware, next_handler: Callable[[ToolCallParsed], Awaitable[dict]]
+        self, mw: BaseAgentMiddleware, next_handler: Callable[[ToolCallParsed], Awaitable[dict]]
     ) -> Callable[[ToolCallParsed], Awaitable[dict]]:
         async def wrapped(tool: ToolCallParsed) -> dict:
             return await mw.wrap_tool_call(self, tool, next_handler)  # pyright: ignore[reportArgumentType]
@@ -122,11 +122,6 @@ class LLMTextService:
         logger.info("tool call %s", tool.name)
         callable_func = self.tools[tool.name]  # pyright: ignore[reportOptionalSubscript]
         async with self.semaphore:
-            # logger.info("The tool %s call has reached the limit", tool.name)
-            # return callable_func.to_tool_result(
-            #     call_id=tool.call_id,
-            #     result=f"The tool's call limit is exhausted, do not call again {tool.name}.",
-            # )
             try:
                 result = await callable_func.run_tool(
                     raw_args=tool.arguments, runtime=self.runtime

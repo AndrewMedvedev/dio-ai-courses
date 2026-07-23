@@ -27,7 +27,6 @@ class BrowsePageInput(BaseModel):
 @tool(  # pyright: ignore[reportCallIssue]
     name="browse_page",
     description="Открывает WEB-страницу и получает её контент в формате Markdown",
-    call_limit=3,
 )
 async def browse_page(schema: BrowsePageInput) -> str:
     return await get_page_text(schema.link)
@@ -41,7 +40,6 @@ async def browse_page(schema: BrowsePageInput) -> str:
     Подходит для получения актуальной информации из интернета.
     Используй этот инструмент экономно.
     """,
-    call_limit=3,
 )
 async def web_search(schema: SearchInput) -> list[dict[str, Any]]:  # ruff:ignore[unused-async]
     return DDGS().text(schema.search_query, region="ru-ru", max_results=10)
@@ -65,7 +63,7 @@ async def get_table_of_contents(
     )
     if answer is None:
         return "У пользователя нету документов"
-    return [{"toc_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # noqa: PGH003
+    return [{"toc_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
 
 @tool(  # pyright: ignore[reportCallIssue]
@@ -81,7 +79,7 @@ async def get_titles(
     )
     if answer is None:
         return "У пользователя нету документов"
-    return [{"heading_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # noqa: PGH003
+    return [{"heading_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
 
 @tool(  # pyright: ignore[reportCallIssue]
@@ -94,4 +92,4 @@ async def get_content(runtime: Runtime[DocumentContext, dict[str, Any]], heading
     )
     if answer is None:
         return "У пользователя нету документов"
-    return answer.content  # type: ignore  # noqa: PGH003
+    return answer.content  # type: ignore  # ruff:ignore[blanket-type-ignore]

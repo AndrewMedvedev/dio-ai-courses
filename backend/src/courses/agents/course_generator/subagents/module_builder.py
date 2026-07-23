@@ -8,6 +8,7 @@ from uuid import UUID
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
+from sqlalchemy.exc import IntegrityError
 
 from .....core.infrastructure import checkpointer, session_factory
 from .....llm_service import LLMTextService
@@ -80,10 +81,13 @@ async def plan_module_structure(
 async def save_module(state: AgentState, runtime: Runtime[Context]) -> None:
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
     module = state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    await module_repos.create(module)
-    logger.info("Saving module '%s' to database ...", module.title)
+    try:
+        await module_repos.create(module)
+        logger.info("Saving module '%s' to database ...", module.title)
 
-    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+    except IntegrityError:
+        logger.info("Module %s alredy exsists", module.title)
 
 
 async def build_lesson(
@@ -138,7 +142,7 @@ async def generate_lessons(state: AgentState, runtime: Runtime[Context]) -> dict
                     module_id=module.id,
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure.learning_objectives,
-                    context=runtime.context,
+                    context=Context(aio_session=runtime.context.aio_session),
                 )
             )
             for order, desc in enumerate(module_structure.lessons_descriptions)

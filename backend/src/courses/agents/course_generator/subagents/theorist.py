@@ -12,7 +12,6 @@ from ....domain.entities import (
     ChemicalBlock,
     CodeBlock,
     ContentType,
-    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
@@ -29,37 +28,37 @@ logger = logging.getLogger(__name__)
 config = {
     ContentType.PROGRAM_CODE: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.PROGRAM_CODE],
-        "response_format": TypeAdapter(CodeBlock),
+        "response_format": CodeBlock,
     },
     ContentType.TEXT: {
         "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
-        "response_format": TypeAdapter(TextBlock),
+        "response_format": TextBlock,
     },
-    ContentType.IMAGE: {
-        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
-        "response_format": TypeAdapter(ImageBlock),
-    },
+    # ContentType.IMAGE: {
+    #     "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
+    #     "response_format": ImageBlock,
+    # },
     ContentType.QUIZ: {
         "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.QUIZ],
-        "response_format": TypeAdapter(QuizBlock),
+        "response_format": QuizBlock,
     },
     ContentType.MERMAID: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MERMAID],
-        "response_format": TypeAdapter(MermaidBlock),
+        "response_format": MermaidBlock,
     },
     ContentType.MATH_FORMULA: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MATH_FORMULA],
-        "response_format": TypeAdapter(MathBlock),
+        "response_format": MathBlock,
     },
     ContentType.CHEMICAL_FORMULA: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.CHEMICAL_FORMULA],
-        "response_format": TypeAdapter(ChemicalBlock),
+        "response_format": ChemicalBlock,
     },
     ContentType.MUSICAL_NOTATION: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MUSICAL_NOTATION],
-        "response_format": TypeAdapter(MusicalBlock),
+        "response_format": MusicalBlock,
     },
 }
 
@@ -144,13 +143,13 @@ async def generate_text(
         tools=content_config.get("tools"),
         runtime=Runtime(context=context),
     )
-    response_format: TypeAdapter = content_config.get("response_format")  # pyright: ignore[reportAssignmentType]
+    response_format: AnyContentBlock = content_config.get("response_format")  # pyright: ignore[reportAssignmentType]
     result = await agent.invoke(
         messages=[{"role": "user", "content": prompt}],
-        schema=response_format.json_schema(),  # pyright: ignore[reportArgumentType]
+        schema=response_format,  # pyright: ignore[reportArgumentType]
     )
 
-    return response_format.validate_python(result.output)
+    return TypeAdapter(response_format).validate_python(result.output)
 
 
 async def call_theory_agent(
@@ -168,10 +167,10 @@ async def call_theory_agent(
     """
 
     logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
-    if content_type is ContentType.IMAGE:
-        return await generate_image(
-            content_type=content_type, context=context, prompt=prompt, session=session
-        )
+    # if content_type is ContentType.IMAGE:
+    #     return await generate_image(
+    #         content_type=content_type, context=context, prompt=prompt, session=session
+    #     )
     return await generate_text(
         content_type=content_type, context=context, prompt=prompt, session=session
     )

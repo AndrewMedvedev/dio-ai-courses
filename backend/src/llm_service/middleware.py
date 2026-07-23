@@ -17,9 +17,9 @@ from .schemas import (
 ResponseT = TypeVar("ResponseT", bound=LLMTextResponse | LLMImageResponse)
 
 
-class AgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstract-method]
+class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstract-method]
     """
-    Базовый класс миддлвари для LLMTextService.
+    Базовый класс миддлвари для LLMService.
     Переопределяйте только нужные хуки — остальные по умолчанию
     просто пропускают данные дальше без изменений (pass-through).
     """

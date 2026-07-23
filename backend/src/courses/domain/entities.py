@@ -13,7 +13,7 @@ class ContentType(StrEnum):
     """Тип контента внутри блока."""
 
     TEXT = auto()  # Текстовый контент / лекция
-    IMAGE = auto()  # Изображение
+    # IMAGE = auto()  # Изображение
     PROGRAM_CODE = auto()  # Пример кода
     MERMAID = auto()  # Mermaid диаграмма
     QUIZ = auto()  # Вопросы для самопроверки
@@ -50,18 +50,18 @@ class TextBlock(ContentBlock):
     md_content: str
 
 
-@dataclass(kw_only=True, slots=True)
-class ImageBlock(ContentBlock):
-    """Блок с текстовым теоретическим материалом.
+# @dataclass(kw_only=True, slots=True)
+# class ImageBlock(ContentBlock):
+#     """Блок с текстовым теоретическим материалом.
 
-    Attributes:
-        content_type: Тип контента (всегда TEXT).
-        ai_generated: Флаг AI-генерации.
-        md_content: Текст лекции в формате Markdown.
-    """
+#     Attributes:
+#         content_type: Тип контента (всегда TEXT).
+#         ai_generated: Флаг AI-генерации.
+#         md_content: Текст лекции в формате Markdown.
+#     """
 
-    content_type: ContentType = ContentType.IMAGE
-    image_url: str
+#     content_type: ContentType = ContentType.IMAGE
+#     image_url: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -188,7 +188,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 
 AnyContentBlock = (
     TextBlock
-    | ImageBlock
+    # | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock

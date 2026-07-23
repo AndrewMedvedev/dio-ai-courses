@@ -1,14 +1,25 @@
 import logging
 from json import dumps
 
-from aiohttp.client_exceptions import ClientConnectionResetError, ClientOSError
 from langsmith import traceable
-from openai import APIConnectionError, APITimeoutError, AsyncOpenAI
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AsyncOpenAI,
+    InternalServerError,
+    RateLimitError,
+)
 from openai.types.images_response import ImagesResponse
 from openai.types.responses.response import Response
-from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_exponential
-from tiktoken import get_encoding
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    retry_if_not_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
+from ..core.infrastructure import tokens_encoder
 from ..core.settings import settings
 from ..llm_service.schemas import (
     LLMImageRequest,
@@ -31,8 +42,6 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
-encoder = get_encoding("o200k_base")
-
 
 class LLMTextRouter:
     def __init__(
@@ -46,14 +55,18 @@ class LLMTextRouter:
         self.wrapper = wrapper
 
     @retry(
-        stop=stop_after_attempt(3),  # сколько попыток
-        wait=wait_exponential(multiplier=1, min=1, max=2),  # backoff
-        retry=retry_if_not_exception_type((
+        retry=retry_if_exception_type((
+            RateLimitError,
             APIConnectionError,
             APITimeoutError,
-            ClientOSError,
-            ClientConnectionResetError,
+            InternalServerError,
         )),
+        wait=wait_exponential(
+            multiplier=2,
+            min=2,
+            max=30,
+        ),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
@@ -80,7 +93,7 @@ class LLMTextRouter:
         input_messages: str,
         models: list[AIModel],
     ) -> tuple[str, list[AIModel]]:
-        count_tokens = len(encoder.encode(text=input_messages))
+        count_tokens = len(tokens_encoder.encode(text=input_messages))
         if count_tokens >= BASE_MODEL_CONTEXT:
             filtered_models = [model for model in models if model.context > count_tokens]
             min_model = min(filtered_models, key=lambda model: model.context)

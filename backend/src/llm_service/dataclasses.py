@@ -38,7 +38,6 @@ class StructuredTool:
     args_schema: dict
     args_model: type[BaseModel]
     param_groups: dict[str, ParamGroup]
-    call_limit: int | None
 
     def to_tool_params(self) -> FunctionToolParam:
         return FunctionToolParam(type="function", strict=True, **self.args_schema)

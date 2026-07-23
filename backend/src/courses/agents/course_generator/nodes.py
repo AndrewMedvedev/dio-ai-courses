@@ -7,6 +7,7 @@ from asyncio.taskgroups import TaskGroup
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime as GraphRuntime
+from sqlalchemy.exc import IntegrityError
 
 from ....core.infrastructure import checkpointer, session_factory
 from ....llm_service import Runtime
@@ -78,10 +79,13 @@ async def plan_course_structure(state: AgentState, runtime: GraphRuntime[Context
 async def save_course(state: AgentState, runtime: GraphRuntime[Context]) -> None:
     course_repos = SqlCourseRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
     course = state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    await course_repos.create(course)
-    logger.info("Saving course '%s' to database ...", course.title)
+    try:
+        await course_repos.create(course)
+        logger.info("Saving course '%s' to database ...", course.title)
 
-    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+    except IntegrityError:
+        logger.info("Course %s alredy exsists", course.title)
 
 
 async def build_module(
@@ -133,7 +137,7 @@ async def generate_modules(state: AgentState, runtime: GraphRuntime[Context]) ->
                     module_description=desc,
                     audience_description=course_structure.audience_description,
                     learning_objectives=course_structure.learning_objectives,
-                    context=runtime.context,  # pyright: ignore[reportArgumentType]
+                    context=Context(aio_session=runtime.context.aio_session),  # pyright: ignore[reportArgumentType]
                 )
             )
             for order, desc in enumerate(course_structure.module_descriptions)

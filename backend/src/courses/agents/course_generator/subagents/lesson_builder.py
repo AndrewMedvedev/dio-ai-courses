@@ -8,6 +8,7 @@ from uuid import UUID
 from aiohttp import ClientSession
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
+from sqlalchemy.exc import IntegrityError
 
 from .....core.infrastructure import checkpointer, qdrant_client
 from .....llm_service import LLMTextService
@@ -16,7 +17,7 @@ from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import Context, GenerationContext
 from .practician import call_lesson_practice_agent
-from .prompts import LessonStructure
+from .prompts import ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
 
 logger = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ async def build_content_block(
     order: int,
     content_type: ContentType,
     generation_context: GenerationContext,
-    content_plan: list[tuple[ContentType, str]],
+    content_plan: list[ContentSpecification],
     prompt: str,
     lesson: Lesson,
     session: ClientSession,
@@ -155,14 +156,14 @@ async def generate_content_blocks(
                 build_content_block(
                     order=order,
                     generation_context=state["generation_context"],
-                    content_type=content_type,
+                    content_type=content.content_type,
                     content_plan=lesson_structure.content_plan,
-                    prompt=prompt,
+                    prompt=content.prompt,
                     lesson=lesson,
                     session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
                 )
             )
-            for order, (content_type, prompt) in enumerate(lesson_structure.content_plan, 1)
+            for order, content in enumerate(lesson_structure.content_plan, 1)
         ]
     content_by_order = sorted(task.result() for task in tasks)
     for _, content in content_by_order:
@@ -206,8 +207,11 @@ async def save_lesson(state: AgentState, runtime: Runtime[Context]) -> None:
     )
 
     logger.info("Saving lesson '%s' to database ...", lesson.title)
-    await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
-    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+    try:
+        await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
+        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+    except IntegrityError:
+        logger.info("Lesson %s alredy exsists", lesson.title)
 
 
 # Создание рабочего пространства для агента

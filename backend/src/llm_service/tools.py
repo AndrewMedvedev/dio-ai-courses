@@ -115,7 +115,6 @@ def tool(
     *,
     name: str | None = None,
     description: str | None = None,
-    call_limit: int | None = None,
 ) -> StructuredTool | Callable[[Callable], StructuredTool]:
     def decorator(func: Callable) -> StructuredTool:
         tool_name = name or (
@@ -140,7 +139,6 @@ def tool(
             args_schema=tool_schema,
             args_model=args_model,
             param_groups=param_groups,
-            call_limit=call_limit,
         )
 
     if callable(name_or_callable):
