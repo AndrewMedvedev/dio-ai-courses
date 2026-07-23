@@ -46,7 +46,7 @@ PROMPT_CHOOSE_MODEL = """
 
 ### СООБЩЕНИЯ:
 {messages}
-"""  # noqa: E501
+"""  # ruff:ignore[line-too-long]
 
 PROMPT_RETRY = """
 Ты — интеллектуальная система маршрутизации моделей ИИ.
@@ -111,4 +111,4 @@ PROMPT_RETRY = """
 
 ### MESSAGES:
 {messages}
-"""  # noqa: E501
+"""  # ruff:ignore[line-too-long]

@@ -19,9 +19,7 @@ class AttachmentMapper(ModelMapper):
             mime_type=model.mime_type,
             size_bytes=model.size_bytes,
             storage_key=model.storage_key,
-            owner_type=model.owner_type,
             owner_id=model.owner_id,
-            is_public=model.is_public,
             uploaded_at=model.uploaded_at,
             uploaded_by=model.uploaded_by,
         )
@@ -36,9 +34,7 @@ class AttachmentMapper(ModelMapper):
             mime_type=entity.mime_type,
             size_bytes=entity.size_bytes,
             storage_key=entity.storage_key,
-            owner_type=entity.owner_type,
             owner_id=entity.owner_id,
-            is_public=entity.is_public,
             uploaded_at=entity.uploaded_at,
             uploaded_by=entity.uploaded_by,
         )
@@ -54,10 +50,8 @@ class SqlAttachmentRepository(SqlAlchemyRepository[Attachment, AttachmentOrm]):
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.to_entity(model)
 
-    async def get_by_owner(self, owner_type: str, owner_id: UUID) -> list[Attachment]:
-        stmt = select(self.model).where(
-            (self.model.owner_type == owner_type) & (self.model.owner_id == owner_id)
-        )
+    async def get_by_owner(self, owner_id: UUID) -> list[Attachment]:
+        stmt = select(self.model).where(self.model.owner_id == owner_id)
         results = await self.session.execute(stmt)
         models = results.scalars().all()
         return [self.model_mapper.to_entity(model) for model in models]

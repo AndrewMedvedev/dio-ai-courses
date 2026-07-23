@@ -365,21 +365,6 @@ class Module(Entity):
         self.assignment = assignment
 
 
-@dataclass(slots=True)
-class FinalAssessment:
-    """Финальное задание в конце курса.
-
-    Attributes:
-        task: Текст финального задания.
-        evaluation_criteria: Критерии оценки.
-        version: Версия задания (позволяет обновлять задание без удаления старых ответов).
-    """
-
-    task: str
-    evaluation_criteria: list[str]
-    version: int = 0
-
-
 @dataclass(kw_only=True, slots=True)
 class Course(AggregateRoot):
     """Курс.
@@ -409,10 +394,13 @@ class Course(AggregateRoot):
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[Module] = field(default_factory=list)
-    final_assessment: FinalAssessment | None = None
+    assignment: AnyAssignment | None = None
 
     def append_module(self, module: Module) -> None:
         self.modules.append(module)
+
+    def add_assignment(self, assignment: AnyAssignment) -> None:
+        self.assignment = assignment
 
 
 @dataclass(kw_only=True, slots=True)

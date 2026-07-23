@@ -22,30 +22,29 @@ class ChatService:
         self.llm_service = llm_service
         self.summarize_prompt = summarize_prompt
 
-    async def get_or_init_conversation(self, schema: Chat) -> list[dict]:
-        messages = await self.repo.read(schema.user_id)
+    async def get_or_init_conversation(self, chat: Chat) -> list[dict]:
+        messages = await self.repo.read(chat.user_id)
         if messages is not None:
-            return messages.messages + schema.messages
-        await self.repo.create(schema)
+            return messages.messages + chat.messages
+        await self.repo.create(chat)
         await self.session.commit()
-        return schema.messages
+        return chat.messages
 
-    async def summarize_chat_history(self, schema: Chat) -> dict | None:
-        if len(dumps(schema.messages)) < self.max_chars:
+    async def summarize_chat_history(self, chat: Chat) -> dict | None:
+        if len(dumps(chat.messages)) < self.max_chars:
             return None
-        schema.messages.append({"role": "system", "content": self.summarize_prompt})
-        result: dict = await self.llm_service.invoke(messages=schema.messages)  # pyright: ignore[reportAssignmentType]
+        chat.messages.append({"role": "system", "content": self.summarize_prompt})
+        result: dict = await self.llm_service.invoke_text(messages=chat.messages)  # pyright: ignore[reportAssignmentType]
         return result
 
-    async def handle_chat_turn(self, schema: Chat) -> dict:
-        messages = await self.get_or_init_conversation(schema)
-        schema.replace_messages(messages)
-        answer: dict = await self.llm_service.invoke(messages)  # pyright: ignore[reportAssignmentType]
+    async def handle_chat_turn(self, chat: Chat) -> dict:
+        messages = await self.get_or_init_conversation(chat)
+        answer: dict = await self.llm_service.invoke_text(messages)  # pyright: ignore[reportAssignmentType]
         messages.append(answer)
-        schema.replace_messages(messages)
-        summary = await self.summarize_chat_history(schema)
+        chat.replace_messages(messages)
+        summary = await self.summarize_chat_history(chat)
         if summary is not None:
-            schema.replace_messages([summary])
-        await self.repo.upsert(schema)
+            chat.replace_messages([summary])
+        await self.repo.upsert(chat)
         await self.session.commit()
         return answer

@@ -27,6 +27,7 @@ class BrowsePageInput(BaseModel):
 @tool(  # pyright: ignore[reportCallIssue]
     name="browse_page",
     description="Открывает WEB-страницу и получает её контент в формате Markdown",
+    call_limit=3,
 )
 async def browse_page(schema: BrowsePageInput) -> str:
     return await get_page_text(schema.link)
@@ -40,8 +41,9 @@ async def browse_page(schema: BrowsePageInput) -> str:
     Подходит для получения актуальной информации из интернета.
     Используй этот инструмент экономно.
     """,
+    call_limit=3,
 )
-def web_search(schema: SearchInput) -> list[dict[str, Any]]:
+async def web_search(schema: SearchInput) -> list[dict[str, Any]]:  # ruff:ignore[unused-async]
     return DDGS().text(schema.search_query, region="ru-ru", max_results=10)
 
 

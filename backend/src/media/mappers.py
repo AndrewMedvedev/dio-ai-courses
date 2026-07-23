@@ -14,7 +14,6 @@ def map_attachment_to_response(attachment: Attachment) -> AttachmentResponse:
         mime_type=attachment.mime_type,
         size_bytes=attachment.size_bytes,
         storage_key=attachment.storage_key,
-        owner_type=attachment.owner_type,
         owner_id=attachment.owner_id,
         uploaded_at=attachment.uploaded_at,
         uploaded_by=attachment.uploaded_by,

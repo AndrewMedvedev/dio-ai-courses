@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
     model = LessonOrm
-    model_mapper = LessonMapper  # type: ignore  # noqa: PGH003
+    model_mapper = LessonMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     async def get_by_id_basic_info(self, lesson_id: UUID) -> LessonBasicInfo | None:
         stmt = select(
@@ -44,7 +44,7 @@ class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
         ).where(self.model.id == lesson_id)
         result = await self.session.execute(stmt)
         model = result.one_or_none()
-        return None if model is None else self.model_mapper.basic_info_mapper(model)  # type: ignore  # noqa: PGH003
+        return None if model is None else self.model_mapper.basic_info_mapper(model)  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     async def assign_module(
         self,
@@ -58,7 +58,7 @@ class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
 
 class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
     model = ModuleOrm
-    model_mapper = ModuleMapper  # type: ignore  # noqa: PGH003
+    model_mapper = ModuleMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     async def assign_course(
         self,
@@ -105,12 +105,12 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
             return None
         lessons = await self.select_lessons_by_id_module(module_id=module_id)
 
-        return self.model_mapper.basic_info_mapper(module_row, lessons)  # type: ignore  # noqa: PGH003
+        return self.model_mapper.basic_info_mapper(module_row, lessons)  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
 
 class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     model = CourseOrm
-    model_mapper = CourseMapper  # type: ignore  # noqa: PGH003
+    model_mapper = CourseMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:
         modules_stmt = (
@@ -150,12 +150,12 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
 
         modules = await self.select_modules_by_id_course(course_id)
 
-        return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore  # noqa: PGH003
+        return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
 
 class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     model = DocumentOrm
-    model_mapper = DocumentMapper  # type: ignore  # noqa: PGH003
+    model_mapper = DocumentMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
     async def get_tocs(self, owner_id: UUID) -> list[Document | None]:
@@ -166,7 +166,7 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             )
         )
         result = stmt.scalars().all()
-        return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # noqa: PGH003
+        return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
     async def get_headings(self, toc_id: UUID) -> list[Document | None]:
@@ -177,7 +177,7 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             )
         )
         result = stmt.scalars().all()
-        return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # noqa: PGH003
+        return [None if model is None else self.model_mapper.to_entity(model) for model in result]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
     async def get_texts(self, heading_id: UUID) -> Document | None:
@@ -188,12 +188,12 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             )
         )
         result = stmt.scalars().all()
-        return None if result is None else self.model_mapper.to_entity(result)  # type: ignore  # noqa: PGH003
+        return None if result is None else self.model_mapper.to_entity(result)  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
 
 class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
     model = ChatOrm
-    model_mapper = ChatMapper  # type: ignore  # noqa: PGH003
+    model_mapper = ChatMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
 
 class VectorRepository:
@@ -225,7 +225,7 @@ class VectorRepository:
         points = []
         for chunk in chunks:
             dense_vector = await embed(inputs=[chunk])
-            sparse = next(self.sparse_model.embed([chunk]))  # type: ignore  # noqa: PGH003
+            sparse = next(self.sparse_model.embed([chunk]))  # type: ignore  # ruff:ignore[blanket-type-ignore]
             indices = sparse.indices.tolist()
             values = sparse.values.tolist()
             points.append(
@@ -260,7 +260,7 @@ class VectorRepository:
     ) -> list[str]:
         """Hybrid search: Dense + BM25 + RRF + Rerank."""
         dense_query = (await embed(inputs=[query]))[0]
-        sparse_query = next(self.sparse_model.embed([query]))  # type: ignore  # noqa: PGH003
+        sparse_query = next(self.sparse_model.embed([query]))  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
         qdrant_filter = None
         if metadata_filters:
@@ -282,7 +282,7 @@ class VectorRepository:
                         )
                     )
 
-            qdrant_filter = models.Filter(must=conditions)  # type: ignore  # noqa: PGH003
+            qdrant_filter = models.Filter(must=conditions)  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
         response = await self.client.query_points(
             collection_name=self.collection_name,

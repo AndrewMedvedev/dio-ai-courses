@@ -41,7 +41,7 @@ redis_client = Redis(
 checkpointer = AsyncRedisSaver(
     redis_client=redis_client,
     ttl={
-        "default_ttl": 60 * 5,  # Истекают контрольные точки через 5 часов
+        "default_ttl": 60 * 10,  # Истекают контрольные точки через 5 часов
         "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # noqa: E501
     },
 )

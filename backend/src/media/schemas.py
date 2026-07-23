@@ -22,13 +22,9 @@ class PresignedUploadRequest(BaseModel):
         ...,
         pattern=r"^[\w\-]+/[\w\-\.]+$",
         description="Тип контента файла",
-        examples=["application/pdf"]
+        examples=["application/pdf"],
     )
-    owner_type: str = Field(
-        ...,
-        pattern="^(ticket|comment|user|counterparty|message)$",
-        description="Сущность, которой принадлежит файл"
-    )
+
     owner_id: UUID = Field(..., description="ID сущности, которой принадлежит файл")
 
 
@@ -46,18 +42,14 @@ class ConfirmUploadRequest(BaseModel):
     """Подтверждение загрузки"""
 
     storage_key: str = Field(
-        ..., min_length=1, max_length=255, description="Уникальный ключ загруженного объекта")
+        ..., min_length=1, max_length=255, description="Уникальный ключ загруженного объекта"
+    )
     original_filename: str = Field(..., description="Оригинальное имя файла")
     content_type: str = Field(
         ...,
         pattern=r"^[\w\-]+/[\w\-\.]+$",
         description="Тип контента файла",
         examples=["application/pdf"],
-    )
-    owner_type: str = Field(
-        ...,
-        pattern="^(ticket|comment|user|counterparty|message)$",
-        description="Сущность, которой принадлежит файл",
     )
     owner_id: UUID = Field(..., description="ID сущности, которой принадлежит файл")
 
@@ -70,7 +62,7 @@ class AttachmentResponse(BaseModel):
     mime_type: str = Field(..., description="Mime тип файла")
     size_bytes: PositiveInt = Field(..., description="Размер файла в байтах")
     storage_key: str = Field(..., description="Уникальный ключ объекта в хранилище")
-    owner_type: str = Field(..., description="Тип сущности, которой принадлежит файл")
+
     owner_id: UUID = Field(..., description="ID сущности, которой принадлежит вложение")
     uploaded_by: UUID = Field(..., description="ID пользователя, который загрузил файл")
     uploaded_at: datetime = Field(..., description="Дата загрузки объекта в хранилище")

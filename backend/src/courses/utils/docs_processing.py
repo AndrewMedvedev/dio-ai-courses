@@ -114,13 +114,14 @@ class DocumentHierarchyPipeline:
         splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
         cleaned = self.remove_media_syntax(md_content, self.extract_media(md_content))
         docs = splitter.split_text(cleaned)
-        return [d for d in docs if not self._is_heading_only(d.page_content)]
+        return [d for d in docs if not self.is_heading_only(d.page_content)]
 
     async def __call__(self, file: bytes, file_extension: str) -> list[Document]:
         md = await self.convert_document_to_md_async(file=file, file_extension=file_extension)
         return self.split_markdown(md)
 
 
+"""
 # Пример использования
 if __name__ == "__main__":
     file_path = pathlib.Path(
@@ -134,3 +135,4 @@ if __name__ == "__main__":
 
     # Вывод для проверки
     print(pipeline)
+"""

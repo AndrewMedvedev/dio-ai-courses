@@ -8,11 +8,11 @@ from ...core.settings import settings
 
 class ImgProxyService:
     def __init__(
-            self,
-            base_url: str,
-            bucket_name: str,
-            key: str | None = None,
-            salt: str | None = None,
+        self,
+        base_url: str,
+        bucket_name: str,
+        key: str,
+        salt: str,
     ) -> None:
         self.base_url = base_url
         self.bucket_name = bucket_name
@@ -20,13 +20,13 @@ class ImgProxyService:
         self.salt = salt
 
     def get_url(
-            self,
-            storage_key: str,
-            width: int = 200,
-            height: int = 200,
-            resize_type: str = "fit",
-            img_format: str = "webp",
-            quality: int = 85,
+        self,
+        storage_key: str,
+        width: int = 200,
+        height: int = 200,
+        resize_type: str = "fit",
+        img_format: str = "webp",
+        quality: int = 85,
     ) -> str:
         """
         Генерирует URL через Imgproxy

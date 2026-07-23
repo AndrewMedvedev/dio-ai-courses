@@ -2,7 +2,7 @@ from typing import Literal
 
 from pathlib import Path
 
-import pytz  # type: ignore  # noqa: PGH003
+import pytz  # type: ignore  # ruff:ignore[blanket-type-ignore]
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,8 +10,9 @@ TIMEZONE = "Asia/Yekaterinburg"
 timezone = pytz.timezone(TIMEZONE)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-CHROMA_PATH = BASE_DIR / ".chroma"
+
 ENV_FILE = BASE_DIR / ".env"
+
 ENV_DEV_FILE = BASE_DIR / ".env.dev"  # Среда для разработки
 
 load_dotenv(ENV_FILE)
@@ -93,10 +94,23 @@ class MailSettings(BaseSettings):
     support_email: str = "diocon.support@mail.ru"
 
 
+class ImgProxySettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="IMGPROXY_")
+
+    host: str = "localhost"
+    port: int = 8081
+    key: str = "<KEY>"
+    salt: str = "<SALT>"
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+
 class ProxyApi(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PROXY_API_")
 
-    api_key: str = "<API_KEY>"
+    key: str = "<API_KEY>"
     base_url: str = "https://openai.api.proxyapi.ru/v1"
 
 
@@ -211,6 +225,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     jwt: JWTSettings = JWTSettings()
     mail: MailSettings = MailSettings()
+    imgproxy: ImgProxySettings = ImgProxySettings()
     proxy_api: ProxyApi = ProxyApi()
     yandex_cloud: YandexCloudSettings = YandexCloudSettings()
     admin: AdminSettings = AdminSettings()
@@ -219,7 +234,7 @@ class Settings(BaseSettings):
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
-    text_llm_router_url: str = ""
+    text_llm_router_url: str = "http://localhost:8000/api/v1/responses/"
     image_llm_router_url: str = ""
     text_ai_model: str = "gpt-4"
     image_ai_model: str = "gpt-image-2"

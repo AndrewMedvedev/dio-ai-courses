@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from uuid import UUID
 
 from sqlalchemy import TEXT, CheckConstraint, Enum, ForeignKey, Index, Integer, UniqueConstraint
@@ -22,7 +24,7 @@ class CourseOrm(Base):
     creator_id: Mapped[UUID]
     image_url: Mapped[str | None] = mapped_column(nullable=True)
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    final_assessment: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    assignment: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     modules: Mapped[list[ModuleOrm]] = relationship(
         back_populates="course",
@@ -70,7 +72,7 @@ class LessonOrm(Base):
 class ChatOrm(Base):
     __tablename__ = "chat"
     user_id: Mapped[UUID]
-    messages: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+    messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 
 class CourseUserOrm(Base):

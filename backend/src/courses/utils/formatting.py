@@ -37,14 +37,6 @@ def get_content_blocks_context(content_blocks: list[AnyContentBlock]) -> str:
         match content_block.content_type:
             case ContentType.TEXT:
                 context += f"{content_block.md_content}\n\n"  # type: ignore  # noqa: PGH003
-            case ContentType.VIDEO:
-                context += (
-                    f"Платформа: {content_block.platform}\n"  # type: ignore  # noqa: PGH003
-                    f"Ссылка на видео: {content_block.url}\n"  # type: ignore  # noqa: PGH003
-                    f"Название видео: {content_block.title}\n"  # type: ignore  # noqa: PGH003
-                    "Вопросы для обсуждения:\n"
-                    f" - {'\n - '.join(content_block.discussion_questions)}"  # type: ignore  # noqa: PGH003
-                )
             case ContentType.QUIZ:
                 context += (
                     "Вопросы для самопроверки:\n"

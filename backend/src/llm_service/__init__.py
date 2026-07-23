@@ -1,6 +1,13 @@
-__all__ = ["LLMService", "Runtime", "StructuredTool", "tool"]
+__all__ = [
+    "LLMImageRequest",
+    "LLMImageService",
+    "LLMTextService",
+    "Runtime",
+    "StructuredTool",
+    "tool",
+]
 
 from .dataclasses import StructuredTool
-from .schemas import Runtime
-from .services import LLMService
+from .schemas import LLMImageRequest, Runtime
+from .services import LLMImageService, LLMTextService
 from .tools import tool

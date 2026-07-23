@@ -7,13 +7,14 @@ from uuid import UUID
 
 from aiohttp import ClientSession
 from langgraph.graph import END, START, StateGraph
+from langgraph.runtime import Runtime
 
-from .....core.infrastructure import checkpointer, qdrant_client, session_factory
-from .....llm_service import LLMService
+from .....core.infrastructure import checkpointer, qdrant_client
+from .....llm_service import LLMTextService
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
-from ...schemas import GenerationContext
+from ...schemas import Context, GenerationContext
 from .practician import call_lesson_practice_agent
 from .prompts import LessonStructure
 from .theorist import call_theory_agent
@@ -32,13 +33,15 @@ class AgentState(TypedDict):
     lesson_description: str  # Описание урока из структуры модуля
     lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
     lesson: NotRequired[Lesson]  # Сгенерированный урок
-    session: ClientSession
 
 
-async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure | Lesson]:
+async def plan_lesson_structure(
+    state: AgentState,
+    runtime: Runtime[Context],
+) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
-    lesson_structure_planner = LLMService(
-        session=state["session"],
+    lesson_structure_planner = LLMTextService(
+        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
         system_prompt="""\
     Ты опытный методист и разработчик образовательных курсов.
     Твоя задача — спланировать детальную структуру одного урока: разбить материал
@@ -78,11 +81,11 @@ async def plan_lesson_structure(state: AgentState) -> dict[str, LessonStructure 
         state["order"],
         state["lesson_description"][:100],
     )
-    result: dict = await lesson_structure_planner.invoke_text(  # pyright: ignore[reportAssignmentType]
+    result = await lesson_structure_planner.invoke(
         schema=LessonStructure, messages=[{"role": "user", "content": prompt_template}]
     )
 
-    lesson_structure = LessonStructure(**result)
+    lesson_structure = LessonStructure.model_validate(result.output)
     logger.info(
         "Module structure is done, start filling `title`, `description`, `learning_objectives` ..."
     )
@@ -106,7 +109,7 @@ async def build_content_block(
     session: ClientSession,
 ) -> tuple[int, AnyContentBlock]:
     start_time = time.monotonic()
-    progress_percent = round((order / len(content_plan)) * 100, 2)  # type: ignore  # noqa: PGH003
+    progress_percent = round((order / len(content_plan)) * 100, 2)  # type: ignore  # ruff:ignore[blanket-type-ignore]
     logger.info(
         "%s%% Generating `%s` content block for current plan: '%s'",
         progress_percent,
@@ -116,7 +119,7 @@ async def build_content_block(
 
     prompt_template = (
         "# Контекст текущего урока:\n"
-        f"{get_lesson_context(lesson, include_content_blocks=False)}\n\n"  # type: ignore  # noqa: PGH003
+        f"{get_lesson_context(lesson, include_content_blocks=False)}\n\n"  # type: ignore  # ruff:ignore[blanket-type-ignore]
         f"# Сгенерируй контент блок с заданным типом - '{content_type.value}':\n"
         f"**Промпт**: {prompt}"
     )
@@ -135,13 +138,16 @@ async def build_content_block(
     return order, content_block  # ← возвращаем order, чтобы потом отсортировать
 
 
-async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
+async def generate_content_blocks(
+    state: AgentState,
+    runtime: Runtime[Context],
+) -> dict[str, Lesson]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
     """
 
-    lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # noqa: PGH003
-    logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))  # type: ignore  # noqa: PGH003
+    lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     async with TaskGroup() as tg:
         tasks = [
@@ -153,7 +159,7 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
                     content_plan=lesson_structure.content_plan,
                     prompt=prompt,
                     lesson=lesson,
-                    session=state["session"],
+                    session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
                 )
             )
             for order, (content_type, prompt) in enumerate(lesson_structure.content_plan, 1)
@@ -163,52 +169,54 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
         lesson.append_content_block(content)
     logger.info(
         "Saving generated content blocks of `%s` module to knowledge base ...",
-        lesson.title,  # type: ignore  # noqa: PGH003
+        lesson.title,  # type: ignore  # ruff:ignore[blanket-type-ignore]
     )
 
     return {"lesson": lesson}
 
 
-async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
+async def generate_assignment(state: AgentState, runtime: Runtime[Context]) -> dict[str, Lesson]:
     """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
-    lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # noqa: PGH003
-    assignment_type, prompt = lesson_structure.assignment_specification
+    lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    assignment_type = lesson_structure.assignment_specification.assignment_type
+    prompt = lesson_structure.assignment_specification.prompt
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_lesson_practice_agent(
-        lesson=lesson, assignment_type=assignment_type, session=state["session"]
+        lesson=lesson,
+        assignment_type=assignment_type,
+        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
     )
     lesson.add_assignment(assignment)
     return {"lesson": lesson}
 
 
-async def save_lesson(state: AgentState) -> None:
-    async with session_factory() as session:
-        lesson = state["lesson"]  # type: ignore  # noqa: PGH003
+async def save_lesson(state: AgentState, runtime: Runtime[Context]) -> None:
+    lesson = state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
-        await VectorRepository(client=qdrant_client).index_document(
-            text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # noqa: PGH003
-            metadata={
-                "course_id": state["generation_context"].course_id,
-                "lesson_id": f"{lesson.id}",
-                "source": f"{lesson.title}",
-                "category": "theory",
-            },
-        )
+    await VectorRepository(client=qdrant_client).index_document(
+        text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # ruff:ignore[blanket-type-ignore]
+        metadata={
+            "course_id": state["generation_context"].course_id,
+            "lesson_id": f"{lesson.id}",
+            "source": f"{lesson.title}",
+            "category": "theory",
+        },
+    )
 
-        logger.info("Saving lesson '%s' to database ...", lesson.title)
-        await SqlLessonRepository(session).create(lesson)
-        await session.commit()
+    logger.info("Saving lesson '%s' to database ...", lesson.title)
+    await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
+    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
 
 
 # Создание рабочего пространства для агента
-graph = StateGraph(AgentState)
+graph = StateGraph(AgentState, context_schema=Context)
 
-graph.add_node("plan_lesson_structure", plan_lesson_structure)
-graph.add_node("generate_content_blocks", generate_content_blocks)
-graph.add_node("generate_assignment", generate_assignment)
-graph.add_node("save_lesson", save_lesson)
+graph.add_node("plan_lesson_structure", plan_lesson_structure)  # pyright: ignore[reportArgumentType]
+graph.add_node("generate_content_blocks", generate_content_blocks)  # pyright: ignore[reportArgumentType]
+graph.add_node("generate_assignment", generate_assignment)  # pyright: ignore[reportArgumentType]
+graph.add_node("save_lesson", save_lesson)  # pyright: ignore[reportArgumentType]
 graph.add_edge(START, "plan_lesson_structure")
 graph.add_edge("plan_lesson_structure", "generate_content_blocks")
 graph.add_edge("generate_content_blocks", "generate_assignment")

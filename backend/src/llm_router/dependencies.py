@@ -6,9 +6,12 @@ from openai import AsyncOpenAI
 from ..core.settings import settings
 from ..shared.dependencies import SessionDep
 from .infra.repository import SqlAIModelRepository
-from .services import LLMRouter
+from .services import LLMTextRouter
+from .utils import cache_ai_models
 
-client = AsyncOpenAI(api_key=settings.proxy_api.api_key, base_url=settings.proxy_api.base_url)
+client = AsyncOpenAI(api_key=settings.proxy_api.key, base_url=settings.proxy_api.base_url)
+
+# client = AsyncOpenAI(api_key=settings.proxy_api.api_key, base_url="http://10.1.50.99:1234/v1")
 
 
 def get_ai_model_repo(session: SessionDep) -> SqlAIModelRepository:
@@ -18,8 +21,8 @@ def get_ai_model_repo(session: SessionDep) -> SqlAIModelRepository:
 AIModelsRepoDep = Annotated[SqlAIModelRepository, Depends(get_ai_model_repo)]
 
 
-def get_llm_router(repository: AIModelsRepoDep) -> LLMRouter:
-    return LLMRouter(ai_model_repos=repository, client=client)
+def get_llm_router(repository: AIModelsRepoDep) -> LLMTextRouter:
+    return LLMTextRouter(ai_model_repos=repository, client=client, wrapper=cache_ai_models)
 
 
-LLMRouterDep = Annotated[LLMRouter, Depends(get_llm_router)]
+LLMRouterDep = Annotated[LLMTextRouter, Depends(get_llm_router)]

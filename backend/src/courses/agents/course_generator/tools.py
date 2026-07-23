@@ -75,14 +75,13 @@ class KnowledgeSearchInput(BaseModel):
 
 
 @tool(  # pyright: ignore[reportCallIssue]
-    "knowledge_search",
-    description="Поиск информации в базе знаний курса",
+    "knowledge_search", description="Поиск информации в базе знаний курса", call_limit=3
 )
 async def knowledge_search(
     runtime: Runtime[CourseContext, list[dict[str, Any]]],
     schema: KnowledgeSearchInput,
 ) -> str:
-    meta_filter = {"tenant_id": str(runtime.context.course_id)}
+    meta_filter = {"course_id": str(runtime.context.course_id)}
     if schema.category is not None:
         logger.info(
             "Searching knowledge by category - `%s` and query: '%s ...'",
@@ -96,7 +95,7 @@ async def knowledge_search(
     docs = await VectorRepository(client=qdrant_client).retrieve_documents(
         query=schema.search_query, metadata_filters=meta_filter
     )
-    if docs == []:
+    if not docs:
         return (
             f"По запросу '{schema.search_query}' (категория: {schema.category or 'любая'}) "
             "в базе знаний ничего не найдено. Не повторяй этот запрос с похожей "

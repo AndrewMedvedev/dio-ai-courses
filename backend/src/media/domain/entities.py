@@ -4,7 +4,7 @@ from uuid import UUID
 
 from ...shared.domain.entities import Entity
 from ...shared.domain.exceptions import InvariantViolationError
-from ..constants import ALLOWED_OWNER_TYPES, DOCUMENT_MIME_TYPES, MAX_FILENAME_LENGTH
+from ..constants import DOCUMENT_MIME_TYPES, MAX_FILENAME_LENGTH
 
 
 @dataclass(kw_only=True)
@@ -18,9 +18,7 @@ class Attachment(Entity):
     mime_type: str
     size_bytes: int
     storage_key: str
-    owner_type: str
     owner_id: UUID
-    is_public: bool = False
     uploaded_at: datetime
     uploaded_by: UUID
 
@@ -34,10 +32,6 @@ class Attachment(Entity):
         # 2. Проверка размера файла
         if self.size_bytes < 0:
             raise InvariantViolationError("File size cannot be negative")
-
-        # 3. Валидация владельца файла
-        if self.owner_type not in ALLOWED_OWNER_TYPES:
-            raise InvariantViolationError(f"Unsupported owner type: {self.owner_type}")
 
     @property
     def extension(self) -> str:

@@ -17,29 +17,29 @@ from .schemas import (
     PresignedUploadResponse,
 )
 
-# TODO @AndreyKosov: Добавить функционал сессий загрузки (pending upload). Использовать Redis для сессий  # noqa: E501, FIX002, TD003
+# TODO @AndreyKosov: Добавить функционал сессий загрузки (pending upload). Использовать Redis для сессий  # ruff:ignore[line-too-long, line-contains-todo, missing-todo-link]
 
 
 class AttachmentService:
     def __init__(
-            self,
-            session: AsyncSession,
-            storage: Storage,
-            repository: AttachmentRepository,
+        self,
+        session: AsyncSession,
+        storage: Storage,
+        repository: AttachmentRepository,
     ) -> None:
         self.session = session
         self.storage = storage
         self.repository = repository
 
     async def create_presigned_upload_url(
-            self, request: PresignedUploadRequest
+        self, request: PresignedUploadRequest
     ) -> PresignedUploadResponse:
         """Создание подписанного URL для прямой загрузки файла в хранилище"""
 
         # 1. Создание уникального ключа
         extension = Path(request.filename).suffix.lower()
         unique_name = f"{uuid4()}.{extension}"
-        storage_key = f"{request.owner_type}/{request.owner_id}/{unique_name}"
+        storage_key = f"{request.owner_id}/{unique_name}"
 
         # 2. Генерация подписанного URL для загрузки
         presigned_url = await self.storage.create_presigned_upload_url(
@@ -50,11 +50,13 @@ class AttachmentService:
 
         # 3. Формирование ответа
         return PresignedUploadResponse(
-            upload_url=presigned_url, storage_key=storage_key, expires_in=PRESIGNED_URL_EXPIRES_IN,
+            upload_url=presigned_url,
+            storage_key=storage_key,
+            expires_in=PRESIGNED_URL_EXPIRES_IN,
         )
 
     async def confirm_upload(
-            self, request: ConfirmUploadRequest, uploaded_by: UUID
+        self, request: ConfirmUploadRequest, uploaded_by: UUID
     ) -> AttachmentResponse:
         """Подтверждение загрузки файла"""
 
@@ -71,7 +73,6 @@ class AttachmentService:
             mime_type=request.content_type,
             size_bytes=size_bytes,
             storage_key=request.storage_key,
-            owner_type=request.owner_type,
             owner_id=request.owner_id,
             uploaded_at=uploaded_at,
             uploaded_by=uploaded_by,
@@ -83,7 +84,7 @@ class AttachmentService:
         return map_attachment_to_response(attachment)
 
     async def create_presigned_download_url(
-            self, attachment_id: UUID
+        self, attachment_id: UUID
     ) -> PresignedDownloadResponse:
         """Создание временной ссылки для скачивания файла"""
 

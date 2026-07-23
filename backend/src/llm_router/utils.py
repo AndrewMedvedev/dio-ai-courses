@@ -7,6 +7,7 @@ import uuid
 
 import orjson
 from json_repair import repair_json
+from langsmith import traceable
 from openai.types.responses.response import Response
 
 from ..core.infrastructure import redis_client
@@ -33,7 +34,7 @@ def extract_json(text: str) -> dict:
     try:
         repaired = repair_json(text, return_objects=False)
         return orjson.loads(repaired)
-    except Exception:  # noqa: BLE001, S110
+    except Exception:  # ruff:ignore[blind-except, try-except-pass]
         pass
 
     # 3. Fallback: поиск JSON-объекта в тексте
@@ -42,7 +43,7 @@ def extract_json(text: str) -> dict:
         try:
             repaired = repair_json(match.group(1), return_objects=False)
             return orjson.loads(repaired)
-        except Exception:  # noqa: BLE001, S110
+        except Exception:  # ruff:ignore[blind-except, try-except-pass]
             pass
 
     # 4. Последний вариант — обрезка по скобкам
@@ -52,7 +53,7 @@ def extract_json(text: str) -> dict:
         try:
             repaired = repair_json(text[start : end + 1], return_objects=False)
             return orjson.loads(repaired)
-        except Exception:  # noqa: BLE001, S110
+        except Exception:  # ruff:ignore[blind-except, try-except-pass]
             pass
 
     raise json.JSONDecodeError("Could not parse JSON from LLM response", text[:400], 0)
@@ -61,7 +62,8 @@ def extract_json(text: str) -> dict:
 # ==================== ОСНОВНОЙ ПАРСЕР ОТВЕТА ====================
 
 
-def parse_llm_response(  # noqa: C901
+@traceable(run_type="parser", name="ParseLLMResponse")
+def parse_llm_response(  # ruff:ignore[complex-structure]
     response: Response,
     input_messages: list[dict[str, Any]] | str,
 ) -> LLMTextResponse:
@@ -92,6 +94,7 @@ def parse_llm_response(  # noqa: C901
 
             elif item.type == "function_call":
                 try:
+                    messages.append(item_dict)
                     args = json.loads(getattr(item, "arguments", "{}"))
                 except (json.JSONDecodeError, TypeError):
                     args = {}
@@ -105,22 +108,23 @@ def parse_llm_response(  # noqa: C901
                 )
 
     # Если ничего не собралось в буфер — берём output_text напрямую
-    if not output_buffer and getattr(response, "output_text", None):
+    if not output_buffer and response.output and getattr(response, "output_text", None):
         output_buffer = response.output_text
 
     # Парсим JSON только один раз с помощью улучшенной функции
     if output_buffer:
         try:
             output_text = extract_json(output_buffer)
-        except json.JSONDecodeError:
+        except Exception:  # ruff:ignore[blind-except]
             output_text = None  # или можно сохранить сырой текст: {"raw": output_buffer}
 
     return LLMTextResponse(
         messages=messages,
-        output_text=output_text,
+        output=output_text,
+        raw_text=output_buffer,
         tool_calls=tool_calls,
         model=response.model,
-        total_tokens=response.usage.total_tokens,  # pyright: ignore[reportOptionalMemberAccess]
+        total_tokens=response.usage.total_tokens if response.usage else None,  # pyright: ignore[reportArgumentType]
     )
 
 
@@ -162,3 +166,25 @@ async def cache_ai_models(
         result = await func(*args, **kwargs)
         await redis_client.set(key, result.model_dump_json(), ex=ttl)
         return result
+
+
+def to_langsmith_llm_output(result: LLMTextResponse) -> dict:
+    return {
+        "output": result,
+        "usage_metadata": {
+            "input_tokens": None,  # если знаете разбивку — подставьте
+            "output_tokens": None,
+            "total_tokens": result.total_tokens,
+        },
+    }
+
+
+MAX_CONCURRENT_LLM_REQUESTS = 8
+
+# Сам семафор. Создаётся один раз при первом импорте этого модуля.
+GLOBAL_LLM_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_LLM_REQUESTS)
+
+
+def get_active_slots() -> int:
+    """Сколько слотов сейчас занято (для логирования/отладки/метрик)."""
+    return MAX_CONCURRENT_LLM_REQUESTS - GLOBAL_LLM_SEMAPHORE._value  # ruff:ignore[private-member-access]

@@ -33,7 +33,7 @@ def check_role(user_role: UserRole, role: UserRole) -> bool:
 
 
 @dataclass(frozen=True, slots=True)
-class Username(ValueObject):  # noqa: PLW1641
+class Username(ValueObject):  # ruff:ignore[eq-without-hash]
     """
     Доменный примитив — имя пользователя (логин).
 

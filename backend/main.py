@@ -12,7 +12,8 @@ from qdrant_client import models
 from src.core.infrastructure import checkpointer, qdrant_client
 from src.core.logging import configure_logging
 from src.core.settings import settings
-from src.iam.routers import router as iam_router
+
+# from src.iam.routers import router as iam_router
 from src.llm_router.routers import llm_router
 from src.shared.domain.exceptions import AppError
 from src.shared.infra.middlewares import LoggingMiddleware
@@ -56,7 +57,7 @@ app = FastAPI(
 
 router = APIRouter(prefix="/api/v1")
 
-router.include_router(iam_router)
+# router.include_router(iam_router)
 router.include_router(llm_router)
 
 

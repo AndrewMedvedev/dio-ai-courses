@@ -72,21 +72,21 @@ def get_auth_service(
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
-async def get_current_user(  # noqa: RUF029
+async def get_current_user(  # ruff:ignore[unused-async]
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> CurrentUser:
     """Получение текущего пользователя"""
 
     payload = validate_token(token)
-    jti, user_id = payload.get("jti"), payload.get("sub")  # noqa: F841
+    jti, user_id = payload.get("jti"), payload.get("sub")  # ruff:ignore[unused-variable]
 
     if user_id is None:
         raise UnauthorizedError("Invalid token: missing sub claim")
 
     return CurrentUser(
         user_id=user_id,
-        email=payload.get("email"),  # type: ignore  # noqa: PGH003
-        role=payload.get("role"),  # type: ignore  # noqa: PGH003
+        email=payload.get("email"),  # type: ignore  # ruff:ignore[blanket-type-ignore]
+        role=payload.get("role"),  # type: ignore  # ruff:ignore[blanket-type-ignore]
     )
 
 

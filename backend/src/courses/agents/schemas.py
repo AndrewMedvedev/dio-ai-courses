@@ -2,7 +2,15 @@ from typing import Literal
 
 from uuid import UUID
 
-from pydantic import BaseModel, Field, NonNegativeFloat, PositiveInt
+from aiohttp import ClientSession
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, PositiveInt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+class Context(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    aio_session: ClientSession | None = None
+    db_session: AsyncSession | None = None
 
 
 class CourseContext(BaseModel):
@@ -16,6 +24,7 @@ class GenerationContext(CourseContext):
 
     user_id: UUID
     prompt: str
+    access_token: str
 
 
 class Knowledge(BaseModel):

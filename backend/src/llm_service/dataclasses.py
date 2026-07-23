@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -37,16 +38,19 @@ class StructuredTool:
     args_schema: dict
     args_model: type[BaseModel]
     param_groups: dict[str, ParamGroup]
+    call_limit: int | None
 
     def to_tool_params(self) -> FunctionToolParam:
-        return FunctionToolParam(type="function", **self.args_schema)  # type: ignore  # noqa: PGH003
+        return FunctionToolParam(type="function", strict=True, **self.args_schema)
 
     @staticmethod
     def to_tool_result(call_id: str, result: Any) -> dict:
         return {
             "type": "function_call_output",
             "call_id": call_id,
-            "output": result,
+            "output": result
+            if isinstance(result, str)
+            else json.dumps(result, ensure_ascii=False),
         }
 
     def build_call_kwargs(self, validated: BaseModel, *, runtime: Any = None) -> dict[str, Any]:
@@ -63,10 +67,16 @@ class StructuredTool:
         for param_name, group in self.param_groups.items():
             if group.kind == "flat":
                 call_kwargs[param_name] = flat[group.field_names[0]]
-            else:
-                assert group.model_cls is not None
+            elif group.kind == "model":
+                if group.model_cls is None:
+                    raise ValueError(
+                        f"ParamGroup для '{param_name}' имеет kind='model', "
+                        f"но model_cls не задан — некорректная конфигурация param_groups"
+                    )
                 sub_data = {f: flat[f] for f in group.field_names}
                 call_kwargs[param_name] = group.model_cls(**sub_data)
+            else:
+                raise ValueError(f"Неизвестный kind='{group.kind}' для параметра '{param_name}'")
 
         if self.runtime:
             call_kwargs["runtime"] = runtime
@@ -75,5 +85,8 @@ class StructuredTool:
 
     async def run_tool(self, raw_args: dict[str, Any], *, runtime: Any = None) -> Any:
         validated = self.args_model.model_validate(raw_args)
-        call_kwargs = self.build_call_kwargs(validated, runtime=runtime)
+        if self.runtime:
+            call_kwargs = self.build_call_kwargs(validated, runtime=runtime)
+        else:
+            call_kwargs = self.build_call_kwargs(validated)
         return await self.func(**call_kwargs)

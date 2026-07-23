@@ -6,7 +6,7 @@ import logging
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
-from .....llm_service import LLMService, Runtime, tool
+from .....llm_service import LLMTextService, Runtime, tool
 from ...schemas import GenerationContext
 from ...tools import browse_page, web_search
 from ..tools import knowledge_search, save_knowledge
@@ -18,11 +18,12 @@ logger = logging.getLogger(__name__)
 @tool(name="call_critique_agent", description="Вызвать агента критика")  # pyright: ignore[reportCallIssue]
 async def call_critique_agent(runtime: Runtime[GenerationContext, ClientSession]) -> dict:
     prompt = runtime.context.prompt  # pyright: ignore[reportAttributeAccessIssue]
-    critic_agent = LLMService(
+    critic_agent = LLMTextService(
         session=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=CRITIC_PROMPT.format(prompt=prompt),
     )
-    return await critic_agent.invoke_text(messages=runtime.messages)  # pyright: ignore[reportReturnType]
+    result = await critic_agent.invoke(messages=runtime.messages)
+    return result.raw_text  # pyright: ignore[reportReturnType]
 
 
 class ResearchInput(BaseModel):
@@ -32,14 +33,13 @@ class ResearchInput(BaseModel):
 
 
 @tool(  # pyright: ignore[reportCallIssue]
-    name="call_researcher_agent",
-    description="Вызвать агента исследователя",
+    name="call_researcher_agent", description="Вызвать агента исследователя", call_limit=2
 )
 async def call_researcher_agent(
     runtime: Runtime[GenerationContext, ClientSession],
     schema: ResearchInput,
 ) -> dict:
-    researcher_agent = LLMService(
+    researcher_agent = LLMTextService(
         session=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=RESEARCHER_PROMPT,
         tools={  # pyright: ignore[reportArgumentType]
@@ -48,19 +48,17 @@ async def call_researcher_agent(
             "browse_page": browse_page,
             "save_knowledge": save_knowledge,
         },
-        runtime=Runtime(
-            context=GenerationContext(**runtime.context.model_dump()), state=runtime.state
-        ),
+        runtime=Runtime(context=runtime.context, state=runtime.state),
     )
+    result = await researcher_agent.invoke(messages=[{"role": "user", "content": schema.task}])
+    return result.output  # pyright: ignore[reportReturnType]
 
-    return await researcher_agent.invoke_text(messages=[{"role": "user", "content": schema.task}])  # pyright: ignore[reportReturnType]
 
-
-async def reasoner_agent(  # noqa: RUF029
+def reasoner_agent(
     runtime: Runtime[GenerationContext, ClientSession],
-) -> LLMService:
+) -> LLMTextService:
 
-    return LLMService(
+    return LLMTextService(
         session=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=REASONER_PROMPT.format(prompt=runtime.context.prompt),  # pyright: ignore[reportAttributeAccessIssue]
         tools={  # pyright: ignore[reportArgumentType]

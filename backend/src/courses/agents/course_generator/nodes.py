@@ -4,17 +4,18 @@ import logging
 import time
 from asyncio.taskgroups import TaskGroup
 
-from aiohttp import ClientSession
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
+from langgraph.runtime import Runtime as GraphRuntime
 
 from ....core.infrastructure import checkpointer, session_factory
 from ....llm_service import Runtime
 from ...domain.entities import Course, Module
 from ...domain.vo import CourseStatus
 from ...infra.repository import SqlCourseRepository
-from ..schemas import GenerationContext
+from ..schemas import Context, GenerationContext
 from .subagents.module_builder import module_builder_agent
+from .subagents.practician import call_course_practice_agent
 from .subagents.prompts import CourseStructure
 from .subagents.reasoner import reasoner_agent
 from .subagents.structure_planner import course_planner_agent
@@ -27,39 +28,42 @@ class AgentState(TypedDict):
     thinks: NotRequired[str]  # Мысли - план reasoning агента
     course_structure: NotRequired[CourseStructure]  # Сгенерированная структура курса
     course: NotRequired[Course]  # Готовый курс
-    session: ClientSession
 
 
-async def reasoning(state: AgentState) -> dict[str, str]:
+async def reasoning(state: AgentState, runtime: GraphRuntime[Context]) -> dict[str, str]:
     """Размышление над запросом преподавателя"""
-
     if state.get("thinks") is not None:
         return {"thinks": state.get("thinks", "")}
     start_time = time.monotonic()
     logger.info("Course generator in reasoning state ...")
-    agent = await reasoner_agent(
-        runtime=Runtime(context=state["generation_context"], state=state["session"])
+    agent = reasoner_agent(
+        runtime=Runtime(
+            context=state["generation_context"],
+            state=runtime.context.aio_session,
+        )
     )
-    result = await agent.invoke_text(messages=[{}])
-
+    result = await agent.invoke(
+        messages=[{"role": "user", "content": state["generation_context"].prompt}]
+    )
     elapsed_time = time.monotonic() - start_time
     logger.info("Reasoning finished, time spent %s seconds", round(elapsed_time, 2))
-    return {"thinks": result}  # pyright: ignore[reportReturnType]
+    return {"thinks": result.raw_text}  # pyright: ignore[reportReturnType]
 
 
-async def plan_course_structure(state: AgentState) -> dict:
+async def plan_course_structure(state: AgentState, runtime: GraphRuntime[Context]) -> dict:
     """Планирование структуры курса используя информацию, полученную в ходе размышлений"""
 
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
 
-    agent = await course_planner_agent(session=state["session"])
-    result = await agent.invoke_text(
+    agent = course_planner_agent(session=runtime.context.aio_session)  # pyright: ignore[reportArgumentType]
+    result = await agent.invoke(
         messages=[{"role": "user", "content": state.get("thinks", "")}],
         schema=CourseStructure,
     )
-    course_structure = CourseStructure.model_validate(result)
+    course_structure = CourseStructure.model_validate(result.output)
     course = Course(
-        creator_id=state["generation_context"].user_id,
+        id=state["generation_context"].course_id,
+        creator_id=state["generation_context"].user_id,  # pyright: ignore[reportIndexIssue]
         difficulty=course_structure.difficulty,
         status=CourseStatus.IN_GENERATION,
         title=course_structure.title,
@@ -71,15 +75,13 @@ async def plan_course_structure(state: AgentState) -> dict:
     return {"course_structure": course_structure, "course": course}
 
 
-async def save_course(state: AgentState) -> None:
-    async with session_factory() as session:
-        course_repos = SqlCourseRepository(session)
+async def save_course(state: AgentState, runtime: GraphRuntime[Context]) -> None:
+    course_repos = SqlCourseRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
+    course = state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    await course_repos.create(course)
+    logger.info("Saving course '%s' to database ...", course.title)
 
-        course = state["course"]  # type: ignore  # noqa: PGH003
-        await course_repos.create(course)
-        logger.info("Saving course '%s' to database ...", course.title)
-
-        await session.commit()
+    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
 
 
 async def build_module(
@@ -88,30 +90,33 @@ async def build_module(
     module_description: str,
     audience_description: str,
     learning_objectives: list[str],
-    session: ClientSession,
+    context: Context,
 ) -> tuple[int, Module]:
     module_thread_id = f"course:{generation_context.course_id}:module:{order}"
     logger.info(
         "Generating module - %s, by description: '%s ...'", order, module_description[:150]
     )
-    result = await module_builder_agent.with_retry(stop_after_attempt=3).ainvoke(
-        {
-            "generation_context": generation_context,
-            "audience_description": audience_description,
-            "learning_objectives": learning_objectives,
-            "order": order,
-            "module_description": module_description,
-            "session": session,
-        },  # type: ignore  # noqa: PGH003
-        config=RunnableConfig(configurable={"thread_id": module_thread_id}),
-    )
-    return order, result["module"]  # ← возвращаем order, чтобы потом отсортировать
+    async with session_factory() as session:
+        context.db_session = session
+        result = await module_builder_agent.ainvoke(
+            {
+                "generation_context": generation_context,
+                "audience_description": audience_description,
+                "learning_objectives": learning_objectives,
+                "order": order,
+                "module_description": module_description,
+            },  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            config=RunnableConfig(configurable={"thread_id": module_thread_id}),
+            context=context,
+            durability="sync",
+        )
+        return order, result["module"]  # ← возвращаем order, чтобы потом отсортировать
 
 
-async def generate_modules(state: AgentState) -> dict[str, Course]:
+async def generate_modules(state: AgentState, runtime: GraphRuntime[Context]) -> dict[str, Course]:
     """Генерация модулей по структуре курса"""
 
-    course_structure, course = state["course_structure"], state["course"]  # type: ignore  # noqa: PGH003
+    course_structure, course = state["course_structure"], state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     start_time = time.monotonic()
     total_modules = len(course_structure.module_descriptions)
     logger.info("Start generate %s modules ...", total_modules)
@@ -128,7 +133,7 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
                     module_description=desc,
                     audience_description=course_structure.audience_description,
                     learning_objectives=course_structure.learning_objectives,
-                    session=state["session"],
+                    context=runtime.context,  # pyright: ignore[reportArgumentType]
                 )
             )
             for order, desc in enumerate(course_structure.module_descriptions)
@@ -147,18 +152,53 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
     return {"course": course}
 
 
-graph = StateGraph(AgentState)
+async def generate_assignment(
+    state: AgentState, runtime: GraphRuntime[Context]
+) -> dict[str, Course]:
+    """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
-graph.add_node("reasoning", reasoning)
-graph.add_node("plan_course_structure", plan_course_structure)
-graph.add_node("save_course", save_course)
-graph.add_node("generate_modules", generate_modules)
+    course_structure, course = state["course_structure"], state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    assignment_type = course_structure.assignment_specification.assignment_type
+    prompt = course_structure.assignment_specification.prompt
 
+    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    assignment = await call_course_practice_agent(
+        assignment_type=assignment_type,
+        course=course,
+        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
+    )
+    course.add_assignment(assignment)
+    return {"course": course}
+
+
+async def update_course(state: AgentState, runtime: GraphRuntime[Context]) -> None:
+    course_repos = SqlCourseRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
+    course = state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    await course_repos.update(
+        uid=course.id,
+        assignment=course.assignment,
+        status=CourseStatus.DRAFT,
+    )
+    logger.info("Update course '%s' to database ...", course.title)
+
+    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+
+
+graph = StateGraph(AgentState, context_schema=Context)
+
+graph.add_node("reasoning", reasoning)  # pyright: ignore[reportArgumentType]
+graph.add_node("plan_course_structure", plan_course_structure)  # pyright: ignore[reportArgumentType]
+graph.add_node("save_course", save_course)  # pyright: ignore[reportArgumentType]
+graph.add_node("generate_modules", generate_modules)  # pyright: ignore[reportArgumentType]
+graph.add_node("generate_assignment", generate_assignment)  # pyright: ignore[reportArgumentType]
+graph.add_node("update_course", update_course)  # pyright: ignore[reportArgumentType]
 
 graph.add_edge(START, "reasoning")
 graph.add_edge("reasoning", "plan_course_structure")
 graph.add_edge("plan_course_structure", "save_course")
 graph.add_edge("save_course", "generate_modules")
-graph.add_edge("generate_modules", END)
+graph.add_edge("generate_modules", "generate_assignment")
+graph.add_edge("generate_assignment", "update_course")
+graph.add_edge("update_course", END)
 
 agent = graph.compile(checkpointer=checkpointer)

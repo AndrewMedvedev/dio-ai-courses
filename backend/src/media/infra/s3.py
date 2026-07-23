@@ -12,11 +12,11 @@ from ..domain.ports import Storage
 
 class S3Storage(Storage):
     def __init__(
-            self,
-            access_key: str,
-            secret_key: str,
-            endpoint_url: str,
-            bucket_name: str,
+        self,
+        access_key: str,
+        secret_key: str,
+        endpoint_url: str,
+        bucket_name: str,
     ) -> None:
         self.config = {
             "service_name": "s3",
@@ -34,7 +34,7 @@ class S3Storage(Storage):
 
     async def upload(self, file: BinaryIO, storage_key: str, content_type: str) -> None:
         async with self.get_client() as client:
-            await client.put_object(
+            await client.put_object(  # pyright: ignore[reportGeneralTypeIssues]
                 Bucket=self.bucket_name,
                 Body=file.read(),
                 Key=storage_key,
@@ -43,16 +43,18 @@ class S3Storage(Storage):
 
     async def delete(self, storage_key: str) -> None:
         async with self.get_client() as client:
-            await client.delete_object(Bucket=self.bucket_name, Key=storage_key)
+            await client.delete_object(Bucket=self.bucket_name, Key=storage_key)  # pyright: ignore[reportGeneralTypeIssues]
 
     async def create_presigned_upload_url(
-            self, storage_key: str, content_type: str, expires_in: int = 3600
+        self, storage_key: str, content_type: str, expires_in: int = 3600
     ) -> str:
         async with self.get_client() as client:
-            return await client.generate_presigned_url(
+            return await client.generate_presigned_url(  # pyright: ignore[reportGeneralTypeIssues]
                 "put_object",
                 Params={
-                    "Bucket": self.bucket_name, "Key": storage_key, "ContentType": content_type
+                    "Bucket": self.bucket_name,
+                    "Key": storage_key,
+                    "ContentType": content_type,
                 },
                 ExpiresIn=expires_in,
                 HttpMethod="PUT",
@@ -60,7 +62,7 @@ class S3Storage(Storage):
 
     async def create_presigned_download_url(self, storage_key: str, expires_in: int = 3600) -> str:
         async with self.get_client() as client:
-            return await client.generate_presigned_url(
+            return await client.generate_presigned_url(  # pyright: ignore[reportGeneralTypeIssues]
                 "get_object",
                 Params={"Bucket": self.bucket_name, "Key": storage_key},
                 ExpiresIn=expires_in,
@@ -70,7 +72,7 @@ class S3Storage(Storage):
     async def get_file_info(self, storage_key: str) -> dict[str, Any]:
         try:
             async with self.get_client() as client:
-                response = await client.head_object(Bucket=self.bucket_name, Key=storage_key)
+                response = await client.head_object(Bucket=self.bucket_name, Key=storage_key)  # pyright: ignore[reportGeneralTypeIssues]
                 return {
                     "size": response["ContentLength"],
                     "content_type": response["ContentType"],
