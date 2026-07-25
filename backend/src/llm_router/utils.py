@@ -123,8 +123,7 @@ def parse_llm_response(  # ruff:ignore[complex-structure]
         output=output_text,
         raw_text=output_buffer,
         tool_calls=tool_calls,
-        model=response.model,
-        total_tokens=response.usage.total_tokens if response.usage else None,  # pyright: ignore[reportArgumentType]
+        total_tokens=response.usage.total_tokens if response.usage else 0,
     )
 
 

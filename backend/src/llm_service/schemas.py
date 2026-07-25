@@ -25,7 +25,9 @@ class ToolCallParsed(BaseModel):
 
 
 class LLMTextRequest(BaseModel):
-    input: list[dict[str, Any]]
+    model_config = ConfigDict(populate_by_name=True)
+
+    messages: list[dict[str, Any]] = Field(alias="input")
     tools: list[ToolParam] | None = None
     instructions: str | None = None
     reasoning: Literal["low", "medium", "high"] | None = None
@@ -44,8 +46,10 @@ class LLMTextRequest(BaseModel):
 
 
 class LLMImageRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     image: list[str] | None = Field(default=None, min_length=1, max_length=5)
-    prompt: str
+    messages: str = Field(alias="prompt")
     quality: Literal["standard", "hd", "low", "medium", "high", "auto"] = "high"
     size: Literal["1024x1024", "1024x1536", "1536x1024"] | None = None
     output_format: str = "png"
@@ -63,7 +67,6 @@ class LLMTextResponse(BaseModel):
     )
 
     messages: list[dict[str, Any]] = Field(default_factory=list, description="Сообщения от модели")
-    model: str = Field(description="Идентификатор модели")
     total_tokens: int = Field(description="Количество токенов")
 
 
@@ -72,7 +75,6 @@ class LLMImageResponse(BaseModel):
 
     size: str
     image: Base64Str = Field(description="Изображение в формате base64")
-    model: str = Field(description="Идентификатор модели")
     total_tokens: int = Field(description="Количество токенов")
 
 
@@ -80,7 +82,7 @@ class Runtime[B: BaseModel, T](BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     context: B
     state: T | None = None
-    messages: list[dict[str, Any]] = Field(default_factory=list)
+    messages: list[dict[str, Any]] | str = Field(default_factory=list)
 
 
 class LLMServiceProtocol(Protocol):

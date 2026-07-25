@@ -1,20 +1,16 @@
+from typing import Any
+
 import logging
 from json import dumps
 
 from langsmith import traceable
 from openai import (
-    APIConnectionError,
-    APITimeoutError,
     AsyncOpenAI,
-    InternalServerError,
-    RateLimitError,
 )
 from openai.types.images_response import ImagesResponse
 from openai.types.responses.response import Response
 from tenacity import (
     retry,
-    retry_if_exception_type,
-    retry_if_not_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
@@ -55,12 +51,6 @@ class LLMTextRouter:
         self.wrapper = wrapper
 
     @retry(
-        retry=retry_if_exception_type((
-            RateLimitError,
-            APIConnectionError,
-            APITimeoutError,
-            InternalServerError,
-        )),
         wait=wait_exponential(
             multiplier=2,
             min=2,
@@ -104,39 +94,39 @@ class LLMTextRouter:
     async def _fallback_model(
         self,
         model: str,
-        schema: LLMTextRequest,
+        schema: dict[str, Any],
         models: list[AIModel],
     ) -> LLMTextResponse:
         if model not in {i.name for i in models}:
-            input_messages = dumps(schema.model_dump(exclude_none=True))
+            input_messages = dumps(schema)
             selected_model, models = await self._select_model_by_length(
                 input_messages=input_messages,
                 models=models,
             )
             prompt = PROMPT_RETRY.format(
                 models=models,
-                messages=schema.model_dump(exclude_none=True),
+                messages=schema,
                 user_requested_model=model,
             )
             result = await self._invoke(model=selected_model, input=prompt)
             return await self._invoke(
                 model=result.output_text["model_name"],  # type: ignore  # ruff:ignore[blanket-type-ignore]
-                **schema.model_dump(exclude_none=True),
+                **schema,
             )
-        return await self._invoke(model=model, **schema.model_dump(exclude_none=True))
+        return await self._invoke(model=model, **schema)
 
     @traceable(run_type="chain", name="ChooseModel")
     async def _choose_model(
-        self, schema: LLMTextRequest, models: list[AIModel]
+        self,
+        schema: dict[str, Any],
+        models: list[AIModel],
     ) -> LLMTextResponse:
-        input_messages = dumps(schema.model_dump(exclude_none=True))
+        input_messages = dumps(schema)
         selected_model, models = await self._select_model_by_length(
             input_messages=input_messages,
             models=models,
         )
-        prompt = PROMPT_CHOOSE_MODEL.format(
-            models=models, messages=schema.model_dump(exclude_none=True)
-        )
+        prompt = PROMPT_CHOOSE_MODEL.format(models=models, messages=schema)
         return await self._invoke(model=selected_model, input=prompt)
 
     @traceable(run_type="chain", name="CallTextLLM")
@@ -145,8 +135,12 @@ class LLMTextRouter:
         #     await self.wrapper(func=self.ai_model_repos.paginate, params=PageParams(size=50))
         # ).items
         # if model is not None:
-        #     return await self._fallback_model(model=model, schema=schema, models=models)
-        # selected_model = await self._choose_model(messages=schema.input, models=models)
+        #     return await self._fallback_model(
+        #         model=model, schema=schema.model_dump(exclude_none=True), models=models
+        #     )
+        # selected_model = await self._choose_model(
+        #     messages=schema.model_dump(exclude_none=True), models=models
+        # )
         # return await self._invoke(
         #     model=selected_model,  # type: ignore  # ruff:ignore[blanket-type-ignore]
         #     **schema.model_dump(exclude_none=True),
@@ -165,9 +159,12 @@ class LLMImageRouter:
         self.client = client
 
     @retry(
-        stop=stop_after_attempt(3),  # сколько попыток
-        wait=wait_exponential(multiplier=1, min=1, max=2),  # backoff
-        retry=retry_if_not_exception_type((APIConnectionError, APITimeoutError)),
+        wait=wait_exponential(
+            multiplier=2,
+            min=2,
+            max=30,
+        ),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     @traceable(run_type="llm")
@@ -178,14 +175,16 @@ class LLMImageRouter:
         return LLMImageResponse(
             size=result.size,  # pyright: ignore[reportArgumentType]
             image=result.data[0].b64_json,  # pyright: ignore[reportOptionalSubscript, reportArgumentType]
-            model=model,
             total_tokens=result.usage.total_tokens,  # pyright: ignore[reportOptionalMemberAccess]
         )
 
     @retry(
-        stop=stop_after_attempt(3),  # сколько попыток
-        wait=wait_exponential(multiplier=1, min=1, max=2),  # backoff
-        retry=retry_if_not_exception_type((APIConnectionError, APITimeoutError)),
+        wait=wait_exponential(
+            multiplier=2,
+            min=2,
+            max=30,
+        ),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     @traceable(run_type="llm")
@@ -195,7 +194,6 @@ class LLMImageRouter:
         return LLMImageResponse(
             size=result.size,  # pyright: ignore[reportArgumentType]
             image=result.data[0].b64_json,  # pyright: ignore[reportOptionalSubscript, reportArgumentType]
-            model=model,
             total_tokens=result.usage.total_tokens,  # pyright: ignore[reportOptionalMemberAccess]
         )
 

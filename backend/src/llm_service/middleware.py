@@ -1,7 +1,7 @@
 # middleware.py
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any
 
 from abc import ABC
 from collections.abc import Awaitable, Callable
@@ -14,7 +14,8 @@ from .schemas import (
     ToolCallParsed,
 )
 
-ResponseT = TypeVar("ResponseT", bound=LLMTextResponse | LLMImageResponse)
+Response = LLMTextResponse | LLMImageResponse
+Messages = list[dict[str, Any]] | str
 
 
 class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstract-method]
@@ -25,17 +26,33 @@ class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstr
     """
 
     # --- срабатывает РОВНО ОДИН РАЗ за весь запуск invoke() ---
-    async def before_agent(self, service: LLMServiceProtocol, messages: list[dict]) -> list[dict]:  # ruff:ignore[no-self-use, unused-method-argument]
+    async def before_agent(  # ruff: ignore[no-self-use]
+        self,
+        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        messages: Messages,
+    ) -> Messages:
         return messages
 
-    async def after_agent(self, service: LLMServiceProtocol, response: ResponseT) -> ResponseT:  # ruff:ignore[no-self-use, unused-method-argument]
+    async def after_agent(  # ruff: ignore[no-self-use]
+        self,
+        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        response: Response,
+    ) -> Response:
         return response
 
     # --- срабатывает перед/после КАЖДОГО вызова модели ---
-    async def before_model(self, service: LLMServiceProtocol, messages: list[dict]) -> list[dict]:  # ruff:ignore[no-self-use, unused-method-argument]
+    async def before_model(  # ruff: ignore[no-self-use]
+        self,
+        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        messages: Messages,
+    ) -> Messages:
         return messages
 
-    async def after_model(self, service: LLMServiceProtocol, response: ResponseT) -> ResponseT:  # ruff:ignore[no-self-use, unused-method-argument]
+    async def after_model(  # ruff: ignore[no-self-use]
+        self,
+        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        response: Response,
+    ) -> Response:
         return response
 
     # --- оборачивает КАЖДЫЙ вызов инструмента ---

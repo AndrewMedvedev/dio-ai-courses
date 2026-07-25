@@ -1,8 +1,10 @@
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import logging
+from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
 from collections.abc import Awaitable, Callable, Sequence
+from functools import wraps
 
 from aiohttp import ClientSession
 from pydantic import BaseModel
@@ -21,8 +23,77 @@ from .schemas import (
 
 logger = logging.getLogger(__name__)
 
+RequestT = TypeVar("RequestT", bound=BaseModel)
+ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
-class LLMTextService:
+
+class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
+    url: str
+    response_model: type[ResponseT]
+
+    def __init__(
+        self,
+        session: ClientSession,
+        middlewares: Sequence[BaseAgentMiddleware] | None = None,
+        runtime: Runtime | None = None,
+    ) -> None:
+        self.session = session
+        self.middlewares = middlewares if middlewares is not None else []
+        self.runtime = runtime
+
+    async def _send_request(self, schema: RequestT) -> ResponseT:
+        answer = await self.session.post(url=self.url, json=schema.model_dump(exclude_none=True))
+        answer.raise_for_status()
+        result = await answer.json()
+        return self.response_model.model_validate(result)
+
+    @staticmethod
+    def execute_once_per_loop(func: Callable[..., Awaitable]) -> Callable[..., Awaitable]:
+        @wraps(func)
+        async def wrapper(
+            self,
+            messages: list[dict[str, Any]] | str,
+            *args,
+            **kwargs,
+        ) -> ResponseT:
+            for middleware in self.middlewares:
+                messages = await middleware.before_agent(self, messages)
+            response = await func(self, messages, *args, **kwargs)
+            for middleware in self.middlewares:
+                response = await middleware.after_agent(self, response)
+            return response
+
+        return wrapper
+
+    @staticmethod
+    def execute_each_invoke(func: Callable[..., Awaitable]) -> Callable[..., Awaitable]:
+        @wraps(func)
+        async def wrapper(
+            self,
+            messages: list[dict[str, Any]] | str,
+            *args,
+            **kwargs,
+        ) -> ResponseT:
+            for middleware in self.middlewares:
+                messages = await middleware.before_model(self, messages)
+            result = await func(self, messages, *args, **kwargs)
+            for mw in self.middlewares:
+                result = await mw.after_model(self, result)
+            return await self._process_response(result, *args, **kwargs)
+
+        return wrapper
+
+    @abstractmethod
+    async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
+
+    async def _process_response(self, response: ResponseT, *args, **kwargs) -> ResponseT:  # ruff: ignore[no-self-use, unused-method-argument]
+        return response
+
+
+class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
+    url = settings.text_llm_router_url
+    response_model = LLMTextResponse
+
     def __init__(
         self,
         session: ClientSession,
@@ -33,58 +104,32 @@ class LLMTextService:
         temperature: float | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        self.session = session
+        super().__init__(session=session, runtime=runtime, middlewares=middlewares)
         self.system_prompt = system_prompt
         self.tools = tools
-        self.middlewares = middlewares if middlewares is not None else []
         self.reasoning: Literal["low", "medium", "high"] | None = reasoning
         self.temperature = temperature
-        self.runtime = runtime
         self.semaphore = Semaphore(4)
 
-    async def _send_request(self, schema: LLMTextRequest) -> LLMTextResponse:
-        answer = await self.session.post(
-            settings.text_llm_router_url, json=schema.model_dump(exclude_none=True)
-        )
-        answer.raise_for_status()
-        result = await answer.json()
-        return LLMTextResponse(**result)
-
-    # async def _send_request(self, schema: LLMTextRequest) -> LLMTextResponse:
-    #     async with session_factory() as session:
-    #         answer = get_llm_router(repository=get_ai_model_repo(session))
-
-    #         # answer = await self.session.post(
-    #         #     settings.text_llm_router_url, json=schema.model_dump(exclude_none=True)
-    #         # )
-    #         # answer.raise_for_status()
-    #         return await answer.call_llm(schema)
-
+    @BaseLLMService.execute_once_per_loop
     async def invoke(
         self,
         messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        for mw in self.middlewares:
-            messages = await mw.before_agent(self, messages)  # pyright: ignore[reportArgumentType]
+        return await self._run_loop(messages=messages, schema=schema)
 
-        response = await self._run_loop(messages, schema)
-
-        for mw in self.middlewares:
-            response = await mw.after_agent(self, response)  # pyright: ignore[reportArgumentType]
-
-        return response
-
+    @BaseLLMService.execute_each_invoke
     async def _run_loop(
-        self, messages: list[dict[str, Any]], schema: type[BaseModel] | None = None
+        self,
+        messages: list[dict[str, Any]],
+        schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        for middleware in self.middlewares:
-            messages = await middleware.before_model(self, messages)  # pyright: ignore[reportArgumentType]
         request = LLMTextRequest(
             input=messages,
             tools=[tool.to_tool_params() for tool in self.tools.values()] if self.tools else None,
             instructions=self.system_prompt,
-            reasoning=self.reasoning,  # pyright: ignore[reportArgumentType]
+            reasoning=self.reasoning,
             temperature=self.temperature,
         )
 
@@ -92,33 +137,28 @@ class LLMTextService:
             self.runtime.messages = messages
         if schema is not None:
             request.format_schema(schema)
-        result = await self._send_request(request)
-
-        for mw in self.middlewares:
-            result = await mw.after_model(self, result)  # pyright: ignore[reportArgumentType]
-
-        return await self._process_response(response=result, schema=schema)
+        return await self._send_request(request)
 
     def _build_tool_call_handler(self) -> Callable[[ToolCallParsed], Awaitable[dict]]:
         async def base_handler(tool: ToolCallParsed) -> dict:
             return await self._process_tool(tool)
 
         handler: Callable[[ToolCallParsed], Awaitable[dict]] = base_handler
-        # идём с конца списка, чтобы ПЕРВЫЙ миддлварь в списке
-        # стал САМЫМ ВНЕШНИМ слоем — так же, как в LangChain
-        for mw in reversed(self.middlewares):
-            handler = self._wrap_with(mw, handler)
+        for middleware in reversed(self.middlewares):
+            handler = self._wrap_with(middleware, handler)
         return handler
 
     def _wrap_with(
-        self, mw: BaseAgentMiddleware, next_handler: Callable[[ToolCallParsed], Awaitable[dict]]
+        self,
+        middleware: BaseAgentMiddleware,
+        next_handler: Callable[[ToolCallParsed], Awaitable[dict]],
     ) -> Callable[[ToolCallParsed], Awaitable[dict]]:
         async def wrapped(tool: ToolCallParsed) -> dict:
-            return await mw.wrap_tool_call(self, tool, next_handler)  # pyright: ignore[reportArgumentType]
+            return await middleware.wrap_tool_call(self, tool, next_handler)  # pyright: ignore[reportArgumentType]
 
         return wrapped
 
-    async def _process_tool(self, tool: ToolCallParsed) -> dict:  # pyright: ignore[reportReturnType]
+    async def _process_tool(self, tool: ToolCallParsed) -> dict:
         logger.info("tool call %s", tool.name)
         callable_func = self.tools[tool.name]  # pyright: ignore[reportOptionalSubscript]
         async with self.semaphore:
@@ -145,32 +185,38 @@ class LLMTextService:
             tasks = [handler(tool) for tool in response.tool_calls]
             tool_call_results = await gather(*tasks)
             full_input = response.messages + tool_call_results
-            # рекурсия идёт через _run_loop, а НЕ через invoke —
-            # это и есть гарантия, что before_agent/after_agent не задублируются
-            return await self._run_loop(messages=full_input, schema=schema)
+            return await self._run_loop(messages=full_input, schema=schema)  # pyright: ignore[reportCallIssue]
 
         return response
 
 
-class LLMImageService:
+class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
+    url = settings.image_llm_router_url
+    response_model = LLMImageResponse
+
     def __init__(
         self,
         session: ClientSession,
+        middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        self.session = session
-        self.runtime = runtime
+        super().__init__(session=session, runtime=runtime, middlewares=middlewares)
 
-    async def _send_request(self, schema: LLMImageRequest) -> LLMImageResponse:
-        answer = await self.session.post(
-            settings.image_llm_router_url, json=schema.model_dump(exclude_none=True)
-        )
-        answer.raise_for_status()
-        result = await answer.json()
-        return LLMImageResponse(**result)
-
+    @BaseLLMService.execute_once_per_loop
     async def invoke(
         self,
-        schema: LLMImageRequest,
+        messages: str,
+        images: list[str] | None = None,
     ) -> LLMImageResponse:
-        return await self._send_request(schema)
+        return await self._run_loop(messages=messages, images=images)
+
+    @BaseLLMService.execute_each_invoke
+    async def _run_loop(
+        self,
+        messages: str,
+        images: list[str] | None = None,
+    ) -> LLMImageResponse:
+        request = LLMImageRequest(image=images, prompt=messages)
+        if self.runtime is not None:
+            self.runtime.messages = messages
+        return await self._send_request(request)

@@ -125,39 +125,6 @@ class YandexCloudSettings(BaseSettings):
     secret_access_key: str = "<SECRET_ACCESS_KEY>"
     endpoint_url: str = "https://storage.yandexcloud.net/"
 
-    @property
-    def deepseek_v32(self) -> str:
-        """DeepSeek V3.2, 128k токенов"""
-        return f"gpt://{self.folder_id}/deepseek-v32/latest"
-
-    @property
-    def gpt_oss_120b(self) -> str:
-        """gpt-oss-120b, 128k токенов"""
-        return f"gpt://{self.folder_id}/gpt-oss-120b/latest"
-
-    @property
-    def gpt_oss_20b(self) -> str:
-        """gpt-oss-20b, 128k токенов"""
-        return f"gpt://{self.folder_id}/gpt-oss-20b/latest"
-
-    @property
-    def qwen3_6_35b(self) -> str:
-        """Qwen3.6 35B, 256k токенов"""
-        return f"gpt://{self.folder_id}/qwen3.6-35b-a3b/latest"
-
-    @property
-    def qwen3_5_35b(self) -> str:
-        """Qwen3.5 35B, 256k токенов (URI действителен до 28 мая 2026)"""
-        return f"gpt://{self.folder_id}/qwen3.5-35b-a3b-fp8/latest"
-
-    @property
-    def qwen3_235b(self) -> str:
-        return f"gpt://{self.folder_id}/qwen3-235b-a22b-fp8/latest"
-
-    @property
-    def yandexgpt_rc(self) -> str:
-        return f"gpt://{self.folder_id}/yandexgpt/rc"
-
 
 class LangSmithSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="LANGSMITH_")
@@ -234,8 +201,8 @@ class Settings(BaseSettings):
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
-    text_llm_router_url: str = "http://localhost:8000/api/v1/responses/"
-    image_llm_router_url: str = ""
+    text_llm_router_url: str = "http://localhost:8000/api/v1/responses/text"
+    image_llm_router_url: str = "http://localhost:8000/api/v1/responses/image"
     text_ai_model: str = "gpt-4"
     image_ai_model: str = "gpt-image-2"
 

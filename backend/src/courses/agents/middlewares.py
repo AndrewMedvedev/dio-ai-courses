@@ -2,7 +2,6 @@ from typing import Any
 
 import logging
 import re
-from asyncio import gather, to_thread
 from collections.abc import Awaitable, Callable
 from json import dumps
 
@@ -80,23 +79,22 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
 
         return " ".join(lemmas)
 
-    async def process_conversation(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def process_conversation(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Основная функция"""
         processed = []
-        tasks = []
+        texts = []
 
         for msg in messages:
             new_msg = msg.copy()
 
             if msg.get("role") in {"user", "assistant"} and isinstance(msg.get("content"), str):
-                task = to_thread(self.normalize_text, msg["content"])
-                tasks.append((new_msg, task))
+                task = self.normalize_text(msg["content"])
+                texts.append((task, new_msg))
             else:
                 processed.append(new_msg)
 
-        if tasks:
-            results = await gather(*[t[1] for t in tasks])
-            for (new_msg, _), result in zip(tasks, results, strict=True):
+        if texts:
+            for (new_msg, _), result in texts:
                 new_msg["content"] = result
                 processed.append(new_msg)
 
@@ -107,4 +105,4 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
         service: LLMTextServiceProtocol,  # ruff:ignore[unused-method-argument]
         messages: list[dict],
     ) -> list[dict]:
-        return await self.process_conversation(messages)
+        return self.process_conversation(messages)

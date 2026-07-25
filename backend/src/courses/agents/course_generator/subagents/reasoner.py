@@ -1,6 +1,3 @@
-# Агент - мыслитель, продумывает и рефлексирует над данными от преподавателя
-
-
 import logging
 
 from aiohttp import ClientSession
@@ -54,7 +51,7 @@ async def call_researcher_agent(
         runtime=Runtime(context=runtime.context, state=runtime.state),
         middlewares=[
             ToolCallLimitMiddleware(
-                tool_limits={"web_search": 3, "browse_page": 4, "knowledge_search": 3}
+                tool_limits={"web_search": 4, "browse_page": 5, "knowledge_search": 5}
             ),
             LemmatizationMiddleware(),
         ],
