@@ -4,21 +4,24 @@ __all__ = [
     "LLMImageResponse",
     "LLMImageService",
     "LLMImageServiceProtocol",
+    "LLMServiceProtocol",
     "LLMTextRequest",
     "LLMTextResponse",
     "LLMTextService",
     "LLMTextServiceProtocol",
+    "Messages",
     "Runtime",
     "StructuredTool",
     "tool",
 ]
 
 from .dataclasses import StructuredTool
-from .middleware import BaseAgentMiddleware
+from .middleware import BaseAgentMiddleware, Messages
 from .schemas import (
     LLMImageRequest,
     LLMImageResponse,
     LLMImageServiceProtocol,
+    LLMServiceProtocol,
     LLMTextRequest,
     LLMTextResponse,
     LLMTextServiceProtocol,

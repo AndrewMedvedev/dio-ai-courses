@@ -65,6 +65,7 @@ class CurrentUser(BaseModel):
     user_id: UUID = Field(..., description="Уникальный ID пользователя")
     email: EmailStr = Field(..., description="Email адрес учётной записи")
     role: UserRole = Field(..., description="Роль пользователя в системе")
+    access_token: str
 
 
 class InvitationCreate(BaseModel):

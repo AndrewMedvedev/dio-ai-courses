@@ -87,6 +87,7 @@ async def get_current_user(  # ruff:ignore[unused-async]
         user_id=user_id,
         email=payload.get("email"),  # type: ignore  # ruff:ignore[blanket-type-ignore]
         role=payload.get("role"),  # type: ignore  # ruff:ignore[blanket-type-ignore]
+        access_token=token,
     )
 
 

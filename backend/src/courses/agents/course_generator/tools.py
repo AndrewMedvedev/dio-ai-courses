@@ -2,11 +2,13 @@ from typing import Any, Literal
 
 import logging
 
+from ddgs import DDGS
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from ....core.infrastructure import qdrant_client
 from ....llm_service import Runtime, tool
 from ...infra.repository import VectorRepository
+from ...utils.browser_automation import get_page_text
 from ..schemas import CourseContext
 
 INDEX_NAME = "main-index"
@@ -39,7 +41,7 @@ class SaveKnowledgeInput(BaseModel):
     )
 
 
-@tool(  # pyright: ignore[reportCallIssue]
+@tool(
     name="save_knowledge",
     description="Сохраняет информацию в базу знаний курса",
 )
@@ -74,8 +76,8 @@ class KnowledgeSearchInput(BaseModel):
     )
 
 
-@tool(  # pyright: ignore[reportCallIssue]
-    "knowledge_search",
+@tool(
+    name="knowledge_search",
     description="Поиск информации в базе знаний курса",
 )
 async def knowledge_search(
@@ -104,3 +106,37 @@ async def knowledge_search(
             "шагу плана без этой информации."
         )
     return "\n\n".join(docs)
+
+
+logger = logging.getLogger(__name__)
+
+
+class SearchInput(BaseModel):
+    """Входные аргументы для поиска видео в RuTube"""
+
+    search_query: str = Field(description="Запрос для поиска")
+
+
+class BrowsePageInput(BaseModel):
+    link: str = Field(description="Ссылка на страницу с которой нужно получить контент")
+
+
+@tool(
+    name="browse_page",
+    description="Открывает WEB-страницу и получает её контент в формате Markdown",
+)
+async def browse_page(schema: BrowsePageInput) -> str:
+    return await get_page_text(schema.link)
+
+
+@tool(
+    name="web_search",
+    description="""\
+    Выполняет поиск в интернете.
+    Возвращает список найденных страниц с заголовками, URL и кратким описанием.
+    Подходит для получения актуальной информации из интернета.
+    Используй этот инструмент экономно.
+    """,
+)
+async def web_search(schema: SearchInput) -> list[dict[str, Any]]:  # ruff:ignore[unused-async]
+    return DDGS().text(schema.search_query, region="ru-ru", max_results=10)

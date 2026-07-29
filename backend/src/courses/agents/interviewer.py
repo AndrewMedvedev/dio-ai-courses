@@ -1,95 +1,62 @@
+from typing import Any
+
 import logging
-from uuid import UUID
 
-from langchain.agents import AgentState, create_agent
-from langchain.agents.middleware import SummarizationMiddleware
-from langchain.tools import ToolRuntime, tool
-from langchain_core.messages import HumanMessage, ToolMessage
-from langgraph.types import Command
-from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.infrastructure import checkpointer
-from ..domain.dependencies import model
-from .course_generator.tools import knowledge_search
-from .course_generator.workflow import generate_course
+from ...llm_service import LLMTextService, Runtime
+from ..infra.repository import SqlChatRepository
+from .middlewares import (
+    CheckpointMiddleware,
+    LemmatizationMiddleware,
+    SummarizationMiddleware,
+    ToolCallLimitMiddleware,
+)
 from .prompts import INTERVIEWER_PROMPT, PROMPT_SUMMARIZE_CHAT
 from .schemas import GenerationContext
+from .tools import (
+    InterviewState,
+    complete_interview,
+    get_content,
+    get_table_of_contents,
+    get_titles,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class Context(BaseModel):
-    course_id: UUID
-    user_id: UUID
-
-
-class InterviewState(AgentState):
-    task_id: str | None
-
-
-@tool(
-    "complete_interview",
-    description=(
-        "Завершает интервью с пользователем, когда собраны все необходимые "
-        "данные для генерации курса, и отправляет задачу на выполнение. "
-        "Вызывается ровно один раз, когда интервью полностью завершено."
-    ),
-)
-async def complete_interview(  # noqa: RUF029
-    prompt: str,
-    runtime: ToolRuntime[Context],
-) -> Command:
-    generation_context = GenerationContext(
-        user_id=runtime.context.user_id,
-        course_id=runtime.context.course_id,
-        prompt=prompt,
+async def interviewer(
+    schema: GenerationContext,
+    db_session: AsyncSession,
+    repo: SqlChatRepository,
+) -> dict[str, Any] | str:
+    agent = LLMTextService(
+        system_prompt=INTERVIEWER_PROMPT,
+        tools={
+            "complete_interview": complete_interview,
+            "get_table_of_contents": get_table_of_contents,
+            "get_titles": get_titles,
+            "get_content": get_content,
+        },
+        middlewares=[
+            LemmatizationMiddleware(),
+            SummarizationMiddleware(system_prompt=PROMPT_SUMMARIZE_CHAT, number_of_tokens=70_000),
+            ToolCallLimitMiddleware(
+                tool_limits={
+                    "complete_interview": 1,
+                    "get_table_of_contents": 3,
+                    "get_titles": 6,
+                    "get_content": 12,
+                }
+            ),
+            CheckpointMiddleware(repo=repo, session=db_session),
+        ],
+        runtime=Runtime(context=schema, state=InterviewState),
     )
-    result = generate_course.send(generation_context.model_dump())
-
-    return Command(
-        update={
-            "task_id": result.message_id,
-            "messages": [
-                ToolMessage(
-                    content=f"Курс поставлен в очередь на генерацию, task_id={result.message_id}",
-                    tool_call_id=runtime.tool_call_id,
-                )
-            ],
-        }
-    )
-
-
-summarization_middleware: SummarizationMiddleware[InterviewState, Context] = (
-    SummarizationMiddleware(
-        model=model,
-        trigger=("fraction", 0.8),
-        keep=("fraction", 0.3),
-        summary_prompt=PROMPT_SUMMARIZE_CHAT,
-    )
-)
-
-interviewer_agent = create_agent(
-    model=model,
-    tools=[complete_interview, knowledge_search],
-    context_schema=Context,
-    state_schema=InterviewState,
-    middleware=[summarization_middleware],
-    system_prompt=INTERVIEWER_PROMPT,
-    checkpointer=checkpointer,
-)
-
-
-async def chat_with_interviewer(user_id: UUID, user_prompt: str, course_id: UUID) -> dict:
-    answer = await interviewer_agent.with_retry(stop_after_attempt=3).ainvoke(
-        {"messages": [HumanMessage(content=user_prompt)]},
-        context=Context(user_id=user_id, course_id=course_id),
-        config={"configurable": {"thread_id": str(course_id)}},
-    )
-    result = {"reply": answer["messages"][-1].content}
-    task_id = answer.get("task_id")
+    result = await agent.invoke(messages=[{"role": "user", "content": schema.prompt}])
+    task_id = agent.runtime.state.get("task_id")  # pyright: ignore[reportOptionalMemberAccess]
     if task_id:
-        logger.info("Interview completed, task_id=%s, course_id=%s", task_id, course_id)
-        result["task_id"] = task_id
-        return result
+        logger.info("Interview completed, task_id=%s, course_id=%s", task_id, schema.course_id)
+        return {"task_id": task_id}
 
-    return result
+    return result.raw_text  # pyright: ignore[reportReturnType]

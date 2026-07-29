@@ -1,4 +1,6 @@
+import os
 from collections.abc import AsyncGenerator, AsyncIterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -23,6 +25,7 @@ from tiktoken import get_encoding
 
 from .settings import settings
 
+MAX_WORKERS = max(1, (os.cpu_count() or 2) // 2)
 redis_broker = RedisBroker(url=settings.redis.url)
 result_backend = RedisBackend()
 redis_broker.add_middleware(Results(backend=result_backend))
@@ -47,6 +50,9 @@ checkpointer = AsyncRedisSaver(
     },
 )
 
+
+# В `lifespan` вызвать `thread_executor.shutdown(wait=True)`
+thread_executor = ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="thread_worker")
 
 engine = create_async_engine(url=settings.postgres.sqlalchemy_url, echo=True)
 sessionmaker = async_sessionmaker(

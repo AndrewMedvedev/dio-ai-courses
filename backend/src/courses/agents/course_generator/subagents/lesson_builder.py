@@ -38,11 +38,9 @@ class AgentState(TypedDict):
 
 async def plan_lesson_structure(
     state: AgentState,
-    runtime: Runtime[Context],
 ) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
-        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
         system_prompt="""\
     Ты опытный методист и разработчик образовательных курсов.
     Твоя задача — спланировать детальную структуру одного урока: разбить материал
@@ -110,7 +108,7 @@ async def build_content_block(
     session: ClientSession,
 ) -> tuple[int, AnyContentBlock]:
     start_time = time.monotonic()
-    progress_percent = round((order / len(content_plan)) * 100, 2)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    progress_percent = round((order / len(content_plan)) * 100, 2)
     logger.info(
         "%s%% Generating `%s` content block for current plan: '%s'",
         progress_percent,
@@ -120,7 +118,7 @@ async def build_content_block(
 
     prompt_template = (
         "# Контекст текущего урока:\n"
-        f"{get_lesson_context(lesson, include_content_blocks=False)}\n\n"  # type: ignore  # ruff:ignore[blanket-type-ignore]
+        f"{get_lesson_context(lesson, include_content_blocks=False)}\n\n"
         f"# Сгенерируй контент блок с заданным типом - '{content_type.value}':\n"
         f"**Промпт**: {prompt}"
     )
@@ -136,7 +134,7 @@ async def build_content_block(
         content_type.value,
         round(elapsed_time, 2),
     )
-    return order, content_block  # ← возвращаем order, чтобы потом отсортировать
+    return order, content_block
 
 
 async def generate_content_blocks(
@@ -148,7 +146,7 @@ async def generate_content_blocks(
     """
 
     lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))
 
     async with TaskGroup() as tg:
         tasks = [
@@ -170,13 +168,13 @@ async def generate_content_blocks(
         lesson.append_content_block(content)
     logger.info(
         "Saving generated content blocks of `%s` module to knowledge base ...",
-        lesson.title,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+        lesson.title,
     )
 
     return {"lesson": lesson}
 
 
-async def generate_assignment(state: AgentState, runtime: Runtime[Context]) -> dict[str, Lesson]:
+async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
     """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
     lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
@@ -187,7 +185,6 @@ async def generate_assignment(state: AgentState, runtime: Runtime[Context]) -> d
     assignment = await call_lesson_practice_agent(
         lesson=lesson,
         assignment_type=assignment_type,
-        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
     )
     lesson.add_assignment(assignment)
     return {"lesson": lesson}
@@ -214,13 +211,12 @@ async def save_lesson(state: AgentState, runtime: Runtime[Context]) -> None:
         logger.info("Lesson %s alredy exsists", lesson.title)
 
 
-# Создание рабочего пространства для агента
 graph = StateGraph(AgentState, context_schema=Context)
 
-graph.add_node("plan_lesson_structure", plan_lesson_structure)  # pyright: ignore[reportArgumentType]
-graph.add_node("generate_content_blocks", generate_content_blocks)  # pyright: ignore[reportArgumentType]
-graph.add_node("generate_assignment", generate_assignment)  # pyright: ignore[reportArgumentType]
-graph.add_node("save_lesson", save_lesson)  # pyright: ignore[reportArgumentType]
+graph.add_node("plan_lesson_structure", plan_lesson_structure)
+graph.add_node("generate_content_blocks", generate_content_blocks)
+graph.add_node("generate_assignment", generate_assignment)
+graph.add_node("save_lesson", save_lesson)
 graph.add_edge(START, "plan_lesson_structure")
 graph.add_edge("plan_lesson_structure", "generate_content_blocks")
 graph.add_edge("generate_content_blocks", "generate_assignment")

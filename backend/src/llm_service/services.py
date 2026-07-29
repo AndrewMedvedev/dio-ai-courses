@@ -1,12 +1,12 @@
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal
 
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from functools import wraps
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from pydantic import BaseModel
 
 from ..core.settings import settings
@@ -15,73 +15,93 @@ from .middleware import BaseAgentMiddleware
 from .schemas import (
     LLMImageRequest,
     LLMImageResponse,
+    LLMServiceProtocol,
     LLMTextRequest,
     LLMTextResponse,
+    ResponseT,
     Runtime,
     ToolCallParsed,
 )
 
 logger = logging.getLogger(__name__)
 
-RequestT = TypeVar("RequestT", bound=BaseModel)
-ResponseT = TypeVar("ResponseT", bound=BaseModel)
+
+def execute_once_per_loop(
+    func: Callable[..., Awaitable[ResponseT]],
+) -> Callable[..., Awaitable[ResponseT]]:
+    @wraps(func)
+    async def wrapper(
+        self: LLMServiceProtocol,
+        messages: list[dict[str, Any]] | str,
+        *args,
+        **kwargs,
+    ) -> ResponseT:
+        for middleware in self.middlewares:  # pyright: ignore[reportOptionalIterable]
+            messages = await middleware.before_agent(self, messages)
+        response = await func(self, messages, *args, **kwargs)
+        for middleware in self.middlewares:  # pyright: ignore[reportOptionalIterable]
+            response = await middleware.after_agent(self, response)
+        return response
+
+    return wrapper
+
+
+def execute_each_invoke(
+    func: Callable[..., Awaitable[ResponseT]],
+) -> Callable[..., Awaitable[ResponseT]]:
+    @wraps(func)
+    async def wrapper(
+        self: LLMServiceProtocol,
+        messages: list[dict[str, Any]] | str,
+        *args,
+        **kwargs,
+    ) -> ResponseT:
+        for middleware in self.middlewares:  # pyright: ignore[reportOptionalIterable]
+            messages = await middleware.before_model(self, messages)
+        result = await func(self, messages, *args, **kwargs)
+        for mw in self.middlewares:  # pyright: ignore[reportOptionalIterable]
+            result = await mw.after_model(self, result)
+        return await self._process_response(result, *args, **kwargs)
+
+    return wrapper
 
 
 class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
-    url: str
+    base_url: str = settings.base_llm_router_url
     response_model: type[ResponseT]
 
     def __init__(
         self,
-        session: ClientSession,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
+        timeout: int = 5 * 60,
     ) -> None:
-        self.session = session
+        self._session: ClientSession | None = None
         self.middlewares = middlewares if middlewares is not None else []
         self.runtime = runtime
+        self.timeout = timeout
 
-    async def _send_request(self, schema: RequestT) -> ResponseT:
-        answer = await self.session.post(url=self.url, json=schema.model_dump(exclude_none=True))
-        answer.raise_for_status()
-        result = await answer.json()
-        return self.response_model.model_validate(result)
+    async def _get_session(self) -> AsyncIterator[ClientSession]:
+        if self._session is None or self._session.closed:
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+            self._session = ClientSession(
+                base_url=self.base_url, headers=headers, timeout=ClientTimeout(total=self.timeout)
+            )
+        yield self._session
 
-    @staticmethod
-    def execute_once_per_loop(func: Callable[..., Awaitable]) -> Callable[..., Awaitable]:
-        @wraps(func)
-        async def wrapper(
-            self,
-            messages: list[dict[str, Any]] | str,
-            *args,
-            **kwargs,
-        ) -> ResponseT:
-            for middleware in self.middlewares:
-                messages = await middleware.before_agent(self, messages)
-            response = await func(self, messages, *args, **kwargs)
-            for middleware in self.middlewares:
-                response = await middleware.after_agent(self, response)
-            return response
+    async def close(self) -> None:
+        if self._session is not None and not self._session.closed:
+            await self._session.close()
 
-        return wrapper
-
-    @staticmethod
-    def execute_each_invoke(func: Callable[..., Awaitable]) -> Callable[..., Awaitable]:
-        @wraps(func)
-        async def wrapper(
-            self,
-            messages: list[dict[str, Any]] | str,
-            *args,
-            **kwargs,
-        ) -> ResponseT:
-            for middleware in self.middlewares:
-                messages = await middleware.before_model(self, messages)
-            result = await func(self, messages, *args, **kwargs)
-            for mw in self.middlewares:
-                result = await mw.after_model(self, result)
-            return await self._process_response(result, *args, **kwargs)
-
-        return wrapper
+    async def _send_request(self, request: RequestT, path: str) -> ResponseT:
+        async with self._get_session() as session:  # pyright: ignore[reportGeneralTypeIssues]
+            answer = await session.post(url=path, json=request.model_dump(exclude_none=True))
+            answer.raise_for_status()
+            result = await answer.json()
+            return self.response_model.model_validate(result)
 
     @abstractmethod
     async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
@@ -91,27 +111,26 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
 
 
 class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
-    url = settings.text_llm_router_url
     response_model = LLMTextResponse
 
     def __init__(
         self,
-        session: ClientSession,
         system_prompt: str | None = None,
         tools: dict[str, StructuredTool] | None = None,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         reasoning: Literal["low", "medium", "high"] | None = None,
         temperature: float | None = None,
         runtime: Runtime | None = None,
+        maximum_number_of_parallel_executions: int = 4,
     ) -> None:
-        super().__init__(session=session, runtime=runtime, middlewares=middlewares)
+        super().__init__(runtime=runtime, middlewares=middlewares)
         self.system_prompt = system_prompt
         self.tools = tools
         self.reasoning: Literal["low", "medium", "high"] | None = reasoning
         self.temperature = temperature
-        self.semaphore = Semaphore(4)
+        self.semaphore = Semaphore(maximum_number_of_parallel_executions)
 
-    @BaseLLMService.execute_once_per_loop
+    @execute_once_per_loop
     async def invoke(
         self,
         messages: list[dict[str, Any]],
@@ -119,7 +138,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
     ) -> LLMTextResponse:
         return await self._run_loop(messages=messages, schema=schema)
 
-    @BaseLLMService.execute_each_invoke
+    @execute_each_invoke
     async def _run_loop(
         self,
         messages: list[dict[str, Any]],
@@ -137,7 +156,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
             self.runtime.messages = messages
         if schema is not None:
             request.format_schema(schema)
-        return await self._send_request(request)
+        return await self._send_request(request=request, path="/responses/text")
 
     def _build_tool_call_handler(self) -> Callable[[ToolCallParsed], Awaitable[dict]]:
         async def base_handler(tool: ToolCallParsed) -> dict:
@@ -191,18 +210,16 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
 
 
 class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
-    url = settings.image_llm_router_url
     response_model = LLMImageResponse
 
     def __init__(
         self,
-        session: ClientSession,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        super().__init__(session=session, runtime=runtime, middlewares=middlewares)
+        super().__init__(runtime=runtime, middlewares=middlewares)
 
-    @BaseLLMService.execute_once_per_loop
+    @execute_once_per_loop
     async def invoke(
         self,
         messages: str,
@@ -210,7 +227,7 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
     ) -> LLMImageResponse:
         return await self._run_loop(messages=messages, images=images)
 
-    @BaseLLMService.execute_each_invoke
+    @execute_each_invoke
     async def _run_loop(
         self,
         messages: str,
@@ -219,4 +236,4 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
         request = LLMImageRequest(image=images, prompt=messages)
         if self.runtime is not None:
             self.runtime.messages = messages
-        return await self._send_request(request)
+        return await self._send_request(request=request, path="/responses/image")

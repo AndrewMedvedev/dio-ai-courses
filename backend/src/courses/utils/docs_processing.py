@@ -1,14 +1,16 @@
 # document_hierarchy_pipeline.py
+import asyncio
 import contextlib
 import io
 import re
-from asyncio import to_thread
 from dataclasses import dataclass, field
 from uuid import UUID
 
 from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from markitdown import MarkItDown
+
+from ...core.infrastructure import thread_executor
 
 
 @dataclass(frozen=True)
@@ -41,7 +43,7 @@ _HEADING_ONLY_RE = re.compile(r"^#{1,6}\s*$")
 
 
 class DocumentHierarchyPipeline:
-    DEFAULT_HEADERS: list[tuple[str, str]] = [  # noqa: RUF012
+    DEFAULT_HEADERS: list[tuple[str, str]] = [  # ruff: ignore[mutable-class-default]
         ("#", "H1"),
         ("##", "H2"),
         ("###", "H3"),
@@ -58,7 +60,13 @@ class DocumentHierarchyPipeline:
     @classmethod
     async def convert_document_to_md_async(cls, file: bytes, file_extension: str) -> str:
         # convert_stream блокирует event loop — выносим в отдельный поток
-        return await to_thread(cls.convert_document_to_md, file, file_extension)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            thread_executor,
+            cls.convert_document_to_md,
+            file,
+            file_extension,
+        )
 
     @staticmethod
     def extract_media(md_content: str) -> list["MediaChunk"]:

@@ -12,15 +12,19 @@ from ..schemas import AIModelSchema
 ai_models_router = APIRouter(prefix="/ai/models", tags=["AI Models"])
 
 
-@ai_models_router.post("", status_code=status.HTTP_201_CREATED)
-async def add_model(schema: AIModelSchema, service: AIModelsRepoDep) -> AIModel:
-    return await service.create(
+@ai_models_router.post("/", status_code=status.HTTP_201_CREATED)
+async def add_model(
+    schema: AIModelSchema, repository: AIModelsRepoDep, session: SessionDep
+) -> AIModel:
+    result = await repository.create(
         AIModel(name=schema.name, description=schema.description, context=schema.context)
     )
+    await session.commit()
+    return result
 
 
 @ai_models_router.post(
-    "",
+    "/get",
     response_model=Page[AIModel],
     summary="Список AI-моделей",
     status_code=status.HTTP_200_OK,

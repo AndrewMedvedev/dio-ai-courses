@@ -430,6 +430,7 @@ class Document(Entity):
 @dataclass(kw_only=True, slots=True)
 class Chat(Entity):
     user_id: UUID
+    course_id: UUID
     messages: list[dict] = field(default_factory=list)
 
     def replace_messages(self, messages: list[dict]) -> None:

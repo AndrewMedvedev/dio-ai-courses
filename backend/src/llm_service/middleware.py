@@ -7,14 +7,12 @@ from abc import ABC
 from collections.abc import Awaitable, Callable
 
 from .schemas import (
-    LLMImageResponse,
     LLMServiceProtocol,
-    LLMTextResponse,
     LLMTextServiceProtocol,
+    ResponseT,
     ToolCallParsed,
 )
 
-Response = LLMTextResponse | LLMImageResponse
 Messages = list[dict[str, Any]] | str
 
 
@@ -36,8 +34,8 @@ class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstr
     async def after_agent(  # ruff: ignore[no-self-use]
         self,
         service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
-        response: Response,
-    ) -> Response:
+        response: ResponseT,
+    ) -> ResponseT:
         return response
 
     # --- срабатывает перед/после КАЖДОГО вызова модели ---
@@ -51,8 +49,8 @@ class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstr
     async def after_model(  # ruff: ignore[no-self-use]
         self,
         service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
-        response: Response,
-    ) -> Response:
+        response: ResponseT,
+    ) -> ResponseT:
         return response
 
     # --- оборачивает КАЖДЫЙ вызов инструмента ---

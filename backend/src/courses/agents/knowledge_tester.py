@@ -1,15 +1,13 @@
 # Агент для проверки теоретических знаний
 
+from aiohttp import ClientSession
 from langchain.agents import create_agent
-from langchain.agents.structured_output import ToolStrategy
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from ...core.settings import settings
-from ..domain.entities import (
-    Lesson,
-)
+from ...llm_service import LLMTextService
 from ..schemas import AnyKnowledgeTest, DetailedAnswerTest, MultipleChoiceTest, TestType
 from ..utils.formatting import get_lesson_context
 
@@ -31,7 +29,7 @@ config = {
              Формулируй вопросы чётко и без воды, избегай длинных вступлений».
 
             Ты - эксперт по созданию тестов для проверки знаний.
-            На основе предоставленного теоретического материала модуля сгенерируй тест
+            На основе предоставленного теоретического материала урока сгенерируй тест
             в формате multiple choice (выбор одного или нескольких правильных ответов).
             Тест должен содержать от 10 до 30 вопросов, в зависимости от объема материала.
             Вопросы должны охватывать ключевые понятия, определения, принципы и факты из текста.
@@ -41,12 +39,12 @@ config = {
              - индекс правильного варианта ответа (индексация с 0),
              - баллы за вопрос (по умолчанию 1, если не указано иное).
             """,
-        "response_format": ToolStrategy(MultipleChoiceTest),
+        "response_format": MultipleChoiceTest,
     },
     TestType.DETAILED_ANSWER: {
         "system_prompt": """\
         Ты - эксперт по созданию тестов для проверки понимания материала.
-        На основе предоставленного теоретического материала модуля сгенерируй тест
+        На основе предоставленного теоретического материала урока сгенерируй тест
         с развернутыми ответами. Тест должен содержать от 5 до 15 вопросов, в зависимости
         от объема материала. Вопросы должны требовать от студента развернутого объяснения,
         анализа, синтеза или применения концепций. Избегай вопросов,
@@ -57,18 +55,20 @@ config = {
          - подсказку (опционально),
          - баллы за вопрос (по умолчанию 1),
 
-        Убедись, что вопросы соответствуют содержанию модуля и проверяют глубокое понимание,
+        Убедись, что вопросы соответствуют содержанию урока и проверяют глубокое понимание,
         а не простое воспроизведение.
         """,
-        "response_format": ToolStrategy(DetailedAnswerTest),
+        "response_format": DetailedAnswerTest,
     },
 }
 
 
-async def call_knowledge_tester(test_type: TestType, lesson: Lesson) -> AnyKnowledgeTest:
+async def call_knowledge_tester(
+    test_type: TestType, aio_session: ClientSession
+) -> AnyKnowledgeTest:
     """Вызвать агента для генерации тестирования"""
-
-    agent = create_agent(model=model, **config.get(test_type, {}))  # type: ignore  # noqa: PGH003
+    agent = LLMTextService(session=aio_session)
+    agent = create_agent(model=model, **config.get(test_type, {}))  # type: ignore  # ruff: ignore[blanket-type-ignore]
     prompt_template = (
         "## Теоретический материал пройденного урока:\n\n"
         "<THEORY>"

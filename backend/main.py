@@ -9,11 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from qdrant_client import models
 
-from src.core.infrastructure import checkpointer, qdrant_client
+from src.core.infrastructure import checkpointer, qdrant_client, thread_executor
 from src.core.logging import configure_logging
 from src.core.settings import settings
-
-# from src.iam.routers import router as iam_router
+from src.courses.routers import course_router
+from src.iam.routers import router as iam_router
 from src.llm_router.routers import llm_router
 from src.shared.domain.exceptions import AppError
 from src.shared.infra.middlewares import LoggingMiddleware
@@ -46,6 +46,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     yield
 
+    thread_executor.shutdown(wait=True)
+
 
 app = FastAPI(
     title="Ai courses system",
@@ -57,7 +59,8 @@ app = FastAPI(
 
 router = APIRouter(prefix="/api/v1")
 
-# router.include_router(iam_router)
+router.include_router(iam_router)
+router.include_router(course_router)
 router.include_router(llm_router)
 
 
@@ -73,7 +76,7 @@ app.add_middleware(
 
 
 @app.exception_handler(ValueError)
-def value_exception_handler(request: Request, exc: ValueError) -> JSONResponse:  # noqa: ARG001
+def value_exception_handler(request: Request, exc: ValueError) -> JSONResponse:  # ruff: ignore[unused-function-argument]
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={
@@ -88,7 +91,7 @@ def value_exception_handler(request: Request, exc: ValueError) -> JSONResponse: 
 
 
 @app.exception_handler(AppError)
-def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:  # noqa: ARG001
+def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:  # ruff: ignore[unused-function-argument]
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -107,4 +110,4 @@ app.add_middleware(LoggingMiddleware)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    uvicorn.run(app, host="0.0.0.0", port=settings.app.port)  # noqa: S104
+    uvicorn.run(app, host="0.0.0.0", port=settings.app.port)  # ruff: ignore[hardcoded-bind-all-interfaces]

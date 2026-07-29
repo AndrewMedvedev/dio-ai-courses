@@ -70,8 +70,9 @@ class LessonOrm(Base):
 
 
 class ChatOrm(Base):
-    __tablename__ = "chat"
+    __tablename__ = "chats"
     user_id: Mapped[UUID]
+    course_id: Mapped[UUID]
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 

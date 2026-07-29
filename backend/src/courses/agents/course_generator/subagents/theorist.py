@@ -95,7 +95,6 @@ async def generate_image(
 ) -> AnyContentBlock:
     content_config = config.get(content_type, {})
     agent = LLMImageService(
-        session=session,
         runtime=Runtime(context=context),
     )
     response_format: TypeAdapter = content_config.get("response_format")  # pyright: ignore[reportAssignmentType]
@@ -134,11 +133,9 @@ async def generate_text(
     content_type: ContentType,
     context: GenerationContext,
     prompt: str,
-    session: ClientSession,
 ) -> AnyContentBlock:
     content_config = config.get(content_type, {})
     agent = LLMTextService(
-        session=session,
         system_prompt=content_config.get("system_prompt", ""),
         tools=content_config.get("tools"),
         runtime=Runtime(context=context),
@@ -172,5 +169,7 @@ async def call_theory_agent(
     #         content_type=content_type, context=context, prompt=prompt, session=session
     #     )
     return await generate_text(
-        content_type=content_type, context=context, prompt=prompt, session=session
+        content_type=content_type,
+        context=context,
+        prompt=prompt,
     )

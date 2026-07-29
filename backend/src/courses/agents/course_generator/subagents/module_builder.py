@@ -35,12 +35,11 @@ class AgentState(TypedDict):
 
 
 async def plan_module_structure(
-    state: AgentState, runtime: Runtime[Context]
+    state: AgentState,
 ) -> dict[str, ModuleStructure | Module]:
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
-        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
         system_prompt="""\
     Ты полезный ассистент для планирования структуры образовательного модуля
     по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
@@ -98,7 +97,6 @@ async def build_lesson(
     module_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
-    context: Context,
 ) -> tuple[int, Lesson]:
     lesson_thread_id = (
         f"course:{generation_context.course_id}:module:{module_order}:lesson:{order}"
@@ -107,7 +105,6 @@ async def build_lesson(
         "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
     )
     async with session_factory() as session:
-        context.db_session = session
         result = await lesson_builder_agent.ainvoke(
             {
                 "generation_context": generation_context,
@@ -116,20 +113,20 @@ async def build_lesson(
                 "learning_objectives": learning_objectives,
                 "order": order,
                 "lesson_description": lesson_description,
-            },  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            },
             config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-            context=context,
+            context=Context(db_session=session),
             durability="sync",
-        )  # type: ignore  # ruff:ignore[blanket-type-ignore]
-        return order, result["lesson"]  # ← возвращаем order, чтобы потом отсортировать
+        )
+        return order, result["lesson"]
 
 
-async def generate_lessons(state: AgentState, runtime: Runtime[Context]) -> dict[str, Module]:
+async def generate_lessons(state: AgentState) -> dict[str, Module]:
     """Генерация уроков по структуре модуля"""
 
     module_structure, module = state["module_structure"], state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     start_time = time.monotonic()
-    total_modules = len(module_structure.lessons_descriptions)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    total_modules = len(module_structure.lessons_descriptions)
     logger.info("Start generate %s lessons ...", total_modules)
     async with TaskGroup() as tg:
         tasks = [
@@ -142,7 +139,6 @@ async def generate_lessons(state: AgentState, runtime: Runtime[Context]) -> dict
                     module_id=module.id,
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure.learning_objectives,
-                    context=Context(aio_session=runtime.context.aio_session),
                 )
             )
             for order, desc in enumerate(module_structure.lessons_descriptions)
@@ -161,18 +157,17 @@ async def generate_lessons(state: AgentState, runtime: Runtime[Context]) -> dict
     return {"module": module}
 
 
-async def generate_assignment(state: AgentState, runtime: Runtime[Context]) -> dict[str, Module]:
+async def generate_assignment(state: AgentState) -> dict[str, Module]:
     """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
     module_structure, module = state["module_structure"], state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     assignment_type = module_structure.assignment_specification.assignment_type
     prompt = module_structure.assignment_specification.prompt
 
-    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_module_practice_agent(
         assignment_type=assignment_type,
         module=module,
-        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
     )
     module.add_assignment(assignment)
     return {"module": module}
@@ -187,15 +182,13 @@ async def update_module(state: AgentState, runtime: Runtime[Context]) -> None:
     await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
 
 
-# Создание рабочего пространства для агента
 graph = StateGraph(AgentState, context_schema=Context)
 
-graph.add_node("plan_module_structure", plan_module_structure)  # pyright: ignore[reportArgumentType]
-graph.add_node("save_module", save_module)  # pyright: ignore[reportArgumentType]
-graph.add_node("generate_lessons", generate_lessons)  # pyright: ignore[reportArgumentType]
-graph.add_node("generate_assignment", generate_assignment)  # pyright: ignore[reportArgumentType]
-
-graph.add_node("update_module", update_module)  # pyright: ignore[reportArgumentType]
+graph.add_node("plan_module_structure", plan_module_structure)
+graph.add_node("save_module", save_module)
+graph.add_node("generate_lessons", generate_lessons)
+graph.add_node("generate_assignment", generate_assignment)
+graph.add_node("update_module", update_module)
 
 graph.add_edge(START, "plan_module_structure")
 graph.add_edge("plan_module_structure", "save_module")

@@ -23,15 +23,13 @@ from ..llm_service.schemas import (
     LLMTextRequest,
     LLMTextResponse,
 )
+from ..shared.schemas import PageParams
 from .domain.constants import BASE_MODEL_CONTEXT
 from .domain.dataclasses import AIModel
 from .infra.repository import SqlAIModelRepository
 from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY
 from .schemas import CacheAIModelsProtocol
 from .utils import (
-    GLOBAL_LLM_SEMAPHORE,
-    MAX_CONCURRENT_LLM_REQUESTS,
-    get_active_slots,
     parse_llm_response,
     to_langsmith_llm_output,
 )
@@ -62,21 +60,9 @@ class LLMTextRouter:
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke(self, model: str, **kwargs) -> LLMTextResponse:
         """Отдельный метод только для вызова API с retry"""
-        async with GLOBAL_LLM_SEMAPHORE:
-            logger.info(
-                "LLM call started (%d/%d slots busy)",
-                get_active_slots(),
-                MAX_CONCURRENT_LLM_REQUESTS,
-            )
-            try:
-                result: Response = await self.client.responses.create(model=model, **kwargs)
-                return parse_llm_response(response=result, input_messages=kwargs["input"])
-            finally:
-                logger.info(
-                    "LLM call finished (%d/%d slots busy)",
-                    get_active_slots() - 1,
-                    MAX_CONCURRENT_LLM_REQUESTS,
-                )
+
+        result: Response = await self.client.responses.create(model=model, **kwargs)
+        return parse_llm_response(response=result, input_messages=kwargs["input"])
 
     @staticmethod
     async def _select_model_by_length(
@@ -131,22 +117,18 @@ class LLMTextRouter:
 
     @traceable(run_type="chain", name="CallTextLLM")
     async def call_llm(self, schema: LLMTextRequest, model: str | None = None) -> LLMTextResponse:
-        # models = (
-        #     await self.wrapper(func=self.ai_model_repos.paginate, params=PageParams(size=50))
-        # ).items
-        # if model is not None:
-        #     return await self._fallback_model(
-        #         model=model, schema=schema.model_dump(exclude_none=True), models=models
-        #     )
-        # selected_model = await self._choose_model(
-        #     messages=schema.model_dump(exclude_none=True), models=models
-        # )
-        # return await self._invoke(
-        #     model=selected_model,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-        #     **schema.model_dump(exclude_none=True),
-        # )
+        models = (
+            await self.wrapper(func=self.ai_model_repos.paginate, params=PageParams(size=50))
+        ).items
+        if model is not None:
+            return await self._fallback_model(
+                model=model, schema=schema.model_dump(exclude_none=True), models=models
+            )
+        selected_model = await self._choose_model(
+            messages=schema.model_dump(exclude_none=True), models=models
+        )
         return await self._invoke(
-            model="gpt-5.4-nano",  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            model=selected_model.output["model_name"],  # pyright: ignore[reportOptionalSubscript]
             **schema.model_dump(exclude_none=True),
         )
 

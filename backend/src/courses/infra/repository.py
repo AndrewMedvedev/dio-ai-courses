@@ -160,9 +160,9 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
     async def get_tocs(self, owner_id: UUID) -> list[Document | None]:
         stmt = await self.session.execute(
-            select(DocumentOrm).where(
-                DocumentOrm.owner_id == owner_id,
-                DocumentOrm.node_type == DocumentNodeType.TOC,
+            select(self.model).where(
+                self.model.owner_id == owner_id,
+                self.model.node_type == DocumentNodeType.TOC,
             )
         )
         result = stmt.scalars().all()
@@ -171,9 +171,9 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
     async def get_headings(self, toc_id: UUID) -> list[Document | None]:
         stmt = await self.session.execute(
-            select(DocumentOrm).where(
-                DocumentOrm.parent_node_id == toc_id,
-                DocumentOrm.node_type == DocumentNodeType.HEADING,
+            select(self.model).where(
+                self.model.parent_node_id == toc_id,
+                self.model.node_type == DocumentNodeType.HEADING,
             )
         )
         result = stmt.scalars().all()
@@ -182,9 +182,9 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
     async def get_texts(self, heading_id: UUID) -> Document | None:
         stmt = await self.session.execute(
-            select(DocumentOrm).where(
-                DocumentOrm.parent_node_id == heading_id,
-                DocumentOrm.node_type == DocumentNodeType.TEXT,
+            select(self.model).where(
+                self.model.parent_node_id == heading_id,
+                self.model.node_type == DocumentNodeType.TEXT,
             )
         )
         result = stmt.scalars().all()
@@ -194,6 +194,26 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
 class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
     model = ChatOrm
     model_mapper = ChatMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
+
+    async def read(self, user_id: UUID, course_id: UUID) -> Chat | None:
+        stmt = select(self.model).where(
+            self.model.user_id == user_id,
+            self.model.course_id == course_id,
+        )
+        result = await self.session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return None if model is None else self.model_mapper.to_entity(model)
+
+    async def update(self, user_id: UUID, course_id: UUID, **kwargs) -> Chat | None:
+        stmt = (
+            update(self.model)
+            .values(**kwargs)
+            .where(self.model.user_id == user_id, self.model.course_id == course_id)
+            .returning(self.model)
+        )
+        result = await self.session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return None if model is None else self.model_mapper.to_entity(model)
 
 
 class VectorRepository:

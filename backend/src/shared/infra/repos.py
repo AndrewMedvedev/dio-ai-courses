@@ -82,7 +82,7 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
 
         return Page.create(
             items=[self.model_mapper.to_entity(model) for model in models],
-            total_items=total_items,  # type: ignore  # noqa: PGH003
+            total_items=total_items,  # type: ignore  # ruff: ignore[blanket-type-ignore]
             page=params.page,
             size=params.size,
         )

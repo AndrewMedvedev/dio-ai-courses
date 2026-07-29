@@ -25,6 +25,7 @@ class ChatMapper(ModelMapper[Chat, ChatOrm]):
             created_at=model.created_at,
             updated_at=model.updated_at,
             user_id=model.user_id,
+            course_id=model.course_id,
             messages=model.messages,
         )
 
@@ -35,6 +36,7 @@ class ChatMapper(ModelMapper[Chat, ChatOrm]):
             created_at=entity.created_at,
             updated_at=entity.updated_at,
             user_id=entity.user_id,
+            course_id=entity.course_id,
             messages=entity.messages,
         )
 

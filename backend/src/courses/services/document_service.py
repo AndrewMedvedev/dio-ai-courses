@@ -10,7 +10,7 @@ from ..schemas import FileForm
 from ..utils.docs_processing import DocumentHierarchyPipeline
 
 
-class ChatService:
+class DocumentService:
     def __init__(
         self,
         document_repo: SqlDocumentRepository,
@@ -21,7 +21,7 @@ class ChatService:
         self.document_repo = document_repo
         self.document_pipline = document_pipline
 
-    async def save_document(
+    async def _save_document(
         self,
         docs: list[Document],
         file_name: str,
@@ -90,17 +90,13 @@ class ChatService:
 
         await self.session.commit()
 
-    async def chat_with_interviewer(
+    async def save_documents(
         self,
         user_id: UUID,
-        user_prompt: str,
-        course_id: UUID,
-        file_form: FileForm,
+        file_forms: list[FileForm],
     ):
-        if file_form.file is not None:
+        for form in file_forms:
             docs = await self.document_pipline(
-                file=file_form.file, file_extension=file_form.file_path.suffix
+                file=form.file, file_extension=form.file_path.suffix
             )
-            await self.save_document(
-                docs=docs, file_name=file_form.file_path.stem, user_id=user_id
-            )
+            await self._save_document(docs=docs, file_name=form.file_path.stem, user_id=user_id)

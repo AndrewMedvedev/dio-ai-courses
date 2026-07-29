@@ -111,15 +111,11 @@ def _build_args_model_and_groups(
 
 
 def tool(
-    name_or_callable: str | Callable | None = None,
-    *,
     name: str | None = None,
     description: str | None = None,
-) -> StructuredTool | Callable[[Callable], StructuredTool]:
+) -> Callable[[Callable], StructuredTool]:
     def decorator(func: Callable) -> StructuredTool:
-        tool_name = name or (
-            name_or_callable if isinstance(name_or_callable, str) else func.__name__
-        )
+        tool_name = name or (func.__name__)
 
         args_model, param_groups = _build_args_model_and_groups(
             func,
@@ -140,8 +136,5 @@ def tool(
             args_model=args_model,
             param_groups=param_groups,
         )
-
-    if callable(name_or_callable):
-        return decorator(name_or_callable)
 
     return decorator

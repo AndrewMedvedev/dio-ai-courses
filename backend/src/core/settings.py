@@ -200,10 +200,9 @@ class Settings(BaseSettings):
     tracing: LangSmithSettings = LangSmithSettings()
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
+    base_llm_router_url: str = "http://localhost:8000/api/v1"
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
-    text_llm_router_url: str = "http://localhost:8000/api/v1/responses/text"
-    image_llm_router_url: str = "http://localhost:8000/api/v1/responses/image"
-    text_ai_model: str = "gpt-4"
+    text_ai_model: str = "gpt-4.1-nano"
     image_ai_model: str = "gpt-image-2"
 
 

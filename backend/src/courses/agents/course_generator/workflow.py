@@ -5,13 +5,11 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from aiohttp import ClientSession, ClientTimeout
 from dramatiq import actor
 from langchain_core.runnables import RunnableConfig
 from qdrant_client import models
 
 from ....core.infrastructure import checkpointer, qdrant_client, session_factory
-from ....shared.dependencies import AioSessionDep, SessionDep
 from ..schemas import Context
 from .nodes import GenerationContext, agent
 
@@ -37,14 +35,14 @@ Docker Compose для локального окружения (разработ�
     min_backoff=1000,  # мин. задержка перед повтором (мс)
     max_backoff=10000,  # макс. задержка (мс)
 )
-async def generate_course(generation_context: dict) -> dict:
+async def generate_course(generation_context: GenerationContext, context: Context) -> dict:
     try:
         await agent.ainvoke(
             {"generation_context": generation_context},  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            context=context,
             config=RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{generation_context['course_id']}",
-                    "context": Context(aio_session=AioSessionDep, db_session=SessionDep),  # pyright: ignore[reportArgumentType]
+                    "thread_id": f"course:{generation_context.course_id}",
                 }
             ),
             durability="sync",
@@ -88,11 +86,7 @@ async def main():
             },
             sparse_vectors_config={"bm25": models.SparseVectorParams()},
         )
-    async with ClientSession(
-        timeout=ClientTimeout(
-            sock_read=10000,
-        )
-    ) as aio_session:
+
         async with session_factory() as db_session:
             result = await agent.ainvoke(
                 {  # pyright: ignore[reportArgumentType]
@@ -103,7 +97,7 @@ async def main():
                         access_token="...",
                     ),
                 },
-                context=Context(aio_session=aio_session, db_session=db_session),
+                context=Context(db_session=db_session),
                 config=RunnableConfig(
                     configurable={
                         "thread_id": f"course:{course_id}",
@@ -113,8 +107,6 @@ async def main():
                 durability="sync",
             )
 
-            # Преобразуем результат в сериализуемый словарь
-            # Вариант 1: если result — это словарь с Pydantic-моделями
             serializable_result = {}
             for key, value in result.items():
                 if hasattr(value, "model_dump"):  # Pydantic v2
@@ -125,11 +117,6 @@ async def main():
                     serializable_result[key] = str(value)
                 else:
                     serializable_result[key] = value
-
-            # Или упрощённо, если вы точно знаете структуру (например, в result["generation_context"])
-            # serializable_result = result.copy()
-            # serializable_result["generation_context"] = result["generation_context"].model_dump()
-            # serializable_result["user_id"] = str(result["user_id"])  # если есть прямые UUID
 
             # Создаём путь к файлу с помощью pathlib
             output_dir = Path("results")

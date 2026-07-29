@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from abc import ABC
 from enum import StrEnum
 from pathlib import Path
@@ -94,3 +96,9 @@ AnyKnowledgeTest = DetailedAnswerTest | MultipleChoiceTest
 class FileForm(BaseModel):
     file_path: Path
     file: bytes
+
+
+class Chat(BaseModel):
+    course_id: UUID
+    role: Literal["assistant", "user"] = "user"
+    content: str

@@ -31,7 +31,7 @@ class AgentState(TypedDict):
     course: NotRequired[Course]  # Готовый курс
 
 
-async def reasoning(state: AgentState, runtime: GraphRuntime[Context]) -> dict[str, str]:
+async def reasoning(state: AgentState) -> dict[str, str]:
     """Размышление над запросом преподавателя"""
     if state.get("thinks") is not None:
         return {"thinks": state.get("thinks", "")}
@@ -40,7 +40,6 @@ async def reasoning(state: AgentState, runtime: GraphRuntime[Context]) -> dict[s
     agent = reasoner_agent(
         runtime=Runtime(
             context=state["generation_context"],
-            state=runtime.context.aio_session,
         )
     )
     result = await agent.invoke(
@@ -51,12 +50,12 @@ async def reasoning(state: AgentState, runtime: GraphRuntime[Context]) -> dict[s
     return {"thinks": result.raw_text}  # pyright: ignore[reportReturnType]
 
 
-async def plan_course_structure(state: AgentState, runtime: GraphRuntime[Context]) -> dict:
+async def plan_course_structure(state: AgentState) -> dict:
     """Планирование структуры курса используя информацию, полученную в ходе размышлений"""
 
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
 
-    agent = course_planner_agent(session=runtime.context.aio_session)  # pyright: ignore[reportArgumentType]
+    agent = course_planner_agent()
     result = await agent.invoke(
         messages=[{"role": "user", "content": state.get("thinks", "")}],
         schema=CourseStructure,
@@ -64,7 +63,7 @@ async def plan_course_structure(state: AgentState, runtime: GraphRuntime[Context
     course_structure = CourseStructure.model_validate(result.output)
     course = Course(
         id=state["generation_context"].course_id,
-        creator_id=state["generation_context"].user_id,  # pyright: ignore[reportIndexIssue]
+        creator_id=state["generation_context"].user_id,
         difficulty=course_structure.difficulty,
         status=CourseStatus.IN_GENERATION,
         title=course_structure.title,
@@ -94,14 +93,12 @@ async def build_module(
     module_description: str,
     audience_description: str,
     learning_objectives: list[str],
-    context: Context,
 ) -> tuple[int, Module]:
     module_thread_id = f"course:{generation_context.course_id}:module:{order}"
     logger.info(
         "Generating module - %s, by description: '%s ...'", order, module_description[:150]
     )
     async with session_factory() as session:
-        context.db_session = session
         result = await module_builder_agent.ainvoke(
             {
                 "generation_context": generation_context,
@@ -109,15 +106,15 @@ async def build_module(
                 "learning_objectives": learning_objectives,
                 "order": order,
                 "module_description": module_description,
-            },  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            },
             config=RunnableConfig(configurable={"thread_id": module_thread_id}),
-            context=context,
+            context=Context(db_session=session),
             durability="sync",
         )
-        return order, result["module"]  # ← возвращаем order, чтобы потом отсортировать
+        return order, result["module"]
 
 
-async def generate_modules(state: AgentState, runtime: GraphRuntime[Context]) -> dict[str, Course]:
+async def generate_modules(state: AgentState) -> dict[str, Course]:
     """Генерация модулей по структуре курса"""
 
     course_structure, course = state["course_structure"], state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
@@ -137,7 +134,6 @@ async def generate_modules(state: AgentState, runtime: GraphRuntime[Context]) ->
                     module_description=desc,
                     audience_description=course_structure.audience_description,
                     learning_objectives=course_structure.learning_objectives,
-                    context=Context(aio_session=runtime.context.aio_session),  # pyright: ignore[reportArgumentType]
                 )
             )
             for order, desc in enumerate(course_structure.module_descriptions)
@@ -156,20 +152,17 @@ async def generate_modules(state: AgentState, runtime: GraphRuntime[Context]) ->
     return {"course": course}
 
 
-async def generate_assignment(
-    state: AgentState, runtime: GraphRuntime[Context]
-) -> dict[str, Course]:
+async def generate_assignment(state: AgentState) -> dict[str, Course]:
     """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
     course_structure, course = state["course_structure"], state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     assignment_type = course_structure.assignment_specification.assignment_type
     prompt = course_structure.assignment_specification.prompt
 
-    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_course_practice_agent(
         assignment_type=assignment_type,
         course=course,
-        session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
     )
     course.add_assignment(assignment)
     return {"course": course}
@@ -190,13 +183,12 @@ async def update_course(state: AgentState, runtime: GraphRuntime[Context]) -> No
 
 graph = StateGraph(AgentState, context_schema=Context)
 
-graph.add_node("reasoning", reasoning)  # pyright: ignore[reportArgumentType]
-graph.add_node("plan_course_structure", plan_course_structure)  # pyright: ignore[reportArgumentType]
-graph.add_node("save_course", save_course)  # pyright: ignore[reportArgumentType]
-graph.add_node("generate_modules", generate_modules)  # pyright: ignore[reportArgumentType]
-graph.add_node("generate_assignment", generate_assignment)  # pyright: ignore[reportArgumentType]
-graph.add_node("update_course", update_course)  # pyright: ignore[reportArgumentType]
-
+graph.add_node("reasoning", reasoning)
+graph.add_node("plan_course_structure", plan_course_structure)
+graph.add_node("save_course", save_course)
+graph.add_node("generate_modules", generate_modules)
+graph.add_node("generate_assignment", generate_assignment)
+graph.add_node("update_course", update_course)
 graph.add_edge(START, "reasoning")
 graph.add_edge("reasoning", "plan_course_structure")
 graph.add_edge("plan_course_structure", "save_course")

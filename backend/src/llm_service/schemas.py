@@ -7,7 +7,6 @@ if TYPE_CHECKING:
 from asyncio import Semaphore
 from collections.abc import Sequence
 
-from aiohttp import ClientSession
 from openai.lib._pydantic import to_strict_json_schema  # ruff:ignore[import-private-name]
 from openai.types.responses import ToolParam
 from pydantic import Base64Str, BaseModel, ConfigDict, Field, TypeAdapter
@@ -85,21 +84,27 @@ class Runtime[B: BaseModel, T](BaseModel):
     messages: list[dict[str, Any]] | str = Field(default_factory=list)
 
 
-class LLMServiceProtocol(Protocol):
-    session: ClientSession
+RequestT = TypeVar("RequestT", bound=BaseModel)
+ResponseT = TypeVar("ResponseT", bound=BaseModel)
+
+
+class LLMServiceProtocol(Protocol[RequestT, ResponseT]):  # pyright: ignore[reportInvalidTypeVarUse]
+    base_url: str
+    response_model: type[ResponseT]
     runtime: Runtime | None
+    middlewares: Sequence[BaseAgentMiddleware] | None
+    timeout: int
 
-    async def _send_request(
-        self, schema: LLMImageRequest | LLMTextRequest
-    ) -> LLMImageResponse | LLMTextResponse: ...
+    async def _send_request(self, request: RequestT, path: str) -> ResponseT: ...
 
-    async def invoke(self, *args, **kwargs) -> LLMImageResponse | LLMTextResponse: ...
+    async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
+
+    async def _process_response(self, response: ResponseT, *args, **kwargs) -> ResponseT: ...
 
 
 class LLMTextServiceProtocol(LLMServiceProtocol):
     system_prompt: str | None
     tools: dict[str, StructuredTool] | None
-    middlewares: Sequence[BaseAgentMiddleware] | None
     reasoning: Literal["low", "medium", "high"] | None
     temperature: float | None
     semaphore: Semaphore
