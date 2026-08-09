@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, PositiveInt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class Context(BaseModel):
+class RuntimeContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     aio_session: ClientSession | None = None
     db_session: AsyncSession | None = None
@@ -19,8 +19,8 @@ class CourseContext(BaseModel):
     course_id: UUID
 
 
-class GenerationContext(CourseContext):
-    """Контекст для генерации курса"""
+class Context(CourseContext):
+    """Контекст для работы с  курсом"""
 
     user_id: UUID
     prompt: str

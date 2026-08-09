@@ -1,3 +1,5 @@
+# pyright: reportOptionalMemberAccess=false,reportArgumentType=false, reportOptionalSubscript=false,reportAttributeAccessIssue=false
+
 from typing import Any
 
 import logging
@@ -54,7 +56,7 @@ class LLMTextRouter:
             min=2,
             max=30,
         ),
-        stop=stop_after_attempt(6),
+        stop=stop_after_attempt(3),
         reraise=True,
     )
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
@@ -96,7 +98,7 @@ class LLMTextRouter:
             )
             result = await self._invoke(model=selected_model, input=prompt)
             return await self._invoke(
-                model=result.output_text["model_name"],  # type: ignore  # ruff:ignore[blanket-type-ignore]
+                model=result.output_text["model_name"],
                 **schema,
             )
         return await self._invoke(model=model, **schema)
@@ -118,18 +120,20 @@ class LLMTextRouter:
     @traceable(run_type="chain", name="CallTextLLM")
     async def call_llm(self, schema: LLMTextRequest, model: str | None = None) -> LLMTextResponse:
         models = (
-            await self.wrapper(func=self.ai_model_repos.paginate, params=PageParams(size=50))
+            await self.wrapper(func=self.ai_model_repos.read_fields, params=PageParams(size=50))
         ).items
         if model is not None:
             return await self._fallback_model(
-                model=model, schema=schema.model_dump(exclude_none=True), models=models
+                model=model,
+                schema=schema.model_dump(exclude_none=True, by_alias=True),
+                models=models,
             )
         selected_model = await self._choose_model(
-            messages=schema.model_dump(exclude_none=True), models=models
+            schema=schema.model_dump(exclude_none=True, by_alias=True), models=models
         )
         return await self._invoke(
-            model=selected_model.output["model_name"],  # pyright: ignore[reportOptionalSubscript]
-            **schema.model_dump(exclude_none=True),
+            model=selected_model.output["model_name"],
+            **schema.model_dump(exclude_none=True, by_alias=True),
         )
 
 
@@ -155,9 +159,10 @@ class LLMImageRouter:
 
         result: ImagesResponse = await self.client.images.generate(model=model, **kwargs)
         return LLMImageResponse(
-            size=result.size,  # pyright: ignore[reportArgumentType]
-            image=result.data[0].b64_json,  # pyright: ignore[reportOptionalSubscript, reportArgumentType]
-            total_tokens=result.usage.total_tokens,  # pyright: ignore[reportOptionalMemberAccess]
+            size=result.size,
+            image=result.data[0].b64_json,
+            total_tokens=result.usage.total_tokens,
+            output_format=result.output_format,
         )
 
     @retry(
@@ -174,19 +179,19 @@ class LLMImageRouter:
         """Отдельный метод для генерации изображения на основе изображения"""
         result: ImagesResponse = await self.client.images.edit(model=model, **kwargs)
         return LLMImageResponse(
-            size=result.size,  # pyright: ignore[reportArgumentType]
-            image=result.data[0].b64_json,  # pyright: ignore[reportOptionalSubscript, reportArgumentType]
-            total_tokens=result.usage.total_tokens,  # pyright: ignore[reportOptionalMemberAccess]
+            size=result.size,
+            image=result.data[0].b64_json,
+            total_tokens=result.usage.total_tokens,
+            output_format=result.output_format,
         )
 
     async def call_llm(self, schema: LLMImageRequest) -> LLMImageResponse:
-        logger.warning(schema)
         if schema.image is not None:
             return await self._invoke_image_based(
-                model=settings.image_ai_model,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-                **schema.model_dump(exclude_none=True),
+                model=settings.image_ai_model,
+                **schema.model_dump(exclude_none=True, by_alias=True),
             )
         return await self._invoke_image(
-            model=settings.image_ai_model,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            **schema.model_dump(exclude_none=True),
+            model=settings.image_ai_model,
+            **schema.model_dump(exclude_none=True, by_alias=True),
         )

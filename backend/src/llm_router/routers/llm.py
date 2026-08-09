@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from ...iam.dependencies import CurrentUserDep
 from ...llm_service import LLMImageRequest, LLMImageResponse, LLMTextRequest, LLMTextResponse
 from ..dependencies import LLMImageRouterDep, LLMTextRouterDep
 
@@ -12,6 +13,7 @@ responses_router = APIRouter(prefix="/responses", tags=["LLM Router"])
 async def invoke_text(
     schema: LLMTextRequest,
     service: LLMTextRouterDep,
+    _current_user: CurrentUserDep,
     model: str | None = None,
 ) -> LLMTextResponse:
     return await service.call_llm(schema=schema, model=model)
@@ -21,5 +23,6 @@ async def invoke_text(
 async def invoke(
     schema: LLMImageRequest,
     service: LLMImageRouterDep,
+    _current_user: CurrentUserDep,
 ) -> LLMImageResponse:
     return await service.call_llm(schema=schema)

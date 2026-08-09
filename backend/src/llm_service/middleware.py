@@ -1,4 +1,5 @@
-# middleware.py
+# ruff: file-ignore[abstract-base-class-without-abstract-method, no-self-use, unused-method-argument]
+
 from __future__ import annotations
 
 from typing import Any
@@ -16,7 +17,7 @@ from .schemas import (
 Messages = list[dict[str, Any]] | str
 
 
-class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstract-method]
+class BaseAgentMiddleware(ABC):
     """
     Базовый класс миддлвари для LLMService.
     Переопределяйте только нужные хуки — остальные по умолчанию
@@ -24,39 +25,39 @@ class BaseAgentMiddleware(ABC):  # ruff:ignore[abstract-base-class-without-abstr
     """
 
     # --- срабатывает РОВНО ОДИН РАЗ за весь запуск invoke() ---
-    async def before_agent(  # ruff: ignore[no-self-use]
+    async def before_agent(
         self,
-        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        service: LLMServiceProtocol,
         messages: Messages,
     ) -> Messages:
         return messages
 
-    async def after_agent(  # ruff: ignore[no-self-use]
+    async def after_agent(
         self,
-        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        service: LLMServiceProtocol,
         response: ResponseT,
     ) -> ResponseT:
         return response
 
     # --- срабатывает перед/после КАЖДОГО вызова модели ---
-    async def before_model(  # ruff: ignore[no-self-use]
+    async def before_model(
         self,
-        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        service: LLMServiceProtocol,
         messages: Messages,
     ) -> Messages:
         return messages
 
-    async def after_model(  # ruff: ignore[no-self-use]
+    async def after_model(
         self,
-        service: LLMServiceProtocol,  # ruff: ignore[unused-method-argument]
+        service: LLMServiceProtocol,
         response: ResponseT,
     ) -> ResponseT:
         return response
 
     # --- оборачивает КАЖДЫЙ вызов инструмента ---
-    async def wrap_tool_call(  # ruff:ignore[no-self-use]
+    async def wrap_tool_call(
         self,
-        service: LLMTextServiceProtocol,  # ruff:ignore[unused-method-argument]
+        service: LLMTextServiceProtocol,
         tool: ToolCallParsed,
         handler: Callable[[ToolCallParsed], Awaitable[dict]],
     ) -> dict:

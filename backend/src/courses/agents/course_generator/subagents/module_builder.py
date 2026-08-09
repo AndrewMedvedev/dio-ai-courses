@@ -14,7 +14,7 @@ from .....core.infrastructure import checkpointer, session_factory
 from .....llm_service import LLMTextService
 from ....domain.entities import Lesson, Module
 from ....infra.repository import SqlModuleRepository
-from ...schemas import Context, GenerationContext
+from ...schemas import Context, RuntimeContext
 from .lesson_builder import lesson_builder_agent
 from .practician import call_module_practice_agent
 from .prompts import ModuleStructure
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class AgentState(TypedDict):
     """Состояние агента для создания модулей"""
 
-    generation_context: GenerationContext
+    generation_context: Context
     audience_description: str  # Описание целевой аудитории курса
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер модуля
@@ -40,6 +40,7 @@ async def plan_module_structure(
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
+        token=state["generation_context"].access_token,
         system_prompt="""\
     Ты полезный ассистент для планирования структуры образовательного модуля
     по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
@@ -77,7 +78,7 @@ async def plan_module_structure(
     return {"module_structure": module_structure, "module": module}
 
 
-async def save_module(state: AgentState, runtime: Runtime[Context]) -> None:
+async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
     module = state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     try:
@@ -93,7 +94,7 @@ async def build_lesson(
     module_order: int,
     order: int,
     lesson_description: str,
-    generation_context: GenerationContext,
+    generation_context: Context,
     module_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
@@ -115,7 +116,7 @@ async def build_lesson(
                 "lesson_description": lesson_description,
             },
             config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-            context=Context(db_session=session),
+            context=RuntimeContext(db_session=session),
             durability="sync",
         )
         return order, result["lesson"]
@@ -166,6 +167,7 @@ async def generate_assignment(state: AgentState) -> dict[str, Module]:
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_module_practice_agent(
+        token=state["generation_context"].access_token,
         assignment_type=assignment_type,
         module=module,
     )
@@ -173,7 +175,7 @@ async def generate_assignment(state: AgentState) -> dict[str, Module]:
     return {"module": module}
 
 
-async def update_module(state: AgentState, runtime: Runtime[Context]) -> None:
+async def update_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
     module = state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     await module_repos.update(uid=module.id, assignment=module.assignment)
@@ -182,7 +184,7 @@ async def update_module(state: AgentState, runtime: Runtime[Context]) -> None:
     await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
 
 
-graph = StateGraph(AgentState, context_schema=Context)
+graph = StateGraph(AgentState, context_schema=RuntimeContext)
 
 graph.add_node("plan_module_structure", plan_module_structure)
 graph.add_node("save_module", save_module)

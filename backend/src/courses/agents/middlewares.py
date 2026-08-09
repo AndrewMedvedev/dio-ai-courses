@@ -1,18 +1,26 @@
+# pyright: reportOptionalMemberAccess=false, reportOptionalSubscript=false, reportOptionalMemberAccess=false, reportArgumentType=false
+# ruff: file-ignore[unused-method-argument, magic-value-comparison, private-member-access,no-self-use]
+
+
 from typing import Any
 
 import asyncio
+import base64
 import logging
 import re
 from collections.abc import Awaitable, Callable
 from json import dumps
-from uuid import UUID
+from uuid import uuid4
 
+from pydantic import BaseModel
 from pymorphy3 import MorphAnalyzer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.infrastructure import thread_executor, tokens_encoder
 from ...llm_service import (
     BaseAgentMiddleware,
+    LLMImageResponse,
+    LLMImageServiceProtocol,
     LLMServiceProtocol,
     LLMTextResponse,
     LLMTextService,
@@ -20,12 +28,15 @@ from ...llm_service import (
     Messages,
 )
 from ...llm_service.schemas import ToolCallParsed
+from ...media.schemas import ConfirmUploadRequest, PresignedUploadRequest
+from ...shared.infra.repos import SqlAlchemyRepository
 from ..domain.entities import Chat
 from ..infra.repository import SqlChatRepository
-
-# Инициализация один раз
+from ..rest import confirm_upload, get_presigned_upload_url, upload_file
+from ..schemas import Chat as ChatSchema
 
 logger = logging.getLogger(__name__)
+
 
 morph = MorphAnalyzer()
 
@@ -33,17 +44,20 @@ morph = MorphAnalyzer()
 class SummarizationMiddleware(BaseAgentMiddleware):
     def __init__(self, system_prompt: str, number_of_tokens: int) -> None:
         self.number_of_tokens = number_of_tokens
-        self.router = LLMTextService(system_prompt=system_prompt)
+        self.system_prompt = system_prompt
+        self._router: LLMTextService | None = None
 
     async def before_model(
         self,
-        service: LLMServiceProtocol,  # ruff:ignore[unused-method-argument]
+        service: LLMServiceProtocol,
         messages: list[dict],
     ) -> list[dict]:
+        if self._router is None:
+            self._router = LLMTextService(token=service.token, system_prompt=self.system_prompt)
         str_messages = dumps(messages)
         count_tokens = len(tokens_encoder.encode(text=str_messages))
         if count_tokens >= self.number_of_tokens:
-            result = await self.router.invoke(messages=messages)
+            result = await self._router.invoke(messages=messages)  # pyright: ignore[reportAttributeAccessIssue]
             return [{"role": "assistant", "content": result.raw_text}]
         return messages
 
@@ -62,7 +76,7 @@ class ToolCallLimitMiddleware(BaseAgentMiddleware):
             if self.tool_limits[tool.name] > 0:
                 self.tool_limits[tool.name] -= 1
                 return await super().wrap_tool_call(service, tool, handler)
-            callable_func = service.tools[tool.name]  # pyright: ignore[reportOptionalSubscript]
+            callable_func = service.tools[tool.name]
             logger.info("The tool %s call has reached the limit", tool.name)
             return callable_func.to_tool_result(
                 call_id=tool.call_id,
@@ -82,7 +96,7 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
 
         lemmas = []
         for word in words:
-            if len(word) <= 2:  # ruff:ignore[magic-value-comparison]
+            if len(word) <= 2:
                 lemmas.append(word)
                 continue
             parsed = morph.parse(word)[0]
@@ -113,7 +127,10 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
                 processed.append(new_msg)
 
         if texts:
-            for (new_msg, _), result in texts:
+            for (
+                result,
+                new_msg,
+            ) in texts:  # порядок должен соответствовать texts.append((task, new_msg))
                 new_msg["content"] = result
                 processed.append(new_msg)
 
@@ -121,36 +138,40 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
 
     async def before_model(
         self,
-        service: LLMTextServiceProtocol,  # ruff: ignore[unused-method-argument]
+        service: LLMTextServiceProtocol,
         messages: list[dict],
     ) -> list[dict]:
         return await self.process_conversation(messages)
 
 
-class CheckpointMiddleware(BaseAgentMiddleware):
+class BaseSqlCheckpointer[EntityT, SchemaT: BaseModel](BaseAgentMiddleware):
     def __init__(
         self,
-        repo: SqlChatRepository,
+        repo: SqlAlchemyRepository,
         session: AsyncSession,
     ) -> None:
         self.repo = repo
         self.session = session
 
-    async def _get_messages(self, user_id: UUID, course_id: UUID) -> list[dict] | None:
-        chat = await self.repo.read(user_id=user_id, course_id=course_id)
-        if chat is not None:
-            return chat.messages
-        return None
-
-    async def _create_chat(self, chat: Chat) -> None:
-        await self.repo.create(chat)
+    async def _create(self, entity: EntityT) -> None:
+        await self.repo.create(entity)
         await self.session.commit()
 
-    async def _update_chat(self, chat: Chat) -> None:
-        await self.repo.update(
-            user_id=chat.user_id, course_id=chat.course_id, messages=chat.messages
-        )
+    async def _read(self, *args, **kwargs) -> EntityT | None:
+        return await self.repo.read(*args, **kwargs)
+
+    async def _update(self, *args, **kwargs) -> None:
+        await self.repo.update(*args, **kwargs)
         await self.session.commit()
+
+
+class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
+    def __init__(
+        self,
+        repo: SqlChatRepository,
+        session: AsyncSession,
+    ) -> None:
+        super().__init__(repo=repo, session=session)
 
     async def before_model(
         self,
@@ -161,19 +182,26 @@ class CheckpointMiddleware(BaseAgentMiddleware):
             [{"role": "user", "content": messages}] if isinstance(messages, str) else messages
         )
         schema = Chat(
-            user_id=service.runtime.context.user_id,  # pyright: ignore[reportOptionalMemberAccess]
-            course_id=service.runtime.context.course_id,  # pyright: ignore[reportOptionalMemberAccess]
+            id=service.runtime.state.chat_id,
+            user_id=service.runtime.context.user_id,
+            course_id=service.runtime.context.course_id,
             messages=messages,
         )
-        saved_messages = await self._get_messages(
+        data = await self._read(
             user_id=schema.user_id,
             course_id=schema.course_id,
         )
-        if saved_messages is not None:
+        if data is not None:
+            saved_messages = data.messages
             schema.replace_messages(saved_messages + messages)
-            await self._update_chat(schema)
+            await self._update(
+                chat_id=service.runtime.state.chat_id,
+                user_id=service.runtime.context.user_id,
+                course_id=service.runtime.context.course_id,
+                messages=messages,
+            )
             return saved_messages + messages
-        await self._create_chat(schema)
+        await self._create(schema)
         return messages
 
     async def after_model(
@@ -181,10 +209,46 @@ class CheckpointMiddleware(BaseAgentMiddleware):
         service: LLMServiceProtocol,
         response: LLMTextResponse,
     ) -> LLMTextResponse:
-        chat = Chat(
-            user_id=service.runtime.context.user_id,  # pyright: ignore[reportOptionalMemberAccess]
-            course_id=service.runtime.context.course_id,  # pyright: ignore[reportOptionalMemberAccess]
-            messages=service.runtime.messages,  # pyright: ignore[reportArgumentType, reportOptionalMemberAccess]
+        await self._update(
+            chat_id=service.runtime.state.chat_id,
+            user_id=service.runtime.context.user_id,
+            course_id=service.runtime.context.course_id,
+            messages=service.runtime.messages,
         )
-        await self._update_chat(chat)
+        return response
+
+
+class SaveImageMiddleware(BaseAgentMiddleware):
+    async def after_model(
+        self,
+        service: LLMImageServiceProtocol,
+        response: LLMImageResponse,
+    ) -> LLMImageResponse:
+        file_bytes = base64.b64decode(response.image)
+        filename = f"{uuid4()}.{response.output_format}"
+        upload_url = await get_presigned_upload_url(
+            schema=PresignedUploadRequest(
+                filename=filename,
+                owner_id=service.runtime.context.course_id,
+                content_type=response.output_format,
+            ),
+            session=service._session,
+        )
+        await upload_file(
+            session=service._session,
+            file=file_bytes,
+            presigned_url=upload_url["upload_url"],
+            content_type=response.output_format,
+        )
+        uploaded_file = await confirm_upload(
+            session=service._session,
+            token=service.runtime.context.access_token,
+            schema=ConfirmUploadRequest(
+                owner_id=service.runtime.context.course_id,
+                storage_key=upload_url["storage_key"],
+                content_type=response.output_format,
+                original_filename=filename,
+            ),
+        )
+        response.image = uploaded_file["id"]
         return response

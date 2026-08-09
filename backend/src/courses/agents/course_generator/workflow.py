@@ -10,8 +10,8 @@ from langchain_core.runnables import RunnableConfig
 from qdrant_client import models
 
 from ....core.infrastructure import checkpointer, qdrant_client, session_factory
-from ..schemas import Context
-from .nodes import GenerationContext, agent
+from ..schemas import RuntimeContext
+from .nodes import Context, agent
 
 prompt = """Разработай учебный курс по Docker для разработчиков, которые уже пишут код, но хотят освоить контейнеризацию для локальной разработки, CI/CD и деплоя.
 
@@ -35,7 +35,7 @@ Docker Compose для локального окружения (разработ�
     min_backoff=1000,  # мин. задержка перед повтором (мс)
     max_backoff=10000,  # макс. задержка (мс)
 )
-async def generate_course(generation_context: GenerationContext, context: Context) -> dict:
+async def generate_course(generation_context: Context, context: RuntimeContext) -> dict:
     try:
         await agent.ainvoke(
             {"generation_context": generation_context},  # type: ignore  # ruff:ignore[blanket-type-ignore]
@@ -90,14 +90,14 @@ async def main():
         async with session_factory() as db_session:
             result = await agent.ainvoke(
                 {  # pyright: ignore[reportArgumentType]
-                    "generation_context": GenerationContext(
+                    "generation_context": Context(
                         user_id="3887cb68-d0ab-46d0-9f15-d13d4b4fc78f",  # pyright: ignore[reportArgumentType]
                         course_id=course_id,  # pyright: ignore[reportArgumentType]
                         prompt=prompt,
                         access_token="...",
                     ),
                 },
-                context=Context(db_session=db_session),
+                context=RuntimeContext(db_session=db_session),
                 config=RunnableConfig(
                     configurable={
                         "thread_id": f"course:{course_id}",

@@ -1,24 +1,13 @@
 # Агент для проверки теоретических знаний
 
-from aiohttp import ClientSession
-from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
+from uuid import UUID
 
-from ...core.settings import settings
+from pydantic import TypeAdapter
+
 from ...llm_service import LLMTextService
+from ..infra.repository import SqlLessonRepository
 from ..schemas import AnyKnowledgeTest, DetailedAnswerTest, MultipleChoiceTest, TestType
 from ..utils.formatting import get_lesson_context
-
-model = ChatOpenAI(
-    api_key=SecretStr(settings.yandex_cloud.api_key),
-    base_url=settings.yandex_cloud.base_url,
-    model=settings.yandex_cloud.gpt_oss_120b,
-    temperature=0.2,
-    max_retries=3,
-    max_completion_tokens=100000,
-)
 
 config = {
     TestType.MULTIPLE_CHOICE: {
@@ -64,16 +53,26 @@ config = {
 
 
 async def call_knowledge_tester(
-    test_type: TestType, aio_session: ClientSession
+    test_type: TestType,
+    repo: SqlLessonRepository,
+    lesson_id: UUID,
 ) -> AnyKnowledgeTest:
     """Вызвать агента для генерации тестирования"""
-    agent = LLMTextService(session=aio_session)
-    agent = create_agent(model=model, **config.get(test_type, {}))  # type: ignore  # ruff: ignore[blanket-type-ignore]
+    lesson = await repo.read(uid=lesson_id)
+    if lesson is None:
+        raise
+    test_config = config.get(test_type, {})
+    response_format = test_config.get("response_format")
+    agent = LLMTextService(system_prompt=test_config.get("system_prompt", ""), temperature=0.2)
     prompt_template = (
         "## Теоретический материал пройденного урока:\n\n"
         "<THEORY>"
         f"{get_lesson_context(lesson)}\n"
         f"</THEORY>"
     )
-    result = await agent.ainvoke({"messages": [HumanMessage(content=prompt_template)]})
-    return result["structured_response"]
+    result = await agent.invoke(
+        messages=[{"role": "user", "content": prompt_template}],
+        schema=response_format,  # pyright: ignore[reportArgumentType]
+    )
+
+    return TypeAdapter(response_format).validate_python(result.output)

@@ -8,3 +8,4 @@ class AIModel(Entity):
     name: str
     description: str
     context: int
+

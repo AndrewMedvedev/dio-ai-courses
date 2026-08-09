@@ -1,4 +1,8 @@
+# pyright: reportArgumentType=false, reportAttributeAccessIssue=false
+
+
 import logging
+from dataclasses import asdict
 
 from ...shared.infra.repos import ModelMapper
 from ..domain.entities import (
@@ -48,14 +52,14 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
             id=model.id,
             created_at=model.created_at,
             updated_at=model.updated_at,
-            module_id=model.module_id,  # pyright: ignore[reportArgumentType]
+            module_id=model.module_id,
             title=model.title,
             description=model.description,
-            order=model.order,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            order=model.order,
             learning_objectives=model.learning_objectives,
-            content_blocks=model.content_blocks,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            content_blocks=model.content_blocks,
             estimated_time_minutes=model.estimated_time_minutes,
-            assignment=model.assignment,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            assignment=model.assignment,
         )
 
     @staticmethod
@@ -71,19 +75,19 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
             learning_objectives=entity.learning_objectives,
             content_blocks=entity.content_blocks,
             estimated_time_minutes=entity.estimated_time_minutes,
-            assignment=entity.assignment,
+            assignment=asdict(entity.assignment) if entity.assignment else None,
             # module_id не передаём — проставляется через assign_module
         )
 
     @staticmethod
     def basic_info_mapper(row: tuple) -> LessonBasicInfo:
         return LessonBasicInfo(
-            id=row.id,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            title=row.title,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            description=row.description,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            order=row.order,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            learning_objectives=row.learning_objectives,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            estimated_time_minutes=row.estimated_time_minutes,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            id=row.id,
+            title=row.title,
+            description=row.description,
+            order=row.order,
+            learning_objectives=row.learning_objectives,
+            estimated_time_minutes=row.estimated_time_minutes,
         )
 
 
@@ -94,12 +98,12 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
             id=model.id,
             created_at=model.created_at,
             updated_at=model.updated_at,
-            course_id=model.course_id,  # ← добавить  # pyright: ignore[reportArgumentType]
+            course_id=model.course_id,
             title=model.title,
             description=model.description,
-            order=model.order,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            order=model.order,
             learning_objectives=model.learning_objectives,
-            assignment=model.assignment,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            assignment=model.assignment,
             lessons=[LessonMapper.to_entity(lesson) for lesson in model.lessons],
         )
 
@@ -120,11 +124,11 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
     @staticmethod
     def basic_info_mapper(row: tuple, lessons: list[BasicInfo]) -> ModuleBasicInfo:
         return ModuleBasicInfo(
-            id=row.id,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            title=row.title,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            description=row.description,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            order=row.order,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            learning_objectives=row.learning_objectives,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            id=row.id,
+            title=row.title,
+            description=row.description,
+            order=row.order,
+            learning_objectives=row.learning_objectives,
             lessons=lessons,
         )
 
@@ -145,7 +149,7 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             creator_id=model.creator_id,
             image_url=model.image_url,
             learning_objectives=model.learning_objectives,
-            assignment=model.assignment,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            assignment=model.assignment,
             # маппим каждый ModuleOrm в доменный Module
             modules=[ModuleMapper.to_entity(module) for module in model.modules],
         )
@@ -166,19 +170,17 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             image_url=entity.image_url,
             learning_objectives=entity.learning_objectives,
             assignment=entity.assignment,
-            # modules не передаём — модули уже в БД,
-            # course_id им проставит assign_course
         )
 
     @staticmethod
     def basic_info_mapper(row: tuple, modules: list[BasicInfo]) -> CourseBasicInfo:
         return CourseBasicInfo(
-            id=row.id,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            title=row.title,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            description=row.description,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            difficulty=row.difficulty,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            tags=row.tags,  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            learning_objectives=row.learning_objectives,  # type: ignore  # ruff:ignore[blanket-type-ignore]
+            id=row.id,
+            title=row.title,
+            description=row.description,
+            difficulty=row.difficulty,
+            tags=row.tags,
+            learning_objectives=row.learning_objectives,
             modules=modules,
         )
 

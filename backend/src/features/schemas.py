@@ -1,263 +1,77 @@
-from __future__ import annotations
-
-from typing import Any
-
-from dataclasses import dataclass, field
-from datetime import datetime
-from uuid import UUID
-
-
-@dataclass(slots=True)
-class PracticePayload:
-    """Входные данные практического задания."""
-
-    task: str
-    criteria: list[str] = field(default_factory=list)
-    check_type: str = "manual"
-    title: str = ""
-    assignment_type: str = "manual"
-    assignment_data: dict[str, Any] | None = None
-    passing_score: int = 61
-
-
-@dataclass(slots=True)
-class LessonCreate:
-    """Входные данные создания урока."""
-
-    title: str
-    content: str
-    learning_objectives: list[str] = field(default_factory=list)
-    content_blocks: list[dict[str, Any]] = field(default_factory=list)
-    estimated_time_minutes: int | None = None
-
-
-@dataclass(slots=True)
-class LessonUpdate:
-    """Входные данные обновления урока."""
-
-    title: str | None = None
-    content: str | None = None
-    learning_objectives: list[str] | None = None
-    content_blocks: list[dict[str, Any]] | None = None
-    estimated_time_minutes: int | None = None
-
-
-@dataclass(slots=True)
-class ModuleCreate:
-    """Входные данные создания модуля."""
-
-    title: str
-    description: str = ""
-    learning_objectives: list[str] = field(default_factory=list)
-    content_blocks: list[dict[str, Any]] = field(default_factory=list)
-
-
-@dataclass(slots=True)
-class ModuleUpdate:
-    """Входные данные обновления модуля."""
-
-    title: str | None = None
-    description: str | None = None
-    learning_objectives: list[str] | None = None
-    content_blocks: list[dict[str, Any]] | None = None
-
-
-@dataclass(slots=True)
-class NestedModuleCreate:
-    """Входные данные вложенного модуля при создании курса."""
-
-    title: str
-    description: str = ""
-    learning_objectives: list[str] = field(default_factory=list)
-    content_blocks: list[dict[str, Any]] = field(default_factory=list)
-    lessons: list[LessonCreate] = field(default_factory=list)
-    practice: PracticePayload | None = None
-
-
-@dataclass(slots=True)
-class CourseCreate:
-    """Входные данные создания курса."""
-
-    title: str
-    description: str
-    difficulty: str
-    creator_id: int | None = None
-    image_url: str | None = None
-    learning_objectives: list[str] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
-    final_assessment: dict[str, Any] | None = None
-    modules: list[NestedModuleCreate] = field(default_factory=list)
-
-
-@dataclass(slots=True)
-class CourseUpdate:
-    """Входные данные обновления курса."""
-
-    title: str | None = None
-    description: str | None = None
-    difficulty: str | None = None
-    image_url: str | None = None
-    learning_objectives: list[str] | None = None
-    tags: list[str] | None = None
-    final_assessment: dict[str, Any] | None = None
-    status: str | None = None
-
-
-@dataclass(slots=True)
-class ReorderPayload:
-    """Входные данные изменения порядка элементов."""
-
-    ids: list[UUID]
-
-
-@dataclass(slots=True)
-class LessonOut:
-    """Ответ API с уроком."""
-
-    id: UUID
-    title: str
-    content: str
-    position: int
-    learning_objectives: list[str] = field(default_factory=list)
-    content_blocks: list[dict[str, Any]] = field(default_factory=list)
-    estimated_time_minutes: int | None = None
-
-
-@dataclass(slots=True)
-class PracticeOut:
-    """Ответ API с практическим заданием."""
-
-    id: UUID
-    task: str
-    criteria: list[str]
-    check_type: str
-    title: str = ""
-    assignment_type: str = "manual"
-    assignment_data: dict[str, Any] | None = None
-    passing_score: int = 61
-
-
-@dataclass(slots=True)
-class ModuleOut:
-    """Ответ API с модулем курса."""
-
-    id: UUID
-    title: str
-    description: str
-    position: int
-    learning_objectives: list[str] = field(default_factory=list)
-    content_blocks: list[dict[str, Any]] = field(default_factory=list)
-    lessons: list[LessonOut] = field(default_factory=list)
-    practice: PracticeOut | None = None
-
-
-@dataclass(slots=True)
-class CourseOut:
-    """Полный ответ API с курсом."""
-
-    id: UUID
-    title: str
-    description: str
-    difficulty: str
-    creator_id: int | None
-    image_url: str | None
-    learning_objectives: list[str]
-    tags: list[str]
-    final_assessment: dict[str, Any] | None
-    status: str
-    popularity: int
-    created_at: datetime
-    updated_at: datetime
-    modules: list[ModuleOut] = field(default_factory=list)
-
-
-@dataclass(slots=True)
-class CourseListItem:
-    """Краткий элемент списка курсов."""
-
-    id: UUID
-    title: str
-    description: str
-    difficulty: str
-    tags: list[str]
-    status: str
-    popularity: int
-    created_at: datetime
-
-
-@dataclass(slots=True)
-class CourseListOut:
-    """Ответ API со списком курсов и пагинацией."""
-
-    items: list[CourseListItem]
-    total: int
-    page: int
-    limit: int
-    next_page: int | None
-
-
-@dataclass(slots=True)
-class EnrollRequest:
-    """Входные данные записи пользователя на курс."""
-
-    user_id: int
-
-
-@dataclass(slots=True)
-class ProgressOut:
-    """Ответ API с прогрессом пользователя по курсу."""
-
-    enrollment_id: UUID
-    user_id: int
-    course_id: UUID
-    status: str
-    current_module_id: UUID | None
-    current_lesson_id: UUID | None
-    completion_percent: float
-    started_at: datetime
-    completed_at: datetime | None
-
-
-@dataclass(slots=True)
-class CompleteLessonRequest:
-    """Входные данные отметки урока пройденным."""
-
-    user_id: int
-
-
-@dataclass(slots=True)
-class GenerateCourseRequest:
-    """Входные данные запуска генерации курса."""
-
-    topic: str
-    target_audience: str
-    difficulty: str
-    modules_count: int
-    lessons_per_module: int
-    llm_model: str
-
-    def validate(self) -> None:
-        """Валидация ограничений генерации курса."""
-
-        if self.modules_count < 1 or self.modules_count > 20:
-            raise ValueError("modules_count должен быть в диапазоне от 1 до 20")
-        if self.lessons_per_module < 1 or self.lessons_per_module > 20:
-            raise ValueError("lessons_per_module должен быть в диапазоне от 1 до 20")
-
-
-@dataclass(slots=True)
-class GenerationTaskOut:
-    """Ответ API с состоянием задачи генерации курса."""
-
-    id: UUID
-    status: str
-    topic: str
-    target_audience: str
-    difficulty: str
-    llm_model: str
-    modules_count: int
-    lessons_per_module: int
-    course_id: UUID | None
-    error_message: str | None
-    created_at: datetime
-    updated_at: datetime
+models = [
+    {
+        "name": "gemini-2.5-flash-lite",
+        "description": "Без reasoning-режима. Tool calling есть, но в сложных многошаговых цепочках путает порядок. Хороша для простых задач: короткие описания, теги, метаданные. Сложную методику и глубокие объяснения тянет слабо. Простые JSON-схемы держит нормально, глубоко вложенные структуры — с ошибками.",
+        "context": 1000000,
+    },
+    {
+        "name": "gpt-4.1-nano",
+        "description": "Без reasoning. Tool calling стабилен для простых операций (структурирование, один вызов за раз). Для содержательного контента не годится — низкая глубина и связность. Умеренно сложные схемы держит, при большой вложенности и разнотипных полях теряет точность формата.",
+        "context": 1000000,
+    },
+    {
+        "name": "gpt-4o-mini",
+        "description": "Без reasoning, но стабильна в последовательных tool calls. Справляется с задачами среднего уровня: отдельный урок, простое задание, несложное объяснение. Многошаговая методическая логика — не её сильная сторона. Умеренно сложные схемы возвращает надёжно, на очень длинных и глубоких — контекст может подвести.",
+        "context": 128000,
+    },
+    {
+        "name": "gemini-3.1-flash-lite",
+        "description": "Без reasoning, но лучше следует инструкциям, чем базовые lite-модели. Tool calling работает для несложных цепочек. Хороша для практических заданий и коротких объяснений. Сложные и узкоспециализированные темы раскрывает неглубоко. Среднесложные вложенные схемы держит, для сложной условной логики нужен строгий контроль формата.",
+        "context": 1000000,
+    },
+    {
+        "name": "claude-haiku-4-5",
+        "description": "Без выраженного reasoning, но аккуратно следует длинным инструкциям и держит единый стиль на многих уроках. Tool calling надёжен для несложных сценариев. Справляется со средними по сложности задачами, для сложных многошаговых рассуждений не предназначена. Вложенные схемы среднего уровня возвращает точно, формат почти не нарушает.",
+        "context": 200000,
+    },
+    {
+        "name": "gemini-2.5-flash",
+        "description": "Поддерживает облегчённый reasoning. Tool calling уверенный, включая цепочки из нескольких вызовов. Хороша для задач выше среднего: полноценные уроки, примеры, квизы. На глубоко экспертных темах объяснения могут быть поверхностными. Многоуровневые схемы с условной логикой возвращает уверенно, на очень больших — изредка ошибается в формате.",
+        "context": 1000000,
+    },
+    {
+        "name": "gpt-5.4-mini",
+        "description": "Reasoning-модель с настраиваемой глубиной размышлений. Tool calling хорошо интегрирован с reasoning — удобно для заданий с зависимыми шагами. Решает задачи выше среднего уровня: пошаговые технические и логические объяснения. Сложные вложенные схемы с условной логикой возвращает хорошо, но за счёт reasoning ответ формируется дольше.",
+        "context": 400000,
+    },
+    {
+        "name": "gpt-4.1",
+        "description": "Без reasoning, отвечает быстро и предсказуемо. Tool calling стабилен даже при нескольких инструментах подряд. Держит большой контекст без потери качества — можно генерировать курс целиком за один проход. Справляется с задачами среднего и выше среднего уровня; для явного многошагового рассуждения слабее reasoning-моделей. Сложные глубоко вложенные схемы возвращает надёжно.",
+        "context": 1000000,
+    },
+    {
+        "name": "gemini-2.5-pro",
+        "description": "Поддерживает reasoning, даёт более глубокие объяснения. Tool calling надёжен даже в сложных многошаговых сценариях. Хорошо решает задачи высокого уровня: целые модули с теорией и заданиями, анализ мультимодальных материалов. Из минусов — иногда многословна. Сложные вложенные схемы с условной логикой возвращает уверенно.",
+        "context": 1000000,
+    },
+    {
+        "name": "gpt-5.1",
+        "description": "Reasoning-модель с несколькими уровнями «усилия». Tool calling хорошо интегрирован с reasoning, подходит для агентных сценариев (поиск и проверка фактов). Решает задачи высокого уровня: многошаговые рассуждения, сложные логические объяснения. Сложные вложенные схемы с условной структурой держит уверенно; ограниченный контекст может стать узким местом на очень объёмных курсах.",
+        "context": 400000,
+    },
+    {
+        "name": "gemini-3.5-flash",
+        "description": "Поддерживает reasoning, хорошо ведёт агентные workflow с последовательными вызовами инструментов. Решает задачи высокого уровня, включая мультимодальный анализ материалов. Сложные многоуровневые схемы с условной логикой возвращает хорошо. Минус — модель новая, поведение на узкоспециализированных темах изучено меньше, чем у более старых моделей.",
+        "context": 1000000,
+    },
+    {
+        "name": "claude-sonnet-4-6",
+        "description": "Поддерживает расширенный reasoning-режим. Tool calling — сильная сторона: устойчиво ведёт длинные агентные цепочки. Хорошо следует детальным методическим инструкциям, не упрощает сложные темы. Решает задачи высокого уровня, включая код для практики. Сложные вложенные схемы с условной логикой возвращает надёжно. Расширение контекста до 1М требует бета-флага.",
+        "context": 200000,
+    },
+    {
+        "name": "claude-sonnet-5",
+        "description": "Адаптивный reasoning включён по умолчанию, без ручной настройки. Tool calling поддерживает сложные сценарии, включая параллельные вызовы инструментов. Решает задачи высокого уровня: сложный технический контент, продуманные программы, код. Большой нативный контекст удерживает весь учебный план и стиль курса, снижая противоречия между уроками. Очень сложные вложенные схемы с условной логикой возвращает уверенно.",
+        "context": 1000000,
+    },
+    {
+        "name": "gpt-5.4",
+        "description": "Reasoning-модель с настраиваемой глубиной. Tool calling поддерживает сложные многошаговые сценарии. Особенно сильна при большом объёме исходного материала — точно перерабатывает длинные тексты в структуру курса. Решает задачи высокого уровня, надёжно возвращает объёмные вложенные схемы. На простых коротких задачах возможности reasoning используются не полностью.",
+        "context": 1050000,
+    },
+    {
+        "name": "claude-opus-5",
+        "description": "Самый мощный adaptive reasoning в линейке, требует меньше «шагов размышления», чем предыдущий Opus. Tool calling — сильная сторона: устойчиво ведёт длинные автономные агентные сценарии, сама проверяет промежуточные результаты. Решает задачи максимального уровня сложности: экспертные технические, научные, юридические курсы. Самые сложные вложенные схемы с условной логикой возвращает без потери целостности. Для базового контента её возможности избыточны.",
+        "context": 1000000,
+    },
+]

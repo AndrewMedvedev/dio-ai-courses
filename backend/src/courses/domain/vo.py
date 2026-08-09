@@ -1,6 +1,31 @@
 from enum import StrEnum, auto
 
 
+class ContentType(StrEnum):
+    """Тип контента внутри блока."""
+
+    TEXT = auto()  # Текстовый контент / лекция
+    IMAGE = auto()  # Изображение
+    PROGRAM_CODE = auto()  # Пример кода
+    MERMAID = auto()  # Mermaid диаграмма
+    QUIZ = auto()  # Вопросы для самопроверки
+    MATH_FORMULA = auto()  # Математическая, физическая, логическая формула
+    CHEMICAL_FORMULA = auto()  # Химическая формула
+    MUSICAL_NOTATION = auto()  # Нотная запись
+
+
+class ExtendedContentType(StrEnum):
+    TEXT = auto()  # Текстовый контент / лекция
+    VIDEO = auto()  # Видео блок
+    IMAGE = auto()  # Изображение
+    PROGRAM_CODE = auto()  # Пример кода
+    MERMAID = auto()  # Mermaid диаграмма
+    QUIZ = auto()  # Вопросы для самопроверки
+    MATH_FORMULA = auto()  # Математическая, физическая, логическая формула
+    CHEMICAL_FORMULA = auto()  # Химическая формула
+    MUSICAL_NOTATION = auto()  # Нотная запись
+
+
 class CourseUserRole(StrEnum):
     """Роли пользователей в курсе."""
 
@@ -9,7 +34,7 @@ class CourseUserRole(StrEnum):
     MODERATOR = "moderator"
 
 
-COURSE_USER_ROLE_HIERARCHY: dict[CourseUserRole, int] = {
+COURSE_USER_ROLE_HIERARCHY: dict[CourseUserRole, int] = {  # pyright: ignore[reportAssignmentType]
     CourseUserRole.STUDENT: 0,
     CourseUserRole.MODERATOR: 1,
     CourseUserRole.TEACHER: 2,
@@ -59,3 +84,17 @@ class DocumentNodeType(StrEnum):
     TOC = "toc"
     HEADING = "heading"
     TEXT = "text"
+
+
+class TestType(StrEnum):
+    """Тип тестирования"""
+
+    MULTIPLE_CHOICE = "multiple_choice"
+    DETAILED_ANSWER = "detailed_answer"
+
+
+class AssignmentType(StrEnum):
+    """Тип практического задания."""
+
+    FILE_UPLOAD = "file_upload"  # Загрузка файла
+    GITHUB = "github"  # Работа с GitHub-репозиторием

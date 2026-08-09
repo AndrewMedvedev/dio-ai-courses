@@ -12,6 +12,7 @@ from openai.types.responses.response import Response
 
 from ..core.infrastructure import redis_client
 from ..llm_service.schemas import LLMTextResponse, ToolCallParsed
+from ..shared.domain.exceptions import NotFoundError
 from ..shared.schemas import Page
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?```", re.DOTALL | re.IGNORECASE)
@@ -147,6 +148,8 @@ async def cache_ai_models(
     if got_lock:
         try:
             result: Page = await func(*args, **kwargs)
+            if result is None:
+                raise NotFoundError("Модели не найдены")
             await redis_client.set(key, result.model_dump_json(), ex=ttl)
             return result
         finally:

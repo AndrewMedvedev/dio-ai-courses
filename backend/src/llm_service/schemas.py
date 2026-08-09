@@ -2,19 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
+from aiohttp import ClientSession
+
 if TYPE_CHECKING:
     from .middleware import BaseAgentMiddleware
 from asyncio import Semaphore
 from collections.abc import Sequence
 
-from openai.lib._pydantic import to_strict_json_schema  # ruff:ignore[import-private-name]
 from openai.types.responses import ToolParam
-from pydantic import Base64Str, BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from .dataclasses import StructuredTool
-
-T = TypeVar("T")
-B = TypeVar("B", bound=BaseModel)
+from .strict_schema import to_strict_json_schema
 
 
 class ToolCallParsed(BaseModel):
@@ -73,8 +72,9 @@ class LLMImageResponse(BaseModel):
     """Структурированный результат парсинга ответа от Responses API"""
 
     size: str
-    image: Base64Str = Field(description="Изображение в формате base64")
+    image: str = Field(description="Изображение в формате base64")
     total_tokens: int = Field(description="Количество токенов")
+    output_format: str = "png"
 
 
 class Runtime[B: BaseModel, T](BaseModel):
@@ -91,6 +91,8 @@ ResponseT = TypeVar("ResponseT", bound=BaseModel)
 class LLMServiceProtocol(Protocol[RequestT, ResponseT]):  # pyright: ignore[reportInvalidTypeVarUse]
     base_url: str
     response_model: type[ResponseT]
+    token: str
+    _session: ClientSession
     runtime: Runtime | None
     middlewares: Sequence[BaseAgentMiddleware] | None
     timeout: int

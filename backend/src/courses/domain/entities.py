@@ -1,26 +1,21 @@
+# pyright: reportAssignmentType=false
+
 from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from enum import StrEnum, auto
 from uuid import UUID
 
 from ...shared.domain.entities import AggregateRoot, Entity
-from .vo import CourseStatus, CourseUserRole, DifficultyLevel, DocumentNodeType
-
-
-class ContentType(StrEnum):
-    """Тип контента внутри блока."""
-
-    TEXT = auto()  # Текстовый контент / лекция
-    # IMAGE = auto()  # Изображение
-    PROGRAM_CODE = auto()  # Пример кода
-    MERMAID = auto()  # Mermaid диаграмма
-    QUIZ = auto()  # Вопросы для самопроверки
-    LINK = auto()  # Внешняя ссылка на источник
-    MATH_FORMULA = auto()  # Математическая, физическая, логическая формула
-    CHEMICAL_FORMULA = auto()  # Химическая формула
-    MUSICAL_NOTATION = auto()  # Нотная запись
+from .vo import (
+    AssignmentType,
+    ContentType,
+    CourseStatus,
+    CourseUserRole,
+    DifficultyLevel,
+    DocumentNodeType,
+    ExtendedContentType,
+)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -48,6 +43,21 @@ class TextBlock(ContentBlock):
 
     content_type: ContentType = ContentType.TEXT
     md_content: str
+
+
+@dataclass(kw_only=True, slots=True)
+class VideoBlock(ContentBlock):
+    """Блок с видео материалом.
+
+    Attributes:
+        content_type: Тип контента (всегда TEXT).
+        ai_generated: Флаг AI-генерации.
+        url: ссылка на Видео.
+    """
+
+    content_type: ContentType = ExtendedContentType.VIDEO
+    url: str
+    description: str
 
 
 # @dataclass(kw_only=True, slots=True)
@@ -101,34 +111,15 @@ class MermaidBlock(ContentBlock):
 
 
 @dataclass(kw_only=True, slots=True)
-class QuizBlock(ContentBlock):
-    """Блок с вопросами для самопроверки.
-
-    Attributes:
-        content_type: Тип контента (всегда QUIZ).
-        ai_generated: Флаг AI-генерации.
-        questions: Список кортежей (вопрос, правильный ответ).
-    """
-
-    content_type: ContentType = ContentType.QUIZ
-    questions: list[tuple[str, str]] = field(default_factory=list)
+class Question:
+    question: str
+    answer: str
 
 
 @dataclass(kw_only=True, slots=True)
-class LinkBlock(ContentBlock):
-    """Блок для прикрепления внешней ссылки (Яндекс.Диск, Google Drive и т.п.).
-
-    Attributes:
-        content_type: Тип контента (всегда LINK).
-        ai_generated: Флаг AI-генерации (по умолчанию False, т.к. ссылки обычно добавляют вручную).
-        title: Отображаемое название ссылки.
-        url: Адрес внешнего ресурса.
-    """
-
-    content_type: ContentType = ContentType.LINK
-    title: str
-    url: str
-    ai_generated: bool = False
+class QuizBlock(ContentBlock):
+    content_type: ContentType = ContentType.QUIZ
+    questions: list[Question] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)
@@ -188,22 +179,15 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 
 AnyContentBlock = (
     TextBlock
+    | VideoBlock
     # | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock
-    | LinkBlock
     | MathBlock
     | ChemicalBlock
     | MusicalBlock
 )
-
-
-class AssignmentType(StrEnum):
-    """Тип практического задания."""
-
-    FILE_UPLOAD = "file_upload"  # Загрузка файла
-    GITHUB = "github"  # Работа с GitHub-репозиторием
 
 
 @dataclass(kw_only=True, slots=True)
@@ -267,6 +251,44 @@ AnyAssignment = FileUploadAssignment | GitHubAssignment
 
 
 @dataclass(kw_only=True, slots=True)
+class LessonBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    order: int
+    learning_objectives: list[str] = field(default_factory=list)
+    estimated_time_minutes: int | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class BasicInfo:
+    id: UUID
+    title: str
+    order: int
+
+
+@dataclass(kw_only=True, slots=True)
+class ModuleBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    order: int
+    learning_objectives: list[str] = field(default_factory=list)
+    lessons: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
+
+
+@dataclass(kw_only=True, slots=True)
+class CourseBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    difficulty: DifficultyLevel
+    tags: list[str]
+    learning_objectives: list[str] = field(default_factory=list)
+    modules: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
+
+
+@dataclass(kw_only=True, slots=True)
 class Lesson(Entity):
     """Урок внутри модуля курса.
 
@@ -294,43 +316,6 @@ class Lesson(Entity):
 
     def add_assignment(self, assignment: AnyAssignment) -> None:
         self.assignment = assignment
-
-
-@dataclass(kw_only=True, slots=True)
-class LessonBasicInfo:
-    id: UUID
-    title: str
-    description: str
-    order: int
-    learning_objectives: list[str] = field(default_factory=list)
-    estimated_time_minutes: int | None = None
-
-
-@dataclass(kw_only=True, slots=True)
-class BasicInfo:
-    id: UUID
-    order: int
-
-
-@dataclass(kw_only=True, slots=True)
-class ModuleBasicInfo:
-    id: UUID
-    title: str
-    description: str
-    order: int
-    learning_objectives: list[str] = field(default_factory=list)
-    lessons: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
-
-
-@dataclass(kw_only=True, slots=True)
-class CourseBasicInfo:
-    id: UUID
-    title: str
-    description: str
-    difficulty: DifficultyLevel
-    tags: list[str]
-    learning_objectives: list[str] = field(default_factory=list)
-    modules: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
 
 
 @dataclass(kw_only=True, slots=True)
@@ -429,6 +414,16 @@ class Document(Entity):
 
 @dataclass(kw_only=True, slots=True)
 class Chat(Entity):
+    user_id: UUID
+    course_id: UUID
+    messages: list[dict] = field(default_factory=list)
+
+    def replace_messages(self, messages: list[dict]) -> None:
+        self.messages = messages.copy()
+
+
+@dataclass(kw_only=True, slots=True)
+class StudentPractice(Entity):
     user_id: UUID
     course_id: UUID
     messages: list[dict] = field(default_factory=list)

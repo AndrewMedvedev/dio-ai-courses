@@ -2,19 +2,19 @@ from __future__ import annotations
 
 from typing import Literal
 
+import json
 from abc import ABC
+from dataclasses import asdict
 from enum import StrEnum
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, PositiveInt
 
+from .domain.entities import AnyContentBlock
+from .domain.vo import DifficultyLevel
+
 PASSING_TEST_SCORE = 61
-
-
-class CourseGenerate(BaseModel):
-    course_id: UUID
-    prompt: str
 
 
 class TestResult(BaseModel):
@@ -95,10 +95,35 @@ AnyKnowledgeTest = DetailedAnswerTest | MultipleChoiceTest
 
 class FileForm(BaseModel):
     file_path: Path
+
     file: bytes
 
 
 class Chat(BaseModel):
+    chat_id: UUID = Field(default_factory=uuid4)
     course_id: UUID
     role: Literal["assistant", "user"] = "user"
     content: str
+
+
+class EditorChat(Chat):
+    content_block: AnyContentBlock
+    content_blocks: list[AnyContentBlock]
+    images: list[str] = Field(default_factory=list, max_length=5)
+
+    def to_json_content_blocks(self) -> tuple[str, str]:
+        return json.dumps(
+            [asdict(content_block) for content_block in self.content_blocks],
+            ensure_ascii=False,
+            default=str,
+        ), json.dumps(asdict(self.content_block), ensure_ascii=False, default=str)
+
+
+class EditorInfo(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    difficulty: DifficultyLevel | None = None
+    tags: list[str] | None = None
+    image_url: str | None = None
+    learning_objectives: list[str]
+    estimated_time_minutes: int | None = None

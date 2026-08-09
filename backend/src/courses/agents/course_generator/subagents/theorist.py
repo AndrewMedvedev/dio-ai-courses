@@ -1,31 +1,35 @@
-import base64
-import logging
-from uuid import uuid4
+# pyright: reportAssignmentType=false
 
-from aiohttp import ClientSession
+import logging
+
 from pydantic import TypeAdapter
 
-from .....llm_service import LLMImageRequest, LLMImageService, LLMTextService, Runtime
-from .....media.schemas import ConfirmUploadRequest, PresignedUploadRequest
+from .....llm_service import (
+    BaseAgentMiddleware,
+    LLMImageService,
+    LLMTextService,
+    Runtime,
+)
 from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
-    ContentType,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
     QuizBlock,
     TextBlock,
 )
-from ...schemas import GenerationContext
+from ....domain.vo import ContentType
+from ...middlewares import SaveImageMiddleware
+from ...schemas import Context
 from ..tools import knowledge_search
 from .prompts import CONTENT_BLOCK_PROMPTS
 
 logger = logging.getLogger(__name__)
 
 
-config = {
+THEORIST_CONFIG = {
     ContentType.PROGRAM_CODE: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.PROGRAM_CODE],
         "response_format": CodeBlock,
@@ -63,87 +67,45 @@ config = {
 }
 
 
-async def get_presigned_upload_url(schema: PresignedUploadRequest, session: ClientSession) -> dict:
-    response = await session.post(url="", json=schema)
-    response.raise_for_status()
-    return await response.json()
-
-
-async def upload_file(
-    session: ClientSession, file: bytes, presigned_url: str, content_type: str
-) -> None:
-    response = await session.put(
-        url=presigned_url, data=file, headers={"Content-Type": content_type}
-    )
-    response.raise_for_status()
-
-
-async def confirm_upload(schema: ConfirmUploadRequest, session: ClientSession, token: str) -> dict:
-    response = await session.post(
-        url="", json=schema, headers={"Authorization": f"Bearer {token}"}
-    )
-    response.raise_for_status()
-    return await response.json()
-
-
 async def generate_image(
     content_type: ContentType,
-    context: GenerationContext,
+    context: Context,
     prompt: str,
-    session: ClientSession,
-    image: list[str] | None = None,
+    images: list[str] | None = None,
+    middlewares: list[BaseAgentMiddleware] | None = None,
+    runtime: Runtime | None = None,
 ) -> AnyContentBlock:
-    content_config = config.get(content_type, {})
+    content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMImageService(
-        runtime=Runtime(context=context),
-    )
-    response_format: TypeAdapter = content_config.get("response_format")  # pyright: ignore[reportAssignmentType]
-    request = LLMImageRequest(image=image, prompt=prompt)
-    result = await agent.invoke(schema=request)
-    file_bytes = base64.b64decode(result.image)
-    filename = f"{uuid4()}.{request.output_format}"
-    upload_url = await get_presigned_upload_url(
-        schema=PresignedUploadRequest(
-            filename=filename,
-            owner_id=context.course_id,
-            content_type=request.output_format,
-        ),
-        session=session,
-    )
-    await upload_file(
-        session=session,
-        file=file_bytes,
-        presigned_url=upload_url["upload_url"],
-        content_type=request.output_format,
-    )
-    uploaded_file = await confirm_upload(
-        session=session,
         token=context.access_token,
-        schema=ConfirmUploadRequest(
-            owner_id=context.course_id,
-            storage_key=upload_url["storage_key"],
-            content_type=request.output_format,
-            original_filename=filename,
-        ),
+        system_prompt=content_config.get("system_prompt", ""),
+        runtime=runtime or Runtime(context=context),
+        middlewares=[SaveImageMiddleware(), *(middlewares or [])],
     )
-    return response_format.validate_python({"image_url": uploaded_file["id"]})
+    response_format: TypeAdapter = content_config.get("response_format")
+    result = await agent.invoke(messages=prompt, images=images)
+    return TypeAdapter(response_format).validate_python({"image_url": result.image})
 
 
 async def generate_text(
     content_type: ContentType,
-    context: GenerationContext,
+    context: Context,
     prompt: str,
+    middlewares: list[BaseAgentMiddleware] | None = None,
+    runtime: Runtime | None = None,
 ) -> AnyContentBlock:
-    content_config = config.get(content_type, {})
+    content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMTextService(
+        token=context.access_token,
         system_prompt=content_config.get("system_prompt", ""),
         tools=content_config.get("tools"),
-        runtime=Runtime(context=context),
+        middlewares=middlewares,
+        runtime=runtime or Runtime(context=context),
     )
-    response_format: AnyContentBlock = content_config.get("response_format")  # pyright: ignore[reportAssignmentType]
+    response_format: AnyContentBlock = content_config.get("response_format")
     result = await agent.invoke(
         messages=[{"role": "user", "content": prompt}],
-        schema=response_format,  # pyright: ignore[reportArgumentType]
+        schema=response_format,
     )
 
     return TypeAdapter(response_format).validate_python(result.output)
@@ -151,9 +113,8 @@ async def generate_text(
 
 async def call_theory_agent(
     content_type: ContentType,
-    context: GenerationContext,
+    context: Context,
     prompt: str,
-    session: ClientSession,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -164,10 +125,12 @@ async def call_theory_agent(
     """
 
     logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
-    # if content_type is ContentType.IMAGE:
-    #     return await generate_image(
-    #         content_type=content_type, context=context, prompt=prompt, session=session
-    #     )
+    if content_type == ContentType.IMAGE:
+        return await generate_image(
+            content_type=content_type,
+            context=context,
+            prompt=prompt,
+        )
     return await generate_text(
         content_type=content_type,
         context=context,

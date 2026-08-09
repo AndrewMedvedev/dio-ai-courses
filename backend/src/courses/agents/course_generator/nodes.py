@@ -1,3 +1,5 @@
+# pyright: reportOptionalMemberAccess=false,reportTypedDictNotRequiredAccess=false, reportArgumentType=false, reportReturnType=false
+
 from typing import NotRequired, TypedDict
 
 import logging
@@ -10,22 +12,21 @@ from langgraph.runtime import Runtime as GraphRuntime
 from sqlalchemy.exc import IntegrityError
 
 from ....core.infrastructure import checkpointer, session_factory
-from ....llm_service import Runtime
+from ....llm_service import LLMTextService, Runtime
 from ...domain.entities import Course, Module
 from ...domain.vo import CourseStatus
 from ...infra.repository import SqlCourseRepository
-from ..schemas import Context, GenerationContext
+from ..schemas import Context, RuntimeContext
 from .subagents.module_builder import module_builder_agent
 from .subagents.practician import call_course_practice_agent
-from .subagents.prompts import CourseStructure
+from .subagents.prompts import PLANNER_PROMPT, CourseStructure
 from .subagents.reasoner import reasoner_agent
-from .subagents.structure_planner import course_planner_agent
 
 logger = logging.getLogger(__name__)
 
 
 class AgentState(TypedDict):
-    generation_context: GenerationContext  # Контекстная информация курса
+    generation_context: Context  # Контекстная информация курса
     thinks: NotRequired[str]  # Мысли - план reasoning агента
     course_structure: NotRequired[CourseStructure]  # Сгенерированная структура курса
     course: NotRequired[Course]  # Готовый курс
@@ -47,7 +48,7 @@ async def reasoning(state: AgentState) -> dict[str, str]:
     )
     elapsed_time = time.monotonic() - start_time
     logger.info("Reasoning finished, time spent %s seconds", round(elapsed_time, 2))
-    return {"thinks": result.raw_text}  # pyright: ignore[reportReturnType]
+    return {"thinks": result.raw_text}
 
 
 async def plan_course_structure(state: AgentState) -> dict:
@@ -55,7 +56,10 @@ async def plan_course_structure(state: AgentState) -> dict:
 
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
 
-    agent = course_planner_agent()
+    agent = LLMTextService(
+        token=state["generation_context"].access_token,
+        system_prompt=PLANNER_PROMPT,
+    )
     result = await agent.invoke(
         messages=[{"role": "user", "content": state.get("thinks", "")}],
         schema=CourseStructure,
@@ -75,20 +79,20 @@ async def plan_course_structure(state: AgentState) -> dict:
     return {"course_structure": course_structure, "course": course}
 
 
-async def save_course(state: AgentState, runtime: GraphRuntime[Context]) -> None:
-    course_repos = SqlCourseRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
-    course = state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+async def save_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
+    course_repos = SqlCourseRepository(runtime.context.db_session)
+    course = state["course"]
     try:
         await course_repos.create(course)
         logger.info("Saving course '%s' to database ...", course.title)
 
-        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+        await runtime.context.db_session.commit()
     except IntegrityError:
         logger.info("Course %s alredy exsists", course.title)
 
 
 async def build_module(
-    generation_context: GenerationContext,
+    generation_context: Context,
     order: int,
     module_description: str,
     audience_description: str,
@@ -108,7 +112,7 @@ async def build_module(
                 "module_description": module_description,
             },
             config=RunnableConfig(configurable={"thread_id": module_thread_id}),
-            context=Context(db_session=session),
+            context=RuntimeContext(db_session=session),
             durability="sync",
         )
         return order, result["module"]
@@ -117,7 +121,7 @@ async def build_module(
 async def generate_modules(state: AgentState) -> dict[str, Course]:
     """Генерация модулей по структуре курса"""
 
-    course_structure, course = state["course_structure"], state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    course_structure, course = state["course_structure"], state["course"]
     start_time = time.monotonic()
     total_modules = len(course_structure.module_descriptions)
     logger.info("Start generate %s modules ...", total_modules)
@@ -155,12 +159,13 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
 async def generate_assignment(state: AgentState) -> dict[str, Course]:
     """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
 
-    course_structure, course = state["course_structure"], state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    course_structure, course = state["course_structure"], state["course"]
     assignment_type = course_structure.assignment_specification.assignment_type
     prompt = course_structure.assignment_specification.prompt
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_course_practice_agent(
+        token=state["generation_context"].access_token,
         assignment_type=assignment_type,
         course=course,
     )
@@ -168,9 +173,9 @@ async def generate_assignment(state: AgentState) -> dict[str, Course]:
     return {"course": course}
 
 
-async def update_course(state: AgentState, runtime: GraphRuntime[Context]) -> None:
-    course_repos = SqlCourseRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
-    course = state["course"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+async def update_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
+    course_repos = SqlCourseRepository(runtime.context.db_session)
+    course = state["course"]
     await course_repos.update(
         uid=course.id,
         assignment=course.assignment,
@@ -178,10 +183,10 @@ async def update_course(state: AgentState, runtime: GraphRuntime[Context]) -> No
     )
     logger.info("Update course '%s' to database ...", course.title)
 
-    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+    await runtime.context.db_session.commit()
 
 
-graph = StateGraph(AgentState, context_schema=Context)
+graph = StateGraph(AgentState, context_schema=RuntimeContext)
 
 graph.add_node("reasoning", reasoning)
 graph.add_node("plan_course_structure", plan_course_structure)

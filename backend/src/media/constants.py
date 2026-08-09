@@ -1,10 +1,8 @@
-
 # Временной промежуток после которого истекает подписанный URL (30 минут)
 PRESIGNED_URL_EXPIRES_IN = 1800
 # Максимальная длина для имени файла
 MAX_FILENAME_LENGTH = 255
 # Разрешённые типы владельцев файлов (те к кому можно прикрепить вложение)
-ALLOWED_OWNER_TYPES = {"user", "counterparty", "ticket", "message", "comment"}
 # Mime типы для документов (не включать application/octet-stream - не безопасно)
 DOCUMENT_MIME_TYPES = {
     # PDF

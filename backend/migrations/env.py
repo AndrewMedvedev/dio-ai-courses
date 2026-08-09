@@ -5,11 +5,12 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-import src.iam.database.models  # noqa: F401
-import src.llm_router.infra.models
 from src.core.infrastructure import Base
-from src.core.settings import settings
+import src.iam.database.models
+import src.llm_router.infra.models
 import src.courses.infra.models
+import src.media.infra.models
+from src.core.settings import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

@@ -1,3 +1,5 @@
+# pyright: reportCallIssue=false, reportArgumentType=false
+
 from __future__ import annotations
 
 from typing import Annotated, Any, get_args, get_origin, get_type_hints
@@ -98,13 +100,13 @@ def _build_args_model_and_groups(
             field_names=[name],
         )
 
-    args_model = create_model(  # pyright: ignore[reportCallIssue]
+    args_model = create_model(
         model_name,
         __config__=ConfigDict(
             extra="forbid",
             arbitrary_types_allowed=True,
         ),
-        **fields,  # pyright: ignore[reportArgumentType]
+        **fields,
     )
 
     return args_model, param_groups

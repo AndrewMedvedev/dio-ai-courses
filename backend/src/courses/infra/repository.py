@@ -6,12 +6,14 @@ from uuid import UUID, uuid4
 
 from fastembed.sparse import SparseTextEmbedding
 from qdrant_client import AsyncQdrantClient, models
-from sqlalchemy import select, update
+from sqlalchemy import func, literal, select, text, update
+from sqlalchemy.dialects.postgresql import JSONB
 
 from ...core.retrieval_components import embed, rerank
 from ...shared.infra.repos import SqlAlchemyRepository
 from ..domain.dependencies import splitter
 from ..domain.entities import (
+    AnyContentBlock,
     BasicInfo,
     Chat,
     Course,
@@ -32,6 +34,33 @@ logger = logging.getLogger(__name__)
 class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
     model = LessonOrm
     model_mapper = LessonMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
+
+    async def get_content_blocks_by_id(self, lesson_id: UUID) -> list[AnyContentBlock] | None:
+        stmt = select(self.model.content_blocks).where(self.model.id == lesson_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def replace_content_block(
+        self,
+        lesson_id: UUID,
+        block_index: int,
+        new_block: dict[str, Any],
+    ) -> None:
+        """Заменяет блок по индексу одним SQL UPDATE, не читая content_blocks в Python."""
+
+        stmt = (
+            update(self.model)
+            .where(self.model.id == lesson_id)
+            .values(
+                content_blocks=func.jsonb_set(
+                    self.model.content_blocks,
+                    text(f"'{{{block_index}}}'"),
+                    literal(new_block, type_=JSONB),
+                    True,
+                )
+            )
+        )
+        await self.session.execute(stmt)
 
     async def get_by_id_basic_info(self, lesson_id: UUID) -> LessonBasicInfo | None:
         stmt = select(
@@ -66,13 +95,13 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
         course_id: UUID,
     ) -> None:
         stmt = update(self.model).where(self.model.id.in_(module_ids)).values(course_id=course_id)
-
         await self.session.execute(stmt)
 
     async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
         lessons_stmt = (
             select(
                 LessonOrm.id,
+                LessonOrm.title,
                 LessonOrm.order,
             )
             .where(LessonOrm.module_id == module_id)
@@ -84,6 +113,7 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
         return [
             BasicInfo(
                 id=row.id,
+                title=row.title,
                 order=row.order,
             )
             for row in lessons_result.all()
@@ -116,17 +146,18 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
         modules_stmt = (
             select(
                 ModuleOrm.id,
+                ModuleOrm.title,
                 ModuleOrm.order,
             )
             .where(ModuleOrm.course_id == course_id)
             .order_by(ModuleOrm.order)
         )
-
         modules_result = await self.session.execute(modules_stmt)
 
         return [
             BasicInfo(
                 id=row.id,
+                title=row.title,
                 order=row.order,
             )
             for row in modules_result.all()
@@ -204,11 +235,15 @@ class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.to_entity(model)
 
-    async def update(self, user_id: UUID, course_id: UUID, **kwargs) -> Chat | None:
+    async def update(self, chat_id: UUID, user_id: UUID, course_id: UUID, **kwargs) -> Chat | None:
         stmt = (
             update(self.model)
             .values(**kwargs)
-            .where(self.model.user_id == user_id, self.model.course_id == course_id)
+            .where(
+                self.model.user_id == user_id,
+                self.model.course_id == course_id,
+                self.model.id == chat_id,
+            )
             .returning(self.model)
         )
         result = await self.session.execute(stmt)

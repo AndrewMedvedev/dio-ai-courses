@@ -9,7 +9,16 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...core.infrastructure import Base
-from ..domain.vo import CourseStatus, CourseUserRole, DifficultyLevel, DocumentNodeType
+from ..domain.entities import (
+    AnyContentBlock,
+)
+from ..domain.vo import (
+    CourseStatus,
+    CourseUserRole,
+    DifficultyLevel,
+    DocumentNodeType,
+)
+from .types import ContentBlockListType
 
 
 class CourseOrm(Base):
@@ -61,7 +70,10 @@ class LessonOrm(Base):
     order: Mapped[int | None] = mapped_column(nullable=True)
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
     estimated_time_minutes: Mapped[int | None] = mapped_column(nullable=True)
-    content_blocks: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+    content_blocks: Mapped[list[AnyContentBlock]] = mapped_column(
+        ContentBlockListType,
+        default=list,
+    )
     assignment: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     module: Mapped[ModuleOrm | None] = relationship(back_populates="lessons")

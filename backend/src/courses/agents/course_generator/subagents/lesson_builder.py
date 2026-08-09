@@ -5,7 +5,6 @@ import time
 from asyncio import TaskGroup
 from uuid import UUID
 
-from aiohttp import ClientSession
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +14,7 @@ from .....llm_service import LLMTextService
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....infra.repository import SqlLessonRepository, VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
-from ...schemas import Context, GenerationContext
+from ...schemas import Context, RuntimeContext
 from .practician import call_lesson_practice_agent
 from .prompts import ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 class AgentState(TypedDict):
     """Состояние агента для создания модулей"""
 
-    generation_context: GenerationContext
+    generation_context: Context
     module_id: UUID
     audience_description: str  # Описание целевой аудитории курса
     learning_objectives: list[str]  # Цели обучения курса
@@ -41,6 +40,7 @@ async def plan_lesson_structure(
 ) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
+        token=state["generation_context"].access_token,
         system_prompt="""\
     Ты опытный методист и разработчик образовательных курсов.
     Твоя задача — спланировать детальную структуру одного урока: разбить материал
@@ -101,11 +101,10 @@ async def plan_lesson_structure(
 async def build_content_block(
     order: int,
     content_type: ContentType,
-    generation_context: GenerationContext,
+    generation_context: Context,
     content_plan: list[ContentSpecification],
     prompt: str,
     lesson: Lesson,
-    session: ClientSession,
 ) -> tuple[int, AnyContentBlock]:
     start_time = time.monotonic()
     progress_percent = round((order / len(content_plan)) * 100, 2)
@@ -126,7 +125,6 @@ async def build_content_block(
         content_type=content_type,
         context=generation_context,
         prompt=prompt_template,
-        session=session,
     )
     elapsed_time = time.monotonic() - start_time
     logger.info(
@@ -137,10 +135,7 @@ async def build_content_block(
     return order, content_block
 
 
-async def generate_content_blocks(
-    state: AgentState,
-    runtime: Runtime[Context],
-) -> dict[str, Lesson]:
+async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
     """
@@ -158,7 +153,6 @@ async def generate_content_blocks(
                     content_plan=lesson_structure.content_plan,
                     prompt=content.prompt,
                     lesson=lesson,
-                    session=runtime.context.aio_session,  # pyright: ignore[reportArgumentType]
                 )
             )
             for order, content in enumerate(lesson_structure.content_plan, 1)
@@ -183,6 +177,7 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
 
     logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
     assignment = await call_lesson_practice_agent(
+        token=state["generation_context"].access_token,
         lesson=lesson,
         assignment_type=assignment_type,
     )
@@ -190,7 +185,7 @@ async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
     return {"lesson": lesson}
 
 
-async def save_lesson(state: AgentState, runtime: Runtime[Context]) -> None:
+async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     lesson = state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     await VectorRepository(client=qdrant_client).index_document(
@@ -211,7 +206,7 @@ async def save_lesson(state: AgentState, runtime: Runtime[Context]) -> None:
         logger.info("Lesson %s alredy exsists", lesson.title)
 
 
-graph = StateGraph(AgentState, context_schema=Context)
+graph = StateGraph(AgentState, context_schema=RuntimeContext)
 
 graph.add_node("plan_lesson_structure", plan_lesson_structure)
 graph.add_node("generate_content_blocks", generate_content_blocks)
