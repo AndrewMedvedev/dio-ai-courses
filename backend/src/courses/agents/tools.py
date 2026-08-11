@@ -5,11 +5,10 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...core.infrastructure import session_factory
 from ...llm_service import Runtime, tool
 from ..infra.repository import SqlDocumentRepository
 from .course_generator.workflow import generate_course
-from .schemas import Context, RuntimeContext
+from .schemas import Context
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,7 @@ class InterviewState(BaseModel):
         "Вызывается ровно один раз, когда интервью полностью завершено."
     ),
 )
-async def complete_interview(
+async def complete_interview(  # ruff: ignore[unused-async]
     prompt: str,
     runtime: Runtime[Context, InterviewState],
 ) -> str:
@@ -81,8 +80,7 @@ async def complete_interview(
         prompt=prompt,
         access_token=runtime.context.access_token,
     )
-    async with session_factory() as db_session:
-        context = RuntimeContext(db_session=db_session)
-        result = generate_course.send(generation_context=generation_context, context=context)
-        runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
-        return f"Курс поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."  # ruff: ignore[line-too-long]
+
+    result = generate_course.send(generation_context=generation_context.model_dump(mode="json"))
+    runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Курс поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."  # ruff: ignore[line-too-long]

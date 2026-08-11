@@ -2,17 +2,14 @@ from __future__ import annotations
 
 from typing import Literal
 
-import json
 from abc import ABC
-from dataclasses import asdict
 from enum import StrEnum
 from pathlib import Path
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, NonNegativeFloat, NonNegativeInt, PositiveInt
 
-from .domain.entities import AnyContentBlock
-from .domain.vo import DifficultyLevel
+from .domain.vo import ContentType, DifficultyLevel
 
 PASSING_TEST_SCORE = 61
 
@@ -95,7 +92,6 @@ AnyKnowledgeTest = DetailedAnswerTest | MultipleChoiceTest
 
 class FileForm(BaseModel):
     file_path: Path
-
     file: bytes
 
 
@@ -107,16 +103,10 @@ class Chat(BaseModel):
 
 
 class EditorChat(Chat):
-    content_block: AnyContentBlock
-    content_blocks: list[AnyContentBlock]
+    content_type: ContentType
+    content_block: str
+    content_blocks: list
     images: list[str] = Field(default_factory=list, max_length=5)
-
-    def to_json_content_blocks(self) -> tuple[str, str]:
-        return json.dumps(
-            [asdict(content_block) for content_block in self.content_blocks],
-            ensure_ascii=False,
-            default=str,
-        ), json.dumps(asdict(self.content_block), ensure_ascii=False, default=str)
 
 
 class EditorInfo(BaseModel):

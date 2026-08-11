@@ -1,5 +1,5 @@
 # pyright: reportOptionalMemberAccess=false, reportOptionalSubscript=false, reportOptionalMemberAccess=false, reportArgumentType=false
-# ruff: file-ignore[unused-method-argument, magic-value-comparison, private-member-access,no-self-use]
+# ruff: file-ignore[unused-method-argument, magic-value-comparison]
 
 
 from typing import Any
@@ -28,11 +28,11 @@ from ...llm_service import (
     Messages,
 )
 from ...llm_service.schemas import ToolCallParsed
-from ...media.schemas import ConfirmUploadRequest, PresignedUploadRequest
+from ...media.schemas import PresignedUploadRequest
 from ...shared.infra.repos import SqlAlchemyRepository
 from ..domain.entities import Chat
 from ..infra.repository import SqlChatRepository
-from ..rest import confirm_upload, get_presigned_upload_url, upload_file
+from ..rest import MediaClient
 from ..schemas import Chat as ChatSchema
 
 logger = logging.getLogger(__name__)
@@ -173,7 +173,7 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
     ) -> None:
         super().__init__(repo=repo, session=session)
 
-    async def before_model(
+    async def before_agent(
         self,
         service: LLMServiceProtocol,
         messages: Messages,
@@ -190,17 +190,10 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         data = await self._read(
             user_id=schema.user_id,
             course_id=schema.course_id,
+            chat_id=service.runtime.state.chat_id,
         )
         if data is not None:
-            saved_messages = data.messages
-            schema.replace_messages(saved_messages + messages)
-            await self._update(
-                chat_id=service.runtime.state.chat_id,
-                user_id=service.runtime.context.user_id,
-                course_id=service.runtime.context.course_id,
-                messages=messages,
-            )
-            return saved_messages + messages
+            return data.messages + messages
         await self._create(schema)
         return messages
 
@@ -209,16 +202,26 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         service: LLMServiceProtocol,
         response: LLMTextResponse,
     ) -> LLMTextResponse:
+        messages = []
+
+        for message in response.messages:
+            role = message.get("role")
+            if role in {"user", "assistant"}:
+                messages.append(message)
+
         await self._update(
             chat_id=service.runtime.state.chat_id,
             user_id=service.runtime.context.user_id,
             course_id=service.runtime.context.course_id,
-            messages=service.runtime.messages,
+            messages=messages,
         )
         return response
 
 
 class SaveImageMiddleware(BaseAgentMiddleware):
+    def __init__(self, client: MediaClient) -> None:
+        self._client = client
+
     async def after_model(
         self,
         service: LLMImageServiceProtocol,
@@ -226,29 +229,14 @@ class SaveImageMiddleware(BaseAgentMiddleware):
     ) -> LLMImageResponse:
         file_bytes = base64.b64decode(response.image)
         filename = f"{uuid4()}.{response.output_format}"
-        upload_url = await get_presigned_upload_url(
-            schema=PresignedUploadRequest(
+
+        result = await self._client.save_image(
+            request=PresignedUploadRequest(
                 filename=filename,
                 owner_id=service.runtime.context.course_id,
                 content_type=response.output_format,
             ),
-            session=service._session,
-        )
-        await upload_file(
-            session=service._session,
             file=file_bytes,
-            presigned_url=upload_url["upload_url"],
-            content_type=response.output_format,
         )
-        uploaded_file = await confirm_upload(
-            session=service._session,
-            token=service.runtime.context.access_token,
-            schema=ConfirmUploadRequest(
-                owner_id=service.runtime.context.course_id,
-                storage_key=upload_url["storage_key"],
-                content_type=response.output_format,
-                original_filename=filename,
-            ),
-        )
-        response.image = uploaded_file["id"]
+        response.image = result
         return response

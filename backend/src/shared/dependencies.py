@@ -1,18 +1,15 @@
 from typing import Annotated
 
-from aiohttp import ClientSession
 from fastapi import Depends, Query
 from pydantic import PositiveInt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.infrastructure import get_aio, get_db
+from ..core.infrastructure import get_db
 from ..core.settings import settings
 from .infra.mail import SmtpMailSender
 from .schemas import PageParams
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
-
-AioSessionDep = Annotated[ClientSession, Depends(get_aio)]
 
 
 def get_page_params(

@@ -1,3 +1,5 @@
+from typing import Any
+
 import asyncio
 import json
 import logging
@@ -35,21 +37,19 @@ Docker Compose для локального окружения (разработ�
     min_backoff=1000,  # мин. задержка перед повтором (мс)
     max_backoff=10000,  # макс. задержка (мс)
 )
-async def generate_course(generation_context: Context, context: RuntimeContext) -> dict:
-    try:
+async def generate_course(generation_context: dict[str, Any]) -> dict:
+    context = Context(**generation_context)
+    async with session_factory() as session:
         await agent.ainvoke(
-            {"generation_context": generation_context},  # type: ignore  # ruff:ignore[blanket-type-ignore]
-            context=context,
+            {"generation_context": context},
+            context=RuntimeContext(db_session=session),
             config=RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{generation_context.course_id}",
+                    "thread_id": f"course:{context.course_id}",
                 }
             ),
             durability="sync",
         )
-    except Exception as e:  # ruff:ignore[blind-except]
-        return {"allowed": False, "reason": str(e)}
-
     return {"allowed": True}
 
 

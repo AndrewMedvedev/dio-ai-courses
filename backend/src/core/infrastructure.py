@@ -1,12 +1,11 @@
 import os
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID, uuid4
 
 import dramatiq
-from aiohttp import ClientSession
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq.results import Results
 from dramatiq.results.backends import RedisBackend
@@ -29,6 +28,8 @@ MAX_WORKERS = max(1, (os.cpu_count() or 2) // 2)
 redis_broker = RedisBroker(url=settings.redis.url)
 result_backend = RedisBackend()
 redis_broker.add_middleware(Results(backend=result_backend))
+redis_broker.add_middleware(dramatiq.middleware.AsyncIO())
+
 dramatiq.set_broker(redis_broker)
 
 qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
@@ -88,8 +89,3 @@ async def create_tables() -> None:
 async def get_db() -> AsyncSession:  # type: ignore  # ruff:ignore[blanket-type-ignore]
     async with session_factory() as session:
         yield session  # type: ignore  # ruff:ignore[yield-in-context-manager-in-async-generator, blanket-type-ignore]
-
-
-async def get_aio() -> AsyncGenerator[ClientSession]:
-    async with ClientSession() as session:
-        yield session  # ruff:ignore[yield-in-context-manager-in-async-generator]

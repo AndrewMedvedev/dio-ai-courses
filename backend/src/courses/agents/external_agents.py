@@ -87,11 +87,10 @@ async def theorist(
     db_session: AsyncSession,
     repo: SqlChatRepository,
 ) -> AnyContentBlock:
-    content_blocks, content_block = chat.to_json_content_blocks()
     messages = json.dumps(
         [
-            {"role": "user", "content": f"Теория \n{content_blocks}"},
-            {"role": "user", "content": f"Контент который нужно изменить\n{content_block}"},
+            {"role": "user", "content": f"Теория \n{chat.content_blocks}"},
+            {"role": "user", "content": f"Контент который нужно изменить\n{chat.content_block}"},
             {"role": "user", "content": chat.content},
         ],
         ensure_ascii=False,
@@ -99,9 +98,9 @@ async def theorist(
 
     runtime = Runtime(context=context, state=State(chat_id=chat.chat_id))
 
-    if chat.content_block.content_type == ContentType.IMAGE:
+    if chat.content_type == ContentType.IMAGE:
         return await generate_image(
-            content_type=chat.content_block.content_type,
+            content_type=chat.content_type,
             context=context,
             images=chat.images,
             prompt=messages,
@@ -116,7 +115,7 @@ async def theorist(
         )
 
     return await generate_text(
-        content_type=chat.content_block.content_type,
+        content_type=chat.content_type,
         context=context,
         prompt=messages,
         middlewares=[

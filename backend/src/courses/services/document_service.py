@@ -6,38 +6,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..domain.entities import Document as EntityDocument
 from ..domain.vo import DocumentNodeType
 from ..infra.repository import SqlDocumentRepository
-from ..schemas import FileForm
-from ..utils.docs_processing import DocumentHierarchyPipeline
+from ..utils.docs_processing import (
+    get_header_order,
+    get_heading_chain,
+    is_heading_only,
+)
 
 
 class DocumentService:
     def __init__(
         self,
-        document_repo: SqlDocumentRepository,
-        document_pipline: DocumentHierarchyPipeline,
+        repo: SqlDocumentRepository,
         session: AsyncSession,
     ) -> None:
         self.session = session
-        self.document_repo = document_repo
-        self.document_pipline = document_pipline
+        self.repo = repo
 
-    async def _save_document(
+    async def save_document(
         self,
         docs: list[Document],
         file_name: str,
         user_id: UUID,
-        header_order: list[str] | None = None,
     ) -> None:
-
-        header_order = header_order or self.document_pipline.get_header_order()
 
         node_cache: dict[tuple[str, ...], EntityDocument] = {}
 
         for document in docs:
-            chain = self.document_pipline.get_heading_chain(document, header_order)
+            chain = get_heading_chain(document, get_header_order())
             content = document.page_content.strip()
 
-            if content and self.document_pipline.is_heading_only(content):
+            if content and is_heading_only(content):
                 continue
 
             if not chain:
@@ -49,7 +47,7 @@ class DocumentService:
                         node_type=DocumentNodeType.TOC,
                         title=file_name,
                     )
-                    root = await self.document_repo.create(doc)
+                    root = await self.repo.create(doc)
                     node_cache[root_path] = root
                 if content:
                     doc = EntityDocument(
@@ -58,7 +56,7 @@ class DocumentService:
                         parent_node_id=root.id,
                         content=document.page_content,
                     )
-                    await self.document_repo.create(doc)
+                    await self.repo.create(doc)
 
                 continue
 
@@ -74,7 +72,7 @@ class DocumentService:
                         parent_node_id=parent.id if parent is not None else None,
                         title=title,
                     )
-                    node = await self.document_repo.create(doc)
+                    node = await self.repo.create(doc)
 
                     node_cache[path] = node
                 parent = node
@@ -86,17 +84,6 @@ class DocumentService:
                     parent_node_id=parent.id if parent is not None else None,
                     content=document.page_content,
                 )
-                node = await self.document_repo.create(doc)
+                node = await self.repo.create(doc)
 
         await self.session.commit()
-
-    async def save_documents(
-        self,
-        user_id: UUID,
-        file_forms: list[FileForm],
-    ):
-        for form in file_forms:
-            docs = await self.document_pipline(
-                file=form.file, file_extension=form.file_path.suffix
-            )
-            await self._save_document(docs=docs, file_name=form.file_path.stem, user_id=user_id)

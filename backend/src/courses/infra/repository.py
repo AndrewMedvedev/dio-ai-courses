@@ -226,10 +226,11 @@ class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
     model = ChatOrm
     model_mapper = ChatMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
-    async def read(self, user_id: UUID, course_id: UUID) -> Chat | None:
+    async def read(self, user_id: UUID, course_id: UUID, chat_id: UUID) -> Chat | None:
         stmt = select(self.model).where(
             self.model.user_id == user_id,
             self.model.course_id == course_id,
+            self.model.id == chat_id,
         )
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()

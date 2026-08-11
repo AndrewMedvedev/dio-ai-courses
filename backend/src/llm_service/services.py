@@ -5,14 +5,14 @@ from typing import Any, Literal
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
-from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
-from contextlib import asynccontextmanager
+from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientTimeout
 from pydantic import BaseModel
 
 from ..core.settings import settings
+from ..shared.infra.http_client import HttpClient, HttpConfig
 from .dataclasses import StructuredTool
 from .middleware import BaseAgentMiddleware
 from .schemas import (
@@ -68,8 +68,7 @@ def execute_each_invoke[ResponseT: BaseModel](
     return wrapper
 
 
-class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
-    base_url: str = settings.base_llm_router_url
+class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC, HttpClient):
     response_model: type[ResponseT]
 
     def __init__(
@@ -77,30 +76,14 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
         token: str,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
-        timeout: int = 5 * 60,
     ) -> None:
-        self.token = token
-        self._session: ClientSession | None = None
+        super().__init__(
+            config=HttpConfig(
+                token=token, base_url=settings.base_llm_router_url, timeout=ClientTimeout(5 * 60)
+            )
+        )
         self.middlewares = middlewares if middlewares is not None else []
         self.runtime = runtime
-        self.timeout = timeout
-
-    @asynccontextmanager
-    async def _get_session(self) -> AsyncIterator[ClientSession]:
-        if self._session is None or self._session.closed:
-            headers = {
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
-            self._session = ClientSession(
-                base_url=self.base_url, headers=headers, timeout=ClientTimeout(total=self.timeout)
-            )
-        yield self._session
-
-    async def close(self) -> None:
-        if self._session is not None and not self._session.closed:
-            await self._session.close()
 
     async def _send_request(self, request: RequestT, path: str) -> ResponseT:
         async with self._get_session() as session:
