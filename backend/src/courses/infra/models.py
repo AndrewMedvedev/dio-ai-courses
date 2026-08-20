@@ -14,9 +14,9 @@ from ..domain.entities import (
 )
 from ..domain.vo import (
     CourseStatus,
-    CourseUserRole,
     DifficultyLevel,
     DocumentNodeType,
+    PracticeStatus,
 )
 from .types import ContentBlockListType
 
@@ -38,6 +38,8 @@ class CourseOrm(Base):
     modules: Mapped[list[ModuleOrm]] = relationship(
         back_populates="course",
         order_by="ModuleOrm.id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     users: Mapped[list[CourseUserOrm]] = relationship(back_populates="course")
 
@@ -45,7 +47,9 @@ class CourseOrm(Base):
 class ModuleOrm(Base):
     __tablename__ = "modules"
 
-    course_id: Mapped[UUID | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
+    course_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"), nullable=True
+    )
     title: Mapped[str]
     description: Mapped[str] = mapped_column(TEXT)
     order: Mapped[int | None] = mapped_column(nullable=True)
@@ -56,6 +60,8 @@ class ModuleOrm(Base):
     lessons: Mapped[list[LessonOrm]] = relationship(
         back_populates="module",
         order_by="LessonOrm.id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     __table_args__ = (Index("ix_modules_course_id", "course_id"),)
@@ -64,7 +70,9 @@ class ModuleOrm(Base):
 class LessonOrm(Base):
     __tablename__ = "lessons"
 
-    module_id: Mapped[UUID | None] = mapped_column(ForeignKey("modules.id"), nullable=True)
+    module_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("modules.id", ondelete="CASCADE"), nullable=True
+    )
     title: Mapped[str]
     description: Mapped[str] = mapped_column(TEXT)
     order: Mapped[int | None] = mapped_column(nullable=True)
@@ -93,7 +101,7 @@ class CourseUserOrm(Base):
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))
     user_id: Mapped[UUID]
-    role: Mapped[CourseUserRole] = mapped_column(Enum(CourseUserRole))
+    role: Mapped[str] = mapped_column(TEXT)
 
     course: Mapped[CourseOrm] = relationship(back_populates="users")
 
@@ -156,3 +164,14 @@ class DocumentOrm(Base):
         #         проверки на уровне приложения (см. pipeline ниже).
         CheckConstraint("id != parent_node_id", name="ck_no_self_parent"),
     )
+
+
+class PracticeOrm(Base):
+    __tablename__ = "practices"
+
+    user_id: Mapped[UUID]
+    module_id: Mapped[UUID]
+    lesson_id: Mapped[UUID]
+    status: Mapped[PracticeStatus] = mapped_column(Enum(PracticeStatus))
+
+    practice: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)

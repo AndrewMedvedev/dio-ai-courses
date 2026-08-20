@@ -35,6 +35,7 @@ class PostgresSettings(BaseSettings):
 
     @property
     def sqlalchemy_url(self) -> str:
+        """Выполняет действие `sqlalchemy_url`, чтобы поддержать основной сценарий модуля."""
         return f"postgresql+{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
@@ -47,6 +48,7 @@ class QdrantSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Выполняет действие `url`, чтобы поддержать основной сценарий модуля."""
         return f"http://{self.host}:{self.port}"
 
 
@@ -56,11 +58,14 @@ class RabbitSettings(BaseSettings):
     host: str = "localhost"
     port: int = 5672
     user: str = "guest"
-    password: str = "quest"
+    password: str = "guest"
+    virtualhost: str = "/"
+
+    exchange: str = "app.events"
 
     @property
     def url(self) -> str:
-        return f"amqp://{self.user}:{self.password}@{self.host}:{self.port}/"
+        return f"amqp://{self.user}:{self.password}@{self.host}:{self.port}"
 
 
 class RedisSettings(BaseSettings):
@@ -73,11 +78,13 @@ class RedisSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Выполняет действие `url`, чтобы поддержать основной сценарий модуля."""
         return f"redis://{self.host}:{self.port}/{self.db}"
 
 
 class JWTSettings(BaseSettings):
     algorithm: str = "HS256"
+    authentication_token_expires_in_minutes: int = 2
     access_token_expires_in_minutes: int = 15
     refresh_token_expires_in_days: int = 30
 
@@ -104,6 +111,7 @@ class ImgProxySettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Выполняет действие `url`, чтобы поддержать основной сценарий модуля."""
         return f"http://{self.host}:{self.port}"
 
 
@@ -142,10 +150,12 @@ class AppSettings(BaseSettings):
 
     @property
     def url(self) -> str:
+        """Выполняет действие `url`, чтобы поддержать основной сценарий модуля."""
         return f"http://localhost:{self.port}"
 
     @property
     def api_url(self) -> str:
+        """Выполняет действие `api_url`, чтобы поддержать основной сценарий модуля."""
         return f"{self.url}/api/v1"
 
 

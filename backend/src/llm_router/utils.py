@@ -10,10 +10,10 @@ from json_repair import repair_json
 from langsmith import traceable
 from openai.types.responses.response import Response
 
-from ..core.infrastructure import redis_client
-from ..llm_service.schemas import LLMTextResponse, ToolCallParsed
-from ..shared.domain.exceptions import NotFoundError
-from ..shared.schemas import Page
+from src.core.infrastructure import redis_client
+from src.llm_service.schemas import LLMTextResponse, ToolCallParsed
+from src.shared.domain.exceptions import NotFoundError
+from src.shared.schemas import Page
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?```", re.DOTALL | re.IGNORECASE)
 _JSON_OBJECT_RE = re.compile(r"(\{[\s\S]*?\})", re.DOTALL)
@@ -135,6 +135,7 @@ async def cache_ai_models(
     *args,
     **kwargs,
 ) -> Page:
+    """Кэширует ai models, чтобы уменьшить число повторных обращений к источнику данных."""
     cached = await redis_client.get(key)
     if cached is not None:
         return Page.model_validate_json(cached)
@@ -171,6 +172,7 @@ async def cache_ai_models(
 
 
 def to_langsmith_llm_output(result: LLMTextResponse) -> dict:
+    """Преобразует данные в langsmith llm output, чтобы передать их в нужный слой приложения."""
     return {
         "output": result,
         "usage_metadata": {
@@ -179,14 +181,3 @@ def to_langsmith_llm_output(result: LLMTextResponse) -> dict:
             "total_tokens": result.total_tokens,
         },
     }
-
-
-MAX_CONCURRENT_LLM_REQUESTS = 8
-
-# Сам семафор. Создаётся один раз при первом импорте этого модуля.
-GLOBAL_LLM_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_LLM_REQUESTS)
-
-
-def get_active_slots() -> int:
-    """Сколько слотов сейчас занято (для логирования/отладки/метрик)."""
-    return MAX_CONCURRENT_LLM_REQUESTS - GLOBAL_LLM_SEMAPHORE._value  # ruff:ignore[private-member-access]

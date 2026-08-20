@@ -14,6 +14,7 @@ class TestUserMapper:
     """
 
     def test_to_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_to_entity`, чтобы разделить доменную модель и модель хранения."""
         password_hash = "hashed_password"
         model = UserOrm(
             email="test@example.com",
@@ -32,6 +33,7 @@ class TestUserMapper:
         assert entity.is_verify == model.is_verify
 
     def test_from_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_from_entity`, чтобы разделить доменную модель и модель хранения."""
         entity = User(
             email="test@example.com",
             username=Username("john_doe"),
@@ -55,6 +57,7 @@ class TestInvitationMapper:
     """
 
     def test_to_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_to_entity`, чтобы разделить доменную модель и модель хранения."""
         token = "some-token"
         model = InvitationOrm(
             email="invitee@example.com",
@@ -77,6 +80,7 @@ class TestInvitationMapper:
         assert entity.is_used == model.is_used
 
     def test_from_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_from_entity`, чтобы разделить доменную модель и модель хранения."""
         token = "some-token"
         entity = Invitation(
             email="invitee@example.com",

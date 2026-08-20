@@ -4,7 +4,7 @@ from fastapi import Depends
 from openai import AsyncOpenAI
 
 from ..core.settings import settings
-from ..shared.dependencies import SessionDep
+from ..shared.dependencies.database import DBSession
 from .infra.repository import SqlAIModelRepository
 from .services import LLMImageRouter, LLMTextRouter
 from .utils import cache_ai_models
@@ -12,18 +12,21 @@ from .utils import cache_ai_models
 client = AsyncOpenAI(api_key=settings.proxy_api.key, base_url=settings.proxy_api.base_url)
 
 
-def get_ai_model_repo(session: SessionDep) -> SqlAIModelRepository:
+def get_ai_model_repo(session: DBSession) -> SqlAIModelRepository:
+    """Получает ai model repo, чтобы вызывающий код работал через единый интерфейс."""
     return SqlAIModelRepository(session)
 
 
 AIModelsRepoDep = Annotated[SqlAIModelRepository, Depends(get_ai_model_repo)]
 
 
-def get_llm_image_router() -> LLMImageRouter:
-    return LLMImageRouter(client=client)
+def get_llm_image_router(repository: AIModelsRepoDep) -> LLMImageRouter:
+    """Получает llm image router, чтобы вызывающий код работал через единый интерфейс."""
+    return LLMImageRouter(ai_model_repos=repository, client=client, wrapper=cache_ai_models)
 
 
 def get_llm_text_router(repository: AIModelsRepoDep) -> LLMTextRouter:
+    """Получает llm text router, чтобы вызывающий код работал через единый интерфейс."""
     return LLMTextRouter(ai_model_repos=repository, client=client, wrapper=cache_ai_models)
 
 

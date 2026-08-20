@@ -9,13 +9,14 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
-from .....core.infrastructure import checkpointer, qdrant_client
-from .....llm_service import LLMTextService
+from src.core.infrastructure import checkpointer, qdrant_client
+from src.llm_service import LLMTextService
+
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
-from ....infra.repository import SqlLessonRepository, VectorRepository
+from ....infra.database.repos.lesson import SqlLessonRepository
+from ....infra.vector_repo import VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import Context, RuntimeContext
-from .practician import call_lesson_practice_agent
 from .prompts import ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
 
@@ -40,7 +41,6 @@ async def plan_lesson_structure(
 ) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
-        token=state["generation_context"].access_token,
         system_prompt="""\
     Ты опытный методист и разработчик образовательных курсов.
     Твоя задача — спланировать детальную структуру одного урока: разбить материал
@@ -106,6 +106,7 @@ async def build_content_block(
     prompt: str,
     lesson: Lesson,
 ) -> tuple[int, AnyContentBlock]:
+    """Собирает контент-блок из входных данных для следующего шага сценария."""
     start_time = time.monotonic()
     progress_percent = round((order / len(content_plan)) * 100, 2)
     logger.info(
@@ -168,24 +169,8 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
     return {"lesson": lesson}
 
 
-async def generate_assignment(state: AgentState) -> dict[str, Lesson]:
-    """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
-
-    lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    assignment_type = lesson_structure.assignment_specification.assignment_type
-    prompt = lesson_structure.assignment_specification.prompt
-
-    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
-    assignment = await call_lesson_practice_agent(
-        token=state["generation_context"].access_token,
-        lesson=lesson,
-        assignment_type=assignment_type,
-    )
-    lesson.add_assignment(assignment)
-    return {"lesson": lesson}
-
-
 async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
+    """Сохраняет урок, чтобы результат был доступен после завершения операции."""
     lesson = state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     await VectorRepository(client=qdrant_client).index_document(
@@ -210,12 +195,10 @@ graph = StateGraph(AgentState, context_schema=RuntimeContext)
 
 graph.add_node("plan_lesson_structure", plan_lesson_structure)
 graph.add_node("generate_content_blocks", generate_content_blocks)
-graph.add_node("generate_assignment", generate_assignment)
 graph.add_node("save_lesson", save_lesson)
 graph.add_edge(START, "plan_lesson_structure")
 graph.add_edge("plan_lesson_structure", "generate_content_blocks")
-graph.add_edge("generate_content_blocks", "generate_assignment")
-graph.add_edge("generate_assignment", "save_lesson")
+graph.add_edge("generate_content_blocks", "save_lesson")
 graph.add_edge("save_lesson", END)
 
 lesson_builder_agent = graph.compile(checkpointer=checkpointer)

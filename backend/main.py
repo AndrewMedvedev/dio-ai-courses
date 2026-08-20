@@ -12,9 +12,11 @@ from qdrant_client import models
 from src.core.infrastructure import checkpointer, qdrant_client, thread_executor
 from src.core.logging import configure_logging
 from src.core.settings import settings
-from src.courses.routers import course_router
-from src.iam.routers import router as iam_router
-from src.llm_router.routers import llm_router
+from src.courses.api.v1 import router as courses_router
+from src.iam.api.v1 import router as iam_router
+from src.llm_router.api.v1 import router as llm_router
+from src.media.router import router as media_router
+from src.organization.api.v1 import router as organization_router
 from src.shared.domain.exceptions import AppError
 from src.shared.infra.middlewares import LoggingMiddleware
 from src.shared.utils.cli import run_cli_command
@@ -25,10 +27,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Настройка логирования
+    """Выполняет действие `lifespan`, чтобы поддержать основной сценарий модуля."""
     configure_logging(log_level="INFO")
 
     await run_cli_command(sys.executable, "-m", "alembic", "upgrade", "head")
+    await run_cli_command(sys.executable, "-m", "src.cli", "create-permissions")
     await run_cli_command(sys.executable, "-m", "src.cli", "create-first-admin")
+    await run_cli_command(sys.executable, "-m", "src.cli", "create-default-organization")
 
     await checkpointer.setup()
     exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
@@ -60,7 +65,9 @@ app = FastAPI(
 router = APIRouter(prefix="/api/v1")
 
 router.include_router(iam_router)
-router.include_router(course_router)
+router.include_router(organization_router)
+router.include_router(media_router)
+router.include_router(courses_router)
 router.include_router(llm_router)
 
 
@@ -77,6 +84,7 @@ app.add_middleware(
 
 @app.exception_handler(ValueError)
 def value_exception_handler(request: Request, exc: ValueError) -> JSONResponse:  # ruff: ignore[unused-function-argument]
+    """Выполняет действие `value_exception_handler`, чтобы поддержать основной сценарий модуля."""
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={
@@ -92,6 +100,7 @@ def value_exception_handler(request: Request, exc: ValueError) -> JSONResponse: 
 
 @app.exception_handler(AppError)
 def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:  # ruff: ignore[unused-function-argument]
+    """Выполняет действие `app_exception_handler`, чтобы поддержать основной сценарий модуля."""
     return JSONResponse(
         status_code=exc.status_code,
         content={

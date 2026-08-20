@@ -5,9 +5,10 @@ import logging
 from ddgs import DDGS
 from pydantic import BaseModel, Field, NonNegativeFloat
 
-from ....core.infrastructure import qdrant_client
-from ....llm_service import Runtime, tool
-from ...infra.repository import VectorRepository
+from src.core.infrastructure import qdrant_client
+from src.llm_service import Runtime, tool
+
+from ...infra.vector_repo import VectorRepository
 from ...utils.browser_automation import get_page_text
 from ..schemas import CourseContext
 
@@ -49,6 +50,7 @@ async def save_knowledge(
     runtime: Runtime[CourseContext, list[dict[str, Any]]],
     schema: SaveKnowledgeInput,
 ) -> str:
+    """Сохраняет знания курса, чтобы результат был доступен после завершения операции."""
     logger.info(
         "Saving `%s` knowledge from %s, score %s%%, text: '%s ...'",
         schema.category,
@@ -84,6 +86,7 @@ async def knowledge_search(
     runtime: Runtime[CourseContext, list[dict[str, Any]]],
     schema: KnowledgeSearchInput,
 ) -> str:
+    """Выполняет действие `knowledge_search`, чтобы поддержать основной сценарий модуля."""
     meta_filter = {"course_id": str(runtime.context.course_id)}
     if schema.category is not None:
         logger.info(
@@ -108,9 +111,6 @@ async def knowledge_search(
     return "\n\n".join(docs)
 
 
-logger = logging.getLogger(__name__)
-
-
 class SearchInput(BaseModel):
     """Входные аргументы для поиска видео в RuTube"""
 
@@ -126,6 +126,7 @@ class BrowsePageInput(BaseModel):
     description="Открывает WEB-страницу и получает её контент в формате Markdown",
 )
 async def browse_page(schema: BrowsePageInput) -> str:
+    """Выполняет действие `browse_page`, чтобы поддержать основной сценарий модуля."""
     return await get_page_text(schema.link)
 
 
@@ -139,4 +140,5 @@ async def browse_page(schema: BrowsePageInput) -> str:
     """,
 )
 async def web_search(schema: SearchInput) -> list[dict[str, Any]]:  # ruff:ignore[unused-async]
+    """Выполняет действие `web_search`, чтобы поддержать основной сценарий модуля."""
     return DDGS().text(schema.search_query, region="ru-ru", max_results=10)

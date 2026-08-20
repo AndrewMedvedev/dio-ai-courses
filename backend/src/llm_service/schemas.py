@@ -1,3 +1,5 @@
+# ruff: file-ignore[unnecessary-placeholder]
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
@@ -33,6 +35,7 @@ class LLMTextRequest(BaseModel):
     text: dict[str, Any] | None = None
 
     def format_schema(self, schema: type[BaseModel]) -> None:
+        """Форматирует схему данных, чтобы привести данные к ожидаемому виду."""
         self.text = {
             "format": {
                 "type": "json_schema",
@@ -91,17 +94,22 @@ ResponseT = TypeVar("ResponseT", bound=BaseModel)
 class LLMServiceProtocol(Protocol[RequestT, ResponseT]):  # pyright: ignore[reportInvalidTypeVarUse]
     base_url: str
     response_model: type[ResponseT]
-    token: str
     _session: ClientSession
     runtime: Runtime | None
     middlewares: Sequence[BaseAgentMiddleware] | None
     timeout: int
 
-    async def _send_request(self, request: RequestT, path: str) -> ResponseT: ...
+    async def _send_request(self, request: RequestT, path: str) -> ResponseT:
+        """Описывает отправку HTTP-запроса к LLM-провайдеру."""
+        ...
 
-    async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
+    async def _run_loop(self, *args, **kwargs) -> ResponseT:
+        """Описывает основной цикл обращения к модели и обработки ответа."""
+        ...
 
-    async def _process_response(self, response: ResponseT, *args, **kwargs) -> ResponseT: ...
+    async def _process_response(self, response: ResponseT, *args, **kwargs) -> ResponseT:
+        """Описывает финальную обработку ответа перед возвратом результата."""
+        ...
 
 
 class LLMTextServiceProtocol(LLMServiceProtocol):
@@ -111,13 +119,16 @@ class LLMTextServiceProtocol(LLMServiceProtocol):
     temperature: float | None
     semaphore: Semaphore
 
-    async def _process_tool(self, tool: ToolCallParsed) -> dict: ...
+    async def _process_tool(self, tool: ToolCallParsed) -> dict:
+        """Описывает выполнение tool-call и преобразование результата для LLM."""
 
     async def _process_response(
         self,
         response: LLMTextResponse,
         schema: type[BaseModel] | None = None,
-    ) -> LLMTextResponse: ...
+    ) -> LLMTextResponse:
+        """Описывает обработку текстового ответа LLM перед возвратом вызывающему коду."""
+        ...
 
 
 class LLMImageServiceProtocol(LLMServiceProtocol): ...

@@ -5,10 +5,10 @@ from ..domain.entities import (
     ContentType,
     Lesson,
 )
-from ..schemas import DetailedAnswerTest
 
 
 def get_assignment_context(assignment: AnyAssignment) -> str:
+    """Получает assignment context, чтобы вызывающий код работал через единый интерфейс."""
     assignment_type_map = {
         AssignmentType.FILE_UPLOAD: "Задание с загрузкой файла",
         AssignmentType.GITHUB: "Задание на платформе GitHub",
@@ -31,6 +31,7 @@ def get_assignment_context(assignment: AnyAssignment) -> str:
 
 
 def get_content_blocks_context(content_blocks: list[AnyContentBlock]) -> str:
+    """Получает content blocks context, чтобы вызывающий код работал через единый интерфейс."""
     context = "## Теоретический материал\n\n"
     for content_block in content_blocks:
         context += f"### {content_block.content_type.value}\n"
@@ -90,19 +91,4 @@ def get_lesson_context(
         context += get_content_blocks_context(lesson.content_blocks)  # type: ignore  # ruff: ignore[blanket-type-ignore]
     if include_assignment and lesson.assignment is not None:
         context += get_assignment_context(lesson.assignment)
-    return context
-
-
-def prepare_test_for_checking(given_answers: list[str], test: DetailedAnswerTest) -> str:
-    """Подготовка тестирования к проверке"""
-
-    context = f"## {test.title}\n\n"
-    for i, (given_answer, question) in enumerate(zip(given_answers, test.questions, strict=False)):
-        context += (
-            f"### Вопрос №{i + 1}:\n"
-            f"**Текст вопроса:** {question.text}\n\n"
-            f"**Ожидаемый ответ:** {question.excepted_answer}\n"
-            f"**Максимальный балл:** {question.points}\n\n"
-            f"**Ответ студента:** {given_answer}\n\n"
-        )
     return context

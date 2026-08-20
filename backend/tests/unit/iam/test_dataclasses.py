@@ -9,20 +9,24 @@ from src.shared.utils.time import current_datetime, get_expiration_time
 
 @pytest.fixture
 def valid_email():
+    """Выполняет действие `valid_email`, чтобы поддержать основной сценарий модуля."""
     return "govnoed1234@.com"
 
 
 @pytest.fixture
 def future_expires_at():
+    """Выполняет действие `future_expires_at`, чтобы поддержать основной сценарий модуля."""
     return current_datetime() + timedelta(days=7)
 
 
 @pytest.fixture
 def past_expires_at():
+    """Выполняет действие `past_expires_at`, чтобы поддержать основной сценарий модуля."""
     return current_datetime() - timedelta(hours=1)
 
 
 def test_create_invitation():
+    """Выполняет действие `test_create_invitation`, чтобы поддержать основной сценарий модуля."""
     invitation = Invitation(
         email="govnoed1234@.com",
         expires_at=get_expiration_time(timedelta(days=7)),
@@ -37,6 +41,7 @@ def test_create_invitation():
 
 
 def test_is_valid_false_when_used_invitation(future_expires_at: datetime, valid_email: str):
+    """Выполняет действие `test_is_valid_false_when_used_invitation`, чтобы поддержать основной сценарий модуля."""
     invitation = Invitation(
         email=valid_email,
         expires_at=future_expires_at,
@@ -49,6 +54,7 @@ def test_is_valid_false_when_used_invitation(future_expires_at: datetime, valid_
 def test_is_valid_false_when_used_and_expired_invitation(
     past_expires_at: datetime, valid_email: str
 ):
+    """Выполняет действие `test_is_valid_false_when_used_and_expired_invitation`, чтобы поддержать основной сценарий модуля."""
     invitation = Invitation(
         email=valid_email,
         expires_at=past_expires_at,
@@ -61,6 +67,7 @@ def test_is_valid_false_when_used_and_expired_invitation(
 def test_mark_as_used_sets_fields_correctly_invitation(
     future_expires_at: datetime, valid_email: str
 ):
+    """Выполняет действие `test_mark_as_used_sets_fields_correctly_invitation`, чтобы поддержать основной сценарий модуля."""
     before = current_datetime()
     invitation = Invitation(
         email=valid_email,
@@ -81,6 +88,7 @@ def test_mark_as_used_sets_fields_correctly_invitation(
 def test_token_generated_by_default_factory_invitation(
     future_expires_at: datetime, valid_email: str
 ):
+    """Выполняет действие `test_token_generated_by_default_factory_invitation`, чтобы поддержать основной сценарий модуля."""
     first_invitation = Invitation(
         email=valid_email,
         expires_at=future_expires_at,

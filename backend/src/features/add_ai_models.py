@@ -4,7 +4,7 @@ import asyncio
 from sqlalchemy import select
 
 from ..core.infrastructure import session_factory
-from ..llm_router.domain.dataclasses import AIModel
+from ..llm_router.domain.dataclass import AIModel
 from ..llm_router.infra.models import AIModelOrm
 
 # Импорты из вашего проекта (пути могут отличаться – подставьте свои)
@@ -129,6 +129,7 @@ async def add_models_to_db(session, models_data):
 async def main():
     # ЗАМЕНИТЕ СТРОКУ ПОДКЛЮЧЕНИЯ НА ВАШУ
 
+    """Запускает сценарий модуля и связывает подготовку данных с основным действием."""
     async with session_factory() as session:
         await add_models_to_db(session, models)
 

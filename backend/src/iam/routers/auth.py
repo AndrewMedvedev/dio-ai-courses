@@ -1,63 +1,71 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Response, status
+from fastapi import APIRouter, Depends, Path, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from ..dependencies import AuthServiceDep
-from ..schemas import Tokens, TokensRefresh, UserCreateForm
+from ..dependencies import AuthServiceDep, CurrentUserDep, oauth2_scheme
+from ..schemas import CurrentUser, LogoutRequest, RefreshToken, Tokens, UserCreate
 
-auth_router = APIRouter(prefix="/auth", tags=["Авторизация"])
-
-
-@auth_router.post(
-    path="/register",
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Регистрация пользователя",
-)
-async def register(
-    data: UserCreateForm,
-    service: AuthServiceDep,
-) -> dict:
-    return await service.registration(data)
+router = APIRouter(prefix="/auth", tags=["Авторизация"])
 
 
-@auth_router.post(
+@router.post(
     path="/register/{token}",
     status_code=status.HTTP_201_CREATED,
-    summary="Регистрация пользователя",
+    response_model=Tokens,
+    summary="Регистрация пользователя по приглашению"
 )
-async def registration_by_invitation(
-    token: Annotated[str, Path(..., description="Токен из пригласительного письма")],
-    data: UserCreateForm,
-    service: AuthServiceDep,
+async def register(
+        token: Annotated[str, Path(..., description="Токен из пригласительного письма")],
+        data: UserCreate,
+        service: AuthServiceDep,
 ) -> Tokens:
-    return await service.registration_by_invitation(form=data, token=token)
+    return await service.register(token, data)
 
 
-@auth_router.post(
+@router.post(
     path="/login",
     status_code=status.HTTP_200_OK,
-    response_model=None,
-    summary="Вход в учётную запись",
+    response_model=Tokens,
+    summary="Войти в учётную запись"
 )
 async def login(
-    response: Response,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    service: AuthServiceDep,
-) -> Tokens | dict:
-    result = await service.authenticate(form_data.username, form_data.password)
-
-    if isinstance(result, str):
-        response.status_code = status.HTTP_202_ACCEPTED
-        return result
-    return result
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        service: AuthServiceDep,
+) -> Tokens:
+    return await service.authenticate(form_data.username, form_data.password)
 
 
-@auth_router.post(
+@router.post(
     path="/refresh",
     status_code=status.HTTP_200_OK,
     response_model=Tokens,
-    summary="Обновление пары токенов",
+    summary="Обновить пару токенов"
 )
-async def refresh(data: TokensRefresh, service: AuthServiceDep) -> Tokens:
-    return await service.refresh_tokens(data.refresh_token)
+async def refresh(refresh_token: RefreshToken, service: AuthServiceDep) -> Tokens:
+    return await service.refresh_tokens(refresh_token)
+
+
+@router.post(
+    path="/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Выйти из аккаунта",
+    description="Добавляет токены в черный список."
+)
+async def logout(
+        access_token: Annotated[str, Depends(oauth2_scheme)],
+        data: LogoutRequest,
+        service: AuthServiceDep
+) -> None:
+    return await service.logout(access_token, data.refresh_token)
+
+
+@router.get(
+    path="/userinfo",
+    response_model=CurrentUser,
+    status_code=status.HTTP_200_OK,
+    summary="Получить информацию о текущем пользователе",
+    description="Информация берётся из payload токена (не запроса к БД)."
+)
+async def get_userinfo(current_user: CurrentUserDep) -> CurrentUser:
+    return current_user

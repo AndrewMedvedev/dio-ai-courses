@@ -1,50 +1,31 @@
-from datetime import timedelta
-from uuid import UUID
-
-from pydantic import EmailStr, SecretStr
-
-from ...shared.utils.time import get_expiration_time
-from ..security import hash_password
-from .dataclasses import Invitation, User
-from .vo import Username, UserRole
-
-INVITATION_EXPIRES_IN_DAYS = 7
+from .entities import Invitation, Membership, User
+from .vo import FullName, PasswordHash, Username
 
 
-def create_super_admin(email: str, password_hash: str) -> User:
-    """Фабрика для создания системного администратора"""
+def accept_for_new_user(
+        invitation: Invitation,
+        password_hash: str,
+        *,
+        full_name: str | None = None,
+        username: str | None = None,
+) -> tuple[User, Membership]:
 
-    return User(
-        email=email,
-        password_hash=SecretStr(password_hash),
-        username=Username("admin"),
-        role=UserRole.SUPER_ADMIN,
-        is_verify=True,
+    full_name = FullName(full_name) if full_name is not None else None
+    username = Username(username) if username is not None else None
+
+    user = User(
+        email=invitation.email,
+        password_hash=PasswordHash(password_hash),
+        username=username,
+        full_name=full_name,
     )
 
-
-def create_user(
-    email: EmailStr,
-    username: str,
-    password: str,
-    role: UserRole = UserRole.USER,
-) -> User:
-    return User(
-        username=Username(username),
-        email=email,
-        password_hash=SecretStr(hash_password(password)),
-        role=role,
+    membership = Membership(
+        user_id=user.id,
+        organization_id=invitation.organization_id,
+        roles=invitation.granted_roles,
     )
 
+    invitation.mark_as_used()
 
-def create_invitation(
-    email: EmailStr,
-    role: UserRole = UserRole.USER,
-    invited_by: UUID | None = None,
-) -> Invitation:
-    return Invitation(
-        email=email,
-        expires_at=get_expiration_time(timedelta(days=7)),
-        assigned_role=role,
-        invited_by=invited_by,
-    )
+    return user, membership

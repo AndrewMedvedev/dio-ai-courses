@@ -10,13 +10,13 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
-from .....core.infrastructure import checkpointer, session_factory
-from .....llm_service import LLMTextService
+from src.core.infrastructure import checkpointer, session_factory
+from src.llm_service import LLMTextService
+
 from ....domain.entities import Lesson, Module
-from ....infra.repository import SqlModuleRepository
+from ....infra.database.repos.module import SqlModuleRepository
 from ...schemas import Context, RuntimeContext
 from .lesson_builder import lesson_builder_agent
-from .practician import call_module_practice_agent
 from .prompts import ModuleStructure
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,6 @@ async def plan_module_structure(
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
-        token=state["generation_context"].access_token,
         system_prompt="""\
     Ты полезный ассистент для планирования структуры образовательного модуля
     по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
@@ -79,6 +78,7 @@ async def plan_module_structure(
 
 
 async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
+    """Сохраняет модуль, чтобы результат был доступен после завершения операции."""
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
     module = state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     try:
@@ -99,6 +99,7 @@ async def build_lesson(
     audience_description: str,
     learning_objectives: list[str],
 ) -> tuple[int, Lesson]:
+    """Собирает урок из входных данных для следующего шага сценария."""
     lesson_thread_id = (
         f"course:{generation_context.course_id}:module:{module_order}:lesson:{order}"
     )
@@ -158,45 +159,15 @@ async def generate_lessons(state: AgentState) -> dict[str, Module]:
     return {"module": module}
 
 
-async def generate_assignment(state: AgentState) -> dict[str, Module]:
-    """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
-
-    module_structure, module = state["module_structure"], state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    assignment_type = module_structure.assignment_specification.assignment_type
-    prompt = module_structure.assignment_specification.prompt
-
-    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
-    assignment = await call_module_practice_agent(
-        token=state["generation_context"].access_token,
-        assignment_type=assignment_type,
-        module=module,
-    )
-    module.add_assignment(assignment)
-    return {"module": module}
-
-
-async def update_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
-    module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
-    module = state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    await module_repos.update(uid=module.id, assignment=module.assignment)
-    logger.info("Update module '%s' to database ...", module.title)
-
-    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
-
-
 graph = StateGraph(AgentState, context_schema=RuntimeContext)
 
 graph.add_node("plan_module_structure", plan_module_structure)
 graph.add_node("save_module", save_module)
 graph.add_node("generate_lessons", generate_lessons)
-graph.add_node("generate_assignment", generate_assignment)
-graph.add_node("update_module", update_module)
 
 graph.add_edge(START, "plan_module_structure")
 graph.add_edge("plan_module_structure", "save_module")
 graph.add_edge("save_module", "generate_lessons")
-graph.add_edge("generate_lessons", "generate_assignment")
-graph.add_edge("generate_assignment", "update_module")
-graph.add_edge("update_module", END)
+graph.add_edge("generate_lessons", END)
 
 module_builder_agent = graph.compile(checkpointer=checkpointer)

@@ -5,8 +5,9 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...llm_service import Runtime, tool
-from ..infra.repository import SqlDocumentRepository
+from src.llm_service import Runtime, tool
+
+from ..infra.database.repos.document import SqlDocumentRepository
 from .course_generator.workflow import generate_course
 from .schemas import Context
 
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 async def get_table_of_contents(
     runtime: Runtime[Context, dict[str, Any]],
 ) -> str | list[dict]:
+    """Получает table of contents, чтобы вызывающий код работал через единый интерфейс."""
     answer = await SqlDocumentRepository(session=runtime.state["sql_session"]).get_tocs(  # pyright: ignore[reportOptionalSubscript]
         owner_id=runtime.context.user_id
     )
@@ -36,6 +38,7 @@ async def get_titles(
     runtime: Runtime[Context, dict[str, Any]],
     toc_id: UUID,
 ) -> str | list[dict]:
+    """Получает titles, чтобы вызывающий код работал через единый интерфейс."""
     answer = await SqlDocumentRepository(session=runtime.state["sql_session"]).get_headings(  # pyright: ignore[reportOptionalSubscript]
         toc_id=toc_id
     )
@@ -49,6 +52,7 @@ async def get_titles(
     description="Достает текст документа по id заголовка",
 )
 async def get_content(runtime: Runtime[Context, dict[str, Any]], heading_id: UUID) -> str:
+    """Получает content, чтобы вызывающий код работал через единый интерфейс."""
     answer = await SqlDocumentRepository(session=runtime.state["sql_session"]).get_texts(  # pyright: ignore[reportOptionalSubscript]
         heading_id=heading_id
     )
@@ -74,11 +78,11 @@ async def complete_interview(  # ruff: ignore[unused-async]
     prompt: str,
     runtime: Runtime[Context, InterviewState],
 ) -> str:
+    """Выполняет действие `complete_interview`, чтобы поддержать основной сценарий модуля."""
     generation_context = Context(
         user_id=runtime.context.user_id,
         course_id=runtime.context.course_id,
         prompt=prompt,
-        access_token=runtime.context.access_token,
     )
 
     result = generate_course.send(generation_context=generation_context.model_dump(mode="json"))

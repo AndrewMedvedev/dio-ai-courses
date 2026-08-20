@@ -30,6 +30,7 @@ class BaseAgentMiddleware(ABC):
         service: LLMServiceProtocol,
         messages: Messages,
     ) -> Messages:
+        """Выполняет шаг middleware `before_agent`, чтобы расширить поведение агента без изменения сервиса."""
         return messages
 
     async def after_agent(
@@ -37,6 +38,7 @@ class BaseAgentMiddleware(ABC):
         service: LLMServiceProtocol,
         response: ResponseT,
     ) -> ResponseT:
+        """Выполняет шаг middleware `after_agent`, чтобы расширить поведение агента без изменения сервиса."""
         return response
 
     # --- срабатывает перед/после КАЖДОГО вызова модели ---
@@ -45,6 +47,7 @@ class BaseAgentMiddleware(ABC):
         service: LLMServiceProtocol,
         messages: Messages,
     ) -> Messages:
+        """Выполняет шаг middleware `before_model`, чтобы расширить поведение агента без изменения сервиса."""
         return messages
 
     async def after_model(
@@ -52,6 +55,7 @@ class BaseAgentMiddleware(ABC):
         service: LLMServiceProtocol,
         response: ResponseT,
     ) -> ResponseT:
+        """Выполняет шаг middleware `after_model`, чтобы расширить поведение агента без изменения сервиса."""
         return response
 
     # --- оборачивает КАЖДЫЙ вызов инструмента ---
@@ -62,4 +66,5 @@ class BaseAgentMiddleware(ABC):
         handler: Callable[[ToolCallParsed], Awaitable[dict]],
     ) -> dict:
         # по умолчанию просто вызываем следующий слой цепочки
+        """Выполняет шаг middleware `wrap_tool_call`, чтобы расширить поведение агента без изменения сервиса."""
         return await handler(tool)

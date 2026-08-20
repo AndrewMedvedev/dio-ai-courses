@@ -22,4 +22,6 @@ class CacheAIModelsProtocol(Protocol):
         lock_timeout: int = 30,
         *args: Any,
         **kwargs: Any,
-    ) -> Page: ...
+    ) -> Page:
+        """Описывает вызываемый кэширующий обработчик списка AI-моделей."""
+        ...

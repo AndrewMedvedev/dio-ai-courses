@@ -1,6 +1,22 @@
 from fastapi import status
 
-from ...shared.domain.exceptions import AppError
+from src.shared.domain.exceptions import AppError
+
+
+class WeakPasswordError(AppError):
+    def __init__(
+            self, message: str, suggestions: list[str], warning: str | None = None,
+    ) -> None:
+        details = {"suggestions": suggestions}
+        if warning is not None:
+            details["warning"] = warning
+
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            error_code="WEAK_PASSWORD",
+            details=details,
+        )
 
 
 class PermissionDeniedError(AppError):

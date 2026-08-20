@@ -11,14 +11,14 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime as GraphRuntime
 from sqlalchemy.exc import IntegrityError
 
-from ....core.infrastructure import checkpointer, session_factory
-from ....llm_service import LLMTextService, Runtime
+from src.core.infrastructure import checkpointer, session_factory
+from src.llm_service import LLMTextService, Runtime
+
 from ...domain.entities import Course, Module
 from ...domain.vo import CourseStatus
-from ...infra.repository import SqlCourseRepository
+from ...infra.database.repos.course import SqlCourseRepository
 from ..schemas import Context, RuntimeContext
 from .subagents.module_builder import module_builder_agent
-from .subagents.practician import call_course_practice_agent
 from .subagents.prompts import PLANNER_PROMPT, CourseStructure
 from .subagents.reasoner import reasoner_agent
 
@@ -80,6 +80,7 @@ async def plan_course_structure(state: AgentState) -> dict:
 
 
 async def save_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
+    """Сохраняет курс, чтобы результат был доступен после завершения операции."""
     course_repos = SqlCourseRepository(runtime.context.db_session)
     course = state["course"]
     try:
@@ -98,6 +99,7 @@ async def build_module(
     audience_description: str,
     learning_objectives: list[str],
 ) -> tuple[int, Module]:
+    """Собирает модуль из входных данных для следующего шага сценария."""
     module_thread_id = f"course:{generation_context.course_id}:module:{order}"
     logger.info(
         "Generating module - %s, by description: '%s ...'", order, module_description[:150]
@@ -156,29 +158,12 @@ async def generate_modules(state: AgentState) -> dict[str, Course]:
     return {"course": course}
 
 
-async def generate_assignment(state: AgentState) -> dict[str, Course]:
-    """Генерация практического задания с помощью суб-агента по сгенерированному ТЗ"""
-
-    course_structure, course = state["course_structure"], state["course"]
-    assignment_type = course_structure.assignment_specification.assignment_type
-    prompt = course_structure.assignment_specification.prompt
-
-    logger.info("Generating `%s` assignment for prompt: '%s ...'", assignment_type.value, prompt)
-    assignment = await call_course_practice_agent(
-        token=state["generation_context"].access_token,
-        assignment_type=assignment_type,
-        course=course,
-    )
-    course.add_assignment(assignment)
-    return {"course": course}
-
-
 async def update_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
+    """Обновляет курс, чтобы синхронизировать сохранённое состояние."""
     course_repos = SqlCourseRepository(runtime.context.db_session)
     course = state["course"]
     await course_repos.update(
         uid=course.id,
-        assignment=course.assignment,
         status=CourseStatus.DRAFT,
     )
     logger.info("Update course '%s' to database ...", course.title)
@@ -192,14 +177,12 @@ graph.add_node("reasoning", reasoning)
 graph.add_node("plan_course_structure", plan_course_structure)
 graph.add_node("save_course", save_course)
 graph.add_node("generate_modules", generate_modules)
-graph.add_node("generate_assignment", generate_assignment)
 graph.add_node("update_course", update_course)
 graph.add_edge(START, "reasoning")
 graph.add_edge("reasoning", "plan_course_structure")
 graph.add_edge("plan_course_structure", "save_course")
 graph.add_edge("save_course", "generate_modules")
-graph.add_edge("generate_modules", "generate_assignment")
-graph.add_edge("generate_assignment", "update_course")
+graph.add_edge("generate_modules", "update_course")
 graph.add_edge("update_course", END)
 
 agent = graph.compile(checkpointer=checkpointer)

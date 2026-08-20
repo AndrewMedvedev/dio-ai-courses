@@ -3,8 +3,9 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..shared.domain.exceptions import NotFoundError
-from ..shared.utils.time import current_datetime
+from src.shared.domain.exceptions import NotFoundError
+from src.shared.utils.time import current_datetime
+
 from .constants import PRESIGNED_URL_EXPIRES_IN
 from .domain.entities import Attachment
 from .domain.ports import AttachmentRepository, Storage
@@ -27,6 +28,7 @@ class AttachmentService:
         storage: Storage,
         repository: AttachmentRepository,
     ) -> None:
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.session = session
         self.storage = storage
         self.repository = repository

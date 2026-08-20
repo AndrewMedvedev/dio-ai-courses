@@ -2,6 +2,7 @@ from typing import Any
 
 import asyncio
 import json
+from pathlib import Path
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,11 +34,24 @@ from ..courses.domain.entities import (
 )
 
 # Импорты репозиториев
-from ..courses.infra.repository import (
+from ..courses.infra.database.repos.course import (
     SqlCourseRepository,
+)
+from ..courses.infra.database.repos.lesson import (
     SqlLessonRepository,
+)
+from ..courses.infra.database.repos.module import (
     SqlModuleRepository,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+COURSE_JSON_FILES = [
+    PROJECT_ROOT / "course.json",
+    PROJECT_ROOT / "course_agile_scrum.json",
+    PROJECT_ROOT / "course_digital_marketing.json",
+    PROJECT_ROOT / "course_personal_finance.json",
+    PROJECT_ROOT / "course_python_basics.json",
+]
 
 # ===================================================================
 # 1. Фабрики для создания доменных объектов из JSON
@@ -147,7 +161,6 @@ def load_course_from_dict(json_data: dict[str, Any], creator_id: UUID) -> Course
         image_url=course_data.get("image_url"),
         learning_objectives=course_data.get("learning_objectives", []),
         modules=[],
-        assignment=None,
     )
 
     # Модули
@@ -160,7 +173,6 @@ def load_course_from_dict(json_data: dict[str, Any], creator_id: UUID) -> Course
             order=mod_data.get("order", 0),
             learning_objectives=mod_data.get("learning_objectives", []),
             lessons=[],
-            assignment=create_assignment(mod_data.get("assignment")),
         )
 
         # Уроки
@@ -173,8 +185,6 @@ def load_course_from_dict(json_data: dict[str, Any], creator_id: UUID) -> Course
                 order=lesson_data.get("order", 0),
                 learning_objectives=lesson_data.get("learning_objectives", []),
                 estimated_time_minutes=lesson_data.get("estimated_time_minutes"),
-                assignment=create_assignment(lesson_data.get("assignment")),
-                content_blocks=[],
             )
             # Блоки контента
             for block_data in lesson_data.get("content_blocks", []):
@@ -184,10 +194,6 @@ def load_course_from_dict(json_data: dict[str, Any], creator_id: UUID) -> Course
             module.lessons.append(lesson)
 
         course.modules.append(module)
-
-    # Задание курса (если есть)
-    if "assignment" in course_data:
-        course.assignment = create_assignment(course_data["assignment"])
 
     return course
 
@@ -231,6 +237,7 @@ async def save_course_to_db(session: AsyncSession, course: Course) -> None:
 async def load_course_from_json_file(
     file_path: str, creator_id: UUID, session: AsyncSession
 ) -> Course:
+    """Загружает course from json file, чтобы подготовить данные к дальнейшей обработке."""
     with open(file_path, encoding="utf-8") as f:
         json_data = json.load(f)
     course = load_course_from_dict(json_data, creator_id)
@@ -246,11 +253,18 @@ async def load_course_from_json_file(
 async def main():
     # Настройка подключения к БД (замените на свои параметры)
 
+    """Запускает сценарий модуля и связывает подготовку данных с основным действием."""
     async with session_factory() as session:
         # Укажите реальный UUID создателя (можно взять из JSON или передать)
-        creator_id = UUID("5f3f4df5-276c-4904-8d7a-05ae028621bf")
-        course = await load_course_from_json_file("course.json", creator_id, session)
-        print(f"✅ Курс '{course.title}' успешно загружен (ID: {course.id})")
+        creator_id = UUID("87c91906-21bb-45e5-bba8-875f77d9dec9")
+        loaded_courses: list[Course] = []
+
+        for course_file in COURSE_JSON_FILES:
+            course = await load_course_from_json_file(str(course_file), creator_id, session)
+            loaded_courses.append(course)
+            print(f"✅ Курс '{course.title}' успешно загружен (ID: {course.id})")
+
+        print(f"🎉 Всего загружено курсов: {len(loaded_courses)}")
 
 
 if __name__ == "__main__":

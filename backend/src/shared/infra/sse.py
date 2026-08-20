@@ -27,8 +27,7 @@ class SSEManager:
 
         logger.info(
             "SSE connected for user %s | Total connections: %s",
-            user_id,
-            len(self.local_queues[user_id]),
+            user_id, len(self.local_queues[user_id])
         )
 
     async def disconnect(self, user_id: UUID, queue: asyncio.Queue[Any]):

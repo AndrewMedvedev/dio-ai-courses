@@ -2,8 +2,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from ..iam.dependencies import CurrentUserDep
-from ..shared.domain.exceptions import NotFoundError
+from src.iam.dependencies.identity import CurrentIdentity
+from src.shared.domain.exceptions import NotFoundError
+
 from .dependencies import AttachmentRepoDep, AttachmentServiceDep
 from .mappers import map_attachment_to_response
 from .schemas import (
@@ -25,11 +26,13 @@ router = APIRouter(prefix="/attachments", tags=["Медиа контент"])
     description="""\
     Создаёт подписанный URL на стороне хранилища (S3)
     для прямой загрузки файла с клиентской части.
-    """
+    """,
 )
 async def create_presigned_upload_url(
-        request: PresignedUploadRequest, service: AttachmentServiceDep,
+    request: PresignedUploadRequest,
+    service: AttachmentServiceDep,
 ) -> PresignedUploadResponse:
+    """Создаёт presigned upload url и инкапсулирует правила этой операции."""
     return await service.create_presigned_upload_url(request)
 
 
@@ -37,23 +40,25 @@ async def create_presigned_upload_url(
     path="/confirm-upload",
     status_code=status.HTTP_201_CREATED,
     response_model=AttachmentResponse,
-    summary="Подтвердить загрузку и создать вложение"
+    summary="Подтвердить загрузку и создать вложение",
 )
 async def confirm_upload(
-        current_user: CurrentUserDep, request: ConfirmUploadRequest, service: AttachmentServiceDep
+    current_user: CurrentIdentity, request: ConfirmUploadRequest, service: AttachmentServiceDep
 ) -> AttachmentResponse:
-    return await service.confirm_upload(request, uploaded_by=current_user.user_id)
+    """Подтверждает upload, чтобы завершить ранее начатую операцию."""
+    return await service.confirm_upload(request, uploaded_by=current_user.id)
 
 
 @router.get(
     path="/{attachment_id}/presigned-download",
     status_code=status.HTTP_200_OK,
     response_model=PresignedDownloadResponse,
-    summary="Получить presigned URL для скачивания"
+    summary="Получить presigned URL для скачивания",
 )
 async def get_presigned_download_url(
-        attachment_id: UUID, service: AttachmentServiceDep
+    attachment_id: UUID, service: AttachmentServiceDep
 ) -> PresignedDownloadResponse:
+    """Получает presigned download url, чтобы вызывающий код работал через единый интерфейс."""
     return await service.create_presigned_download_url(attachment_id)
 
 
@@ -61,9 +66,10 @@ async def get_presigned_download_url(
     path="/{attachment_id}",
     status_code=status.HTTP_200_OK,
     response_model=AttachmentResponse,
-    summary="Получение информации и файле"
+    summary="Получение информации и файле",
 )
 async def get_attachment(attachment_id: UUID, repository: AttachmentRepoDep) -> AttachmentResponse:
+    """Получает attachment, чтобы вызывающий код работал через единый интерфейс."""
     attachment = await repository.read(attachment_id)
     if attachment is None:
         raise NotFoundError(f"Attachment with ID {attachment_id} not found")

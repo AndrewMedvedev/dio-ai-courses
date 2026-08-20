@@ -4,36 +4,107 @@ import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from ...shared.domain.vo import ValueObject
+from email_validator import EmailNotValidError, validate_email
+
+from src.shared.domain.vo import ValueObject
 
 
-class UserRole(StrEnum):
-    """Роли пользователей"""
-
-    SUPER_ADMIN = "super_admin"
-    ADMIN = "admin"  # администратор
-    MODERATOR = "moderator"
-    USER = "user"
-
-
-ROLE_HIERARCHY: dict[UserRole, int] = {
-    UserRole.USER: 0,
-    UserRole.MODERATOR: 1,
-    UserRole.ADMIN: 2,
-    UserRole.SUPER_ADMIN: 3,
-}
-
-
-def check_role(user_role: UserRole, role: UserRole) -> bool:
+class PermissionScope(StrEnum):
     """
-    Проверяет, может ли пользователь с user_role назначить роль role.
-    Правило: можно назначать только роли СТРОГО ниже своей.
+    Уровни доступа:
+     - `global` - админ платформы.
+     - `organization` - в рамках компании.
+     - `own` - только своё.
+     - `course` - в рамках курса.
+     - `object` - уровень объекта.
     """
-    return ROLE_HIERARCHY[user_role] >= ROLE_HIERARCHY[role]
+
+    GLOBAL = "global"
+    ORGANIZATION = "organization"
+    OWN = "own"
+    COURSE = "course"
+    OBJECT = "object"
 
 
 @dataclass(frozen=True, slots=True)
-class Username(ValueObject):  # ruff:ignore[eq-without-hash]
+class PermissionGrant:
+    """Назначенное право."""
+
+    permission: str
+    scope: PermissionScope
+
+
+@dataclass(frozen=True, slots=True)
+class FullName(ValueObject):
+    """
+    ФИО - доменный примитив для валидации российских имён
+    """
+
+    MIN_PARTS: ClassVar[int] = 2
+    MAX_LENGTH: ClassVar[int] = 155
+
+    value: str = field(compare=True, hash=True)
+
+    def __post_init__(self) -> None:
+        if not self.value or not self.value.strip():
+            raise ValueError("Full name cannot be empty")
+
+        if len(self.value) >= self.MAX_LENGTH:
+            raise ValueError("Full name cannot be longer than 155 characters")
+
+        parts = [part.strip() for part in self.value.split() if part.strip()]
+        if len(parts) < self.MIN_PARTS:
+            raise ValueError("Must have at least first and last name")
+
+        pattern = re.compile(r"^[A-Za-zА-Яа-яЁё\s\-'’]+$")
+        if not all(pattern.match(p) for p in parts):
+            raise ValueError(f"Invalid characters in full name: {self.value!r}")
+
+        normalized_parts = [p.title() for p in parts]
+        normalized = " ".join(normalized_parts)
+
+        object.__setattr__(self, "value", normalized)
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return f"FullName({self.value!r})"
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, FullName):
+            return self.value == other.value
+        if isinstance(other, str):
+            return self.value == other.strip().title()
+        return NotImplemented
+
+    @property
+    def _parts(self) -> list[str]:
+        return self.value.split()
+
+    @property
+    def last_name(self) -> str:
+        """Фамилия (вторая часть)"""
+
+        return self._parts[-1]
+
+    @property
+    def first_name(self) -> str:
+        """Имя (первая часть)"""
+
+        return self._parts[0]
+
+    @property
+    def middle_name(self) -> str | None:
+        """Отчество"""
+
+        if len(self._parts) > self.MIN_PARTS:
+            return " ".join(self._parts[1:-1])
+        return None
+
+
+@dataclass(frozen=True, slots=True)
+class Username(ValueObject):
     """
     Доменный примитив — имя пользователя (логин).
 
@@ -73,7 +144,7 @@ class Username(ValueObject):  # ruff:ignore[eq-without-hash]
         if not self.PATTERN.match(cleaned):
             raise ValueError(
                 "Username can only contains letters, numbers, periods, hyphens and underscores. "
-                "Cannot start or end with a special character, "
+                "Cannot planned_start or planned_end with a special character, "
                 "cannot contain two special characters in a row."
             )
 
@@ -94,3 +165,62 @@ class Username(ValueObject):  # ruff:ignore[eq-without-hash]
         if isinstance(other, str):
             return self.value == other.strip().lower()
         return NotImplemented
+
+
+@dataclass(frozen=True, slots=True)
+class Email:
+    value: str = field(compare=True, hash=True)
+
+    def __post_init__(self) -> None:
+        if not self.value.strip():
+            raise ValueError("Email cannot be empty")
+
+        try:
+            validation = validate_email(self.value, check_deliverability=False)
+            normalized = validation.normalized
+        except EmailNotValidError as e:
+            raise ValueError("Invalid email address") from e
+
+        object.__setattr__(self, "value", normalized)
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return f"Email({self.value!r})"
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Email):
+            return self.value == other.value
+
+        if isinstance(other, str):
+            try:
+                validation = validate_email(self.value, check_deliverability=False)
+            except EmailNotValidError:
+                return False
+            else:
+                return self.value == validation.normalized
+
+        return NotImplemented
+
+    @property
+    def domain(self) -> str:
+        return self.value.split("@")[-1]
+
+
+@dataclass(frozen=True, slots=True)
+class PasswordHash(ValueObject):
+    value: str
+
+    def __post_init__(self) -> None:
+        if not self.value.strip():
+            raise ValueError("Password hash cannot be empty")
+
+    def __repr__(self) -> str:
+        return "PasswordHash(******)"
+
+    def __str__(self) -> str:
+        return "******"
+
+    def get_hashed_value(self) -> str:
+        return self.value

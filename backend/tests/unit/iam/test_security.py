@@ -20,6 +20,7 @@ from src.shared.utils.time import current_datetime, get_expiration_timestamp
 
 class TestHashPassword:
     def test_hash_password_returns_different_string(self):  # noqa: PLR6301
+        """Выполняет действие `test_hash_password_returns_different_string`, чтобы поддержать основной сценарий модуля."""
         password = "secret"
         password_hash = hash_password(password)
 
@@ -27,12 +28,14 @@ class TestHashPassword:
         assert isinstance(password_hash, str)
 
     def test_verify_password_correct(self):  # noqa: PLR6301
+        """Выполняет действие `test_verify_password_correct`, чтобы поддержать основной сценарий модуля."""
         password = "secret"
         password_hash = hash_password(password)
 
         assert verify_password(password, password_hash) is True
 
     def test_verify_password_incorrect(self):  # noqa: PLR6301
+        """Выполняет действие `test_verify_password_incorrect`, чтобы поддержать основной сценарий модуля."""
         password = "secret"
         password_hash = hash_password(password)
 
@@ -41,6 +44,7 @@ class TestHashPassword:
 
 class TestValidateToken:
     def test_validate_token_correct_access_token(self):  # noqa: PLR6301
+        """Выполняет действие `test_validate_token_correct_access_token`, чтобы поддержать основной сценарий модуля."""
         user_id = uuid4()
         email = "support@example.com"
         user_role = UserRole.USER
@@ -59,6 +63,7 @@ class TestValidateToken:
             assert payload["exp"] > payload["iat"]
 
     def test_validate_token_correct_refresh_token(self):  # noqa: PLR6301
+        """Выполняет действие `test_validate_token_correct_refresh_token`, чтобы поддержать основной сценарий модуля."""
         user_id = uuid4()
 
         with freeze_time("2026-03-26 10:00:00"):
@@ -75,6 +80,7 @@ class TestValidateToken:
             assert isinstance(payload["exp"], (int, float))
 
     def test_validate_token_expired_raises_unauthorized(self):  # noqa: PLR6301
+        """Выполняет действие `test_validate_token_expired_raises_unauthorized`, чтобы поддержать основной сценарий модуля."""
         user_id = uuid4()
         email = "test@example.com"
         user_role = UserRole.USER
@@ -91,6 +97,7 @@ class TestValidateToken:
             assert "Token signature expired" in str(exc_info.value)
 
     def test_validate_token_invalid_signature_raises_unauthorized(self):  # noqa: PLR6301
+        """Выполняет действие `test_validate_token_invalid_signature_raises_unauthorized`, чтобы поддержать основной сценарий модуля."""
         invalid_token = jwt.encode(
             {"sub": "fake", "exp": 9999999999},
             key="test_secret_key_that_is_long_enough_32",  # другой ключ
@@ -103,6 +110,7 @@ class TestValidateToken:
         assert "Invalid token" in str(exc_info.value)
 
     def test_validate_token_malformed_token_raises_unauthorized(self):  # noqa: PLR6301
+        """Выполняет действие `test_validate_token_malformed_token_raises_unauthorized`, чтобы поддержать основной сценарий модуля."""
         malformed_tokens = [
             "not.a.real.token",
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalidpayload.signature",
@@ -117,6 +125,7 @@ class TestValidateToken:
 
 class TestCreateAccessToken:
     def test_create_and_validate_access_token(self):  # noqa: PLR6301
+        """Выполняет действие `test_create_and_validate_access_token`, чтобы поддержать основной сценарий модуля."""
         user_id = uuid4()
         email = "support@example.com"
         user_role = UserRole.USER
@@ -138,6 +147,7 @@ class TestCreateAccessToken:
             assert payload["exp"] == expected_exp
 
     def test_create_and_validate_access_token_with_counterparty(self):  # noqa: PLR6301
+        """Выполняет действие `test_create_and_validate_access_token_with_counterparty`, чтобы поддержать основной сценарий модуля."""
         user_id = uuid4()
         email = "support@example.com"
         user_role = UserRole.USER
@@ -161,6 +171,7 @@ class TestCreateAccessToken:
 
 class TestCreateRefreshToken:
     def test_create_and_validate_refresh_token(self):  # noqa: PLR6301
+        """Выполняет действие `test_create_and_validate_refresh_token`, чтобы поддержать основной сценарий модуля."""
         user_id = uuid4()
 
         with freeze_time("2026-03-26 10:00:00"):

@@ -82,6 +82,7 @@ class TreeNode:
     children: list[TreeNode] = field(default_factory=list)
 
     def add_child(self, child: TreeNode) -> TreeNode:
+        """Выполняет действие `add_child`, чтобы поддержать основной сценарий модуля."""
         self.children.append(child)
         return child
 
@@ -112,6 +113,7 @@ class TreeNode:
             child.print_tree(new_prefix, i == len(self.children) - 1)
 
     def count_nodes(self) -> int:
+        """Выполняет действие `count_nodes`, чтобы поддержать основной сценарий модуля."""
         return 1 + sum(c.count_nodes() for c in self.children)
 
 
@@ -375,6 +377,7 @@ def parse_json(path: str) -> TreeNode:
     root = TreeNode(name=os.path.basename(path), node_type="document", level=0)
 
     def build(value: Any, parent: TreeNode, level: int, key_name: str) -> None:
+        """Собирает итоговый объект или конфигурацию из переданных частей."""
         if isinstance(value, dict):
             node = TreeNode(name=key_name, node_type="json_object", level=level)
             parent.add_child(node)
@@ -408,6 +411,7 @@ def parse_xml_or_html(path: str) -> TreeNode:
     xml_root = tree.getroot()
 
     def build(elem, level: int) -> TreeNode:
+        """Собирает итоговый объект или конфигурацию из переданных частей."""
         text = (elem.text or "").strip()
         node = TreeNode(
             name=f"<{elem.tag}>",

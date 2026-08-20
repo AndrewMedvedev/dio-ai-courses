@@ -15,6 +15,7 @@ class TestAIModelMapper:
     """
 
     def test_to_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_to_entity`, чтобы разделить доменную модель и модель хранения."""
         model = AIModelOrm(
             name="gpt_oss_120b",
             provider="YANDEX",
@@ -29,6 +30,7 @@ class TestAIModelMapper:
         assert entity.is_active == model.is_active
 
     def test_from_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_from_entity`, чтобы разделить доменную модель и модель хранения."""
         entity = AIModel(name="gpt_oss_120b", provider="YANDEX")
 
         model = AIModelMapper.from_entity(entity)
@@ -46,6 +48,7 @@ class TestUserPreferenceMapper:
     """
 
     def test_to_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_to_entity`, чтобы разделить доменную модель и модель хранения."""
         model = UserModelPreferenceOrm(user_id=uuid4(), model_id=uuid4())
 
         entity = UserModelPreferenceMapper.to_entity(model)
@@ -57,6 +60,7 @@ class TestUserPreferenceMapper:
         assert entity.model_id == model.model_id
 
     def test_from_entity(self):  # noqa: PLR6301
+        """Преобразует данные в `test_from_entity`, чтобы разделить доменную модель и модель хранения."""
         entity = UserModelPreference(user_id=uuid4(), model_id=uuid4())
 
         model = UserModelPreferenceMapper.from_entity(entity)

@@ -4,12 +4,13 @@ import logging
 
 from pydantic import TypeAdapter
 
-from .....llm_service import (
+from src.llm_service import (
     BaseAgentMiddleware,
     LLMImageService,
     LLMTextService,
     Runtime,
 )
+
 from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
@@ -75,12 +76,15 @@ async def generate_image(
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
 ) -> AnyContentBlock:
+    """Генерирует изображение, чтобы автоматически подготовить часть учебного контента."""
     content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMImageService(
-        token=context.access_token,
         system_prompt=content_config.get("system_prompt", ""),
         runtime=runtime or Runtime(context=context),
-        middlewares=[SaveImageMiddleware(), *(middlewares or [])],
+        middlewares=[
+            SaveImageMiddleware(),
+            *(middlewares or []),
+        ],
     )
     response_format: TypeAdapter = content_config.get("response_format")
     result = await agent.invoke(messages=prompt, images=images)
@@ -94,9 +98,9 @@ async def generate_text(
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
 ) -> AnyContentBlock:
+    """Генерирует text, чтобы автоматически подготовить часть учебного контента."""
     content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMTextService(
-        token=context.access_token,
         system_prompt=content_config.get("system_prompt", ""),
         tools=content_config.get("tools"),
         middlewares=middlewares,

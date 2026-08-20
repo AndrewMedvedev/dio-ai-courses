@@ -4,11 +4,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from aiohttp import ClientSession, ClientTimeout
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class HttpConfig(BaseModel):
-    token: str
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    token: str | None = None
     base_url: str
     headers: dict[str, Any] | None = None
     timeout: ClientTimeout

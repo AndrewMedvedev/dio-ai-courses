@@ -5,7 +5,7 @@ import html_to_markdown
 from bs4 import BeautifulSoup
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
-from ...core.settings import settings
+from src.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +138,7 @@ def generate_screen_resolution() -> dict[str, int]:
 
 
 def generate_accept_language() -> str:
+    """Генерирует accept language, чтобы автоматически подготовить часть учебного контента."""
     return random.choice(LANGUAGES)  # noqa: S311
 
 

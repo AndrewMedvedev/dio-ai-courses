@@ -1,36 +1,35 @@
-from __future__ import annotations
-
-from typing import Protocol
+from typing import ClassVar, Protocol
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from ..utils.time import current_datetime
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True)
 class Event:
-    """Базовый класс доменного события."""
+    """Базовый класс для всех доменных событий."""
 
-    event_id: str = field(default_factory=lambda: str(uuid4()))
+    event_type: ClassVar[str]
+
+    event_id: UUID = field(default_factory=uuid4)
     occurred_on: datetime = field(default_factory=current_datetime)
-    version: int = 1
+    version: int = field(default=1)
 
-    def __post_init__(self) -> None:
-        """Проверить корректность версии события после создания."""
-
+    def __post_init__(self):
         if self.version < 1:
             raise ValueError("Event version must be >= 1")
 
 
 class EventPublisher(Protocol):
-    """Порт публикации доменных событий за пределы доменного слоя."""
+    """
+    Абстракция для публикации доменных событий.
+    Доменный слой знает только об этом интерфейсе.
+    """
 
     async def publish(self, event: Event) -> None:
-        """Опубликовать одно доменное событие."""
-        ...
+        """Опубликовать доменное событие."""
 
     async def publish_all(self, events: list[Event]) -> None:
-        """Опубликовать список доменных событий."""
-        ...
+        """Опубликовать сразу несколько событий (удобно после сохранения агрегата)."""

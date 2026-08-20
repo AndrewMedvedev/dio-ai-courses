@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, Self, TypeVar
 
 from collections.abc import Callable
 
@@ -9,8 +9,8 @@ from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 R = TypeVar("R", bound=BaseModel)
 
 
-class PageParams(BaseModel):
-    """Параметры пагинации, которые приходят от клиента (query params)"""
+class Pagination(BaseModel):
+    """Параметры пагинации, которые приходят от клиента (query pagination)"""
 
     page: PositiveInt = Field(default=1, ge=1, description="Номер страницы, начинается с 1")
     size: PositiveInt = Field(
@@ -36,7 +36,7 @@ class Page[T: Any](BaseModel):
     items: list[T] = Field(default_factory=list, description="Полученные элементы")
 
     @classmethod
-    def create(cls, items: list[T], total_items: int, page: int, size: int) -> Page[T]:
+    def create(cls, items: list[T], total_items: int, page: int, size: int) -> Self:
         return Page(
             page=page,
             size=size,

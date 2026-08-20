@@ -3,7 +3,7 @@ import hashlib
 import hmac
 from urllib.parse import quote
 
-from ...core.settings import settings
+from src.core.settings import settings
 
 
 class ImgProxyService:
@@ -14,6 +14,7 @@ class ImgProxyService:
         key: str,
         salt: str,
     ) -> None:
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.base_url = base_url
         self.bucket_name = bucket_name
         self.key = key

@@ -21,11 +21,13 @@ from src.shared.utils.time import current_datetime
 
 @pytest.fixture
 def mock_session():
+    """Выполняет действие `mock_session`, чтобы поддержать основной сценарий модуля."""
     return AsyncMock()
 
 
 @pytest.fixture
 def mock_user_repo():
+    """Выполняет действие `mock_user_repo`, чтобы поддержать основной сценарий модуля."""
     repo = AsyncMock()
     repo.create = AsyncMock()
     repo.get_by_email = AsyncMock()
@@ -36,6 +38,7 @@ def mock_user_repo():
 
 @pytest.fixture
 def mock_invitation_repo():
+    """Выполняет действие `mock_invitation_repo`, чтобы поддержать основной сценарий модуля."""
     repo = AsyncMock()
     repo.get_active_by_email = AsyncMock()
     repo.create = AsyncMock()
@@ -46,6 +49,7 @@ def mock_invitation_repo():
 
 @pytest.fixture
 def mock_mail_sender():
+    """Выполняет действие `mock_mail_sender`, чтобы поддержать основной сценарий модуля."""
     sender = AsyncMock()
     sender.send = AsyncMock()
     return sender
@@ -53,6 +57,7 @@ def mock_mail_sender():
 
 @pytest.fixture
 def invitation_service(mock_invitation_repo, mock_user_repo, mock_mail_sender, mock_session):
+    """Выполняет действие `invitation_service`, чтобы поддержать основной сценарий модуля."""
     return InvitationService(
         invitation_repo=mock_invitation_repo,
         user_repo=mock_user_repo,
@@ -63,6 +68,7 @@ def invitation_service(mock_invitation_repo, mock_user_repo, mock_mail_sender, m
 
 @pytest.fixture
 def mock_invitation_service():
+    """Выполняет действие `mock_invitation_service`, чтобы поддержать основной сценарий модуля."""
     service = AsyncMock()
     service.create_invitation = AsyncMock()
     service.send_invitation = AsyncMock()
@@ -73,6 +79,7 @@ def mock_invitation_service():
 
 @pytest.fixture
 def auth_service(mock_invitation_repo, mock_session, mock_user_repo, mock_invitation_service):
+    """Выполняет действие `auth_service`, чтобы поддержать основной сценарий модуля."""
     return AuthService(
         session=mock_session,
         user_repo=mock_user_repo,
@@ -82,6 +89,7 @@ def auth_service(mock_invitation_repo, mock_session, mock_user_repo, mock_invita
 
 
 def build_user(email: str, password_hash: str, is_verify: bool = True) -> User:
+    """Собирает user из входных данных для следующего шага сценария."""
     return User(
         username=Username("test-user"),
         email=email,
@@ -94,6 +102,7 @@ def build_user(email: str, password_hash: str, is_verify: bool = True) -> User:
 def build_invitation(
     email: str, expires_at=None, invited_by=None, is_used: bool = False
 ) -> Invitation:
+    """Собирает invitation из входных данных для следующего шага сценария."""
     return Invitation(
         email=email,
         expires_at=expires_at or current_datetime() + timedelta(days=1),
@@ -108,6 +117,7 @@ class TestInvitationService:
     async def test_send_invitation_creates_new_invitation(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo, mock_session, mock_mail_sender
     ):
+        """Выполняет действие `test_send_invitation_creates_new_invitation`, чтобы поддержать основной сценарий модуля."""
         email = "new@example.com"
         invited_by = uuid4()
         mock_invitation_repo.get_active_by_email.return_value = None
@@ -128,6 +138,7 @@ class TestInvitationService:
     async def test_send_an_invitation_to_the_admin(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo, mock_user_repo, mock_session
     ):
+        """Выполняет действие `test_send_an_invitation_to_the_admin`, чтобы поддержать основной сценарий модуля."""
         email = "verify@example.com"
         invited_by = uuid4()
         invitation = InvitationCreate(email=email, role=UserRole.MODERATOR)
@@ -145,6 +156,7 @@ class TestInvitationService:
     async def test_raises_permission_send_an_invitation_to_the_admin(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo, mock_user_repo, mock_session
     ):
+        """Выполняет действие `test_raises_permission_send_an_invitation_to_the_admin`, чтобы поддержать основной сценарий модуля."""
         email = "verify@example.com"
         invited_by = uuid4()
         invitation = InvitationCreate(email=email, role=UserRole.SUPER_ADMIN)
@@ -159,6 +171,7 @@ class TestInvitationService:
     async def test_send_invitation_reuses_existing_invitation(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo, mock_session, mock_mail_sender
     ):
+        """Выполняет действие `test_send_invitation_reuses_existing_invitation`, чтобы поддержать основной сценарий модуля."""
         email = "existing@example.com"
         invitation = build_invitation(email=email)
 
@@ -177,6 +190,7 @@ class TestInvitationService:
     async def test_verify_marks_invitation_as_used_and_verifies_user(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo, mock_user_repo, mock_session
     ):
+        """Выполняет действие `test_verify_marks_invitation_as_used_and_verifies_user`, чтобы поддержать основной сценарий модуля."""
         email = "verify@example.com"
         invitation = build_invitation(email=email)
         user = build_user(email=email, password_hash=hash_password("Password1!"), is_verify=False)
@@ -196,6 +210,7 @@ class TestInvitationService:
     async def test_verify_raises_not_found_for_unknown_token(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo
     ):
+        """Выполняет действие `test_verify_raises_not_found_for_unknown_token`, чтобы поддержать основной сценарий модуля."""
         mock_invitation_repo.get_by_token.return_value = None
 
         with pytest.raises(NotFoundError, match="Invitation not found"):
@@ -205,6 +220,7 @@ class TestInvitationService:
     async def test_verify_raises_for_expired_invitation(  # noqa: PLR6301
         self, invitation_service, mock_invitation_repo
     ):
+        """Выполняет действие `test_verify_raises_for_expired_invitation`, чтобы поддержать основной сценарий модуля."""
         invitation = build_invitation(
             email="expired@example.com", expires_at=current_datetime() - timedelta(days=1)
         )
@@ -225,6 +241,7 @@ class TestAuthService:
         mock_session,
     ):
         # Без этого AsyncMock truthy — код не доходит до create
+        """Выполняет действие `test_registration_creates_user_and_sends_invitation`, чтобы поддержать основной сценарий модуля."""
         mock_user_repo.get_by_email.return_value = None
         mock_invitation_repo.get_active_by_email.return_value = None
 
@@ -245,6 +262,7 @@ class TestAuthService:
     async def test_authenticate_returns_tokens_for_verified_user(  # noqa: PLR6301
         self, auth_service, mock_user_repo
     ):
+        """Выполняет действие `test_authenticate_returns_tokens_for_verified_user`, чтобы поддержать основной сценарий модуля."""
         email = "verified@example.com"
         password = "Password1!"
         user = build_user(email=email, password_hash=hash_password(password), is_verify=True)
@@ -258,6 +276,7 @@ class TestAuthService:
     async def test_authenticate_sends_confirmation_for_unverified_user(  # noqa: PLR6301
         self, auth_service, mock_user_repo, mock_invitation_service, mock_invitation_repo
     ):
+        """Выполняет действие `test_authenticate_sends_confirmation_for_unverified_user`, чтобы поддержать основной сценарий модуля."""
         email = "pending@example.com"
         password = "Password1!"
         user = build_user(email=email, password_hash=hash_password(password), is_verify=False)
@@ -274,6 +293,7 @@ class TestAuthService:
 
     @pytest.mark.asyncio
     async def test_authenticate_raises_when_user_not_found(self, auth_service, mock_user_repo):  # noqa: PLR6301
+        """Выполняет действие `test_authenticate_raises_when_user_not_found`, чтобы поддержать основной сценарий модуля."""
         mock_user_repo.get_by_email.return_value = None
 
         with pytest.raises(UnauthorizedError, match="User not found by email"):
@@ -281,6 +301,7 @@ class TestAuthService:
 
     @pytest.mark.asyncio
     async def test_authenticate_raises_for_invalid_password(self, auth_service, mock_user_repo):  # noqa: PLR6301
+        """Выполняет действие `test_authenticate_raises_for_invalid_password`, чтобы поддержать основной сценарий модуля."""
         email = "verified@example.com"
         password = "Password1!"
         user = build_user(email=email, password_hash=hash_password(password), is_verify=True)
@@ -293,6 +314,7 @@ class TestAuthService:
     async def test_refresh_tokens_returns_new_tokens_for_verified_user(  # noqa: PLR6301
         self, auth_service, mock_user_repo, monkeypatch
     ):
+        """Выполняет действие `test_refresh_tokens_returns_new_tokens_for_verified_user`, чтобы поддержать основной сценарий модуля."""
         user_id = str(uuid4())
         email = "refresh@example.com"
         user = build_user(email=email, password_hash=hash_password("Password1!"), is_verify=True)
@@ -312,6 +334,7 @@ class TestAuthService:
     async def test_refresh_tokens_raises_when_user_is_not_active(  # noqa: PLR6301
         self, auth_service, mock_user_repo, monkeypatch
     ):
+        """Выполняет действие `test_refresh_tokens_raises_when_user_is_not_active`, чтобы поддержать основной сценарий модуля."""
         user_id = str(uuid4())
         user = build_user(
             email="refresh@example.com", password_hash=hash_password("Password1!"), is_verify=False

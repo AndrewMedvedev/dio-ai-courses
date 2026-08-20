@@ -24,6 +24,7 @@ class Attachment(Entity):
 
     def __post_init__(self) -> None:
         # 1. Валидация оригинального имени файла
+        """Проверяет и нормализует состояние объекта сразу после создания dataclass."""
         if not self.original_filename or len(self.original_filename.strip()) < 1:
             raise ValueError("Original filename cannot be empty")
         if len(self.original_filename) > MAX_FILENAME_LENGTH:

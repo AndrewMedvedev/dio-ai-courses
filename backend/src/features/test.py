@@ -16,6 +16,7 @@ from ..courses.utils.docs_processing import DocumentHierarchyPipeline
 
 async def build_course_from_file(file_path: str):
     # 1. Читаем файл
+    """Собирает course from file из входных данных для следующего шага сценария."""
     file_bytes = Path(file_path).read_bytes()
     file_extension = Path(file_path).suffix.lower()  # например, .docx
     file_name = Path(file_path).name

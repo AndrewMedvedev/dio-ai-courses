@@ -18,6 +18,7 @@ class S3Storage(Storage):
         endpoint_url: str,
         bucket_name: str,
     ) -> None:
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.config = {
             "service_name": "s3",
             "aws_access_key_id": access_key,
@@ -29,10 +30,12 @@ class S3Storage(Storage):
 
     @asynccontextmanager
     async def get_client(self):
+        """Получает client, чтобы вызывающий код работал через единый интерфейс."""
         async with self.session.create_client(**self.config) as client:
             yield client
 
     async def upload(self, file: BinaryIO, storage_key: str, content_type: str) -> None:
+        """Выполняет действие `upload`, чтобы поддержать основной сценарий модуля."""
         async with self.get_client() as client:
             await client.put_object(  # pyright: ignore[reportGeneralTypeIssues]
                 Bucket=self.bucket_name,
@@ -42,12 +45,14 @@ class S3Storage(Storage):
             )
 
     async def delete(self, storage_key: str) -> None:
+        """Удаляет запись или ресурс, когда он больше не нужен системе."""
         async with self.get_client() as client:
             await client.delete_object(Bucket=self.bucket_name, Key=storage_key)  # pyright: ignore[reportGeneralTypeIssues]
 
     async def create_presigned_upload_url(
         self, storage_key: str, content_type: str, expires_in: int = 3600
     ) -> str:
+        """Создаёт presigned upload url и инкапсулирует правила этой операции."""
         async with self.get_client() as client:
             return await client.generate_presigned_url(  # pyright: ignore[reportGeneralTypeIssues]
                 "put_object",
@@ -61,6 +66,7 @@ class S3Storage(Storage):
             )
 
     async def create_presigned_download_url(self, storage_key: str, expires_in: int = 3600) -> str:
+        """Создаёт presigned download url и инкапсулирует правила этой операции."""
         async with self.get_client() as client:
             return await client.generate_presigned_url(  # pyright: ignore[reportGeneralTypeIssues]
                 "get_object",
@@ -70,6 +76,7 @@ class S3Storage(Storage):
             )
 
     async def get_file_info(self, storage_key: str) -> dict[str, Any]:
+        """Получает file info, чтобы вызывающий код работал через единый интерфейс."""
         try:
             async with self.get_client() as client:
                 response = await client.head_object(Bucket=self.bucket_name, Key=storage_key)  # pyright: ignore[reportGeneralTypeIssues]

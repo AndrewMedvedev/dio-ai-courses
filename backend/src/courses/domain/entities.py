@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from abc import ABC
 from dataclasses import dataclass, field
 from uuid import UUID
@@ -11,10 +13,10 @@ from .vo import (
     AssignmentType,
     ContentType,
     CourseStatus,
-    CourseUserRole,
     DifficultyLevel,
     DocumentNodeType,
     ExtendedContentType,
+    PracticeStatus,
 )
 
 
@@ -60,18 +62,18 @@ class VideoBlock(ContentBlock):
     description: str
 
 
-# @dataclass(kw_only=True, slots=True)
-# class ImageBlock(ContentBlock):
-#     """Блок с текстовым теоретическим материалом.
+@dataclass(kw_only=True, slots=True)
+class ImageBlock(ContentBlock):
+    """Блок с текстовым теоретическим материалом.
 
-#     Attributes:
-#         content_type: Тип контента (всегда TEXT).
-#         ai_generated: Флаг AI-генерации.
-#         md_content: Текст лекции в формате Markdown.
-#     """
+    Attributes:
+        content_type: Тип контента (всегда TEXT).
+        ai_generated: Флаг AI-генерации.
+        md_content: Текст лекции в формате Markdown.
+    """
 
-#     content_type: ContentType = ContentType.IMAGE
-#     image_url: str
+    content_type: ContentType = ContentType.IMAGE
+    image_url: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -112,12 +114,16 @@ class MermaidBlock(ContentBlock):
 
 @dataclass(kw_only=True, slots=True)
 class Question:
+    """Описывает доменную сущность `Question` и её данные для бизнес-логики."""
+
     question: str
     answer: str
 
 
 @dataclass(kw_only=True, slots=True)
 class QuizBlock(ContentBlock):
+    """Описывает доменную сущность `QuizBlock` и её данные для бизнес-логики."""
+
     content_type: ContentType = ContentType.QUIZ
     questions: list[Question] = field(default_factory=list)
 
@@ -252,6 +258,8 @@ AnyAssignment = FileUploadAssignment | GitHubAssignment
 
 @dataclass(kw_only=True, slots=True)
 class LessonBasicInfo:
+    """Описывает доменную сущность `LessonBasicInfo` и её данные для бизнес-логики."""
+
     id: UUID
     title: str
     description: str
@@ -262,6 +270,8 @@ class LessonBasicInfo:
 
 @dataclass(kw_only=True, slots=True)
 class BasicInfo:
+    """Описывает доменную сущность `BasicInfo` и её данные для бизнес-логики."""
+
     id: UUID
     title: str
     order: int
@@ -269,6 +279,8 @@ class BasicInfo:
 
 @dataclass(kw_only=True, slots=True)
 class ModuleBasicInfo:
+    """Описывает доменную сущность `ModuleBasicInfo` и её данные для бизнес-логики."""
+
     id: UUID
     title: str
     description: str
@@ -279,6 +291,8 @@ class ModuleBasicInfo:
 
 @dataclass(kw_only=True, slots=True)
 class CourseBasicInfo:
+    """Описывает доменную сущность `CourseBasicInfo` и её данные для бизнес-логики."""
+
     id: UUID
     title: str
     description: str
@@ -309,13 +323,10 @@ class Lesson(Entity):
     learning_objectives: list[str] = field(default_factory=list)
     content_blocks: list[ContentBlock] = field(default_factory=list)
     estimated_time_minutes: int | None = None
-    assignment: AnyAssignment | None = None
 
     def append_content_block(self, content_block: AnyContentBlock) -> None:
+        """Выполняет действие `append_content_block`, чтобы поддержать основной сценарий модуля."""
         self.content_blocks.append(content_block)
-
-    def add_assignment(self, assignment: AnyAssignment) -> None:
-        self.assignment = assignment
 
 
 @dataclass(kw_only=True, slots=True)
@@ -341,13 +352,10 @@ class Module(Entity):
     order: int
     learning_objectives: list[str] = field(default_factory=list)
     lessons: list[Lesson] = field(default_factory=list)
-    assignment: AnyAssignment | None = None
 
     def append_lesson(self, module: Lesson) -> None:
+        """Выполняет действие `append_lesson`, чтобы поддержать основной сценарий модуля."""
         self.lessons.append(module)
-
-    def add_assignment(self, assignment: AnyAssignment) -> None:
-        self.assignment = assignment
 
 
 @dataclass(kw_only=True, slots=True)
@@ -379,32 +387,16 @@ class Course(AggregateRoot):
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[Module] = field(default_factory=list)
-    assignment: AnyAssignment | None = None
 
     def append_module(self, module: Module) -> None:
+        """Выполняет действие `append_module`, чтобы поддержать основной сценарий модуля."""
         self.modules.append(module)
-
-    def add_assignment(self, assignment: AnyAssignment) -> None:
-        self.assignment = assignment
-
-
-@dataclass(kw_only=True, slots=True)
-class CourseUser(Entity):
-    """Участник курса (студент, учитель или модератор).
-
-    Attributes:
-        course_id: UUID курса.
-        user_id: UUID пользователя.
-        role: Роль участника (из перечисления CourseUserRole).
-    """
-
-    course_id: UUID
-    user_id: UUID
-    role: CourseUserRole
 
 
 @dataclass(kw_only=True, slots=True)
 class Document(Entity):
+    """Описывает доменную сущность `Document` и её данные для бизнес-логики."""
+
     owner_id: UUID
     parent_node_id: UUID | None = None
     node_type: DocumentNodeType
@@ -414,19 +406,37 @@ class Document(Entity):
 
 @dataclass(kw_only=True, slots=True)
 class Chat(Entity):
+    """Описывает доменную сущность `Chat` и её данные для бизнес-логики."""
+
     user_id: UUID
     course_id: UUID
     messages: list[dict] = field(default_factory=list)
 
     def replace_messages(self, messages: list[dict]) -> None:
+        """Выполняет действие `replace_messages`, чтобы поддержать основной сценарий модуля."""
         self.messages = messages.copy()
 
 
 @dataclass(kw_only=True, slots=True)
 class StudentPractice(Entity):
+    """Описывает доменную сущность `StudentPractice` и её данные для бизнес-логики."""
+
     user_id: UUID
     course_id: UUID
     messages: list[dict] = field(default_factory=list)
 
     def replace_messages(self, messages: list[dict]) -> None:
+        """Выполняет действие `replace_messages`, чтобы поддержать основной сценарий модуля."""
         self.messages = messages.copy()
+
+
+@dataclass(kw_only=True, slots=True)
+class Practice(Entity):
+    """Описывает доменную сущность `Practice` и её данные для бизнес-логики."""
+
+    user_id: UUID
+    module_id: UUID
+    lesson_id: UUID
+    status: PracticeStatus = PracticeStatus.NOT_STARTED
+
+    practice: list[dict[str, Any]] = field(default_factory=list)

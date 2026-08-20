@@ -38,6 +38,7 @@ _BLOCK_REGISTRY: dict[str, type[AnyContentBlock]] = {
 
 
 def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:
+    """Выполняет действие `block_from_dict`, чтобы поддержать основной сценарий модуля."""
     block_cls = _BLOCK_REGISTRY[data["content_type"]]
     kwargs = dict(data)
     if block_cls is QuizBlock and "questions" in kwargs:
@@ -57,6 +58,7 @@ class ContentBlockListType(TypeDecorator):
         dialect: Dialect,
     ) -> list[dict] | None:
         # Python -> JSON перед записью в базу
+        """Обрабатывает bind param, чтобы подготовить данные для следующего этапа."""
         if value is None:
             return value
         return [asdict(block) for block in value]
@@ -67,6 +69,7 @@ class ContentBlockListType(TypeDecorator):
         dialect: Dialect,
     ) -> list[AnyContentBlock] | None:
         # JSON -> Python после чтения из базы
+        """Обрабатывает result value, чтобы подготовить данные для следующего этапа."""
         if value is None:
             return value
         return [block_from_dict(b) for b in value]

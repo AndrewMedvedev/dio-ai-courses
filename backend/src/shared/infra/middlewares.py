@@ -16,7 +16,8 @@ class RequestIdFilter(logging.Filter):
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+
+    async def dispatch(self, request: Request, call_next):  # noqa: PLR6301
         request_id = f"{uuid4()}"
 
         filter_ = RequestIdFilter(request_id)

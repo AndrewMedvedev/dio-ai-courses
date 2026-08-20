@@ -9,6 +9,8 @@ import dramatiq
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq.results import Results
 from dramatiq.results.backends import RedisBackend
+from faststream.rabbit import RabbitBroker
+from faststream.rabbit.fastapi import RabbitRouter
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from qdrant_client import AsyncQdrantClient
 from redis.asyncio import Redis
@@ -73,19 +75,35 @@ class Base(AsyncAttrs, DeclarativeBase):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
 
 @asynccontextmanager
 async def session_factory() -> AsyncIterator[AsyncSession]:
+    """Выполняет действие `session_factory`, чтобы поддержать основной сценарий модуля."""
     async with sessionmaker() as session:
         yield session
 
 
 async def create_tables() -> None:
+    """Создаёт таблицы базы данных и инкапсулирует правила этой операции."""
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
 
 
 async def get_db() -> AsyncSession:  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    """Получает подключение к базе данных, чтобы вызывающий код работал через единый интерфейс."""
     async with session_factory() as session:
         yield session  # type: ignore  # ruff:ignore[yield-in-context-manager-in-async-generator, blanket-type-ignore]
+
+
+rabbit_router = RabbitRouter(settings.rabbit.url, virtualhost=settings.rabbit.virtualhost)
+
+
+def get_rabbit_broker() -> RabbitBroker:
+    return rabbit_router.broker
+
+
+rabbit_broker = get_rabbit_broker()

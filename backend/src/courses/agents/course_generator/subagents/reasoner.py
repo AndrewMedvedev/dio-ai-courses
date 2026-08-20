@@ -3,7 +3,8 @@ import logging
 from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
-from .....llm_service import LLMTextService, Runtime, tool
+from src.llm_service import LLMTextService, Runtime, tool
+
 from ...middlewares import LemmatizationMiddleware, ToolCallLimitMiddleware
 from ...schemas import Context
 from ..tools import browse_page, knowledge_search, save_knowledge, web_search
@@ -14,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 @tool(name="call_critique_agent", description="Вызвать агента критика")
 async def call_critique_agent(runtime: Runtime[Context, ClientSession]) -> dict:
+    """Вызывает critique agent, чтобы вынести отдельный шаг обработки в специализированный сервис."""
     logger.info("Call critique agent")
     prompt = runtime.context.prompt
     critic_agent = LLMTextService(
-        token=runtime.context.access_token,
         system_prompt=CRITIC_PROMPT.format(prompt=prompt),
     )
     result = await critic_agent.invoke(messages=runtime.messages)
@@ -35,9 +36,9 @@ async def call_researcher_agent(
     runtime: Runtime[Context, ClientSession],
     schema: ResearchInput,
 ) -> dict:
+    """Вызывает researcher agent, чтобы вынести отдельный шаг обработки в специализированный сервис."""
     logger.info("Call researcher agent")
     researcher_agent = LLMTextService(
-        token=runtime.context.access_token,
         system_prompt=RESEARCHER_PROMPT,
         tools={
             "knowledge_search": knowledge_search,
@@ -58,8 +59,8 @@ async def call_researcher_agent(
 
 
 def reasoner_agent(runtime: Runtime[Context, ClientSession]) -> LLMTextService:
+    """Выполняет действие `reasoner_agent`, чтобы поддержать основной сценарий модуля."""
     return LLMTextService(
-        token=runtime.context.access_token,
         system_prompt=REASONER_PROMPT.format(prompt=runtime.context.prompt),
         tools={
             "call_researcher_agent": call_researcher_agent,

@@ -11,7 +11,8 @@ from dramatiq import actor
 from langchain_core.runnables import RunnableConfig
 from qdrant_client import models
 
-from ....core.infrastructure import checkpointer, qdrant_client, session_factory
+from src.core.infrastructure import checkpointer, qdrant_client, session_factory
+
 from ..schemas import RuntimeContext
 from .nodes import Context, agent
 
@@ -38,6 +39,7 @@ Docker Compose для локального окружения (разработ�
     max_backoff=10000,  # макс. задержка (мс)
 )
 async def generate_course(generation_context: dict[str, Any]) -> dict:
+    """Генерирует курс, чтобы автоматически подготовить часть учебного контента."""
     context = Context(**generation_context)
     async with session_factory() as session:
         await agent.ainvoke(
@@ -54,6 +56,7 @@ async def generate_course(generation_context: dict[str, Any]) -> dict:
 
 
 def configure_logging(level=logging.INFO):
+    """Выполняет действие `configure_logging`, чтобы поддержать основной сценарий модуля."""
     logging.basicConfig(
         level=level,
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -63,6 +66,7 @@ def configure_logging(level=logging.INFO):
 
 class UUIDEncoder(json.JSONEncoder):
     def default(self, obj):
+        """Выполняет действие `default`, чтобы поддержать основной сценарий модуля."""
         if isinstance(obj, UUID):
             return str(obj)
         if isinstance(obj, datetime):
@@ -71,6 +75,7 @@ class UUIDEncoder(json.JSONEncoder):
 
 
 async def main():
+    """Запускает сценарий модуля и связывает подготовку данных с основным действием."""
     configure_logging()
     course_id = "693e6c1a-44a5-46f1-a7b3-d94345a670ee"
     await checkpointer.setup()

@@ -16,8 +16,8 @@ from pydantic import BaseModel
 from pymorphy3 import MorphAnalyzer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.infrastructure import thread_executor, tokens_encoder
-from ...llm_service import (
+from src.core.infrastructure import thread_executor, tokens_encoder
+from src.llm_service import (
     BaseAgentMiddleware,
     LLMImageResponse,
     LLMImageServiceProtocol,
@@ -27,13 +27,16 @@ from ...llm_service import (
     LLMTextServiceProtocol,
     Messages,
 )
-from ...llm_service.schemas import ToolCallParsed
-from ...media.schemas import PresignedUploadRequest
-from ...shared.infra.repos import SqlAlchemyRepository
+from src.llm_service.schemas import ToolCallParsed
+from src.media.schemas import PresignedUploadRequest
+
+from ..application.dtos import Chat as ChatSchema
+from ..application.repos import (
+    ChatRepository,
+    Repository,
+)
 from ..domain.entities import Chat
-from ..infra.repository import SqlChatRepository
-from ..rest import MediaClient
-from ..schemas import Chat as ChatSchema
+from ..infra.media_client import MediaClient
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,7 @@ morph = MorphAnalyzer()
 
 class SummarizationMiddleware(BaseAgentMiddleware):
     def __init__(self, system_prompt: str, number_of_tokens: int) -> None:
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.number_of_tokens = number_of_tokens
         self.system_prompt = system_prompt
         self._router: LLMTextService | None = None
@@ -52,6 +56,7 @@ class SummarizationMiddleware(BaseAgentMiddleware):
         service: LLMServiceProtocol,
         messages: list[dict],
     ) -> list[dict]:
+        """Выполняет шаг middleware `before_model`, чтобы расширить поведение агента без изменения сервиса."""
         if self._router is None:
             self._router = LLMTextService(token=service.token, system_prompt=self.system_prompt)
         str_messages = dumps(messages)
@@ -64,6 +69,7 @@ class SummarizationMiddleware(BaseAgentMiddleware):
 
 class ToolCallLimitMiddleware(BaseAgentMiddleware):
     def __init__(self, tool_limits: dict[str, int]) -> None:
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.tool_limits = tool_limits
 
     async def wrap_tool_call(
@@ -72,6 +78,7 @@ class ToolCallLimitMiddleware(BaseAgentMiddleware):
         tool: ToolCallParsed,
         handler: Callable[[ToolCallParsed], Awaitable[dict]],
     ) -> dict:
+        """Выполняет шаг middleware `wrap_tool_call`, чтобы расширить поведение агента без изменения сервиса."""
         if tool.name in self.tool_limits:
             if self.tool_limits[tool.name] > 0:
                 self.tool_limits[tool.name] -= 1
@@ -88,6 +95,7 @@ class ToolCallLimitMiddleware(BaseAgentMiddleware):
 class LemmatizationMiddleware(BaseAgentMiddleware):
     @staticmethod
     def normalize_text(text: str) -> str:
+        """Нормализует text, чтобы сравнение и поиск работали стабильнее."""
         if not text or not isinstance(text, str):
             return text
 
@@ -105,6 +113,7 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
         return " ".join(lemmas)
 
     async def normalize_text_async(self, text: str) -> str:
+        """Нормализует text async, чтобы сравнение и поиск работали стабильнее."""
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             thread_executor,
@@ -141,26 +150,31 @@ class LemmatizationMiddleware(BaseAgentMiddleware):
         service: LLMTextServiceProtocol,
         messages: list[dict],
     ) -> list[dict]:
+        """Выполняет шаг middleware `before_model`, чтобы расширить поведение агента без изменения сервиса."""
         return await self.process_conversation(messages)
 
 
-class BaseSqlCheckpointer[EntityT, SchemaT: BaseModel](BaseAgentMiddleware):
+class BaseSqlCheckpointer[EntityT, SchemaT: BaseModel | None = None](BaseAgentMiddleware):
     def __init__(
         self,
-        repo: SqlAlchemyRepository,
+        repo: Repository,
         session: AsyncSession,
     ) -> None:
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.repo = repo
         self.session = session
 
     async def _create(self, entity: EntityT) -> None:
+        """Выполняет внутренний шаг `_create`, чтобы скрыть детали реализации от публичного API."""
         await self.repo.create(entity)
         await self.session.commit()
 
     async def _read(self, *args, **kwargs) -> EntityT | None:
+        """Выполняет внутренний шаг `_read`, чтобы скрыть детали реализации от публичного API."""
         return await self.repo.read(*args, **kwargs)
 
     async def _update(self, *args, **kwargs) -> None:
+        """Выполняет внутренний шаг `_update`, чтобы скрыть детали реализации от публичного API."""
         await self.repo.update(*args, **kwargs)
         await self.session.commit()
 
@@ -168,7 +182,7 @@ class BaseSqlCheckpointer[EntityT, SchemaT: BaseModel](BaseAgentMiddleware):
 class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
     def __init__(
         self,
-        repo: SqlChatRepository,
+        repo: ChatRepository,
         session: AsyncSession,
     ) -> None:
         super().__init__(repo=repo, session=session)
@@ -178,6 +192,7 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         service: LLMServiceProtocol,
         messages: Messages,
     ) -> list[dict[str, Any]]:
+        """Достает историю чата перед циклом обработки запроса."""
         messages = (
             [{"role": "user", "content": messages}] if isinstance(messages, str) else messages
         )
@@ -202,6 +217,7 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         service: LLMServiceProtocol,
         response: LLMTextResponse,
     ) -> LLMTextResponse:
+        """Обновляет сообщения после ответа модели."""
         messages = []
 
         for message in response.messages:
@@ -219,18 +235,16 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
 
 
 class SaveImageMiddleware(BaseAgentMiddleware):
-    def __init__(self, client: MediaClient) -> None:
-        self._client = client
-
-    async def after_model(
+    async def after_model(  # ruff: ignore[no-self-use]
         self,
         service: LLMImageServiceProtocol,
         response: LLMImageResponse,
     ) -> LLMImageResponse:
+        """Сохраняет изображение в s3 хранилище и обновляет ссылку в ответе."""
         file_bytes = base64.b64decode(response.image)
         filename = f"{uuid4()}.{response.output_format}"
-
-        result = await self._client.save_image(
+        client = MediaClient(token=service.runtime.context.access_token)
+        result = await client.save_image(
             request=PresignedUploadRequest(
                 filename=filename,
                 owner_id=service.runtime.context.course_id,

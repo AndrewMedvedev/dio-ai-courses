@@ -1,3 +1,4 @@
+import abc
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -8,7 +9,7 @@ from .events import Event
 
 
 @dataclass
-class Entity:
+class Entity(abc.ABC):
     """
     Базовая доменная сущность, от которой наследуются все остальные бизнес модели.
     Идентичность определяется уникальным ID, а не аттрибутами модели.
@@ -44,5 +45,5 @@ class Entity:
 @dataclass
 class AggregateRoot(Entity):
     """
-    Корень агрегата - кластер доменных объектов, агрегат управляет их поведением и состоянием
+    Корень агрегата - кластер доменных объектов, агрегат управляет их поведением и состоянием.
     """
