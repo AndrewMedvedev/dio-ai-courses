@@ -4,16 +4,41 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 
 from src.iam.dependencies import require_permissions
-from src.iam.dependencies.identity import CurrentIdentity
 
-from ...application.dtos import EditLessonSchema
+from ...application.dtos import EditLessonSchema, LessonSchema
 from ...dependencies.services import LessonServiceDep
 from ...domain.entities import AnyContentBlock, Lesson
-from ...domain.permissions.courses import COURSE_READ, UPDATE
+from ...domain.permissions.courses import COURSE_READ, CREATE, DELETE, UPDATE
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/lesson", tags=["Lesson"])
+
+
+@router.post(
+    "/create",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permissions(CREATE.code))],
+)
+async def create(
+    service: LessonServiceDep,
+    schema: LessonSchema,
+    module_id: UUID | None = None,
+) -> Lesson:
+    return await service.create(module_id=module_id, schema=schema)
+
+
+@router.post(
+    "/assign/{lesson_id}/{module_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(UPDATE.code))],
+)
+async def assign(
+    service: LessonServiceDep,
+    module_id: UUID,
+    lesson_id: UUID,
+) -> None:
+    await service.assign_module(module_id=module_id, lesson_id=lesson_id)
 
 
 @router.get(
@@ -23,7 +48,6 @@ router = APIRouter(prefix="/lesson", tags=["Lesson"])
 )
 async def get_lesson_basic_info(
     service: LessonServiceDep,
-    identity: CurrentIdentity,
     lesson_id: UUID,
 ):
     return await service.get_basic_info(lesson_id)
@@ -36,7 +60,6 @@ async def get_lesson_basic_info(
 )
 async def get_theory(
     service: LessonServiceDep,
-    identity: CurrentIdentity,
     lesson_id: UUID,
 ):
     return await service.read_content_blocks(lesson_id)
@@ -49,7 +72,6 @@ async def get_theory(
 )
 async def edit_lesson(
     service: LessonServiceDep,
-    identity: CurrentIdentity,
     lesson_id: UUID,
     schema: EditLessonSchema,
 ) -> Lesson:
@@ -63,8 +85,19 @@ async def edit_lesson(
 )
 async def update_lesson_content_blocks(
     service: LessonServiceDep,
-    identity: CurrentIdentity,
     lesson_id: UUID,
     content_blocks: list[AnyContentBlock],
 ) -> Lesson:
     return await service.update_content_blocks(lesson_id=lesson_id, content_blocks=content_blocks)
+
+
+@router.delete(
+    "/{lesson_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permissions(DELETE.code))],
+)
+async def delete(
+    service: LessonServiceDep,
+    lesson_id: UUID,
+) -> None:
+    return await service.delete(lesson_id=lesson_id)

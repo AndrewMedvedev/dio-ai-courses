@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from src.shared.dependencies.database import DBSession
 
-from ..agents.external_agents import editor, interviewer, mentor, practice
+from ..agents.external_agents import editor, interviewer, mentor, practicer, tester
 from .base import ChatRepoDep, LessonRepoDep, PracticeRepoDep
 
 
@@ -23,14 +23,29 @@ def get_mentor_agent(session: DBSession, repo: ChatRepoDep) -> mentor.MentorAgen
     return mentor.MentorAgent(repo=repo, session=session)
 
 
-def get_practice_agent(
+def get_practicer_agent(
     session: DBSession,
     practice_repo: PracticeRepoDep,
     lesson_repo: LessonRepoDep,
-) -> practice.PracticeAgents:
+) -> practicer.PracticerAgent:
     """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
-    return practice.PracticeAgents(
-        practice_repo=practice_repo, session=session, lesson_repo=lesson_repo
+    return practicer.PracticerAgent(
+        practice_repo=practice_repo,
+        session=session,
+        lesson_repo=lesson_repo,
+    )
+
+
+def get_tester_agent(
+    session: DBSession,
+    practice_repo: PracticeRepoDep,
+    lesson_repo: LessonRepoDep,
+) -> tester.TesterAgent:
+    """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
+    return tester.TesterAgent(
+        practice_repo=practice_repo,
+        session=session,
+        lesson_repo=lesson_repo,
     )
 
 
@@ -40,4 +55,6 @@ EditorAgentDep = Annotated[editor.EditorAgent, Depends(get_editor_agent)]
 
 MentorAgentDep = Annotated[mentor.MentorAgent, Depends(get_mentor_agent)]
 
-PracticeAgentsDep = Annotated[practice.PracticeAgents, Depends(get_practice_agent)]
+TesterAgentDep = Annotated[tester.TesterAgent, Depends(get_tester_agent)]
+
+PracticeAgentDep = Annotated[practicer.PracticerAgent, Depends(get_practicer_agent)]

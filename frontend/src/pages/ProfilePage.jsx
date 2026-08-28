@@ -115,6 +115,7 @@ export default function ProfilePage({
   simulateStudyTick,
   teacherLeaderboard,
   openCreator,
+  canCreateCourse = false,
 }) {
   const user = useSessionStore((state) => state.user);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
@@ -137,7 +138,7 @@ export default function ProfilePage({
   });
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const isAuthorMode = activeProfileTab === "teacher";
+  const isAuthorMode = canCreateCourse && activeProfileTab === "teacher";
   const visibleTabs = profileTabItems.filter((tab) =>
     isAuthorMode ? tab.id === "teacher" : tab.id !== "teacher",
   );
@@ -160,6 +161,12 @@ export default function ProfilePage({
       full_name: user?.full_name || "",
     });
   }, [user]);
+
+  useEffect(() => {
+    if (!canCreateCourse && activeProfileTab === "teacher") {
+      setActiveProfileTab("overview");
+    }
+  }, [activeProfileTab, canCreateCourse, setActiveProfileTab]);
 
   useEffect(() => {
     if (!avatarFile) {
@@ -313,13 +320,15 @@ export default function ProfilePage({
               >
                 Обучаюсь
               </button>
-              <button
-                type="button"
-                className={isAuthorMode ? "is-active" : ""}
-                onClick={() => setActiveProfileTab("teacher")}
-              >
-                Создаю курсы
-              </button>
+              {canCreateCourse && (
+                <button
+                  type="button"
+                  className={isAuthorMode ? "is-active" : ""}
+                  onClick={() => setActiveProfileTab("teacher")}
+                >
+                  Создаю курсы
+                </button>
+              )}
             </div>
           </article>
 
@@ -541,23 +550,25 @@ export default function ProfilePage({
                   <p>элементов из {totalContentCount}</p>
                 </article>
               </div>
-              <article className="glass-card profile-learner-create">
-                <div>
-                  <span>Нужна программа под другую цель?</span>
-                  <h3>Создайте собственный курс с ИИ</h3>
-                  <p>
-                    Укажите тему, уровень и желаемый результат — конструктор
-                    соберёт новый учебный маршрут.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-solid"
-                  onClick={openCreator}
-                >
-                  Создать курс
-                </button>
-              </article>
+              {canCreateCourse && (
+                <article className="glass-card profile-learner-create">
+                  <div>
+                    <span>Нужна программа под другую цель?</span>
+                    <h3>Создайте собственный курс с ИИ</h3>
+                    <p>
+                      Укажите тему, уровень и желаемый результат — конструктор
+                      соберёт новый учебный маршрут.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-solid"
+                    onClick={openCreator}
+                  >
+                    Создать курс
+                  </button>
+                </article>
+              )}
               <div className="profile-info-grid">
                 <article className="glass-card profile-info-card">
                   <h3>Ближайшие темы</h3>
@@ -598,7 +609,7 @@ export default function ProfilePage({
             </article>
           )}
 
-          {activeProfileTab === "teacher" && (
+          {canCreateCourse && activeProfileTab === "teacher" && (
             <>
               <section className="author-dashboard">
                 <div className="author-dashboard-head">

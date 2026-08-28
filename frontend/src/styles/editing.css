@@ -141,6 +141,10 @@
 }
 
 .block-ai-message {
+    width: fit-content;
+    max-width: 90%;
+    display: grid;
+    gap: 4px;
     border: 1px solid rgba(var(--accent-rgb), 0.28);
     border-radius: 12px;
     padding: 8px 10px;
@@ -369,6 +373,17 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
     align-items: start;
+}
+
+.lesson-editor-limit-error {
+    margin: 0;
+    padding: 9px 11px;
+    border: 1px solid rgba(var(--danger-rgb, 190, 80, 100), 0.32);
+    border-radius: 10px;
+    background: rgba(var(--danger-rgb, 190, 80, 100), 0.07);
+    color: var(--danger-text, #a94f60);
+    font-size: 0.82rem;
+    line-height: 1.4;
 }
 
 .lesson-content-editor-head span,
@@ -876,6 +891,110 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
+.lesson-ai-messages {
+    min-height: 170px;
+    max-height: min(42vh, 360px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 3px 2px 3px 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--accent-rgb), 0.58) transparent;
+}
+
+.lesson-ai-message {
+    width: fit-content;
+    max-width: 90%;
+    display: grid;
+    gap: 4px;
+    align-self: flex-start;
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    border-radius: 12px 12px 12px 4px;
+    background: rgba(255, 255, 255, 0.3);
+    color: var(--text);
+    padding: 9px 10px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.lesson-ai-message p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.lesson-ai-message.is-user {
+    align-self: flex-end;
+    border-color: rgba(var(--accent-rgb), 0.46);
+    border-radius: 12px 12px 4px 12px;
+    background: rgba(var(--accent-rgb), 0.18);
+}
+
+.chat-message-status {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: right;
+}
+
+.lesson-ai-message.is-thinking,
+.block-ai-message.is-thinking,
+.lesson-page-ai-chat-message.is-thinking,
+.creator-chat-msg.is-thinking {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-thinking-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex: 0 0 auto;
+}
+
+.chat-thinking-dots i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.35;
+    animation: chat-thinking-pulse 1.1s ease-in-out infinite;
+}
+
+.chat-thinking-dots i:nth-child(2) {
+    animation-delay: 160ms;
+}
+
+.chat-thinking-dots i:nth-child(3) {
+    animation-delay: 320ms;
+}
+
+@keyframes chat-thinking-pulse {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.3;
+    }
+    30% {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-thinking-dots i {
+        animation: none;
+        opacity: 0.65;
+    }
+}
+
 .lesson-ai-shortcuts {
     display: flex;
     flex-wrap: wrap;
@@ -1076,6 +1195,16 @@
     border-bottom-color: rgba(var(--accent-rgb), 0.32);
 }
 
+.page[data-theme="dark"] .lesson-ai-message {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.page[data-theme="dark"] .lesson-ai-message.is-user {
+    border-color: rgba(var(--accent-rgb), 0.4);
+    background: rgba(var(--accent-rgb), 0.18);
+}
+
 .page[data-theme="dark"] .lesson-editor-mode-switch,
 .page[data-theme="dark"] .lesson-editor-palette button,
 .page[data-theme="dark"] .lesson-insert-panel,
@@ -1090,7 +1219,12 @@
     }
 
     .lesson-view-grid:has(.lesson-editor-block-row.has-ai) {
-        padding-right: clamp(390px, 27vw, 440px);
+        padding-right: clamp(500px, 32vw, 500px);
+    }
+
+    .lesson-view-grid:has(.lesson-editor-block-row.has-ai) > .lesson-main-card {
+        position: relative;
+        left: clamp(10px, 0.8vw, 14px);
     }
 
     .lesson-editor-block-row.has-ai {
@@ -1102,9 +1236,9 @@
         position: absolute;
         top: 0;
         right: auto;
-        left: calc(100% + 36px);
+        left: calc(100% + clamp(52px, 4vw, 64px));
         z-index: 5;
-        width: clamp(320px, 22vw, 360px);
+        width: clamp(340px, 80%, 450px);
         min-height: min(520px, calc(100vh - 48px));
         max-height: calc(100vh - 32px);
         overflow-y: auto;

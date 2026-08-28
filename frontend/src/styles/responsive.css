@@ -1,22 +1,56 @@
 @media (min-width: 1101px) and (max-width: 1300px) {
-    .lesson-view-grid.is-learning-layout {
-        grid-template-columns: 300px minmax(0, 1fr) 68px;
-    }
-
-    .lesson-view-grid.generated-course-learning-grid {
-        grid-template-columns: 280px minmax(0, 1fr) 68px;
-    }
-
+    .lesson-view-grid.is-learning-layout,
     .lesson-view-grid.has-lesson-chat {
-        grid-template-columns: 300px minmax(0, 1fr) minmax(360px, 400px);
+        grid-template-columns: 300px minmax(0, 1fr);
+    }
+
+    .lesson-view-grid.generated-course-learning-grid,
+    .lesson-view-grid.has-lesson-chat.generated-course-learning-grid {
+        grid-template-columns: 280px minmax(0, 1fr);
     }
 
     .lesson-view-grid.is-course-edit-layout {
         grid-template-columns: 300px minmax(0, 1fr);
     }
+}
 
-    .lesson-view-grid.has-lesson-chat:has(.lesson-page-ai-chat.is-collapsed) {
-        grid-template-columns: 300px minmax(0, 1fr) 68px;
+@media (max-width: 1300px) {
+    .lesson-chat-resizer {
+        display: none;
+    }
+
+    .lesson-chat-backdrop {
+        position: fixed;
+        z-index: 89;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: rgba(20, 18, 16, 0.46);
+        padding: 0;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+
+    .lesson-page-ai-chat,
+    .lesson-view-grid > .lesson-page-ai-chat,
+    .generated-course-learning-grid > .lesson-page-ai-chat {
+        position: fixed;
+        z-index: 90;
+        inset: 0 0 0 auto;
+        width: min(480px, 100vw);
+        height: 100dvh;
+        min-height: 0;
+        max-height: 100dvh;
+        border-radius: 18px 0 0 18px;
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .lesson-chat-open-button {
+        right: max(40px, env(safe-area-inset-right));
+        left: auto;
     }
 }
 
@@ -58,16 +92,6 @@
         grid-template-columns: 1fr;
     }
 
-    .lesson-view-grid.has-lesson-chat:has(.lesson-page-ai-chat.is-collapsed) {
-        grid-template-columns: 1fr;
-    }
-
-    .lesson-page-ai-chat {
-        position: static;
-        min-height: 420px;
-        max-height: none;
-    }
-
     .course-nav-tree,
     .lesson-main-card,
     .practice-main-card {
@@ -75,21 +99,6 @@
         min-height: auto;
         max-height: none;
         overflow-y: visible;
-    }
-
-    .lesson-page-ai-chat.is-collapsed {
-        min-height: 68px;
-    }
-
-    .lesson-page-ai-chat.is-collapsed .lesson-page-ai-chat-rail {
-        min-height: 52px;
-        flex-direction: row;
-        justify-content: center;
-    }
-
-    .lesson-page-ai-chat-rail strong {
-        writing-mode: initial;
-        transform: none;
     }
 
     .courses-row {
@@ -144,7 +153,46 @@
     }
 }
 
+@media (max-width: 1040px) {
+    .header {
+        grid-template-columns: 1fr auto;
+        align-items: start;
+    }
+
+    .header > .nav {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: stretch;
+        justify-content: flex-start;
+    }
+}
+
 @media (max-width: 760px) {
+    .lesson-page-ai-chat,
+    .lesson-view-grid > .lesson-page-ai-chat,
+    .generated-course-learning-grid > .lesson-page-ai-chat {
+        width: 100vw;
+        border-width: 0;
+        border-radius: 0;
+        padding-left: max(10px, env(safe-area-inset-left));
+    }
+
+    .lesson-chat-open-button {
+        top: auto;
+        right: max(28px, env(safe-area-inset-right));
+        bottom: max(32px, env(safe-area-inset-bottom));
+        left: auto;
+        transform: none;
+    }
+
+    .lesson-chat-open-button:hover {
+        transform: translateY(-2px);
+    }
+
+    .lesson-chat-quick-actions {
+        grid-template-columns: 1fr;
+    }
+
     .header {
         display: flex;
         flex-wrap: wrap;
@@ -176,8 +224,8 @@
     .nav {
         order: 3;
         width: 100%;
-        justify-content: space-between;
-        gap: 10px;
+        justify-content: flex-start;
+        gap: 10px 14px;
         font-size: 0.9rem;
     }
 

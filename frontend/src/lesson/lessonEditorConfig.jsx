@@ -1,6 +1,8 @@
 import MermaidDiagram from "../components/MermaidDiagram";
 import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
 
+export const MAX_CONTENT_BLOCKS = 10;
+
 export const blockTypes = [
   {
     id: "text",
@@ -15,13 +17,6 @@ export const blockTypes = [
     label: "Видео",
     hint: "Ссылка и описание",
     template: { url: "", description: "" },
-  },
-  {
-    id: "image",
-    contentType: "image",
-    label: "Изображение",
-    hint: "Ссылка на изображение",
-    template: { image_url: "" },
   },
   {
     id: "program_code",

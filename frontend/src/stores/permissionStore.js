@@ -1,13 +1,76 @@
 import { create } from "zustand";
-import { fetchPermissions } from "../utils/api";
+import { fetchIdentity } from "../utils/api";
 
 export const COURSE_PERMISSIONS = {
-  READ: "course.read",
-  COURSE_READ: "course.course_read",
-  CREATE: "course.create",
-  UPDATE: "course.update",
-  DELETE: "course.delete",
+  READ: "course:read",
+  COURSE_READ: "course:course_read",
+  CREATE: "course:create",
+  UPDATE: "course:update",
+  DELETE: "course:delete",
 };
+
+export const ORGANIZATION_PERMISSIONS = {
+  CREATE: "organization:create",
+  READ: "organization:read",
+  ORGANIZATION_READ: "organization:organization_read",
+  UPDATE: "organization:update",
+  DELETE: "organization:delete",
+};
+
+function normalizePermissionCode(permission) {
+  if (typeof permission === "string") {
+    return permission.trim().replace(".", ":");
+  }
+
+  if (!permission || typeof permission !== "object") {
+    return "";
+  }
+
+  const rawCode = permission.code || permission.name || permission.permission;
+  if (typeof rawCode === "string" && rawCode.trim()) {
+    return rawCode.trim().replace(".", ":");
+  }
+
+  if (permission.resource && permission.action) {
+    return `${permission.resource}:${permission.action}`;
+  }
+
+  return "";
+}
+
+function extractPermissionsFromIdentity(identity) {
+  if (Array.isArray(identity)) {
+    return identity.map(normalizePermissionCode).filter(Boolean);
+  }
+
+  if (!identity || typeof identity !== "object") {
+    return [];
+  }
+
+  const directPermissions =
+    identity.permissions ||
+    identity.effective_permissions ||
+    identity.effectivePermissions ||
+    identity.user_permissions ||
+    identity.userPermissions ||
+    identity.grants ||
+    [];
+
+  const membershipPermissions =
+    identity.membership?.permissions ||
+    identity.current_membership?.permissions ||
+    identity.currentMembership?.permissions ||
+    [];
+
+  const rolePermissions = Array.isArray(identity.roles)
+    ? identity.roles.flatMap((role) => role?.permissions || [])
+    : [];
+
+  return [directPermissions, membershipPermissions, rolePermissions]
+    .flat()
+    .map(normalizePermissionCode)
+    .filter(Boolean);
+}
 
 export const usePermissionStore = create((set, get) => ({
   permissions: [],
@@ -16,7 +79,20 @@ export const usePermissionStore = create((set, get) => ({
   error: null,
 
   setPermissions: (permissions = []) =>
-    set({ permissions, isLoading: false, isLoaded: true, error: null }),
+    set({
+      permissions: permissions.map(normalizePermissionCode).filter(Boolean),
+      isLoading: false,
+      isLoaded: true,
+      error: null,
+    }),
+
+  setPermissionsFromIdentity: (identity) =>
+    set({
+      permissions: extractPermissionsFromIdentity(identity),
+      isLoading: false,
+      isLoaded: true,
+      error: null,
+    }),
 
   resetPermissions: () =>
     set({ permissions: [], isLoading: false, isLoaded: true, error: null }),
@@ -25,20 +101,8 @@ export const usePermissionStore = create((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const firstPage = await fetchPermissions({ page: 1, size: 100 });
-      const items = Array.isArray(firstPage?.items) ? firstPage.items : [];
-      const totalPages = Number(firstPage?.pages) || 1;
-
-      for (let page = 2; page <= totalPages; page += 1) {
-        const nextPage = await fetchPermissions({ page, size: 100 });
-        if (Array.isArray(nextPage?.items)) {
-          items.push(...nextPage.items);
-        }
-      }
-
-      const permissions = items
-        .map((permission) => permission?.code)
-        .filter(Boolean);
+      const identity = await fetchIdentity();
+      const permissions = extractPermissionsFromIdentity(identity);
 
       set({ permissions, isLoading: false, isLoaded: true, error: null });
       return permissions;
@@ -53,9 +117,14 @@ export const usePermissionStore = create((set, get) => ({
     }
   },
 
-  hasPermission: (permission) => get().permissions.includes(permission),
-  hasAnyPermission: (requiredPermissions) =>
+  hasPermission: (permission) =>
+    get().permissions.includes(normalizePermissionCode(permission)),
+  hasAnyPermission: (requiredPermissions = []) =>
     requiredPermissions.some((permission) =>
-      get().permissions.includes(permission),
+      get().permissions.includes(normalizePermissionCode(permission)),
+    ),
+  hasAllPermissions: (requiredPermissions = []) =>
+    requiredPermissions.every((permission) =>
+      get().permissions.includes(normalizePermissionCode(permission)),
     ),
 }));

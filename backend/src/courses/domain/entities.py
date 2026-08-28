@@ -6,6 +6,7 @@ from typing import Any
 
 from abc import ABC
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import UUID
 
 from ...shared.domain.entities import AggregateRoot, Entity
@@ -52,7 +53,7 @@ class VideoBlock(ContentBlock):
     """Блок с видео материалом.
 
     Attributes:
-        content_type: Тип контента (всегда TEXT).
+        content_type: Тип контента (всегда VIDEO).
         ai_generated: Флаг AI-генерации.
         url: ссылка на Видео.
     """
@@ -67,13 +68,13 @@ class ImageBlock(ContentBlock):
     """Блок с текстовым теоретическим материалом.
 
     Attributes:
-        content_type: Тип контента (всегда TEXT).
+        content_type: Тип контента (всегда IMAGE).
         ai_generated: Флаг AI-генерации.
-        md_content: Текст лекции в формате Markdown.
+        image_id: id изображения.
     """
 
     content_type: ContentType = ContentType.IMAGE
-    image_url: str
+    image_id: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -114,7 +115,12 @@ class MermaidBlock(ContentBlock):
 
 @dataclass(kw_only=True, slots=True)
 class Question:
-    """Описывает доменную сущность `Question` и её данные для бизнес-логики."""
+    """Блок с Вопросом (базовый для разных типов вопросов).
+
+    Attributes:
+        question: Вопрос в формате строки.
+        answer: Ответ на вопрос в формате строки.
+    """
 
     question: str
     answer: str
@@ -122,7 +128,13 @@ class Question:
 
 @dataclass(kw_only=True, slots=True)
 class QuizBlock(ContentBlock):
-    """Описывает доменную сущность `QuizBlock` и её данные для бизнес-логики."""
+    """Блок с вопросами и ответами.
+
+    Attributes:
+        content_type: Тип контента (всегда MERMAID).
+        ai_generated: Флаг AI-генерации.
+        questions: Список вопросов и ответов.
+    """
 
     content_type: ContentType = ContentType.QUIZ
     questions: list[Question] = field(default_factory=list)
@@ -186,7 +198,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 AnyContentBlock = (
     TextBlock
     | VideoBlock
-    # | ImageBlock
+    | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock
@@ -321,7 +333,7 @@ class Lesson(Entity):
     description: str
     order: int
     learning_objectives: list[str] = field(default_factory=list)
-    content_blocks: list[ContentBlock] = field(default_factory=list)
+    content_blocks: list[AnyContentBlock] = field(default_factory=list)
     estimated_time_minutes: int | None = None
 
     def append_content_block(self, content_block: AnyContentBlock) -> None:
@@ -391,6 +403,15 @@ class Course(AggregateRoot):
     def append_module(self, module: Module) -> None:
         """Выполняет действие `append_module`, чтобы поддержать основной сценарий модуля."""
         self.modules.append(module)
+
+
+@dataclass(kw_only=True, slots=True)
+class LessonTheorySession(AggregateRoot):
+    lesson_id: UUID
+    user_id: UUID
+    completed_at: datetime | None = None
+    active_time_seconds: int = 0
+    max_scroll_depth_percent: int = 0
 
 
 @dataclass(kw_only=True, slots=True)

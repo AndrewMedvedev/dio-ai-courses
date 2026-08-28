@@ -63,6 +63,7 @@ alembic/alembic.ini.local
 
 # --- Environment & secrets ---
 .env
+
 .env.*
 !.env.example
 *.pem
@@ -162,3 +163,4 @@ docker-compose.override.yml
 terraform.rc
 
 hf_cache
+.env.example

@@ -34,6 +34,15 @@ class OrganizationService:
 
         return organization
 
+    async def read(self, organization_id: UUID) -> Organization:
+        """
+        Чтение информации о организации
+        """
+        organization_exists = await self.repository.read(organization_id)
+        if organization_exists is None:
+            raise NotFoundError(f"Organization with ID {organization_id} not found")
+        return await self.repository.read(organization_id)  # pyright: ignore[reportReturnType]
+
     async def edit(
         self,
         organization_id: UUID,

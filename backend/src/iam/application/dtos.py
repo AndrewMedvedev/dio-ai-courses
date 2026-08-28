@@ -96,7 +96,7 @@ class IdentityResponse(BaseModel):
     id: UUID = Field(description="Идентификатор субъекта.")
     type: IdentityType = Field(description="Тип субъекта.")
 
-    email: Email | None = Field(
+    email: EmailStr | None = Field(
         None,
         description="Email (логин)",
         examples=["current.identity@mail.com"],
@@ -107,8 +107,8 @@ class IdentityResponse(BaseModel):
     )
     membership_id: UUID | None = Field(None, description="Привязка к организации.")
 
-    roles: set[str] = Field(default_factory=list, description="Системные названия ролей.")
-    permissions: set[str] = Field(default_factory=list, description="Список доступных прав.")
+    roles: set[str] = Field(default_factory=set, description="Системные названия ролей.")
+    permissions: set[str] = Field(default_factory=set, description="Список доступных прав.")
 
 
 # =================================================================================================

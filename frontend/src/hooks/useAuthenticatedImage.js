@@ -1,21 +1,32 @@
 import { useEffect, useState } from "react";
-import { tokenStorage } from "../utils/api";
+import { apiFetch } from "../utils/api";
+
+const failedImageSources = new Set();
 
 function isInlineImageUrl(url) {
   return /^(data:|blob:)/i.test(String(url || ""));
 }
 
-function shouldRenderDirectly(url) {
+function getAuthenticatedImagePath(url) {
   const value = String(url || "").trim();
-  if (!value || isInlineImageUrl(value)) {
-    return true;
-  }
+  if (!value || isInlineImageUrl(value)) return null;
 
   try {
     const parsed = new URL(value, window.location.origin);
-    return parsed.origin !== window.location.origin;
+    const isSameBackendHost =
+      parsed.hostname === window.location.hostname &&
+      parsed.protocol === window.location.protocol;
+    if (
+      parsed.origin !== window.location.origin &&
+      (!isSameBackendHost || !parsed.pathname.startsWith("/api/"))
+    ) {
+      return null;
+    }
+
+    const path = `${parsed.pathname}${parsed.search}`;
+    return path.startsWith("/api/v1/") ? path.slice("/api/v1".length) : path;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -30,16 +41,16 @@ export function useAuthenticatedImage(src, { enabled = true } = {}) {
       return undefined;
     }
 
-    if (shouldRenderDirectly(src)) {
+    const authenticatedPath = getAuthenticatedImagePath(src);
+    if (!authenticatedPath) {
       setImageUrl(src);
       setError(null);
       return undefined;
     }
 
-    const token = tokenStorage.getAccessToken();
-    if (!token) {
+    if (failedImageSources.has(src)) {
       setImageUrl("");
-      setError(null);
+      setError(new Error("Изображение недоступно."));
       return undefined;
     }
 
@@ -49,11 +60,8 @@ export function useAuthenticatedImage(src, { enabled = true } = {}) {
     setImageUrl("");
     setError(null);
 
-    fetch(src, {
+    apiFetch(authenticatedPath, {
       signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
       .then(async (response) => {
         if (!response.ok) {
@@ -70,6 +78,7 @@ export function useAuthenticatedImage(src, { enabled = true } = {}) {
       })
       .catch((loadError) => {
         if (!controller.signal.aborted) {
+          failedImageSources.add(src);
           setError(loadError);
           setImageUrl("");
         }

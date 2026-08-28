@@ -7,6 +7,7 @@ import uvicorn
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from qdrant_client import models
 
 from src.core.infrastructure import checkpointer, qdrant_client, thread_executor
@@ -61,6 +62,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+Instrumentator(
+    should_group_status_codes=True,
+    should_group_untemplated=True,
+    excluded_handlers=["/health", "/metrics"],
+).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+
 
 router = APIRouter(prefix="/api/v1")
 
@@ -69,8 +76,6 @@ router.include_router(organization_router)
 router.include_router(media_router)
 router.include_router(courses_router)
 router.include_router(llm_router)
-
-
 app.include_router(router)
 
 app.add_middleware(
@@ -80,6 +85,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(LoggingMiddleware)
 
 
 @app.exception_handler(ValueError)
@@ -114,8 +121,6 @@ def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:  # r
         },
     )
 
-
-app.add_middleware(LoggingMiddleware)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

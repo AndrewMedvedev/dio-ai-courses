@@ -8,23 +8,30 @@ from ..application.services.course import CourseService
 from ..application.services.document import DocumentService
 from ..application.services.lesson import LessonService
 from ..application.services.module import ModuleService
-from .base import CourseRepoDep, DocumentRepoDep, LessonRepoDep, ModuleRepoDep
+from .base import (
+    CourseRepoDep,
+    DocumentRepoDep,
+    LessonRepoDep,
+    ModuleRepoDep,
+)
 
 
-def get_lesson_service(session: DBSession, repo: LessonRepoDep) -> LessonService:
+def get_lesson_service(
+    session: DBSession,
+    repo: LessonRepoDep,
+    module_repo: ModuleRepoDep,
+) -> LessonService:
     """Получает lesson service, чтобы вызывающий код работал через единый интерфейс."""
-    return LessonService(repo=repo, session=session)
+    return LessonService(lesson_repo=repo, session=session, module_repo=module_repo)
 
 
-LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
-
-
-def get_module_service(session: DBSession, repo: ModuleRepoDep) -> ModuleService:
+def get_module_service(
+    session: DBSession,
+    repo: ModuleRepoDep,
+    course_repo: CourseRepoDep,
+) -> ModuleService:
     """Получает module service, чтобы вызывающий код работал через единый интерфейс."""
-    return ModuleService(repo=repo, session=session)
-
-
-ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]
+    return ModuleService(repo=repo, session=session, course_repo=course_repo)
 
 
 def get_course_service(session: DBSession, repo: CourseRepoDep) -> CourseService:
@@ -32,12 +39,12 @@ def get_course_service(session: DBSession, repo: CourseRepoDep) -> CourseService
     return CourseService(repo=repo, session=session)
 
 
-CourseServiceDep = Annotated[CourseService, Depends(get_course_service)]
-
-
 def get_document_service(session: DBSession, repo: DocumentRepoDep) -> DocumentService:
     """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
     return DocumentService(repo=repo, session=session)
 
 
+LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
+ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]
+CourseServiceDep = Annotated[CourseService, Depends(get_course_service)]
 DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]

@@ -37,6 +37,7 @@ class CourseStatus(StrEnum):
 
     IN_GENERATION = auto()
     DRAFT = auto()
+    INVITE_ONLY = auto()
     PUBLISHED = auto()
     ARCHIVED = auto()
 

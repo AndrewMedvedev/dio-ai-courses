@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import LessonAiChat from "../LessonAiChat";
+import LessonChatWorkspace from "../LessonChatWorkspace";
 import SectionTop from "../SectionTop";
 import {
   enrollUserToCourse,
@@ -19,6 +19,8 @@ import {
   COURSE_PERMISSIONS,
   usePermissionStore,
 } from "../../stores/permissionStore";
+import { useSessionStore } from "../../stores/sessionStore";
+import { isTokenExpired, isUuid } from "../../utils/api";
 import ModuleList from "./ModuleList";
 import "./course-viewer.css";
 
@@ -81,14 +83,24 @@ function toLessonBasicInfoFromLearningLesson(lesson) {
   };
 }
 
-export default function CourseViewer() {
+export default function CourseViewer({ localCourse = null }) {
   const { courseId, blockId, lessonId } = useParams();
   const navigate = useNavigate();
-  const canReadCourse = usePermissionStore((state) =>
+  const accessToken = useSessionStore((state) => state.accessToken);
+  const refreshToken = useSessionStore((state) => state.refreshToken);
+  const expiresAt = useSessionStore((state) => state.expiresAt);
+  const isAuthenticated = Boolean(
+    accessToken && refreshToken && expiresAt && !isTokenExpired(expiresAt),
+  );
+  const hasCourseInfoPermission = usePermissionStore((state) =>
     state.hasAnyPermission([
-      COURSE_PERMISSIONS.COURSE_READ,
       COURSE_PERMISSIONS.READ,
+      COURSE_PERMISSIONS.COURSE_READ,
     ]),
+  );
+  const canViewCourseInfo = !isAuthenticated || hasCourseInfoPermission;
+  const canReadCourseContent = usePermissionStore((state) =>
+    state.hasPermission(COURSE_PERMISSIONS.COURSE_READ),
   );
   const canUpdateCourse = usePermissionStore((state) =>
     state.hasPermission(COURSE_PERMISSIONS.UPDATE),
@@ -153,8 +165,13 @@ export default function CourseViewer() {
           throw new Error("Идентификатор курса не указан");
         }
 
-        const basicCourse = await getCourseBasicInfo(effectiveCourseId);
-        const enrolled = await isUserEnrolled(basicCourse.id);
+        const basicCourse =
+          !isUuid(effectiveCourseId) && localCourse?.id === effectiveCourseId
+            ? localCourse
+            : await getCourseBasicInfo(effectiveCourseId);
+        const enrolled = canReadCourseContent
+          ? await isUserEnrolled(basicCourse.id)
+          : false;
 
         if (!isMounted) {
           return;
@@ -164,7 +181,9 @@ export default function CourseViewer() {
         setIsEnrolled(enrolled);
         setSelectedModuleId(blockId ?? null);
         setSelectedLessonId(lessonId ?? null);
-        setIsLearningStarted(Boolean(blockId || lessonId));
+        setIsLearningStarted(
+          Boolean(blockId || lessonId) && canReadCourseContent,
+        );
       } catch (loadError) {
         if (isMounted) {
           setError(loadError.message || "Не удалось загрузить курс");
@@ -181,10 +200,10 @@ export default function CourseViewer() {
     return () => {
       isMounted = false;
     };
-  }, [blockId, effectiveCourseId, lessonId]);
+  }, [blockId, canReadCourseContent, effectiveCourseId, lessonId, localCourse]);
 
   useEffect(() => {
-    if (!selectedLesson?.id) {
+    if (!canReadCourseContent || !selectedLesson?.id) {
       setContentBlocks([]);
       return;
     }
@@ -217,25 +236,37 @@ export default function CourseViewer() {
     return () => {
       isMounted = false;
     };
-  }, [selectedLesson?.id]);
+  }, [canReadCourseContent, selectedLesson?.id]);
 
   useEffect(() => {
     setActiveTab("theory");
   }, [selectedLesson?.id]);
 
   const openCourseOverview = () => {
+    if (!canReadCourseContent) {
+      return;
+    }
+
     setIsLearningStarted(true);
     setSelectedModuleId(null);
     setSelectedLessonId(null);
   };
 
   const startLearning = () => {
+    if (!canReadCourseContent) {
+      return;
+    }
+
     setIsLearningStarted(true);
     setSelectedModuleId(null);
     setSelectedLessonId(null);
   };
 
   const openBlock = async (blockId) => {
+    if (!canReadCourseContent) {
+      return;
+    }
+
     const fallbackBlock = course?.blocks.find((block) => block.id === blockId);
     setSelectedModuleId(blockId);
     setSelectedLessonId(null);
@@ -243,7 +274,12 @@ export default function CourseViewer() {
     setError(null);
 
     try {
-      const nextBlock = await getModuleById(blockId);
+      const nextBlock = isUuid(blockId)
+        ? await getModuleById(blockId)
+        : fallbackBlock;
+      if (!nextBlock) {
+        throw new Error("Модуль не найден");
+      }
       setCourse((currentCourse) => {
         if (!currentCourse) return currentCourse;
         return {
@@ -260,6 +296,10 @@ export default function CourseViewer() {
   };
 
   const openLesson = async (nextLessonId) => {
+    if (!canReadCourseContent) {
+      return;
+    }
+
     const fallbackBlock = findBlockByLesson(course, nextLessonId);
     setActiveTab("theory");
     setSelectedModuleId(fallbackBlock?.id ?? selectedModuleId);
@@ -268,7 +308,15 @@ export default function CourseViewer() {
     setError(null);
 
     try {
-      const nextLesson = await getLessonById(nextLessonId);
+      const fallbackLesson = fallbackBlock?.lessons.find(
+        (lesson) => lesson.id === nextLessonId,
+      );
+      const nextLesson = isUuid(nextLessonId)
+        ? await getLessonById(nextLessonId)
+        : fallbackLesson;
+      if (!nextLesson) {
+        throw new Error("Урок не найден");
+      }
       setCourse((currentCourse) => {
         if (!currentCourse) return currentCourse;
         return {
@@ -295,7 +343,7 @@ export default function CourseViewer() {
   };
 
   const handleEnroll = async () => {
-    if (!course?.id) {
+    if (!canReadCourseContent || !course?.id) {
       return;
     }
 
@@ -315,7 +363,7 @@ export default function CourseViewer() {
     }
   };
 
-  if (!canReadCourse) {
+  if (!canViewCourseInfo) {
     return (
       <section className="container section course-viewer">
         <SectionTop label="Курс" title="Доступ ограничен" />
@@ -343,6 +391,56 @@ export default function CourseViewer() {
         <article className="glass-card course-viewer-error">
           <h1>Не удалось открыть курс</h1>
           <p>{error}</p>
+        </article>
+      </section>
+    );
+  }
+
+  if (!canReadCourseContent) {
+    return (
+      <section className="container section course-viewer course-enrollment-view">
+        <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
+        {error && (
+          <article className="glass-card course-viewer-error" role="alert">
+            {error}
+          </article>
+        )}
+        <CourseBasicInfo course={course} />
+        <article className="glass-card locked-course-card generated-course-enroll-card">
+          <div>
+            <h2>Прохождение курса недоступно</h2>
+            <p>
+              {isAuthenticated
+                ? "Вы можете смотреть информацию о курсе, но для открытия модулей, уроков, теории, практики и ИИ-ментора нужны дополнительные права."
+                : "Вы можете смотреть информацию о курсе без авторизации. Войдите, чтобы получить доступ к прохождению курса."}
+            </p>
+          </div>
+          {(!isAuthenticated || canUpdateCourse) && (
+            <div className="generated-course-actions">
+              {!isAuthenticated && (
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={() =>
+                    navigate(
+                      `/login?redirect=${encodeURIComponent(`/course/${course.id}`)}`,
+                    )
+                  }
+                >
+                  Войти
+                </button>
+              )}
+              {canUpdateCourse && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={openCourseEditor}
+                >
+                  Редактировать курс
+                </button>
+              )}
+            </div>
+          )}
         </article>
       </section>
     );
@@ -439,24 +537,28 @@ export default function CourseViewer() {
       : "Курс";
   const sectionTitle =
     selectedLesson?.title || selectedBlock?.title || course.title;
-  const showLessonAiChat = Boolean(selectedLesson) && activeTab === "theory";
+  const isLessonChatEnabled = canReadCourseContent && Boolean(selectedLesson);
+  const isChatAvailable = isLessonChatEnabled && activeTab === "theory";
 
   return (
-    <section
-      className={`container section lesson-view generated-course-learning-view ${
-        showLessonAiChat ? "has-lesson-chat" : ""
-      }`}
-    >
+    <section className="container section lesson-view generated-course-learning-view">
       <SectionTop label={sectionLabel} title={sectionTitle} />
       {error && (
         <article className="glass-card course-viewer-error" role="alert">
           {error}
         </article>
       )}
-      <div
-        className={`lesson-view-grid generated-course-learning-grid ${
-          showLessonAiChat ? "has-lesson-chat" : ""
-        }`}
+      <LessonChatWorkspace
+        className="generated-course-learning-grid"
+        chatEnabled={isLessonChatEnabled}
+        chatAvailable={isChatAvailable}
+        chatKey={selectedLesson?.id || "no-lesson"}
+        chatProps={{
+          courseId: course.id,
+          lessonId: selectedLesson?.id,
+          lessonTitle: selectedLesson?.title,
+          contentBlocks,
+        }}
       >
         <aside
           className="course-nav-tree generated-course-navigation-shell"
@@ -599,11 +701,7 @@ export default function CourseViewer() {
             )}
           </div>
         </article>
-
-        {showLessonAiChat && (
-          <LessonAiChat key={selectedLesson.id} onDownloadSummary={() => {}} />
-        )}
-      </div>
+      </LessonChatWorkspace>
     </section>
   );
 }

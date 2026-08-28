@@ -1,48 +1,68 @@
 from typing import Any
 
-from aiohttp import ClientTimeout
+from aiohttp import ClientSession, ClientTimeout
 
+from src.core.settings import settings
 from src.media.schemas import ConfirmUploadRequest, PresignedUploadRequest
-from src.shared.infra.http_client import HttpClient, HttpConfig
+from src.shared.domain.constants import HttpStatus
+from src.shared.domain.exceptions import BadRequestError
+from src.shared.infra.http_client import HttpClient, HttpConfig, Request
 
 
 class MediaClient(HttpClient):
-    def __init__(self, token: str) -> None:
+    def __init__(self) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
-        super().__init__(config=HttpConfig(base_url="", token=token, timeout=ClientTimeout(60)))
+        super().__init__(
+            config=HttpConfig(
+                base_url=settings.attachments_url,
+                timeout=ClientTimeout(60),
+            )
+        )
 
     async def get_presigned_upload_url(
         self,
         schema: PresignedUploadRequest,
     ) -> dict[str, Any]:
         """Получает presigned upload url, чтобы вызывающий код работал через единый интерфейс."""
-        async with self._get_session() as session:
-            response = await session.post(url="", json=schema)
-            response.raise_for_status()
-            return await response.json()
+        return await self.post(
+            path="presigned-upload",
+            request=Request(json=schema.model_dump(mode="json", exclude_none=True)),
+        )
 
+    @staticmethod
     async def upload_file(
-        self,
         file: bytes,
         presigned_url: str,
         content_type: str,
     ) -> None:
-        """Загружает файл, чтобы сохранить пользовательский файл во внешнем хранилище."""
-        async with self._get_session() as session:
-            response = await session.put(
-                url=presigned_url, data=file, headers={"Content-Type": content_type}
-            )
-            response.raise_for_status()
+        async with (
+            ClientSession(
+                timeout=ClientTimeout(60),
+            ) as session,
+            session.put(
+                presigned_url,
+                data=file,
+                headers={
+                    "Content-Type": content_type,
+                },
+            ) as response,
+        ):
+            if HttpStatus.OK <= response.status < HttpStatus.MULTIPLE_CHOICES:
+                return
+
+            body = await response.text()
+
+            raise BadRequestError(message=(f"S3 upload failed: HTTP {response.status}: {body}"))
 
     async def confirm_upload(
         self,
         schema: ConfirmUploadRequest,
     ) -> dict:
         """Подтверждает upload, чтобы завершить ранее начатую операцию."""
-        async with self._get_session() as session:
-            response = await session.post(url="", json=schema)
-            response.raise_for_status()
-            return await response.json()
+        return await self.post(
+            path="confirm-upload",
+            request=Request(json=schema.model_dump(mode="json", exclude_none=True)),
+        )
 
     async def save_image(
         self,

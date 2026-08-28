@@ -13,11 +13,20 @@ from ..domain.entities import (
     Document,
     Lesson,
     LessonBasicInfo,
+    LessonTheorySession,
     Module,
     ModuleBasicInfo,
     Practice,
 )
-from .models import ChatOrm, CourseOrm, DocumentOrm, LessonOrm, ModuleOrm, PracticeOrm
+from .models import (
+    ChatOrm,
+    CourseOrm,
+    DocumentOrm,
+    LessonOrm,
+    LessonTheorySessionOrm,
+    ModuleOrm,
+    PracticeOrm,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +34,7 @@ logger = logging.getLogger(__name__)
 class ChatMapper(ModelMapper[Chat, ChatOrm]):
     @staticmethod
     def from_model(model: ChatOrm) -> Chat:
-        """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
+
         return Chat(
             id=model.id,
             created_at=model.created_at,
@@ -37,7 +46,7 @@ class ChatMapper(ModelMapper[Chat, ChatOrm]):
 
     @staticmethod
     def to_model(entity: Chat) -> ChatOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
+
         return ChatOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -51,7 +60,7 @@ class ChatMapper(ModelMapper[Chat, ChatOrm]):
 class LessonMapper(ModelMapper[Lesson, LessonOrm]):
     @staticmethod
     def from_model(model: LessonOrm) -> Lesson:
-        """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
+
         return Lesson(
             id=model.id,
             created_at=model.created_at,
@@ -67,7 +76,6 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
 
     @staticmethod
     def to_model(entity: Lesson) -> LessonOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
         return LessonOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -83,7 +91,6 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
 
     @staticmethod
     def basic_info_mapper(row: tuple) -> LessonBasicInfo:
-        """Преобразует данные в `basic_info_mapper`, чтобы разделить доменную модель и модель хранения."""
         return LessonBasicInfo(
             id=row.id,
             title=row.title,
@@ -97,7 +104,6 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
 class ModuleMapper(ModelMapper[Module, ModuleOrm]):
     @staticmethod
     def from_model(model: ModuleOrm) -> Module:
-        """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
         return Module(
             id=model.id,
             created_at=model.created_at,
@@ -111,7 +117,6 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
 
     @staticmethod
     def to_model(entity: Module) -> ModuleOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
         return ModuleOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -125,7 +130,6 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
 
     @staticmethod
     def basic_info_mapper(row: tuple, lessons: list[BasicInfo]) -> ModuleBasicInfo:
-        """Преобразует данные в `basic_info_mapper`, чтобы разделить доменную модель и модель хранения."""
         return ModuleBasicInfo(
             id=row.id,
             title=row.title,
@@ -139,7 +143,6 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
 class CourseMapper(ModelMapper[Course, CourseOrm]):
     @staticmethod
     def from_model(model: CourseOrm) -> Course:
-        """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
         return Course(
             id=model.id,
             created_at=model.created_at,
@@ -157,7 +160,6 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
 
     @staticmethod
     def to_model(entity: Course) -> CourseOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
         return CourseOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -175,7 +177,6 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
 
     @staticmethod
     def basic_info_mapper(row: tuple, modules: list[BasicInfo]) -> CourseBasicInfo:
-        """Преобразует данные в `basic_info_mapper`, чтобы разделить доменную модель и модель хранения."""
         return CourseBasicInfo(
             id=row.id,
             title=row.title,
@@ -187,10 +188,37 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
         )
 
 
+class LessonTheorySessionMapper(ModelMapper[LessonTheorySession, LessonTheorySessionOrm]):
+    @staticmethod
+    def from_model(model: LessonTheorySessionOrm) -> LessonTheorySession:
+        return LessonTheorySession(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            lesson_id=model.lesson_id,
+            user_id=model.user_id,
+            completed_at=model.completed_at,
+            active_time_seconds=model.active_time_seconds,
+            max_scroll_depth_percent=model.max_scroll_depth_percent,
+        )
+
+    @staticmethod
+    def to_model(entity: LessonTheorySession) -> LessonTheorySessionOrm:
+        return LessonTheorySessionOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            lesson_id=entity.lesson_id,
+            user_id=entity.user_id,
+            completed_at=entity.completed_at,
+            active_time_seconds=entity.active_time_seconds,
+            max_scroll_depth_percent=entity.max_scroll_depth_percent,
+        )
+
+
 class DocumentMapper(ModelMapper[Document, DocumentOrm]):
     @staticmethod
     def from_model(model: DocumentOrm) -> Document:
-        """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
         return Document(
             id=model.id,
             created_at=model.created_at,
@@ -204,7 +232,6 @@ class DocumentMapper(ModelMapper[Document, DocumentOrm]):
 
     @staticmethod
     def to_model(entity: Document) -> DocumentOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
         return DocumentOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -220,7 +247,6 @@ class DocumentMapper(ModelMapper[Document, DocumentOrm]):
 class PracticeMapper(ModelMapper[Practice, PracticeOrm]):
     @staticmethod
     def from_model(model: PracticeOrm) -> Practice:
-        """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
         return Practice(
             id=model.id,
             created_at=model.created_at,
@@ -234,7 +260,6 @@ class PracticeMapper(ModelMapper[Practice, PracticeOrm]):
 
     @staticmethod
     def to_model(entity: Practice) -> PracticeOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
         return PracticeOrm(
             id=entity.id,
             created_at=entity.created_at,

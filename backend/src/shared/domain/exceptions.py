@@ -9,11 +9,11 @@ class AppError(Exception):
     public_message: str = "Внутренняя ошибка сервера"
 
     def __init__(
-            self,
-            message: str | None = None,
-            status_code: int | None = None,
-            error_code: str | None = None,
-            details: dict | list | None = None,
+        self,
+        message: str | None = None,
+        status_code: int | None = None,
+        error_code: str | None = None,
+        details: dict | list | None = None,
     ):
         self.message = message or self.public_message
         self.status_code = status_code or self.status_code
@@ -22,10 +22,34 @@ class AppError(Exception):
         super().__init__(self.message)
 
 
+class InternalServerError(AppError):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    error_code = "INTERNAL_SERVER_ERROR"
+    public_message = "Внутренняя ошибка сервера"
+
+
 class DatabaseError(AppError):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     error_code = "DATABASE_ERROR"
     public_message = "Ошибка сервера базы данных"
+
+
+class BadRequestError(AppError):
+    status_code = status.HTTP_400_BAD_REQUEST
+    error_code = "BAD_REQUEST"
+    public_message = "Некорректный запрос"
+
+
+class UnauthorizedError(AppError):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    error_code = "UNAUTHORIZED"
+    public_message = "Неавторизованный доступ"
+
+
+class ForbiddenError(AppError):
+    status_code = status.HTTP_403_FORBIDDEN
+    error_code = "FORBIDDEN"
+    public_message = "Доступ запрещен"
 
 
 class NotFoundError(AppError):

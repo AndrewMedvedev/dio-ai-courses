@@ -1,0 +1,14 @@
+apiVersion: 1
+
+providers:
+  - name: 'FastAPI Dashboards'
+    orgId: 1
+    folder: 'Application'
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      inputs:
+        - name: DS_PROMETHEUS
+          type: datasource
+          pluginId: prometheus
+          value: prometheus_main

@@ -19,8 +19,7 @@ load_dotenv(ENV_FILE)
 
 TEMPLATES_DIR = BASE_DIR / "templates"
 # Имя основного S3 бакета
-S3_BUCKET_NAME = "diocon-tickets-uploads"
-S3_BACKUPS_BUCKET_NAME = "diocon-tickets-backups"
+S3_BACKUPS_BUCKET_NAME = "diocon-courses-backups"
 
 
 class PostgresSettings(BaseSettings):
@@ -43,7 +42,7 @@ class QdrantSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="QDRANT_")
 
     host: str = "localhost"
-    port: int = 6379
+    port: int = 6333
     password: str = "<PASSWORD>"
 
     @property
@@ -78,8 +77,8 @@ class RedisSettings(BaseSettings):
 
     @property
     def url(self) -> str:
-        """Выполняет действие `url`, чтобы поддержать основной сценарий модуля."""
-        return f"redis://{self.host}:{self.port}/{self.db}"
+        """redis://[:password@]host:port/db — пароль подставляется, только если он реально задан."""
+        return f"redis://{self.password}@{self.host}:{self.port}/{self.db}"
 
 
 class JWTSettings(BaseSettings):
@@ -120,6 +119,13 @@ class ProxyApi(BaseSettings):
 
     key: str = "<API_KEY>"
     base_url: str = "https://openai.api.proxyapi.ru/v1"
+
+
+class AITunnel(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="AITUNNEL_")
+
+    key: str = "<API_KEY>"
+    base_url: str = "https://api.aitunnel.ru/v1"
 
 
 class YandexCloudSettings(BaseSettings):
@@ -166,16 +172,6 @@ class AdminSettings(BaseSettings):
     password: str = "admin"
 
 
-class SearchSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="AI_SEARCH_")
-
-    family_mode: Literal[
-        "FAMILY_MODE_NONE",
-        "FAMILY_MODE_MODERATE",
-        "FAMILY_MODE_STRICT",
-    ] = "FAMILY_MODE_NONE"
-
-
 class EmbeddingsSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_")
 
@@ -191,10 +187,25 @@ class RerankersSettings(BaseSettings):
     model_name: str = "BAAI/bge-reranker-v2-m3"
 
 
+class S3Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="S3_")
+
+    service_name: str = "s3"
+    access_key: str = ""
+    secret_key: str = ""
+    endpoint_url: str = "http://localhost:9000"
+    bucket: str = ""
+
+
 class Settings(BaseSettings):
     secret_key: str = "<SECRET_KEY>"
     frontend_url: str = "http://localhost:3000"
-
+    base_llm_router_url: str = "http://localhost:8000/api/v1/"
+    attachments_url: str = "http://localhost:8000/api/v1/attachments/"
+    chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
+    text_ai_model: str = "gemini-3.1-flash-lite"
+    # text_ai_model: str = "gpt-4.1-nano"
+    image_ai_model: str = "gpt-image-2"
     app: AppSettings = AppSettings()
     postgres: PostgresSettings = PostgresSettings()
     qdrant: QdrantSettings = QdrantSettings()
@@ -204,16 +215,13 @@ class Settings(BaseSettings):
     mail: MailSettings = MailSettings()
     imgproxy: ImgProxySettings = ImgProxySettings()
     proxy_api: ProxyApi = ProxyApi()
+    aitunnel: AITunnel = AITunnel()
     yandex_cloud: YandexCloudSettings = YandexCloudSettings()
     admin: AdminSettings = AdminSettings()
-    search: SearchSettings = SearchSettings()
     tracing: LangSmithSettings = LangSmithSettings()
     embeddings: EmbeddingsSettings = EmbeddingsSettings()
     rerankers: RerankersSettings = RerankersSettings()
-    base_llm_router_url: str = "http://localhost:8000/api/v1/"
-    chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
-    text_ai_model: str = "gpt-4.1-nano"
-    image_ai_model: str = "gpt-image-2"
+    s3: S3Settings = S3Settings()
 
 
 settings = Settings()

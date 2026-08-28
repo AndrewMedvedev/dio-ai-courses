@@ -43,8 +43,8 @@ def get_content_blocks_context(content_blocks: list[AnyContentBlock]) -> str:
                     "Вопросы для самопроверки:\n"
                     f" - {
                         '\n - '.join([
-                            f'вопрос: {question}; ответ: {answer}'
-                            for question, answer in content_block.questions  # type: ignore
+                            f'вопрос: {item.question}; ответ: {item.answer}'
+                            for item in content_block.questions  # pyright: ignore[reportAttributeAccessIssue]
                         ])
                     }"
                 )
@@ -76,7 +76,6 @@ def get_content_blocks_context(content_blocks: list[AnyContentBlock]) -> str:
 def get_lesson_context(
     lesson: Lesson,
     include_content_blocks: bool = True,
-    include_assignment: bool = False,
 ) -> str:
     """Получение LLM-friendly контекста текущего урока в Markdown формате."""
 
@@ -89,6 +88,5 @@ def get_lesson_context(
     )
     if lesson.content_blocks and include_content_blocks:
         context += get_content_blocks_context(lesson.content_blocks)  # type: ignore  # ruff: ignore[blanket-type-ignore]
-    if include_assignment and lesson.assignment is not None:
-        context += get_assignment_context(lesson.assignment)
+
     return context

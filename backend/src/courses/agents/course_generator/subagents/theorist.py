@@ -15,6 +15,7 @@ from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
+    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
@@ -40,10 +41,10 @@ THEORIST_CONFIG = {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
         "response_format": TextBlock,
     },
-    # ContentType.IMAGE: {
-    #     "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
-    #     "response_format": ImageBlock,
-    # },
+    ContentType.IMAGE: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
+        "response_format": ImageBlock,
+    },
     ContentType.QUIZ: {
         "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.QUIZ],
@@ -79,7 +80,6 @@ async def generate_image(
     """Генерирует изображение, чтобы автоматически подготовить часть учебного контента."""
     content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMImageService(
-        system_prompt=content_config.get("system_prompt", ""),
         runtime=runtime or Runtime(context=context),
         middlewares=[
             SaveImageMiddleware(),
@@ -87,8 +87,11 @@ async def generate_image(
         ],
     )
     response_format: TypeAdapter = content_config.get("response_format")
-    result = await agent.invoke(messages=prompt, images=images)
-    return TypeAdapter(response_format).validate_python({"image_url": result.image})
+    content_block = await agent.invoke(messages=prompt, images=images)
+    result = TypeAdapter(response_format).validate_python({"image_id": content_block.image})
+    result.content_type = content_type
+
+    return result
 
 
 async def generate_text(
@@ -107,12 +110,14 @@ async def generate_text(
         runtime=runtime or Runtime(context=context),
     )
     response_format: AnyContentBlock = content_config.get("response_format")
-    result = await agent.invoke(
+    content_block = await agent.invoke(
         messages=[{"role": "user", "content": prompt}],
         schema=response_format,
     )
+    result = TypeAdapter(response_format).validate_python(content_block.output)
+    result.content_type = content_type
 
-    return TypeAdapter(response_format).validate_python(result.output)
+    return result
 
 
 async def call_theory_agent(

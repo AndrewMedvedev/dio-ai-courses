@@ -171,7 +171,7 @@ function buildRedirectUrl() {
   return `/login?redirect=${encodeURIComponent(currentPath)}`;
 }
 
-function handleUnauthorized() {
+export function redirectToLogin() {
   clearTokens();
   if (typeof unauthorizedHandler === "function") {
     unauthorizedHandler();
@@ -180,6 +180,10 @@ function handleUnauthorized() {
   if (typeof window !== "undefined" && window.location.pathname !== "/login") {
     window.location.assign(buildRedirectUrl());
   }
+}
+
+function handleUnauthorized() {
+  redirectToLogin();
 }
 
 async function parseResponsePayload(response) {
@@ -192,14 +196,43 @@ async function parseResponsePayload(response) {
 
 function collectValidationErrors(payload) {
   if (!payload || typeof payload !== "object") return {};
-  const details = Array.isArray(payload.detail) ? payload.detail : [];
+  const rawDetails =
+    payload.error?.details || payload.detail || payload.details;
+  const details = Array.isArray(rawDetails) ? rawDetails : [];
 
   return details.reduce((acc, item) => {
     const loc = Array.isArray(item?.loc) ? item.loc : [];
-    const field = loc[loc.length - 1] || "form";
-    acc[field] = item?.msg || "Некорректное значение";
+    const field = item?.field || loc[loc.length - 1] || "form";
+    acc[field] = item?.msg || item?.message || "Некорректное значение";
     return acc;
   }, {});
+}
+
+function detailsToMessage(details) {
+  if (!details) return "";
+  if (typeof details === "string") return details.trim();
+  if (Array.isArray(details)) {
+    return details
+      .map((item) => {
+        if (typeof item === "string") return item;
+        const loc = Array.isArray(item?.loc) ? item.loc.join(".") : item?.field;
+        const text = item?.msg || item?.message;
+        return [loc, text].filter(Boolean).join(": ");
+      })
+      .filter(Boolean)
+      .join("; ");
+  }
+  if (typeof details === "object") {
+    return Object.entries(details)
+      .map(([field, value]) => {
+        if (Array.isArray(value)) return `${field}: ${value.join(", ")}`;
+        if (value && typeof value === "object")
+          return `${field}: ${JSON.stringify(value)}`;
+        return `${field}: ${value}`;
+      })
+      .join("; ");
+  }
+  return "";
 }
 
 async function createApiError(response, fallbackMessage) {
@@ -207,6 +240,9 @@ async function createApiError(response, fallbackMessage) {
   const apiError =
     payload && typeof payload === "object" ? payload.error : null;
   const detail = typeof payload === "object" ? payload?.detail : payload;
+  const detailsMessage = detailsToMessage(
+    apiError?.details || payload?.details || payload?.detail,
+  );
   const statusMessages = {
     400: "Некорректный запрос.",
     401: "Необходимо войти заново.",
@@ -214,12 +250,15 @@ async function createApiError(response, fallbackMessage) {
     404: "Запрошенные данные не найдены.",
     413: "Файл слишком большой.",
     422: "Проверьте корректность заполнения полей.",
+    429: "Слишком много запросов. Подождите и попробуйте снова.",
     500: "Сервис временно недоступен. Попробуйте позже.",
   };
   const message =
     (typeof apiError?.public_message === "string" &&
       apiError.public_message.trim()) ||
+    (typeof apiError?.message === "string" && apiError.message.trim()) ||
     (typeof detail === "string" && detail.trim()) ||
+    detailsMessage ||
     statusMessages[response.status] ||
     fallbackMessage;
 
@@ -327,6 +366,11 @@ export async function apiFetch(
   const headers = { ...options.headers };
   let { access, expiresAt } = getTokens();
 
+  if (auth && !access) {
+    handleUnauthorized();
+    return new Response(null, { status: 401 });
+  }
+
   if (auth && access && shouldRefresh(expiresAt)) {
     try {
       access = await refreshAccessToken();
@@ -357,11 +401,15 @@ export async function apiFetch(
     }
   }
 
+  if (auth && response.status === 401) {
+    handleUnauthorized();
+  }
+
   return response;
 }
 
 export async function fetchIdentity() {
-  return fetchCurrentUser();
+  return requestJson("/auth/identity");
 }
 
 export async function acceptInvitation({
@@ -398,6 +446,78 @@ export async function fetchPermissions(params = {}) {
   return requestJson(
     `/permissions${query.toString() ? `?${query.toString()}` : ""}`,
   );
+}
+
+function buildQuery(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, value);
+    }
+  });
+  return query.toString();
+}
+
+function normalizeOrganizationPage(response) {
+  return {
+    page: response?.page || 1,
+    size: response?.size || 10,
+    total_items: response?.total_items ?? response?.total ?? 0,
+    total_pages: response?.total_pages ?? response?.pages ?? 1,
+    has_next: Boolean(response?.has_next),
+    has_prev: Boolean(response?.has_prev),
+    items: Array.isArray(response?.items) ? response.items : [],
+  };
+}
+
+function sanitizeOrganizationPayload(data = {}, { partial = false } = {}) {
+  const payload = {
+    name: data.name,
+    email: data.email,
+    description: data.description,
+  };
+
+  if (!partial) return payload;
+
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    ),
+  );
+}
+
+export async function fetchOrganizationsPage(params = {}) {
+  const query = buildQuery(params);
+  const response = await requestJson(
+    `/organizations${query ? `?${query}` : ""}`,
+  );
+  return normalizeOrganizationPage(response);
+}
+
+export async function fetchOrganizationById(organizationId) {
+  return requestJson(`/organizations/${encodeURIComponent(organizationId)}`);
+}
+
+export async function createOrganization(data) {
+  return requestJson("/organizations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sanitizeOrganizationPayload(data)),
+  });
+}
+
+export async function updateOrganization(organizationId, data) {
+  return requestJson(`/organizations/${encodeURIComponent(organizationId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sanitizeOrganizationPayload(data, { partial: true })),
+  });
+}
+
+export async function deleteOrganization(organizationId) {
+  return requestJson(`/organizations/${encodeURIComponent(organizationId)}`, {
+    method: "DELETE",
+  });
 }
 
 export async function fetchCurrentUser() {
@@ -616,43 +736,61 @@ function withoutEmptyValues(payload) {
 }
 
 function sanitizeContentBlock(block) {
-  const contentType = block?.content_type || "text";
+  const source =
+    block && typeof block === "object" ? block : { content: block };
+  const contentType = normalizeContentType(source);
   if (!SUPPORTED_CONTENT_TYPES.has(contentType)) {
-    return null;
+    return {
+      content_type: "text",
+      ai_generated:
+        typeof source.ai_generated === "boolean" ? source.ai_generated : false,
+      md_content: String(source.md_content ?? source.content ?? block ?? ""),
+    };
   }
 
   const payload = withoutEmptyValues({
-    ...block,
+    ...source,
     id: undefined,
     type: undefined,
+    contentType: undefined,
+    block_type: undefined,
     content_type: contentType,
     ai_generated:
-      typeof block?.ai_generated === "boolean" ? block.ai_generated : false,
+      typeof source.ai_generated === "boolean" ? source.ai_generated : false,
   });
 
   if (contentType === "text") {
-    payload.md_content = block.md_content ?? block.content ?? "";
+    payload.md_content =
+      source.md_content ??
+      source.mdContent ??
+      source.markdown ??
+      source.text ??
+      source.content ??
+      "";
+  } else if (contentType === "image") {
+    payload.image_url = source.image_url ?? source.imageUrl ?? source.url ?? "";
   } else if (contentType === "video") {
-    payload.url = block.url ?? "";
-    payload.description = block.description ?? "";
+    payload.url = source.url ?? "";
+    payload.description = source.description ?? "";
   } else if (contentType === "program_code") {
-    payload.language = block.language ?? "text";
-    payload.code = block.code ?? "";
-    payload.explanation = block.explanation ?? "";
+    payload.language = source.language ?? "text";
+    payload.code = source.code ?? "";
+    payload.explanation = source.explanation ?? "";
   } else if (contentType === "mermaid") {
-    payload.title = block.title ?? "";
-    payload.md_content = block.md_content ?? "";
-    payload.explanation = block.explanation ?? "";
+    payload.title = source.title ?? "";
+    payload.md_content =
+      source.md_content ?? source.mdContent ?? source.content ?? "";
+    payload.explanation = source.explanation ?? "";
   } else if (contentType === "quiz") {
-    payload.questions = Array.isArray(block.questions)
-      ? block.questions.map((question) => ({
+    payload.questions = Array.isArray(source.questions)
+      ? source.questions.map((question) => ({
           question: question?.question || "",
           answer: question?.answer || "",
         }))
       : [];
   } else {
-    payload.formula = block.formula ?? "";
-    payload.explanation = block.explanation ?? "";
+    payload.formula = source.formula ?? "";
+    payload.explanation = source.explanation ?? "";
   }
 
   return payload;
@@ -712,6 +850,28 @@ function readCourseModules(data) {
   return Array.isArray(modules) ? modules : [];
 }
 
+function getModuleId(data, fallbackId) {
+  if (!data || typeof data !== "object") {
+    return fallbackId;
+  }
+
+  return (
+    data.module_id ||
+    data.moduleId ||
+    data.module_uuid ||
+    data.moduleUuid ||
+    data.uuid ||
+    data.module?.id ||
+    data.module?.module_id ||
+    data.module?.moduleId ||
+    data.data?.module_id ||
+    data.data?.moduleId ||
+    data.data?.id ||
+    data.id ||
+    fallbackId
+  );
+}
+
 function normalizeModuleRef(module) {
   if (typeof module === "string") {
     return { id: module };
@@ -721,7 +881,7 @@ function normalizeModuleRef(module) {
     return normalizeModuleRef(module.module);
   }
 
-  const id = module?.id || module?.module_id || module?.moduleId;
+  const id = getModuleId(module);
   return {
     ...module,
     id,
@@ -933,15 +1093,10 @@ function courseChangesToPatch(changes) {
   const patch = {};
   if ("title" in changes) patch.title = changes.title;
   if ("description" in changes) patch.description = changes.description;
-  if ("category" in changes) patch.category = changes.category;
-  if ("duration" in changes) patch.duration = changes.duration;
-  if ("format" in changes) patch.format = changes.format;
   if ("tags" in changes) patch.tags = changes.tags;
   if ("level" in changes)
     patch.difficulty = courseLevelToDifficulty(changes.level);
-  if ("learningObjectives" in changes) {
-    patch.learning_objectives = changes.learningObjectives;
-  }
+  if ("difficulty" in changes) patch.difficulty = changes.difficulty;
   return patch;
 }
 
@@ -949,9 +1104,12 @@ function moduleChangesToPatch(changes) {
   const patch = {};
   if ("title" in changes) patch.title = changes.title;
   if ("description" in changes) patch.description = changes.description;
-  if ("duration" in changes) patch.duration = changes.duration;
+  if ("order" in changes) patch.order = changes.order;
   if ("learningObjectives" in changes) {
     patch.learning_objectives = changes.learningObjectives;
+  }
+  if ("learning_objectives" in changes) {
+    patch.learning_objectives = changes.learning_objectives;
   }
   return patch;
 }
@@ -959,11 +1117,29 @@ function moduleChangesToPatch(changes) {
 function lessonChangesToPatch(changes) {
   const patch = {};
   if ("title" in changes) patch.title = changes.title;
+  if ("description" in changes) patch.description = changes.description;
   if ("summary" in changes) patch.description = changes.summary;
+  if ("order" in changes) patch.order = changes.order;
+  if ("learningObjectives" in changes) {
+    patch.learning_objectives = changes.learningObjectives;
+  }
+  if ("learning_objectives" in changes) {
+    patch.learning_objectives = changes.learning_objectives;
+  }
+  if ("estimatedTimeMinutes" in changes) {
+    patch.estimated_time_minutes = changes.estimatedTimeMinutes;
+  }
+  if ("estimated_time_minutes" in changes) {
+    patch.estimated_time_minutes = changes.estimated_time_minutes;
+  }
   if ("duration" in changes)
     patch.estimated_time_minutes = parseMinutes(changes.duration);
   if ("contentBlocks" in changes) {
     patch.content_blocks = (changes.contentBlocks || []).map(
+      sanitizeContentBlock,
+    );
+  } else if ("content_blocks" in changes) {
+    patch.content_blocks = (changes.content_blocks || []).map(
       sanitizeContentBlock,
     );
   } else if ("markdown" in changes) {
@@ -1039,11 +1215,26 @@ function courseBasicToLearningCourse(data) {
 }
 
 function moduleBasicToLearningBlock(data, currentBlock = {}) {
+  if (typeof data === "string") {
+    return {
+      ...currentBlock,
+      id: data,
+      title: currentBlock.title || "Модуль без названия",
+      description: currentBlock.description || "",
+      order: currentBlock.order || 0,
+      duration: currentBlock.duration || "Модуль курса",
+      learningObjectives: currentBlock.learningObjectives || [],
+      learning_objectives: currentBlock.learning_objectives || [],
+      lessons: currentBlock.lessons || [],
+      practice: currentBlock.practice || [],
+    };
+  }
+
   const learningObjectives =
     data.learning_objectives || data.learningObjectives || [];
   return {
     ...currentBlock,
-    id: data.id || data.module_id || data.moduleId,
+    id: getModuleId(data, currentBlock.id),
     title: data.title || "Модуль без названия",
     description: data.description || "",
     order: Number.isFinite(data.order) ? data.order : currentBlock.order || 0,
@@ -1122,7 +1313,12 @@ export async function fetchCoursesPage(
   { page = 1, size = 20 } = {},
   options = {},
 ) {
-  const data = await jsonRequest("/course/", "POST", { page, size }, options);
+  const data = await jsonRequest(
+    "/course/",
+    "POST",
+    { page, size },
+    { ...options, auth: false },
+  );
   return normalizePaginatedResponse(data, { page, size });
 }
 
@@ -1131,10 +1327,33 @@ export async function fetchCourses(params = {}, options = {}) {
   return response.items;
 }
 
+export async function createCourse(data, options = {}) {
+  const response = await jsonRequest(
+    "/course/create",
+    "POST",
+    {
+      title: data.title || "Новый курс",
+      description: data.description || "",
+      difficulty: data.difficulty || "beginner",
+      tags: Array.isArray(data.tags) ? data.tags : [],
+    },
+    options,
+  );
+  return courseBasicToLearningCourse(response);
+}
+
 export async function getCourseBasicInfo(courseId, options = {}) {
+  if (!isUuid(courseId)) {
+    throw new ApiError("Некорректный идентификатор курса.", {
+      status: 400,
+      code: "invalid_course_id",
+    });
+  }
+
   const data = await requestJson(
     `/course/basic/info/${encodeURIComponent(courseId)}`,
     options,
+    { auth: false },
   );
   return courseBasicToLearningCourse(data);
 }
@@ -1144,42 +1363,20 @@ export async function getCourse(courseId, options = {}) {
 }
 
 export async function getModuleBasicInfo(moduleId, options = {}) {
-  const path = `/module/basic/info/${encodeURIComponent(moduleId)}`;
-  const requestOptions = {
-    ...options,
-    auth: options.auth ?? false,
-  };
-
-  try {
-    const data = await requestJson(path, requestOptions, {
-      auth: requestOptions.auth,
-      retry: requestOptions.retry ?? true,
-    });
-    return moduleBasicToLearningBlock(data);
-  } catch (error) {
-    if (error.status !== 405) {
-      throw error;
-    }
-
-    const data = await jsonRequest(path, "POST", undefined, requestOptions);
-    return moduleBasicToLearningBlock(data);
-  }
+  const data = await requestJson(
+    `/module/basic/info/${encodeURIComponent(moduleId)}`,
+    options,
+    { auth: false },
+  );
+  return moduleBasicToLearningBlock(data);
 }
 
 export async function getLessonBasicInfo(lessonId, options = {}) {
-  const path = `/lesson/basic/info/${encodeURIComponent(lessonId)}`;
-
-  try {
-    const data = await requestJson(path, options);
-    return lessonBasicToLearningLesson(data);
-  } catch (error) {
-    if (error.status !== 405) {
-      throw error;
-    }
-
-    const data = await jsonRequest(path, "POST", undefined, options);
-    return lessonBasicToLearningLesson(data);
-  }
+  const data = await requestJson(
+    `/lesson/basic/info/${encodeURIComponent(lessonId)}`,
+    options,
+  );
+  return lessonBasicToLearningLesson(data);
 }
 
 export async function getLessonTheory(lessonId, options = {}) {
@@ -1193,15 +1390,101 @@ export async function getLessonTheory(lessonId, options = {}) {
 export async function updateCourse(courseId, changes) {
   const patch = withoutEmptyValues(courseChangesToPatch(changes));
   if (!Object.keys(patch).length) return null;
-  const query = new URLSearchParams({ course_id: courseId });
   const data = await jsonRequest(
-    `/course/edit?${query.toString()}`,
+    `/course/edit/${encodeURIComponent(courseId)}`,
     "PUT",
     patch,
   );
   return data?.modules
     ? mapCourseFromApi(data)
     : courseBasicToLearningCourse(data);
+}
+
+export async function createModule(courseId, data, options = {}) {
+  const query = courseId
+    ? `?${new URLSearchParams({ course_id: courseId }).toString()}`
+    : "";
+  const payload = {
+    title: data.title || "Новый модуль",
+    description: data.description || "",
+    order: Number.isFinite(data.order) ? data.order : 1,
+    learning_objectives:
+      data.learning_objectives || data.learningObjectives || [],
+  };
+  const response = await jsonRequest(
+    `/module/create${query}`,
+    "POST",
+    payload,
+    options,
+  );
+
+  const directModule = response?.module || response?.data?.module;
+  const courseModules = [
+    ...readCourseModules(response),
+    ...readCourseModules(response?.data),
+  ];
+  const createdModule =
+    directModule ||
+    courseModules.find((module) => {
+      const normalized = normalizeModuleRef(module);
+      return (
+        normalized.title === payload.title ||
+        Number(normalized.order) === Number(payload.order)
+      );
+    }) ||
+    courseModules.at(-1) ||
+    response?.data ||
+    response;
+
+  return moduleBasicToLearningBlock(createdModule, {
+    title: payload.title,
+    description: payload.description,
+    order: payload.order,
+    learningObjectives: payload.learning_objectives,
+    learning_objectives: payload.learning_objectives,
+  });
+}
+
+export async function assignModuleToCourse(moduleId, courseId, options = {}) {
+  return requestJson(
+    `/module/assign/${encodeURIComponent(moduleId)}/${encodeURIComponent(courseId)}`,
+    {
+      method: "POST",
+    },
+    options,
+  );
+}
+
+export async function createLesson(data, options = {}) {
+  const moduleId = data.module_id || data.moduleId;
+  const query = moduleId
+    ? `?${new URLSearchParams({ module_id: moduleId }).toString()}`
+    : "";
+  const response = await jsonRequest(
+    `/lesson/create${query}`,
+    "POST",
+    {
+      title: data.title || "Новый урок",
+      description: data.description || "",
+      order: Number.isFinite(data.order) ? data.order : 1,
+      learning_objectives:
+        data.learning_objectives || data.learningObjectives || [],
+      estimated_time_minutes:
+        data.estimated_time_minutes ?? data.estimatedTimeMinutes ?? null,
+    },
+    options,
+  );
+  return lessonBasicToLearningLesson(response);
+}
+
+export async function assignLessonToModule(lessonId, moduleId, options = {}) {
+  return requestJson(
+    `/lesson/assign/${encodeURIComponent(lessonId)}/${encodeURIComponent(moduleId)}`,
+    {
+      method: "POST",
+    },
+    options,
+  );
 }
 
 export async function updateModule(courseId, moduleId, changes) {
@@ -1216,8 +1499,16 @@ export async function updateModule(courseId, moduleId, changes) {
 }
 
 export async function updateLesson(courseId, lessonId, changes) {
-  if ("contentBlocks" in changes || "markdown" in changes) {
-    return updateLessonContentBlocks(lessonId, changes.contentBlocks || []);
+  if (
+    "contentBlocks" in changes ||
+    "content_blocks" in changes ||
+    "markdown" in changes
+  ) {
+    const contentBlocks =
+      "markdown" in changes
+        ? lessonChangesToPatch(changes).content_blocks
+        : changes.contentBlocks || changes.content_blocks || [];
+    return updateLessonContentBlocks(lessonId, contentBlocks);
   }
   const patch = withoutEmptyValues(lessonChangesToPatch(changes));
   if (!Object.keys(patch).length) return null;
@@ -1245,30 +1536,19 @@ export async function updateLessonContentBlocks(lessonId, contentBlocks) {
   });
 }
 
-export async function createCourse() {
-  throw new ApiError(
-    "Создание курса не подключено: endpoint отсутствует в Courses API.",
-    {
-      status: 404,
-    },
+export async function deleteModule(moduleId, options = {}) {
+  return requestJson(
+    `/module/${encodeURIComponent(moduleId)}`,
+    { method: "DELETE" },
+    options,
   );
 }
 
-export async function deleteModule() {
-  throw new ApiError(
-    "Удаление модуля не подключено: endpoint отсутствует в Courses API.",
-    {
-      status: 404,
-    },
-  );
-}
-
-export async function deleteLesson() {
-  throw new ApiError(
-    "Удаление урока не подключено: endpoint отсутствует в Courses API.",
-    {
-      status: 404,
-    },
+export async function deleteLesson(lessonId, options = {}) {
+  return requestJson(
+    `/lesson/${encodeURIComponent(lessonId)}`,
+    { method: "DELETE" },
+    options,
   );
 }
 
@@ -1280,21 +1560,58 @@ function normalizeAgentResponse(data) {
   };
 }
 
-export async function askInterviewerAgent(payload) {
+function toAgentChatPayload(payload = {}) {
+  return withoutEmptyValues({
+    chat_id: payload.chat_id || payload.chatId,
+    course_id: payload.course_id || payload.courseId,
+    role: payload.role || "user",
+    content: payload.content ?? payload.message ?? payload.prompt ?? "",
+  });
+}
+
+export async function askInterviewerAgent(payload, options = {}) {
   return normalizeAgentResponse(
-    await jsonRequest("/agent/interviewer", "POST", payload || {}),
+    await jsonRequest(
+      "/agent/interviewer",
+      "POST",
+      toAgentChatPayload(payload),
+      options,
+    ),
   );
 }
 
-export async function askMentorAgent(payload) {
+export async function askMentorAgent(payload, options = {}) {
   return normalizeAgentResponse(
-    await jsonRequest("/agent/mentor", "POST", payload || {}),
+    await jsonRequest(
+      "/agent/mentor",
+      "POST",
+      {
+        ...toAgentChatPayload(payload),
+        content_blocks: Array.isArray(payload.content_blocks)
+          ? payload.content_blocks
+          : [],
+      },
+      options,
+    ),
   );
 }
 
-export async function askEditorAgent(payload) {
-  const data = await jsonRequest("/agent/editor", "POST", payload || {});
-  const content = data?.response?.content;
+export async function askEditorAgent(payload = {}, options = {}) {
+  const data = await jsonRequest(
+    "/agent/editor",
+    "POST",
+    {
+      ...toAgentChatPayload(payload),
+      content_type: payload.content_type,
+      content_block: payload.content_block,
+      content_blocks: Array.isArray(payload.content_blocks)
+        ? payload.content_blocks
+        : [],
+      images: Array.isArray(payload.images) ? payload.images.slice(0, 5) : [],
+    },
+    options,
+  );
+  const content = data?.content;
   let parsedContent = null;
   if (typeof content === "string" && content.trim()) {
     try {
@@ -1303,5 +1620,5 @@ export async function askEditorAgent(payload) {
       parsedContent = null;
     }
   }
-  return { ...data, parsedContent };
+  return { ...normalizeAgentResponse(data), parsedContent };
 }

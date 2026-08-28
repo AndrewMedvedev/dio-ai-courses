@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from src.iam.dependencies.identity import CurrentIdentity
+from src.iam.dependencies import CurrentIdentity
 from src.shared.domain.exceptions import NotFoundError
 
 from .dependencies import AttachmentRepoDep, AttachmentServiceDep
@@ -43,10 +43,12 @@ async def create_presigned_upload_url(
     summary="Подтвердить загрузку и создать вложение",
 )
 async def confirm_upload(
-    current_user: CurrentIdentity, request: ConfirmUploadRequest, service: AttachmentServiceDep
+    identity: CurrentIdentity,
+    request: ConfirmUploadRequest,
+    service: AttachmentServiceDep,
 ) -> AttachmentResponse:
     """Подтверждает upload, чтобы завершить ранее начатую операцию."""
-    return await service.confirm_upload(request, uploaded_by=current_user.id)
+    return await service.confirm_upload(request, uploaded_by=identity.id)
 
 
 @router.get(

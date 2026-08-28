@@ -1,7 +1,10 @@
 // Полноценный футер с навигацией по продукту и служебными ссылками
 import { Link } from "react-router-dom";
 
-export default function Footer() {
+export default function Footer({
+  canCreateCourse = false,
+  canReadCourse = false,
+}) {
   return (
     <footer className="footer-shell">
       <div className="container footer">
@@ -17,8 +20,8 @@ export default function Footer() {
         </div>
         <div className="footer-column">
           <strong>Продукт</strong>
-          <Link to="/courses">Каталог курсов</Link>
-          <Link to="/creator">Создать курс</Link>
+          {canReadCourse && <Link to="/courses">Каталог курсов</Link>}
+          {canCreateCourse && <Link to="/creator">Создать курс</Link>}
         </div>
         <div className="footer-column">
           <strong>Аккаунт</strong>

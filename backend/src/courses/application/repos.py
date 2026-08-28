@@ -80,8 +80,8 @@ class LessonRepository(BasicInfoProtocol[Lesson, LessonBasicInfo]):
     ) -> None:
         """Заменяет контент-блок урока, чтобы сохранить результат редактирования."""
 
-    async def assign_module(self, lesson_ids: list[UUID], module_id: UUID) -> None:
-        """Привязывает уроки к модулю и фиксирует их принадлежность."""
+    async def assign_module(self, lesson_id: UUID, module_id: UUID) -> None:
+        """Привязывает один урок к модулю и фиксирует его принадлежность."""
 
 
 class ModuleRepository(BasicInfoProtocol[Module, ModuleBasicInfo]):
@@ -94,8 +94,9 @@ class ModuleRepository(BasicInfoProtocol[Module, ModuleBasicInfo]):
     принадлежащим модулю (`select_lessons_by_id_module`).
     """
 
-    async def assign_course(self, module_ids: list[UUID], course_id: UUID) -> None:
-        """Привязывает модули к курсу и сохраняет структуру курса."""
+    async def assign_course(self, module_id: UUID, course_id: UUID) -> None:
+        """Привязывает модуль к курсу и сохраняет структуру курса."""
+        ...
 
     async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
         """Выбирает краткие данные уроков, входящих в указанный модуль."""
@@ -112,8 +113,16 @@ class CourseRepository(BasicInfoProtocol[Course, CourseBasicInfo]):
     (`select_modules_by_id_course`).
     """
 
-    async def paginate(self, pagination: Pagination) -> Page[Course]: ...
+    async def find(
+        self,
+        pagination: Pagination,
+    ) -> Page[Course]: ...
 
+    async def find_user_courses(
+        self,
+        user_id: UUID,
+        pagination: Pagination,
+    ) -> Page[Course]: ...
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:
         """Выбирает краткие данные модулей, входящих в указанный курс."""
         ...

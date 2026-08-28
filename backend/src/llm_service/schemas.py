@@ -51,7 +51,7 @@ class LLMImageRequest(BaseModel):
 
     image: list[str] | None = Field(default=None, min_length=1, max_length=5)
     messages: str = Field(alias="prompt")
-    quality: Literal["standard", "hd", "low", "medium", "high", "auto"] = "high"
+    quality: Literal["standard", "hd", "low", "medium", "high", "auto"] = "medium"
     size: Literal["1024x1024", "1024x1536", "1536x1024"] | None = None
     output_format: str = "png"
 
@@ -121,13 +121,15 @@ class LLMTextServiceProtocol(LLMServiceProtocol):
 
     async def _process_tool(self, tool: ToolCallParsed) -> dict:
         """Описывает выполнение tool-call и преобразование результата для LLM."""
+        ...
 
     async def _process_response(
         self,
         response: LLMTextResponse,
+        messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        """Описывает обработку текстового ответа LLM перед возвратом вызывающему коду."""
+        """Обрабатывает ответ модели и продолжает tool-loop при необходимости."""
         ...
 
 

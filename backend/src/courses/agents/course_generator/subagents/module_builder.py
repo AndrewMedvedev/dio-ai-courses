@@ -10,12 +10,16 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
-from src.core.infrastructure import checkpointer, session_factory
+from src.core.infrastructure import session_factory
 from src.llm_service import LLMTextService
 
-from ....domain.entities import Lesson, Module
+from ....application.domain_dtos import LessonDict, ModuleDict
+from ....application.mappers import dict_to_module, module_to_dict
+from ....domain.entities import Module
 from ....infra.database.repos.module import SqlModuleRepository
 from ...schemas import Context, RuntimeContext
+from ..helper import invoke_or_resume
+from ..serializer import checkpointer
 from .lesson_builder import lesson_builder_agent
 from .prompts import ModuleStructure
 
@@ -31,12 +35,12 @@ class AgentState(TypedDict):
     order: int  # Порядковый номер модуля
     module_description: str  # Описание модуля из структуры курса
     module_structure: NotRequired[ModuleStructure]  # Структура/сценарий модуля
-    module: NotRequired[Module]  # Сгенерированный модуль
+    module: NotRequired[ModuleDict]  # Сгенерированный модуль
 
 
 async def plan_module_structure(
     state: AgentState,
-) -> dict[str, ModuleStructure | Module]:
+) -> dict[str, ModuleStructure | ModuleDict]:
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
@@ -74,13 +78,13 @@ async def plan_module_structure(
         learning_objectives=module_structure.learning_objectives,
         order=state["order"],
     )
-    return {"module_structure": module_structure, "module": module}
+    return {"module_structure": module_structure, "module": module_to_dict(module)}
 
 
 async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет модуль, чтобы результат был доступен после завершения операции."""
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
-    module = state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    module = dict_to_module(state["module"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
     try:
         await module_repos.create(module)
         logger.info("Saving module '%s' to database ...", module.title)
@@ -98,7 +102,7 @@ async def build_lesson(
     module_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
-) -> tuple[int, Lesson]:
+) -> tuple[int, LessonDict]:
     """Собирает урок из входных данных для следующего шага сценария."""
     lesson_thread_id = (
         f"course:{generation_context.course_id}:module:{module_order}:lesson:{order}"
@@ -107,8 +111,9 @@ async def build_lesson(
         "Generating lesson - %s, by description: '%s ...'", order, lesson_description[:150]
     )
     async with session_factory() as session:
-        result = await lesson_builder_agent.ainvoke(
-            {
+        result = await invoke_or_resume(
+            lesson_builder_agent,
+            input_data={
                 "generation_context": generation_context,
                 "module_id": module_id,
                 "audience_description": audience_description,
@@ -118,12 +123,11 @@ async def build_lesson(
             },
             config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
             context=RuntimeContext(db_session=session),
-            durability="sync",
         )
         return order, result["lesson"]
 
 
-async def generate_lessons(state: AgentState) -> dict[str, Module]:
+async def generate_lessons(state: AgentState) -> dict[str, ModuleDict]:
     """Генерация уроков по структуре модуля"""
 
     module_structure, module = state["module_structure"], state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
@@ -138,18 +142,18 @@ async def generate_lessons(state: AgentState) -> dict[str, Module]:
                     module_order=state["order"],
                     lesson_description=desc,
                     generation_context=state["generation_context"],
-                    module_id=module.id,
+                    module_id=module["id"],
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure.learning_objectives,
                 )
             )
-            for order, desc in enumerate(module_structure.lessons_descriptions)
+            for order, desc in enumerate(module_structure.lessons_descriptions, start=1)
         ]
 
     # Собираем результаты в правильном порядке
     lessons_by_order = sorted(task.result() for task in tasks)
     for _, lesson in lessons_by_order:
-        module.append_lesson(lesson)
+        module["lessons"].append(lesson)
 
     logger.info(
         "Successfully generated %s lessons, spent time %s seconds",

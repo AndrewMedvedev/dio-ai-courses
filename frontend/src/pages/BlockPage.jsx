@@ -123,9 +123,9 @@ export default function BlockPage({
             <div className="course-editor-panel block-editor-panel">
               <div className="course-editor-grid">
                 <label className="course-editor-field">
-                  <span>Название блока</span>
+                  <span>Название урока</span>
                   <input
-                    value={selectedBlock.title}
+                    value={selectedBlock.title || ""}
                     onChange={(event) =>
                       updateCourseBlock(selectedBlock.id, {
                         title: event.target.value,
@@ -136,7 +136,7 @@ export default function BlockPage({
                 <label className="course-editor-field">
                   <span>Длительность</span>
                   <input
-                    value={selectedBlock.duration}
+                    value={selectedBlock.duration || ""}
                     onChange={(event) =>
                       updateCourseBlock(selectedBlock.id, {
                         duration: event.target.value,
@@ -158,7 +158,7 @@ export default function BlockPage({
               </div>
               <div className="course-objectives-editor">
                 <div className="course-objectives-editor-head">
-                  <span>Цели блока</span>
+                  <span>Цели урока</span>
                   <button
                     type="button"
                     className="btn btn-outline"
@@ -170,7 +170,7 @@ export default function BlockPage({
                 {blockLearningObjectives.map((objective, index) => (
                   <div className="course-objective-row" key={index}>
                     <input
-                      value={objective}
+                      value={objective || ""}
                       placeholder={`Цель ${index + 1}`}
                       onChange={(event) =>
                         updateBlockObjective(index, event.target.value)
@@ -195,7 +195,7 @@ export default function BlockPage({
         </article>
 
         <article className="glass-card block-lessons-card">
-          <h3>Уроки блока</h3>
+          <h3>Уроки</h3>
           <ul className="lessons-progress-list">
             {selectedBlock.lessons.map((lesson, index) => (
               <li key={lesson.id}>
@@ -211,7 +211,7 @@ export default function BlockPage({
                       <label className="course-editor-field">
                         <span>Название урока</span>
                         <input
-                          value={lesson.title}
+                          value={lesson.title || ""}
                           onChange={(event) =>
                             updateLesson(lesson.id, {
                               title: event.target.value,
@@ -222,7 +222,7 @@ export default function BlockPage({
                       <label className="course-editor-field">
                         <span>Длительность</span>
                         <input
-                          value={lesson.duration}
+                          value={lesson.duration || ""}
                           onChange={(event) =>
                             updateLesson(lesson.id, {
                               duration: event.target.value,
@@ -317,7 +317,7 @@ export default function BlockPage({
                       <label className="course-editor-field">
                         <span>Название практики</span>
                         <input
-                          value={task.title}
+                          value={task.title || ""}
                           onChange={(event) =>
                             updatePractice(task.id, {
                               title: event.target.value,
@@ -328,7 +328,7 @@ export default function BlockPage({
                       <label className="course-editor-field">
                         <span>Длительность</span>
                         <input
-                          value={task.duration}
+                          value={task.duration || ""}
                           onChange={(event) =>
                             updatePractice(task.id, {
                               duration: event.target.value,

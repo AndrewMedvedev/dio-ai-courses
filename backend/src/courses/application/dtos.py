@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Literal
 
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from ..domain.entities import ContentBlock
-from ..domain.vo import ContentType, CourseStatus, DifficultyLevel
+from src.shared.application.dtos import BaseQueryParamFilters
+
+from ..domain.vo import ContentType, DifficultyLevel
 
 
 class Chat(BaseModel):
@@ -24,6 +26,10 @@ class EditorChat(Chat):
     images: list[str] = Field(default_factory=list, max_length=5)
 
 
+class MentorChat(Chat):
+    content_blocks: list = Field(default_factory=list)
+
+
 class EditorInfo(BaseModel):
     title: str | None = None
     description: str | None = None
@@ -34,12 +40,17 @@ class EditorInfo(BaseModel):
     estimated_time_minutes: int | None = None
 
 
+class LessonTheorySessionEditSchema(BaseModel):
+    completed_at: datetime | None = None
+    active_time_seconds: int | None = None
+    max_scroll_depth_percent: int | None = None
+
+
 class CourseSchema(BaseModel):
     title: str
     description: str
     difficulty: DifficultyLevel = DifficultyLevel.BEGINNER
     tags: list[str]
-    status: CourseStatus = CourseStatus.DRAFT
 
 
 class EditCourseSchema(BaseModel):
@@ -47,11 +58,9 @@ class EditCourseSchema(BaseModel):
     description: str | None = None
     difficulty: DifficultyLevel | None = None
     tags: list[str] | None = None
-    status: CourseStatus | None = None
 
 
 class ModuleSchema(BaseModel):
-    course_id: UUID
     title: str
     description: str
     order: int
@@ -59,7 +68,6 @@ class ModuleSchema(BaseModel):
 
 
 class EditModuleSchema(BaseModel):
-    course_id: UUID | None = None
     title: str | None = None
     description: str | None = None
     order: int | None = None
@@ -67,20 +75,21 @@ class EditModuleSchema(BaseModel):
 
 
 class LessonSchema(BaseModel):
-    module_id: UUID
     title: str
     description: str
     order: int
     learning_objectives: list[str]
-    content_blocks: list[ContentBlock]
     estimated_time_minutes: int | None = None
 
 
 class EditLessonSchema(BaseModel):
-    module_id: UUID | None = None
     title: str | None = None
     description: str | None = None
     order: int | None = None
     learning_objectives: list[str] | None = None
-    content_blocks: list[ContentBlock] | None = None
     estimated_time_minutes: int | None = None
+
+
+class LessonTheorySessionFilters(BaseQueryParamFilters):
+    created_from: datetime | None = None
+    created_to: datetime | None = None

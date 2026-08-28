@@ -18,7 +18,7 @@ from ..middlewares import (
 from ..prompts import INTERVIEWER_PROMPT, PROMPT_SUMMARIZE_CHAT
 from ..schemas import Context
 from ..tools import (
-    InterviewState,
+    State,
     complete_interview,
     get_content,
     get_table_of_contents,
@@ -36,7 +36,6 @@ class InterviewerAgent:
     async def call_agent(self, chat_id: UUID, context: Context) -> dict[str, Any] | str:
         """Выполняет действие `interviewer`, чтобы поддержать основной сценарий модуля."""
         agent = LLMTextService(
-            token=context.access_token,
             system_prompt=INTERVIEWER_PROMPT,
             tools={
                 "complete_interview": complete_interview,
@@ -60,7 +59,9 @@ class InterviewerAgent:
                 ),
                 ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
             ],
-            runtime=Runtime(context=context, state=InterviewState(chat_id=chat_id)),
+            runtime=Runtime(
+                context=context, state=State(chat_id=chat_id, db_session=self._session)
+            ),
         )
         result = await agent.invoke(messages=[{"role": "user", "content": context.prompt}])
         task_id = agent.runtime.state.task_id

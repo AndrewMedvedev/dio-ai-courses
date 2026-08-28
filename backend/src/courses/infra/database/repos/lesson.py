@@ -69,10 +69,10 @@ class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
 
     async def assign_module(
         self,
-        lesson_ids: list[UUID],
+        lesson_id: UUID,
         module_id: UUID,
     ) -> None:
-        """Связывает модуль с родительской сущностью и фиксирует это отношение."""
-        stmt = update(self.model).where(self.model.id.in_(lesson_ids)).values(module_id=module_id)
+        """Привязывает один урок к модулю и фиксирует это отношение."""
+        stmt = update(self.model).where(self.model.id == lesson_id).values(module_id=module_id)
 
         await self._session.execute(stmt)

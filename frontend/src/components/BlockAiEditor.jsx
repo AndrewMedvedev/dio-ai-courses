@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const quickPrompts = [
   "Сделай описание понятнее",
@@ -8,7 +8,8 @@ const quickPrompts = [
 
 function buildSuggestion(block, prompt) {
   const title = block.title.trim() || "Новый блок";
-  const description = block.description?.trim() || "Описание блока пока пустое.";
+  const description =
+    block.description?.trim() || "Описание блока пока пустое.";
 
   if (prompt.toLowerCase().includes("цели")) {
     return {
@@ -40,61 +41,108 @@ export default function BlockAiEditor({ block, onApply }) {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [draft, setDraft] = useState(null);
+  const [isResponding, setIsResponding] = useState(false);
+  const messagesRef = useRef(null);
+  const responseTimerRef = useRef(null);
 
   const canApply = useMemo(
     () =>
       draft &&
-      (draft.title !== block.title || draft.description !== (block.description || "")),
+      (draft.title !== block.title ||
+        draft.description !== (block.description || "")),
     [block.description, block.title, draft],
+  );
+
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+  }, [messages, isResponding]);
+
+  useEffect(
+    () => () => {
+      if (responseTimerRef.current) clearTimeout(responseTimerRef.current);
+    },
+    [],
   );
 
   const submitPrompt = (value = inputValue) => {
     const prompt = value.trim();
-    if (!prompt) {
+    if (!prompt || isResponding) {
       return;
     }
 
     const suggestion = buildSuggestion(block, prompt);
-    setDraft(suggestion);
+    const requestId = Date.now();
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-${Date.now()}`,
+        id: `user-${requestId}`,
         role: "user",
         text: prompt,
       },
-      {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        text: "Подготовил вариант. Проверь черновик ниже и примени, если подходит.",
-      },
     ]);
     setInputValue("");
+    setIsResponding(true);
+    responseTimerRef.current = setTimeout(() => {
+      setDraft(suggestion);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${requestId}`,
+          role: "assistant",
+          text: "Подготовил вариант. Проверь черновик ниже и примени, если подходит.",
+        },
+      ]);
+      setIsResponding(false);
+      responseTimerRef.current = null;
+    }, 500);
   };
 
   return (
     <div className="block-ai-editor">
       <div className="block-ai-editor-head">
-        <div>
-          <span>ИИ-редактор</span>
-          <strong>{block.title}</strong>
-        </div>
+        <span>ИИ-редактор</span>
       </div>
 
-      <div className="block-ai-messages">
+      <div
+        className="block-ai-messages"
+        ref={messagesRef}
+        aria-live="polite"
+        aria-busy={isResponding}
+      >
         {messages.map((message) => (
           <div
             key={message.id}
             className={`block-ai-message ${message.role === "user" ? "is-user" : "is-assistant"}`}
           >
-            {message.text}
+            <span>{message.text}</span>
+            {message.role === "user" && (
+              <span className="chat-message-status">✓ Отправлено</span>
+            )}
           </div>
         ))}
+        {isResponding && (
+          <div className="block-ai-message is-assistant is-thinking">
+            <span className="chat-thinking-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>Сообщение получено — готовлю вариант…</span>
+          </div>
+        )}
       </div>
 
       <div className="block-ai-quick">
         {quickPrompts.map((prompt) => (
-          <button key={prompt} type="button" onClick={() => submitPrompt(prompt)}>
+          <button
+            key={prompt}
+            type="button"
+            onClick={() => submitPrompt(prompt)}
+            disabled={isResponding}
+          >
             {prompt}
           </button>
         ))}
@@ -158,9 +206,9 @@ export default function BlockAiEditor({ block, onApply }) {
           type="button"
           className="btn btn-outline"
           onClick={() => submitPrompt()}
-          disabled={!inputValue.trim()}
+          disabled={!inputValue.trim() || isResponding}
         >
-          Отправить
+          {isResponding ? "Отправлено" : "Отправить"}
         </button>
       </div>
     </div>

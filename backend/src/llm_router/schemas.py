@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 
 from pydantic import BaseModel, Field
 
-from ..shared.schemas import Page
+from src.shared.application.dtos import Page
 
 
 class AIModelSchema(BaseModel):

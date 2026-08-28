@@ -191,7 +191,7 @@ body {
 .header {
     padding: 30px 0 40px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto;
     align-items: center;
     gap: 18px;
 }
@@ -202,6 +202,7 @@ body {
 
 .header > .nav {
     justify-self: center;
+    min-width: 0;
 }
 
 .breadcrumbs {
@@ -273,7 +274,10 @@ body {
 .nav {
     display: flex;
     align-items: center;
-    gap: 26px;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    min-width: 0;
 }
 
 .nav a,
@@ -288,6 +292,7 @@ body {
     border: 0;
     background: transparent;
     font: inherit;
+    font-size: clamp(0.82rem, 1.05vw, 1rem);
     font-weight: 700;
     line-height: 1.2;
     cursor: pointer;
@@ -356,6 +361,7 @@ body {
     align-items: center;
     gap: 10px;
     justify-self: end;
+    flex-shrink: 0;
 }
 
 .auth-links {

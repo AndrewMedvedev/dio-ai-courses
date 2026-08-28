@@ -7,6 +7,7 @@ export default function CoursesPage({
   openCourse,
   openCreator,
   deleteCourse,
+  canCreateCourse,
   canReadCourse,
   canDeleteCourse,
   isLoading = false,
@@ -96,6 +97,13 @@ export default function CoursesPage({
               >
                 <h3>{course.title}</h3>
                 <p>{course.description}</p>
+                {Array.isArray(course.tags) && course.tags.length > 0 && (
+                  <div className="course-meta-inline" aria-label="Теги курса">
+                    {course.tags.map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </div>
+                )}
                 {canDeleteCourse && (
                   <button
                     type="button"
@@ -149,19 +157,21 @@ export default function CoursesPage({
           )}
         </>
       )}
-      <aside className="courses-catalog-cta glass-card">
-        <div>
-          <span>Не нашли курс под свою цель?</span>
-          <h2>Создайте персональную программу обучения за несколько минут</h2>
-          <p>
-            Расскажите ИИ, какой навык хотите освоить, — он подготовит
-            структуру, уроки и практические задания под ваш уровень.
-          </p>
-        </div>
-        <button type="button" className="btn btn-solid" onClick={openCreator}>
-          Создать свой курс
-        </button>
-      </aside>
+      {canCreateCourse && (
+        <aside className="courses-catalog-cta glass-card">
+          <div>
+            <span>Не нашли курс под свою цель?</span>
+            <h2>Создайте персональную программу обучения за несколько минут</h2>
+            <p>
+              Расскажите ИИ, какой навык хотите освоить, — он подготовит
+              структуру, уроки и практические задания под ваш уровень.
+            </p>
+          </div>
+          <button type="button" className="btn btn-solid" onClick={openCreator}>
+            Создать свой курс
+          </button>
+        </aside>
+      )}
     </section>
   );
 }

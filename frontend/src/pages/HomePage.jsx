@@ -7,6 +7,8 @@ export default function HomePage({
   steps,
   openCreator,
   openCourses,
+  canCreateCourse = false,
+  canReadCourse = false,
 }) {
   return (
     <>
@@ -21,20 +23,24 @@ export default function HomePage({
               контролем прогресса.
             </p>
             <div className="hero-actions">
-              <button
-                type="button"
-                className="btn btn-solid"
-                onClick={openCreator}
-              >
-                Сгенерировать курс
-              </button>
-              <button
-                type="button"
-                className="btn btn-flat"
-                onClick={openCourses}
-              >
-                Каталог ИИ-курсов
-              </button>
+              {canCreateCourse && (
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={openCreator}
+                >
+                  Сгенерировать курс
+                </button>
+              )}
+              {canReadCourse && (
+                <button
+                  type="button"
+                  className="btn btn-flat"
+                  onClick={openCourses}
+                >
+                  Каталог ИИ-курсов
+                </button>
+              )}
             </div>
           </div>
 
@@ -126,15 +132,19 @@ export default function HomePage({
         </div>
       </section>
 
-      <section className="container cta glass-card" id="cta">
-        <div>
-          <h2>Запустите свой ИИ-курс сегодня</h2>
-          <p>Одна заявка и вы получаете структуру обучения под вашу задачу.</p>
-        </div>
-        <button type="button" className="btn btn-solid" onClick={openCreator}>
-          Старт генерации
-        </button>
-      </section>
+      {canCreateCourse && (
+        <section className="container cta glass-card" id="cta">
+          <div>
+            <h2>Запустите свой ИИ-курс сегодня</h2>
+            <p>
+              Одна заявка и вы получаете структуру обучения под вашу задачу.
+            </p>
+          </div>
+          <button type="button" className="btn btn-solid" onClick={openCreator}>
+            Старт генерации
+          </button>
+        </section>
+      )}
     </>
   );
 }

@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import TEXT, CheckConstraint, Enum, ForeignKey, Index, Integer, UniqueConstraint
+from sqlalchemy import (
+    TEXT,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,7 +43,6 @@ class CourseOrm(Base):
     creator_id: Mapped[UUID]
     image_url: Mapped[str | None] = mapped_column(nullable=True)
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    assignment: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     modules: Mapped[list[ModuleOrm]] = relationship(
         back_populates="course",
@@ -41,7 +50,7 @@ class CourseOrm(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    users: Mapped[list[CourseUserOrm]] = relationship(back_populates="course")
+    users: Mapped[list[StudentsOrm]] = relationship(back_populates="course")
 
 
 class ModuleOrm(Base):
@@ -54,7 +63,6 @@ class ModuleOrm(Base):
     description: Mapped[str] = mapped_column(TEXT)
     order: Mapped[int | None] = mapped_column(nullable=True)
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
-    assignment: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     course: Mapped[CourseOrm | None] = relationship(back_populates="modules")
     lessons: Mapped[list[LessonOrm]] = relationship(
@@ -82,32 +90,55 @@ class LessonOrm(Base):
         ContentBlockListType,
         default=list,
     )
-    assignment: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     module: Mapped[ModuleOrm | None] = relationship(back_populates="lessons")
 
     __table_args__ = (Index("ix_lessons_module_id", "module_id"),)
 
 
+class LessonTheorySessionOrm(Base):
+    __tablename__ = "lesson_theory_sessions"
+
+    __table_args__ = (
+        CheckConstraint(
+            "active_time_seconds >= 0",
+            name="ck_lesson_theory_session_active_time_non_negative",
+        ),
+        CheckConstraint(
+            "max_scroll_depth_percent BETWEEN 0 AND 100",
+            name="ck_lesson_theory_session_scroll_depth_range",
+        ),
+    )
+
+    lesson_id: Mapped[UUID] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[UUID]
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    active_time_seconds: Mapped[int] = mapped_column(default=0)
+    max_scroll_depth_percent: Mapped[int] = mapped_column(default=0)
+
+
 class ChatOrm(Base):
     __tablename__ = "chats"
+
     user_id: Mapped[UUID]
     course_id: Mapped[UUID]
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 
-class CourseUserOrm(Base):
-    __tablename__ = "course_users"
+class StudentsOrm(Base):
+    __tablename__ = "students"
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))
     user_id: Mapped[UUID]
-    role: Mapped[str] = mapped_column(TEXT)
 
     course: Mapped[CourseOrm] = relationship(back_populates="users")
 
     __table_args__ = (
-        UniqueConstraint("course_id", "user_id", name="uq_course_user"),
-        Index("ix_course_users_user_id", "user_id"),
+        UniqueConstraint("course_id", "user_id", name="uq_student"),
+        Index("ix_students_user_id", "user_id"),
     )
 
 

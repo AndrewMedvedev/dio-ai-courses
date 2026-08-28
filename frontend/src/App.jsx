@@ -21,14 +21,15 @@ import PracticePage from "./pages/PracticePage";
 import CreatorPage from "./pages/CreatorPage";
 import ManualCourseBuilderPage from "./pages/ManualCourseBuilderPage";
 import ProfilePage from "./pages/ProfilePage";
+import OrganizationsPage from "./pages/OrganizationsPage";
 import AuthPage from "./pages/AuthPage";
 import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
 import { getRouteState } from "./utils/routeState";
 import { useTeacherGroups } from "./hooks/useTeacherGroups";
-import { buildManualCourse } from "./utils/manualCourseFactory";
 import {
   COURSE_PERMISSIONS,
+  ORGANIZATION_PERMISSIONS,
   usePermissionStore,
 } from "./stores/permissionStore";
 import { useSessionStore } from "./stores/sessionStore";
@@ -37,6 +38,7 @@ import {
   getCourse,
   getLessonBasicInfo,
   getModuleBasicInfo,
+  isTokenExpired,
   isUuid,
   updateCourse as updateCourseApi,
   updateLesson as updateLessonApi,
@@ -101,14 +103,20 @@ const mergeLesson = (course, nextLesson) => ({
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
-  const loadPermissions = usePermissionStore((state) => state.loadPermissions);
+  const setPermissionsFromIdentity = usePermissionStore(
+    (state) => state.setPermissionsFromIdentity,
+  );
   const resetPermissions = usePermissionStore(
     (state) => state.resetPermissions,
   );
   const hasPermission = usePermissionStore((state) => state.hasPermission);
+  const hasAnyPermission = usePermissionStore(
+    (state) => state.hasAnyPermission,
+  );
   const arePermissionsLoaded = usePermissionStore((state) => state.isLoaded);
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
+  const expiresAt = useSessionStore((state) => state.expiresAt);
   const loadIdentity = useSessionStore((state) => state.loadIdentity);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const [initialRouteState] = useState(() =>
@@ -123,6 +131,7 @@ function AppContent() {
   const [coursesPageSize] = useState(9);
   const [coursesTotalPages, setCoursesTotalPages] = useState(1);
   const [coursesTotal, setCoursesTotal] = useState(0);
+  const coursesPageRequestRef = useRef(0);
   const courseRequestRef = useRef(0);
   const moduleRequestRef = useRef(0);
   const lessonRequestRef = useRef(0);
@@ -159,8 +168,27 @@ function AppContent() {
     simulateStudyTick,
     teacherLeaderboard,
   } = useTeacherGroups(editableCourses, "");
-  const isAuthenticated = Boolean(accessToken && refreshToken);
-  const canReadCourse = true;
+  const isAuthenticated = Boolean(
+    accessToken && refreshToken && expiresAt && !isTokenExpired(expiresAt),
+  );
+  const canCreateCourse =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(COURSE_PERMISSIONS.CREATE);
+  const canReadCourse =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(COURSE_PERMISSIONS.READ);
+  const canOpenCourse =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasAnyPermission([
+      COURSE_PERMISSIONS.READ,
+      COURSE_PERMISSIONS.COURSE_READ,
+      COURSE_PERMISSIONS.UPDATE,
+    ]);
+  const canBrowseCourses = !isAuthenticated || canReadCourse;
+  const canViewCourseInfo = !isAuthenticated || canOpenCourse;
   const canUpdateCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
@@ -169,9 +197,30 @@ function AppContent() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(COURSE_PERMISSIONS.DELETE);
-  const protectedElement = (element) => (
-    <ProtectedRoute>{element}</ProtectedRoute>
-  );
+  const canCreateOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(ORGANIZATION_PERMISSIONS.CREATE);
+  const canReadOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(ORGANIZATION_PERMISSIONS.READ);
+  const canReadOwnOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(ORGANIZATION_PERMISSIONS.ORGANIZATION_READ);
+  const canUpdateOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(ORGANIZATION_PERMISSIONS.UPDATE);
+  const canDeleteOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(ORGANIZATION_PERMISSIONS.DELETE);
+  const canManageOrganizations =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasAnyPermission(Object.values(ORGANIZATION_PERMISSIONS));
 
   useEffect(() => {
     if (!accessToken || !refreshToken) {
@@ -179,27 +228,28 @@ function AppContent() {
       return;
     }
 
-    loadIdentity();
+    loadIdentity().then((identity) => {
+      setPermissionsFromIdentity(identity);
+    });
     loadCurrentUser();
-    loadPermissions();
   }, [
     accessToken,
     refreshToken,
     loadIdentity,
     loadCurrentUser,
-    loadPermissions,
     resetPermissions,
+    setPermissionsFromIdentity,
   ]);
 
   useEffect(() => {
-    if (!canReadCourse) {
+    if (!canBrowseCourses) {
       setEditableCourses([]);
       setCoursesError("");
       return undefined;
     }
 
-    const requestId = courseRequestRef.current + 1;
-    courseRequestRef.current = requestId;
+    const requestId = coursesPageRequestRef.current + 1;
+    coursesPageRequestRef.current = requestId;
     const controller = new AbortController();
     setCoursesLoading(true);
     setCoursesError("");
@@ -209,7 +259,7 @@ function AppContent() {
       { signal: controller.signal },
     )
       .then((response) => {
-        if (courseRequestRef.current !== requestId) return;
+        if (coursesPageRequestRef.current !== requestId) return;
         setEditableCourses(response.items);
         setCoursesTotalPages(response.total_pages || 1);
         setCoursesTotal(response.total || response.items.length);
@@ -220,7 +270,7 @@ function AppContent() {
       .catch((error) => {
         if (
           controller.signal.aborted ||
-          courseRequestRef.current !== requestId
+          coursesPageRequestRef.current !== requestId
         ) {
           return;
         }
@@ -232,13 +282,13 @@ function AppContent() {
         setCoursesTotal(0);
       })
       .finally(() => {
-        if (courseRequestRef.current === requestId) {
+        if (coursesPageRequestRef.current === requestId) {
           setCoursesLoading(false);
         }
       });
 
     return () => controller.abort();
-  }, [canReadCourse, coursesPage, coursesPageSize]);
+  }, [canBrowseCourses, coursesPage, coursesPageSize]);
 
   useEffect(() => {
     if (!location.pathname.startsWith("/course")) {
@@ -251,6 +301,39 @@ function AppContent() {
     setSelectedLessonId(routeState.lessonId);
     setSelectedPracticeId(routeState.practiceId);
   }, [editableCourses, location.pathname]);
+
+  useEffect(() => {
+    if (
+      !canViewCourseInfo ||
+      !selectedCourseId ||
+      editableCourses.some((course) => course.id === selectedCourseId)
+    ) {
+      return;
+    }
+
+    const requestId = courseRequestRef.current + 1;
+    courseRequestRef.current = requestId;
+    setCoursesLoading(true);
+    setCoursesError("");
+
+    getCourse(selectedCourseId)
+      .then((nextCourse) => {
+        if (courseRequestRef.current !== requestId) return;
+        setEditableCourses((prev) => mergeCourse(prev, nextCourse));
+      })
+      .catch((error) => {
+        if (courseRequestRef.current === requestId) {
+          setCoursesError(
+            error.userMessage || error.message || "Не удалось загрузить курс.",
+          );
+        }
+      })
+      .finally(() => {
+        if (courseRequestRef.current === requestId) {
+          setCoursesLoading(false);
+        }
+      });
+  }, [canViewCourseInfo, editableCourses, selectedCourseId]);
 
   const selectedCourse =
     editableCourses.find((course) => course.id === selectedCourseId) ||
@@ -377,11 +460,15 @@ function AppContent() {
   };
 
   const openCreator = () => {
+    if (!canCreateCourse) {
+      return;
+    }
+
     navigate("/creator");
   };
 
   const openCourse = async (courseId) => {
-    if (!canReadCourse || !courseId) {
+    if (!canBrowseCourses || !courseId) {
       return;
     }
 
@@ -391,7 +478,13 @@ function AppContent() {
     setCoursesError("");
 
     try {
-      const nextCourse = await getCourse(courseId);
+      const localCourse = editableCourses.find(
+        (course) => course.id === courseId,
+      );
+      const nextCourse =
+        localCourse && !isUuid(courseId)
+          ? localCourse
+          : await getCourse(courseId);
       if (courseRequestRef.current !== requestId) return;
       setEditableCourses((prev) => mergeCourse(prev, nextCourse));
       setSelectedCourseId(nextCourse.id);
@@ -428,7 +521,7 @@ function AppContent() {
   };
 
   const openBlock = async (blockId) => {
-    if (!blockId || !selectedCourse.id) return;
+    if (!canOpenCourse || !blockId || !selectedCourse.id) return;
     const requestId = moduleRequestRef.current + 1;
     moduleRequestRef.current = requestId;
     setCoursesError("");
@@ -464,6 +557,10 @@ function AppContent() {
   };
 
   const openBlockInEditMode = async (blockId) => {
+    if (!canUpdateCourse) {
+      return;
+    }
+
     await openBlock(blockId);
     navigate(`/course/${selectedCourse.id}/edit/block/${blockId}`);
   };
@@ -473,12 +570,16 @@ function AppContent() {
   };
 
   const openBlockPageInEditMode = async (blockId) => {
+    if (!canUpdateCourse) {
+      return;
+    }
+
     await openBlock(blockId);
     navigate(`/course/${selectedCourse.id}/edit/block/${blockId}`);
   };
 
   const openLesson = async (lessonId) => {
-    if (!lessonId || !selectedCourse.id) return;
+    if (!canOpenCourse || !lessonId || !selectedCourse.id) return;
     const requestId = lessonRequestRef.current + 1;
     lessonRequestRef.current = requestId;
     setCoursesError("");
@@ -515,6 +616,10 @@ function AppContent() {
   };
 
   const openLessonInEditMode = async (lessonId) => {
+    if (!canUpdateCourse) {
+      return;
+    }
+
     await openLesson(lessonId);
     navigate(`/course/${selectedCourse.id}/edit/lesson/${lessonId}`);
   };
@@ -543,6 +648,10 @@ function AppContent() {
   };
 
   const openPractice = (practiceId) => {
+    if (!canOpenCourse) {
+      return;
+    }
+
     const nextBlock = selectedCourse.blocks.find((block) =>
       (block.practice || []).some((practice) => practice.id === practiceId),
     );
@@ -555,6 +664,10 @@ function AppContent() {
   };
 
   const openPracticeInEditMode = (practiceId) => {
+    if (!canUpdateCourse) {
+      return;
+    }
+
     const nextBlock = selectedCourse.blocks.find((block) =>
       (block.practice || []).some((practice) => practice.id === practiceId),
     );
@@ -567,6 +680,10 @@ function AppContent() {
   };
 
   const openCourseInEditMode = () => {
+    if (!canUpdateCourse) {
+      return;
+    }
+
     navigate(`/course/${selectedCourse.id}/edit`);
   };
 
@@ -947,27 +1064,21 @@ function AppContent() {
     }
   };
 
-  const createManualCourse = async ({ title, modules, lessons, blocks }) => {
-    const courseId = `manual-course-${Date.now()}`;
-    const nextCourse = buildManualCourse({
-      title,
-      modules,
-      lessons,
-      blocks,
-      courseId,
-    });
+  const createManualCourse = async ({ courseId }) => {
+    if (!canCreateCourse || !courseId) {
+      return;
+    }
 
-    const applyCourse = (course) => {
-      setEditableCourses((prev) => [...prev, course]);
-      setSelectedCourseId(course.id);
-      setSelectedBlockId(course.blocks[0].id);
-      setSelectedLessonId(course.blocks[0].lessons[0].id);
-      setSelectedPracticeId(course.blocks[0].practice[0]?.id ?? null);
-      setIsCourseEditMode(true);
-      navigate(`/course/${course.id}`);
-    };
+    const course = await getCourse(courseId);
+    const firstBlock = course.blocks?.[0];
 
-    applyCourse(nextCourse);
+    setEditableCourses((prev) => mergeCourse(prev, course));
+    setSelectedCourseId(course.id);
+    setSelectedBlockId(firstBlock?.id ?? null);
+    setSelectedLessonId(firstBlock?.lessons?.[0]?.id ?? null);
+    setSelectedPracticeId(firstBlock?.practice?.[0]?.id ?? null);
+    setIsCourseEditMode(true);
+    navigate(`/course/${course.id}/edit`);
   };
 
   return (
@@ -1014,6 +1125,9 @@ function AppContent() {
 
       <Header
         theme={theme}
+        canCreateCourse={canCreateCourse}
+        canReadCourse={canBrowseCourses}
+        canManageOrganizations={canManageOrganizations}
         toggleTheme={() =>
           setTheme((prev) => (prev === "light" ? "dark" : "light"))
         }
@@ -1046,6 +1160,8 @@ function AppContent() {
                     steps={steps}
                     openCreator={openCreator}
                     openCourses={openCourses}
+                    canCreateCourse={canCreateCourse}
+                    canReadCourse={canBrowseCourses}
                   />
                 }
               />
@@ -1059,7 +1175,8 @@ function AppContent() {
                     openCourse={openCourse}
                     openCreator={openCreator}
                     deleteCourse={deleteCourse}
-                    canReadCourse={canReadCourse}
+                    canCreateCourse={canCreateCourse}
+                    canReadCourse={canBrowseCourses}
                     canDeleteCourse={canDeleteCourse}
                     isLoading={coursesLoading}
                     error={coursesError}
@@ -1072,7 +1189,11 @@ function AppContent() {
                 }
               />
 
-              <Route element={<ProtectedRoute />}>
+              <Route
+                element={
+                  <ProtectedRoute permission={COURSE_PERMISSIONS.UPDATE} />
+                }
+              >
                 <Route
                   path="/course/:courseId/edit"
                   element={
@@ -1087,7 +1208,7 @@ function AppContent() {
                       openPractice={openPracticeInEditMode}
                       isCourseEditMode={isCourseEditMode}
                       setIsCourseEditMode={setIsCourseEditMode}
-                      canReadCourse={canReadCourse}
+                      canReadCourse={canOpenCourse}
                       canUpdateCourse={canUpdateCourse}
                       canDeleteCourse={canDeleteCourse}
                       deleteCourse={deleteCourse}
@@ -1161,20 +1282,48 @@ function AppContent() {
               </Route>
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/register" element={<AuthPage mode="register" />} />
-              <Route element={<ProtectedRoute />}>
-                <Route path="/course/:courseId" element={<CourseViewer />} />
+              <Route
+                path="/course/:courseId"
+                element={<CourseViewer localCourse={selectedCourse} />}
+              />
+              <Route
+                path="/course/:courseId/block/:blockId"
+                element={<CourseViewer localCourse={selectedCourse} />}
+              />
+              <Route
+                path="/course/:courseId/lesson/:lessonId"
+                element={<CourseViewer localCourse={selectedCourse} />}
+              />
+              <Route
+                path="/course/:courseId/practice/:practiceId"
+                element={<CourseViewer localCourse={selectedCourse} />}
+              />
+              <Route
+                element={
+                  <ProtectedRoute
+                    permissions={Object.values(ORGANIZATION_PERMISSIONS)}
+                    requireAll={false}
+                  />
+                }
+              >
                 <Route
-                  path="/course/:courseId/block/:blockId"
-                  element={<CourseViewer />}
+                  path="/organizations"
+                  element={
+                    <OrganizationsPage
+                      canCreateOrganization={canCreateOrganization}
+                      canReadOrganization={canReadOrganization}
+                      canReadOwnOrganization={canReadOwnOrganization}
+                      canUpdateOrganization={canUpdateOrganization}
+                      canDeleteOrganization={canDeleteOrganization}
+                    />
+                  }
                 />
-                <Route
-                  path="/course/:courseId/lesson/:lessonId"
-                  element={<CourseViewer />}
-                />
-                <Route
-                  path="/course/:courseId/practice/:practiceId"
-                  element={<CourseViewer />}
-                />
+              </Route>
+              <Route
+                element={
+                  <ProtectedRoute permission={COURSE_PERMISSIONS.CREATE} />
+                }
+              >
                 <Route path="/creator" element={<CreatorPage />} />
                 <Route
                   path="/manual-course-builder"
@@ -1184,6 +1333,8 @@ function AppContent() {
                     />
                   }
                 />
+              </Route>
+              <Route element={<ProtectedRoute />}>
                 <Route
                   path="/profile"
                   element={
@@ -1223,6 +1374,7 @@ function AppContent() {
                       simulateStudyTick={simulateStudyTick}
                       teacherLeaderboard={teacherLeaderboard}
                       openCreator={openCreator}
+                      canCreateCourse={canCreateCourse}
                     />
                   }
                 />
@@ -1232,7 +1384,7 @@ function AppContent() {
           </>
         )}
       </main>
-      <Footer />
+      <Footer canCreateCourse={canCreateCourse} canReadCourse={canReadCourse} />
     </div>
   );
 }

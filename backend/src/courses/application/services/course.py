@@ -5,7 +5,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.shared.application.dtos import Page, Pagination
 from src.shared.domain.exceptions import NotFoundError
 
 from ...application.dtos import (
@@ -13,6 +12,7 @@ from ...application.dtos import (
     EditCourseSchema,
 )
 from ...domain.entities import Course
+from ...domain.vo import CourseStatus
 from ..repos import (
     CourseRepository,
 )
@@ -38,12 +38,16 @@ class CourseService(BaseCourseService[CourseRepository]):
         await self.session.commit()
         return course
 
-    async def read_course_with_pagination(self, pagination: Pagination) -> Page[Course]:
-        return await self.repo.paginate(pagination)
-
     async def delete(self, course_id: UUID) -> None:
         course_exists = await self.repo.exists(course_id)
         if not course_exists:
             raise NotFoundError(f"Course with id {course_id} not found")
         await self.repo.delete(course_id)
+        await self.session.commit()
+
+    async def change_status(self, course_id: UUID, status: CourseStatus) -> None:
+        course_exists = await self.repo.exists(course_id)
+        if not course_exists:
+            raise NotFoundError(f"Course with id {course_id} not found")
+        await self.repo.update(uid=course_id, status=status)
         await self.session.commit()

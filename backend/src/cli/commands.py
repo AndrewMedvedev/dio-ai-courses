@@ -8,7 +8,14 @@ from src.core.settings import settings
 from src.iam.domain.entities import Membership, Permission, Role, User
 from src.iam.domain.permissions.registry import get_permissions
 from src.iam.domain.types import RoleId
-from src.iam.domain.vo import Email, FullName, PasswordHash, PermissionGrant, Username
+from src.iam.domain.vo import (
+    Email,
+    FullName,
+    PasswordHash,
+    PermissionGrant,
+    PermissionScope,
+    Username,
+)
 from src.iam.infra.database.repos.membership import SqlMembershipRepository
 from src.iam.infra.database.repos.permission import SqlPermissionRepository
 from src.iam.infra.database.repos.role import SqlRoleRepository
@@ -20,6 +27,7 @@ from src.organization.infra.repos import SqlOrganizationRepository
 logger = logging.getLogger(__name__)
 
 ADMIN_ROLE_CODE = "admin"
+USER_ROLE_CODE = "user"
 SYSTEM_PERMISSION_MODULES = (
     "src.iam.domain.permissions.permissions",
     "src.iam.domain.permissions.users",
@@ -41,6 +49,46 @@ def _build_admin_user(admin_email: Email) -> User:
         full_name=FullName("System Admin"),
         password_hash=PasswordHash(hash_password(settings.admin.password)),
     )
+
+
+def _build_user(user_email: Email) -> User:
+    return User(
+        email=user_email,
+        username=Username("user"),
+        full_name=FullName("little user"),
+        password_hash=PasswordHash(hash_password("12345")),
+    )
+
+
+async def _get_or_create_user_role(session: AsyncSession) -> Role:
+    _load_system_permission_modules()
+    role_repo = SqlRoleRepository(session)
+
+    if role := await role_repo.get_by_code(USER_ROLE_CODE):
+        return role
+
+    role = Role(
+        name="User",
+        code=USER_ROLE_CODE,
+        description="Built-in role with user system permissions.",
+        permissions={
+            PermissionGrant(permission=data["permission"], scope=PermissionScope(data["scope"]))
+            for data in [
+                {"scope": "own", "permission": "permissions.read"},
+                {"scope": "own", "permission": "course.read"},
+                {"scope": "course", "permission": "course.course_read"},
+                {"scope": "object", "permission": "course.read"},
+                {"scope": "own", "permission": "users.update"},
+                {"scope": "course", "permission": "course.read"},
+                {"scope": "organization", "permission": "course.read"},
+                {"scope": "own", "permission": "organization.organization_read"},
+            ]
+        },
+        is_default=True,
+    )
+    await role_repo.create(role)
+    logger.info("User role created successfully")
+    return role
 
 
 async def _get_or_create_admin_role(session: AsyncSession) -> Role:
@@ -105,6 +153,24 @@ async def create_first_admin() -> None:
         logger.info("First admin created successfully")
 
 
+async def create_user_admin() -> None:
+    """Создание системного администратора"""
+
+    async with session_factory() as session:
+        user_repo = SqlUserRepository(session)
+        user_email = Email("user@user.com")
+
+        exists = await user_repo.get_by_email(user_email)
+        if exists:
+            logger.warning("User already exists")
+            return
+
+        user = _build_user(user_email)
+        await user_repo.create(user)
+        await session.commit()
+        logger.info("First user created successfully")
+
+
 async def create_default_organization() -> None:
     """Создание системной организации и назначение первого администратора."""
 
@@ -114,10 +180,17 @@ async def create_default_organization() -> None:
         membership_repo = SqlMembershipRepository(session)
 
         admin_email = Email(settings.admin.email)
+        user_email = Email("user@user.com")
+
         admin = await user_repo.get_by_email(admin_email)
+        user = await user_repo.get_by_email(user_email)
         if admin is None:
             admin = _build_admin_user(admin_email)
             await user_repo.create(admin)
+            logger.info("First admin created successfully")
+        if user is None:
+            user = _build_user(user_email)
+            await user_repo.create(user)
             logger.info("First admin created successfully")
 
         organization = await organization_repo.get_by_email(settings.admin.email)
@@ -131,21 +204,37 @@ async def create_default_organization() -> None:
             logger.info("Default organization created successfully")
 
         admin_role = await _get_or_create_admin_role(session)
-        membership = await membership_repo.get_by_user_and_organization(
+        user_role = await _get_or_create_user_role(session)
+
+        membership_admin = await membership_repo.get_by_user_and_organization(
             admin.id,
             organization.id,
         )
-        if membership:
-            logger.warning("Admin membership already exists")
-            await session.commit()
-            return
-
-        await membership_repo.create(
-            Membership(
-                user_id=admin.id,
-                organization_id=organization.id,
-                roles={RoleId(admin_role.id)},
-            )
+        membership_user = await membership_repo.get_by_user_and_organization(
+            user.id,
+            organization.id,
         )
+        if membership_admin:
+            logger.warning("Admin membership already exists")
+        else:
+            await membership_repo.create(
+                Membership(
+                    user_id=admin.id,
+                    organization_id=organization.id,
+                    roles={RoleId(admin_role.id)},
+                )
+            )
+
+        if membership_user:
+            logger.warning("User membership already exists")
+        else:
+            await membership_repo.create(
+                Membership(
+                    user_id=user.id,
+                    organization_id=organization.id,
+                    roles={RoleId(user_role.id)},
+                )
+            )
+
         await session.commit()
         logger.info("First admin assigned to default organization successfully")

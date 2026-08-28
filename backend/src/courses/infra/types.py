@@ -10,39 +10,20 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator
 
-from ..domain.entities import (
-    AnyContentBlock,
-    ChemicalBlock,
-    CodeBlock,
-    MathBlock,
-    MermaidBlock,
-    MusicalBlock,
-    QuizBlock,
-    TextBlock,
-    VideoBlock,
-)
-from ..domain.vo import (
-    ExtendedContentType,
-)
-
-_BLOCK_REGISTRY: dict[str, type[AnyContentBlock]] = {
-    ExtendedContentType.TEXT: TextBlock,
-    ExtendedContentType.VIDEO: VideoBlock,
-    ExtendedContentType.PROGRAM_CODE: CodeBlock,
-    ExtendedContentType.QUIZ: QuizBlock,
-    ExtendedContentType.MERMAID: MermaidBlock,
-    ExtendedContentType.MATH_FORMULA: MathBlock,
-    ExtendedContentType.CHEMICAL_FORMULA: ChemicalBlock,
-    ExtendedContentType.MUSICAL_NOTATION: MusicalBlock,
-}
+from ..domain.constants import _BLOCK_REGISTRY, ExtendedContentType
+from ..domain.entities import AnyContentBlock, QuizBlock
 
 
 def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:
-    """Выполняет действие `block_from_dict`, чтобы поддержать основной сценарий модуля."""
-    block_cls = _BLOCK_REGISTRY[data["content_type"]]
+    content_type = ExtendedContentType(data["content_type"])
+    block_cls = _BLOCK_REGISTRY[content_type]
+
     kwargs = dict(data)
+    kwargs["content_type"] = content_type
+
     if block_cls is QuizBlock and "questions" in kwargs:
         kwargs["questions"] = [tuple(q) for q in kwargs["questions"]]
+
     return block_cls(**kwargs)
 
 

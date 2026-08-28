@@ -2,6 +2,7 @@ from typing import Any
 
 import asyncio
 import json
+import logging
 import re
 import uuid
 
@@ -12,119 +13,229 @@ from openai.types.responses.response import Response
 
 from src.core.infrastructure import redis_client
 from src.llm_service.schemas import LLMTextResponse, ToolCallParsed
+from src.shared.application.dtos import Page
 from src.shared.domain.exceptions import NotFoundError
-from src.shared.schemas import Page
 
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?```", re.DOTALL | re.IGNORECASE)
-_JSON_OBJECT_RE = re.compile(r"(\{[\s\S]*?\})", re.DOTALL)
+logger = logging.getLogger(__name__)
 
 
-def extract_json(text: str) -> dict:
-    """Самый надёжный и быстрый парсер JSON от LLM."""
+_JSON_FENCE_RE = re.compile(
+    r"\A\s*```(?:json)?\s*\n(.*)\n```\s*\Z",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+class StructuredOutputError(ValueError):
+    """Модель не смогла вернуть ожидаемый structured output."""
+
+
+def extract_json(text: str) -> dict[str, Any]:
+    """
+    Извлекает из ответа LLM JSON-объект.
+
+    Возвращает только dict.
+    JSON-массивы, строки, числа и другие JSON-типы считаются
+    некорректным structured output.
+    """
     if not text or not text.strip():
-        raise json.JSONDecodeError("Empty response", "", 0)
+        raise StructuredOutputError("LLM returned empty structured output")
 
     text = text.strip()
 
-    # 1. Fenced block
-    match = _JSON_FENCE_RE.search(text)
+    # Снимаем внешний markdown-фенс, только если он оборачивает
+    # ВЕСЬ ответ целиком (заякорено к началу/концу строки).
+    # Это не даёт зацепить фенсы, которые встречаются внутри
+    # значений полей (например, ```dockerfile ... ``` в поле "code"
+    # или ```mermaid ... ``` в поле "md_content").
+    match = _JSON_FENCE_RE.match(text)
     if match:
         text = match.group(1).strip()
 
-    # 2. Основной путь — repair + orjson (самый эффективный)
-    try:
-        repaired = repair_json(text, return_objects=False)
-        return orjson.loads(repaired)
-    except Exception:  # ruff:ignore[blind-except, try-except-pass]
-        pass
+    candidates: list[str] = [text]
 
-    # 3. Fallback: поиск JSON-объекта в тексте
-    match = _JSON_OBJECT_RE.search(text)
-    if match:
-        try:
-            repaired = repair_json(match.group(1), return_objects=False)
-            return orjson.loads(repaired)
-        except Exception:  # ruff:ignore[blind-except, try-except-pass]
-            pass
-
-    # 4. Последний вариант — обрезка по скобкам
+    # Дополнительный кандидат:
+    # всё между первой открывающей и последней закрывающей фигурной скобкой.
     start = text.find("{")
     end = text.rfind("}")
+
     if start != -1 and end > start:
+        object_candidate = text[start : end + 1]
+
+        if object_candidate != text:
+            candidates.append(object_candidate)
+
+    for candidate in candidates:
         try:
-            repaired = repair_json(text[start : end + 1], return_objects=False)
-            return orjson.loads(repaired)
-        except Exception:  # ruff:ignore[blind-except, try-except-pass]
-            pass
+            repaired = repair_json(
+                candidate,
+                return_objects=False,
+            )
 
-    raise json.JSONDecodeError("Could not parse JSON from LLM response", text[:400], 0)
+            parsed = orjson.loads(repaired)
+
+            if isinstance(parsed, dict):
+                return parsed
+
+        except Exception:  # ruff: ignore[blind-except, try-except-continue]
+            continue
+
+    raise StructuredOutputError(
+        f"LLM response does not contain a valid JSON object. Response: {text[:500]!r}"
+    )
 
 
-# ==================== ОСНОВНОЙ ПАРСЕР ОТВЕТА ====================
+def _expects_structured_output(
+    text_format: dict[str, Any] | None,
+) -> bool:
+    """Проверяет, ожидает ли текущий запрос JSON Schema response."""
+
+    if text_format is None:
+        return False
+
+    format_data = text_format.get("format")
+
+    if not isinstance(format_data, dict):
+        return False
+
+    return format_data.get("type") == "json_schema"
+
+
+def _normalize_input_messages(
+    input_messages: list[dict[str, Any]] | str,
+) -> list[dict[str, Any]]:
+    """Приводит вход LLM к единому формату истории сообщений."""
+
+    if isinstance(input_messages, str):
+        return [
+            {
+                "role": "user",
+                "content": input_messages,
+            }
+        ]
+
+    if isinstance(input_messages, list):
+        return list(input_messages)
+
+    return []
 
 
 @traceable(run_type="parser", name="ParseLLMResponse")
-def parse_llm_response(  # ruff:ignore[complex-structure]
+def parse_llm_response(  # ruff: ignore[complex-structure]
     response: Response,
     input_messages: list[dict[str, Any]] | str,
+    text_format: dict[str, Any] | None = None,
 ) -> LLMTextResponse:
-    """Улучшенный парсер ответа от OpenAI Responses API."""
+    """
+    Парсит один ответ Responses API.
 
-    # Подготовка входных сообщений (как было у тебя)
-    if isinstance(input_messages, str):
-        messages = [{"role": "user", "content": input_messages}]
-    elif isinstance(input_messages, list):
-        messages = input_messages.copy()
-    else:
-        messages = []
+    messages:
+        Полная история текущего LLM-loop:
+        предыдущий input + новые сообщения/function_call модели.
 
-    output_text: dict | None = None
+    output:
+        dict только если запрос использовал json_schema.
+
+    raw_text:
+        Сырой текст ответа модели.
+        Для обычного текстового запроса это основной результат.
+
+    Если json_schema передана, но модель вернула пустой, невалидный JSON
+    или JSON не типа object, выбрасывается StructuredOutputError.
+    """
+    if response.error:
+        raise ValueError(response.error)
+
+    messages = _normalize_input_messages(input_messages)
+
     tool_calls: list[ToolCallParsed] = []
-    output_buffer = ""
+    output_parts: list[str] = []
 
-    # Обработка output (Responses API)
-    if getattr(response, "output", None):
-        for item in response.output:
-            item_dict = item.model_dump() if hasattr(item, "model_dump") else dict(item)
+    for item in getattr(response, "output", None) or []:
+        item_type = getattr(item, "type", None)
 
-            if item.type == "message":
-                messages.append(item_dict)  # добавляем ответ модели
-                for content in getattr(item, "content", []) or []:
-                    if getattr(content, "type", None) == "output_text":
-                        output_buffer += getattr(content, "text", "")
-
-            elif item.type == "function_call":
-                try:
-                    messages.append(item_dict)
-                    args = json.loads(getattr(item, "arguments", "{}"))
-                except (json.JSONDecodeError, TypeError):
-                    args = {}
-
-                tool_calls.append(
-                    ToolCallParsed(
-                        call_id=getattr(item, "call_id", ""),
-                        name=getattr(item, "name", ""),
-                        arguments=args,
-                    )
+        if item_type == "message":
+            item_dict = (
+                item.model_dump(
+                    mode="json",
+                    exclude_none=True,
+                    exclude_unset=True,
                 )
+                if hasattr(item, "model_dump")
+                else dict(item)
+            )
 
-    # Если ничего не собралось в буфер — берём output_text напрямую
-    if not output_buffer and response.output and getattr(response, "output_text", None):
-        output_buffer = response.output_text
+            # messages хранит полную историю:
+            # старый input + новый ответ модели.
+            messages.append(item_dict)
 
-    # Парсим JSON только один раз с помощью улучшенной функции
-    if output_buffer:
-        try:
-            output_text = extract_json(output_buffer)
-        except Exception:  # ruff:ignore[blind-except]
-            output_text = None  # или можно сохранить сырой текст: {"raw": output_buffer}
+            for content in getattr(item, "content", None) or []:
+                if getattr(content, "type", None) == "output_text":
+                    text = getattr(content, "text", "")
+
+                    if text:
+                        output_parts.append(text)
+
+        elif item_type == "function_call":
+            raw_arguments = getattr(item, "arguments", "{}") or "{}"
+
+            try:
+                arguments = json.loads(raw_arguments)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(
+                    "Model returned invalid tool arguments for %s: %r",
+                    getattr(item, "name", None),
+                    raw_arguments,
+                )
+                arguments = {}
+
+            function_call_message = {
+                "type": "function_call",
+                "call_id": item.call_id,
+                "name": item.name,
+                "arguments": raw_arguments,
+            }
+
+            messages.append(function_call_message)
+
+            tool_calls.append(
+                ToolCallParsed(
+                    call_id=item.call_id,
+                    name=item.name,
+                    arguments=arguments,
+                )
+            )
+
+    output_buffer = "".join(output_parts)
+
+    # Иногда SDK уже предоставляет агрегированный output_text.
+    if not output_buffer:
+        response_output_text = getattr(
+            response,
+            "output_text",
+            None,
+        )
+
+        if response_output_text:
+            output_buffer = response_output_text
+
+    structured_output = _expects_structured_output(text_format)
+
+    output: dict[str, Any] | None = None
+
+    if structured_output:
+        if not output_buffer:
+            raise StructuredOutputError(
+                "Structured output was requested, but the model returned no output_text"
+            )
+
+        output = extract_json(output_buffer)
 
     return LLMTextResponse(
         messages=messages,
-        output=output_text,
-        raw_text=output_buffer,
+        output=output,
+        raw_text=output_buffer or None,
         tool_calls=tool_calls,
-        total_tokens=response.usage.total_tokens if response.usage else 0,
+        total_tokens=(response.usage.total_tokens if response.usage is not None else 0),
     )
 
 
@@ -135,48 +246,83 @@ async def cache_ai_models(
     *args,
     **kwargs,
 ) -> Page:
-    """Кэширует ai models, чтобы уменьшить число повторных обращений к источнику данных."""
+    """Кэширует AI-модели, чтобы уменьшить число обращений к источнику."""
+
     cached = await redis_client.get(key)
+
     if cached is not None:
         return Page.model_validate_json(cached)
 
     lock_key = f"lock:{key}"
     lock_id = str(uuid.uuid4())
 
-    # Пытаемся стать "тем, кто вычисляет"
-    got_lock = await redis_client.set(lock_key, lock_id, nx=True, ex=10)
+    got_lock = await redis_client.set(
+        lock_key,
+        lock_id,
+        nx=True,
+        ex=10,
+    )
 
     if got_lock:
         try:
-            result: Page = await func(*args, **kwargs)
+            result: Page = await func(
+                *args,
+                **kwargs,
+            )
+
             if result is None:
                 raise NotFoundError("Модели не найдены")
-            await redis_client.set(key, result.model_dump_json(), ex=ttl)
+
+            await redis_client.set(
+                key,
+                result.model_dump_json(),
+                ex=ttl,
+            )
+
             return result
+
         finally:
-            # Снимаем лок, только если он ещё наш
             current = await redis_client.get(lock_key)
+
             if current == lock_id:
                 await redis_client.delete(lock_key)
-    else:
-        # Кто-то другой уже считает — ждём и поллим кэш
-        for _ in range(50):  # например, до 5 секунд
-            await asyncio.sleep(0.1)
-            cached = await redis_client.get(key)
-            if cached is not None:
-                return Page.model_validate_json(cached)
-        # Не дождались — считаем сами, как fallback
-        result = await func(*args, **kwargs)
-        await redis_client.set(key, result.model_dump_json(), ex=ttl)
-        return result
+
+    # Другой процесс уже заполняет кэш.
+    for _ in range(50):
+        await asyncio.sleep(0.1)
+
+        cached = await redis_client.get(key)
+
+        if cached is not None:
+            return Page.model_validate_json(cached)
+
+    # Не дождались — вычисляем самостоятельно.
+    result = await func(
+        *args,
+        **kwargs,
+    )
+
+    if result is None:
+        raise NotFoundError("Модели не найдены")
+
+    await redis_client.set(
+        key,
+        result.model_dump_json(),
+        ex=ttl,
+    )
+
+    return result
 
 
-def to_langsmith_llm_output(result: LLMTextResponse) -> dict:
-    """Преобразует данные в langsmith llm output, чтобы передать их в нужный слой приложения."""
+def to_langsmith_llm_output(
+    result: LLMTextResponse,
+) -> dict[str, Any]:
+    """Преобразует ответ LLM в формат LangSmith."""
+
     return {
         "output": result,
         "usage_metadata": {
-            "input_tokens": None,  # если знаете разбивку — подставьте
+            "input_tokens": None,
             "output_tokens": None,
             "total_tokens": result.total_tokens,
         },

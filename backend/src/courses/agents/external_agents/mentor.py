@@ -1,14 +1,13 @@
 # pyright: reportOptionalMemberAccess=false, reportReturnType=false
 
 import logging
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService, Runtime
 
+from ...application.dtos import MentorChat
 from ...application.repos import ChatRepository
-from ..course_generator.tools import knowledge_search
 from ..middlewares import (
     ChatCheckpointerMiddleware,
     LemmatizationMiddleware,
@@ -26,12 +25,15 @@ class MentorAgent:
         self._repo = repo
         self._session = session
 
-    async def call_agent(self, chat_id: UUID, context: Context) -> str:
+    async def call_agent(self, chat: MentorChat, context: Context) -> str:
         """Выполняет действие `editor`, чтобы поддержать основной сценарий модуля."""
+        messages = [
+            {"role": "user", "content": f"Теория \n{chat.content_blocks}"},
+            {"role": "user", "content": chat.content},
+        ]
+
         agent = LLMTextService(
-            token=context.access_token,
             system_prompt=MENTOR_PROMPT,
-            tools={"knowledge_search": knowledge_search},
             middlewares=[
                 LemmatizationMiddleware(),
                 SummarizationMiddleware(
@@ -40,8 +42,8 @@ class MentorAgent:
                 ),
                 ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
             ],
-            runtime=Runtime(context=context, state=State(chat_id=chat_id)),
+            runtime=Runtime(context=context, state=State(chat_id=chat.chat_id)),
         )
-        result = await agent.invoke(messages=[{"role": "user", "content": context.prompt}])
+        result = await agent.invoke(messages=messages)
 
         return result.raw_text

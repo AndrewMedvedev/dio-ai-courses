@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import CourseNavigationTree from "../components/CourseNavigationTree";
 import ContentBlocks from "../components/course/ContentBlocks";
-import LessonAiChat from "../components/LessonAiChat";
+import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import SectionTop from "../components/SectionTop";
 import { getLessonContentBlocks } from "../services/courseService";
@@ -26,7 +26,18 @@ export default function LessonPage({
   const [contentBlocks, setContentBlocks] = useState([]);
   const [isLoadingTheory, setIsLoadingTheory] = useState(false);
   const [theoryError, setTheoryError] = useState("");
-  const showLessonAiChat = !isCourseEditMode && activeTab === "theory";
+  const isChatAvailable = !isCourseEditMode && activeTab === "theory";
+  const visibleContentBlocks = contentBlocks.length
+    ? contentBlocks
+    : hasContent
+      ? [
+          {
+            content_type: "text",
+            ai_generated: false,
+            md_content: selectedLesson.markdown || selectedLesson.content,
+          },
+        ]
+      : [];
 
   useEffect(() => {
     setActiveTab("theory");
@@ -73,9 +84,7 @@ export default function LessonPage({
   return (
     <section
       className={`container section lesson-view ${
-        isCourseEditMode
-          ? "is-course-edit-layout"
-          : `is-learning-layout ${showLessonAiChat ? "has-lesson-chat" : ""}`
+        isCourseEditMode ? "is-course-edit-layout" : "is-learning-layout"
       }`}
     >
       <SectionTop label="Урок" title={selectedLesson.title} />
@@ -88,12 +97,25 @@ export default function LessonPage({
       >
         &lt;
       </button>
-      <div
-        className={`lesson-view-grid ${
-          isCourseEditMode
-            ? "is-course-edit-layout"
-            : `is-learning-layout ${showLessonAiChat ? "has-lesson-chat" : ""}`
-        }`}
+      <LessonChatWorkspace
+        className={
+          isCourseEditMode ? "is-course-edit-layout" : "is-learning-layout"
+        }
+        chatEnabled={!isCourseEditMode}
+        chatAvailable={isChatAvailable}
+        chatKey={selectedLesson.id}
+        chatProps={{
+          courseId: selectedCourse.id,
+          lessonId: selectedLesson.id,
+          lessonTitle: selectedLesson.title,
+          contentBlocks: visibleContentBlocks,
+          onDownloadSummary: () =>
+            printLessonSummary({
+              course: selectedCourse,
+              block: selectedBlock,
+              lesson: selectedLesson,
+            }),
+        }}
       >
         <CourseNavigationTree
           selectedCourse={selectedCourse}
@@ -207,6 +229,7 @@ export default function LessonPage({
                     </div>
 
                     <LessonContentEditor
+                      courseId={selectedCourse.id}
                       lesson={selectedLesson}
                       onChange={(changes) =>
                         updateLesson(selectedLesson.id, changes)
@@ -227,41 +250,13 @@ export default function LessonPage({
                     {theoryError}
                   </article>
                 ) : !isCourseEditMode ? (
-                  <ContentBlocks
-                    blocks={
-                      contentBlocks.length
-                        ? contentBlocks
-                        : hasContent
-                          ? [
-                              {
-                                content_type: "text",
-                                ai_generated: false,
-                                md_content:
-                                  selectedLesson.markdown ||
-                                  selectedLesson.content,
-                              },
-                            ]
-                          : []
-                    }
-                  />
+                  <ContentBlocks blocks={visibleContentBlocks} />
                 ) : null}
               </>
             )}
           </div>
         </article>
-        {showLessonAiChat && (
-          <LessonAiChat
-            key={selectedLesson.id}
-            onDownloadSummary={() =>
-              printLessonSummary({
-                course: selectedCourse,
-                block: selectedBlock,
-                lesson: selectedLesson,
-              })
-            }
-          />
-        )}
-      </div>
+      </LessonChatWorkspace>
     </section>
   );
 }

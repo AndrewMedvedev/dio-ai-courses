@@ -11,6 +11,7 @@ from ..infra.database.repos.document import SqlDocumentRepository
 from ..infra.database.repos.lesson import SqlLessonRepository
 from ..infra.database.repos.module import SqlModuleRepository
 from ..infra.database.repos.practice import SqlPracticeRepository
+from ..infra.database.repos.theory_session import SqlLessonTheorySessionRepository
 
 splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=50, length_function=len)
 
@@ -20,15 +21,9 @@ def get_lesson_repo(session: DBSession) -> SqlLessonRepository:
     return SqlLessonRepository(session)
 
 
-LessonRepoDep = Annotated[SqlLessonRepository, Depends(get_lesson_repo)]
-
-
 def get_module_repo(session: DBSession) -> SqlModuleRepository:
     """Получает module repo, чтобы вызывающий код работал через единый интерфейс."""
     return SqlModuleRepository(session)
-
-
-ModuleRepoDep = Annotated[SqlModuleRepository, Depends(get_module_repo)]
 
 
 def get_course_repo(session: DBSession) -> SqlCourseRepository:
@@ -36,15 +31,9 @@ def get_course_repo(session: DBSession) -> SqlCourseRepository:
     return SqlCourseRepository(session)
 
 
-CourseRepoDep = Annotated[SqlCourseRepository, Depends(get_course_repo)]
-
-
 def get_practice_repo(session: DBSession) -> SqlPracticeRepository:
     """Получает chat repo, чтобы вызывающий код работал через единый интерфейс."""
     return SqlPracticeRepository(session)
-
-
-PracticeRepoDep = Annotated[SqlPracticeRepository, Depends(get_practice_repo)]
 
 
 def get_chat_repo(session: DBSession) -> SqlChatRepository:
@@ -52,12 +41,22 @@ def get_chat_repo(session: DBSession) -> SqlChatRepository:
     return SqlChatRepository(session)
 
 
-ChatRepoDep = Annotated[SqlChatRepository, Depends(get_chat_repo)]
-
-
 def get_document_repo(session: DBSession) -> SqlDocumentRepository:
     """Получает document repo, чтобы вызывающий код работал через единый интерфейс."""
     return SqlDocumentRepository(session)
 
 
+def get_theory_session_repo(session: DBSession) -> SqlLessonTheorySessionRepository:
+    """Получает theory session repo, чтобы вызывающий код работал через единый интерфейс."""
+    return SqlLessonTheorySessionRepository(session)
+
+
+LessonRepoDep = Annotated[SqlLessonRepository, Depends(get_lesson_repo)]
+ModuleRepoDep = Annotated[SqlModuleRepository, Depends(get_module_repo)]
+CourseRepoDep = Annotated[SqlCourseRepository, Depends(get_course_repo)]
+PracticeRepoDep = Annotated[SqlPracticeRepository, Depends(get_practice_repo)]
+ChatRepoDep = Annotated[SqlChatRepository, Depends(get_chat_repo)]
 DocumentRepoDep = Annotated[SqlDocumentRepository, Depends(get_document_repo)]
+TheorySessionRepoDep = Annotated[
+    SqlLessonTheorySessionRepository, Depends(get_theory_session_repo)
+]

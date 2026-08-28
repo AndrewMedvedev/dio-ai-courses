@@ -7,7 +7,7 @@ from pythonjsonlogger.json import JsonFormatter
 def configure_logging(log_level: str = "INFO"):
     """Настройка логирования в формате JSON"""
 
-    log_level = getattr(logging, log_level.upper(), logging.INFO)  # type: ignore  # noqa: PGH003
+    log_level = getattr(logging, log_level.upper(), logging.INFO)  # pyright: ignore[reportAssignmentType]
 
     formatter = JsonFormatter(
         fmt=(

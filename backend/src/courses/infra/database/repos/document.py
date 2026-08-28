@@ -22,37 +22,51 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     model_mapper = DocumentMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
-    async def get_tocs(self, owner_id: UUID) -> list[Document | None]:
-        """Получает tocs, чтобы вызывающий код работал через единый интерфейс."""
+    async def get_tocs(self, owner_id: UUID) -> list[Document]:
+        """Возвращает все оглавления документов пользователя."""
+
         stmt = await self._session.execute(
             select(self.model).where(
                 self.model.owner_id == owner_id,
                 self.model.node_type == DocumentNodeType.TOC,
             )
         )
-        result = stmt.scalars().all()
-        return [None if model is None else self.model_mapper.from_model(model) for model in result]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+
+        return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
 
     # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
-    async def get_headings(self, toc_id: UUID) -> list[Document | None]:
-        """Получает headings, чтобы вызывающий код работал через единый интерфейс."""
+    async def get_headings(
+        self,
+        owner_id: UUID,
+        toc_id: UUID,
+    ) -> list[Document]:
         stmt = await self._session.execute(
             select(self.model).where(
+                self.model.owner_id == owner_id,
                 self.model.parent_node_id == toc_id,
                 self.model.node_type == DocumentNodeType.HEADING,
             )
         )
-        result = stmt.scalars().all()
-        return [None if model is None else self.model_mapper.from_model(model) for model in result]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+
+        return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
 
     # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
-    async def get_texts(self, heading_id: UUID) -> Document | None:
-        """Получает texts, чтобы вызывающий код работал через единый интерфейс."""
+    async def get_text(
+        self,
+        owner_id: UUID,
+        heading_id: UUID,
+    ) -> Document | None:
         stmt = await self._session.execute(
             select(self.model).where(
+                self.model.owner_id == owner_id,
                 self.model.parent_node_id == heading_id,
                 self.model.node_type == DocumentNodeType.TEXT,
             )
         )
-        result = stmt.scalars().all()
-        return None if result is None else self.model_mapper.from_model(result)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+
+        model = stmt.scalar_one_or_none()
+
+        if model is None:
+            return None
+
+        return self.model_mapper.from_model(model)

@@ -212,6 +212,7 @@ export default function PracticePage({
               )}
               {isCourseEditMode && (
                 <LessonContentEditor
+                  courseId={selectedCourse.id}
                   lesson={{
                     ...selectedPractice,
                     markdown:

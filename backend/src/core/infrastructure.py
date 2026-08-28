@@ -6,7 +6,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import dramatiq
-from dramatiq.brokers.redis import RedisBroker
+from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.results import Results
 from dramatiq.results.backends import RedisBackend
 from faststream.rabbit import RabbitBroker
@@ -27,14 +27,18 @@ from tiktoken import get_encoding
 from .settings import settings
 
 MAX_WORKERS = max(1, (os.cpu_count() or 2) // 2)
-redis_broker = RedisBroker(url=settings.redis.url)
-result_backend = RedisBackend()
-redis_broker.add_middleware(Results(backend=result_backend))
-redis_broker.add_middleware(dramatiq.middleware.AsyncIO())
+result_backend = RedisBackend(url=settings.redis.url)
+rabbitmq_broker = RabbitmqBroker(
+    url=settings.rabbit.url,
+    # если у вас есть virtualhost, как в вашем RabbitRouter:
+    # url уже может включать vhost, либо укажите параметры отдельно
+)
+rabbitmq_broker.add_middleware(Results(backend=result_backend))
+rabbitmq_broker.add_middleware(dramatiq.middleware.AsyncIO())
 
-dramatiq.set_broker(redis_broker)
+dramatiq.set_broker(rabbitmq_broker)
 
-qdrant_client = AsyncQdrantClient(url=settings.qdrant.url)
+qdrant_client = AsyncQdrantClient(url=settings.qdrant.url, api_key=settings.qdrant.password)
 tokens_encoder = get_encoding("o200k_base")
 
 redis_client = Redis(
@@ -52,8 +56,6 @@ checkpointer = AsyncRedisSaver(
         "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # ruff:ignore[line-too-long]
     },
 )
-
-
 # В `lifespan` вызвать `thread_executor.shutdown(wait=True)`
 thread_executor = ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="thread_worker")
 

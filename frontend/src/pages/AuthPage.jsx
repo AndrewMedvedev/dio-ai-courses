@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSessionStore } from "../stores/sessionStore";
+import { isTokenExpired } from "../utils/api";
 
 function getRedirectPath(search) {
   const params = new URLSearchParams(search);
   const redirect = params.get("redirect");
-  return redirect && redirect.startsWith("/") ? redirect : "/profile";
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+    return "/profile";
+  }
+
+  const redirectPathname = redirect.split(/[?#]/, 1)[0];
+  return ["/login", "/register"].includes(redirectPathname)
+    ? "/profile"
+    : redirect;
 }
 
 function getMembershipId(membership) {
@@ -31,6 +39,9 @@ export default function AuthPage({ mode = "login" }) {
   );
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
+  const expiresAt = useSessionStore((state) => state.expiresAt);
+  const membershipId = useSessionStore((state) => state.membershipId);
+  const organizationId = useSessionStore((state) => state.organizationId);
   const loginStep = useSessionStore((state) => state.loginStep);
   const memberships = useSessionStore((state) => state.memberships);
   const isLoading = useSessionStore((state) => state.isLoading);
@@ -46,10 +57,25 @@ export default function AuthPage({ mode = "login" }) {
   const [selectedMembershipId, setSelectedMembershipId] = useState("");
 
   useEffect(() => {
-    if (accessToken && refreshToken) {
+    const hasActiveSession = Boolean(
+      accessToken &&
+      refreshToken &&
+      expiresAt &&
+      !isTokenExpired(expiresAt) &&
+      (membershipId || organizationId),
+    );
+    if (hasActiveSession) {
       navigate(redirectPath, { replace: true });
     }
-  }, [accessToken, refreshToken, navigate, redirectPath]);
+  }, [
+    accessToken,
+    expiresAt,
+    membershipId,
+    navigate,
+    organizationId,
+    redirectPath,
+    refreshToken,
+  ]);
 
   useEffect(() => {
     if (!selectedMembershipId && memberships.length === 1) {

@@ -2,18 +2,22 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { askEditorAgent, convertDocumentToMarkdown } from "../utils/api";
+import {
+  createAgentConversationKey,
+  useAgentStore,
+} from "../stores/agentStore";
+import { convertDocumentToMarkdown } from "../utils/api";
 import {
   allowedImageExtension,
   allowedImageTypes,
   allowedTextExtension,
   blockToMarkdown,
   blockTypes,
-  buildAiDraft,
   createBlock,
   detectType,
   getBlockTitle,
   joinBlocks,
+  MAX_CONTENT_BLOCKS,
   markdownComponents,
   normalizeContentBlocks,
   safeMarkdownUrl,
@@ -22,10 +26,12 @@ import {
 } from "../lesson/lessonEditorConfig";
 
 export default function LessonContentEditor({
+  courseId,
   lesson,
   onChange,
-  contentLabel = "Контент урока",
-  blocksLabel = "Блоки урока",
+  contentLabel = "Теория",
+  blocksLabel = "",
+  showInsertControls = true,
 }) {
   const [blocks, setBlocks] = useState(() =>
     normalizeContentBlocks(
@@ -39,10 +45,23 @@ export default function LessonContentEditor({
   const [aiInput, setAiInput] = useState("");
   const [aiImage, setAiImage] = useState(null);
   const [proposal, setProposal] = useState(null);
-  const [aiError, setAiError] = useState("");
-  const [isAiSending, setIsAiSending] = useState(false);
+  const [proposalError, setProposalError] = useState("");
+  const [blockLimitError, setBlockLimitError] = useState("");
+  const aiConversationKey = createAgentConversationKey(
+    "editor",
+    courseId,
+    `${lesson.id}:${activeBlockId}`,
+  );
+  const aiConversation = useAgentStore(
+    (state) => state.conversations[aiConversationKey],
+  );
+  const sendAgentMessage = useAgentStore((state) => state.sendMessage);
+  const cancelAgentRequest = useAgentStore((state) => state.cancelRequest);
+  const isAiSending = aiConversation?.status === "loading";
+  const aiError = proposalError || aiConversation?.error || "";
   const fileInputRef = useRef(null);
   const aiImageInputRef = useRef(null);
+  const aiMessagesRef = useRef(null);
   const blockRefs = useRef(new Map());
 
   useEffect(() => {
@@ -57,9 +76,14 @@ export default function LessonContentEditor({
     setAiInput("");
     setAiImage(null);
     setProposal(null);
-    setAiError("");
-    setIsAiSending(false);
+    setProposalError("");
+    setBlockLimitError("");
   }, [lesson.id]);
+
+  useEffect(
+    () => () => cancelAgentRequest(aiConversationKey),
+    [aiConversationKey, cancelAgentRequest],
+  );
 
   useEffect(() => {
     if (!activeBlockId) {
@@ -73,6 +97,12 @@ export default function LessonContentEditor({
       });
     });
   }, [activeBlockId]);
+
+  useEffect(() => {
+    const container = aiMessagesRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [aiConversation?.messages, isAiSending]);
 
   const commitBlocks = (nextBlocks, nextActiveId = activeBlockId) => {
     const normalizedBlocks =
@@ -131,6 +161,15 @@ export default function LessonContentEditor({
   };
 
   const insertBlockAt = (index, type) => {
+    if (blocks.length >= MAX_CONTENT_BLOCKS) {
+      setBlockLimitError(
+        `В уроке может быть не более ${MAX_CONTENT_BLOCKS} блоков.`,
+      );
+      setInsertIndex(null);
+      return;
+    }
+
+    setBlockLimitError("");
     const safeIndex = Math.min(Math.max(index, 0), blocks.length);
     const newBlock = createBlock(templates[type], type);
     const nextBlocks = [
@@ -174,8 +213,25 @@ export default function LessonContentEditor({
       return;
     }
 
+    const availableSlots = Math.max(0, MAX_CONTENT_BLOCKS - blocks.length);
+    if (availableSlots === 0) {
+      setBlockLimitError(
+        `В уроке может быть не более ${MAX_CONTENT_BLOCKS} блоков.`,
+      );
+      event.target.value = "";
+      return;
+    }
+
+    setBlockLimitError(
+      files.length > availableSlots
+        ? `Будут добавлены только первые ${availableSlots} файлов: лимит — ${MAX_CONTENT_BLOCKS} блоков.`
+        : "",
+    );
     const importedContent = [];
     for (const file of files) {
+      if (importedContent.length >= availableSlots) {
+        break;
+      }
       if (
         allowedImageTypes.has(file.type) ||
         (file.type === "" && allowedImageExtension.test(file.name))
@@ -233,47 +289,64 @@ export default function LessonContentEditor({
       return;
     }
     const activeBlock = blocks.find((block) => block.id === activeBlockId);
-    if (!activeBlock || activeBlock.content_type === "video") {
+    if (
+      !activeBlock ||
+      activeBlock.content_type === "video" ||
+      activeBlock.content_type === "image"
+    ) {
       return;
     }
-    const currentMarkdown = blockToMarkdown(activeBlock);
-    setIsAiSending(true);
-    setAiError("");
+    const currentBlock = stripUiFields(activeBlock);
+    setProposalError("");
+    setAiInput("");
+    setAiImage(null);
 
     try {
-      const response = await askEditorAgent({
-        prompt,
-        content_block: stripUiFields(activeBlock),
-        lesson: {
-          id: lesson.id,
-          title: lesson.title,
-          description: lesson.summary || lesson.description || "",
+      const response = await sendAgentMessage({
+        key: aiConversationKey,
+        agent: "editor",
+        courseId,
+        content: prompt || "Измени блок с учётом прикреплённого изображения.",
+        contentBlocks: blocks
+          .filter((block) => block.id !== activeBlock.id)
+          .map(stripUiFields),
+        editorPayload: {
+          content_type: activeBlock.content_type,
+          content_block: JSON.stringify(currentBlock),
+          images: aiImage ? [aiImage.src] : [],
         },
+        emptyResponseMessage: "",
+        responseDisplayMessage: (agentResponse) =>
+          agentResponse?.parsedContent &&
+          typeof agentResponse.parsedContent === "object" &&
+          !Array.isArray(agentResponse.parsedContent)
+            ? "Правка готова. Проверьте предложенный вариант и примените его, если он подходит."
+            : "",
       });
-      const proposed =
-        response.parsedContent?.content ||
-        response.parsedContent?.md_content ||
-        response.parsedContent?.explanation ||
-        (typeof response.response?.content === "string"
-          ? response.response.content
-          : "");
-      const fallbackDraft = prompt
-        ? buildAiDraft(lesson, prompt, currentMarkdown)
-        : currentMarkdown;
-      const imageMarkdown = aiImage ? `![${aiImage.name}](${aiImage.src})` : "";
-      const content = [proposed || fallbackDraft, imageMarkdown]
-        .filter(Boolean)
-        .join("\n\n");
+      if (!response) return;
+      if (
+        !response.parsedContent ||
+        typeof response.parsedContent !== "object" ||
+        Array.isArray(response.parsedContent)
+      ) {
+        setProposalError(
+          "ИИ вернул ответ в неподдерживаемом формате. Попробуйте уточнить запрос.",
+        );
+        return;
+      }
 
-      setProposal({ blockId: activeBlock.id, content });
-      setAiInput("");
-      setAiImage(null);
-    } catch (error) {
-      setAiError(
-        error.userMessage || error.message || "Не удалось получить ответ ИИ.",
-      );
-    } finally {
-      setIsAiSending(false);
+      const proposedBlock = {
+        ...response.parsedContent,
+        content_type: activeBlock.content_type,
+        ai_generated: true,
+      };
+      setProposal({
+        blockId: activeBlock.id,
+        block: proposedBlock,
+        content: blockToMarkdown(proposedBlock),
+      });
+    } catch {
+      // Публичная сетевая ошибка хранится в Zustand-store.
     }
   };
 
@@ -302,15 +375,7 @@ export default function LessonContentEditor({
     const target = blocks.find((block) => block.id === proposal.blockId);
     if (!target) return;
 
-    if (target.content_type === "text") {
-      updateBlock(proposal.blockId, { md_content: proposal.content.trim() });
-    } else if (target.content_type === "mermaid") {
-      updateBlock(proposal.blockId, { md_content: proposal.content.trim() });
-    } else if (target.content_type === "program_code") {
-      updateBlock(proposal.blockId, { explanation: proposal.content.trim() });
-    } else {
-      updateBlock(proposal.blockId, { explanation: proposal.content.trim() });
-    }
+    updateBlock(proposal.blockId, proposal.block);
     setProposal(null);
     setIsAiOpen(false);
   };
@@ -552,7 +617,6 @@ export default function LessonContentEditor({
     <aside className="lesson-ai-editor">
       <div className="lesson-ai-editor-head">
         <span>ИИ-редактор</span>
-        <strong>{getBlockTitle(block)}</strong>
         <button
           type="button"
           onClick={() => setIsAiOpen(false)}
@@ -561,6 +625,42 @@ export default function LessonContentEditor({
         >
           −
         </button>
+      </div>
+      <div
+        className="lesson-ai-messages"
+        ref={aiMessagesRef}
+        aria-live="polite"
+        aria-busy={isAiSending}
+      >
+        {(aiConversation?.messages || []).length === 0 && (
+          <div className="lesson-ai-message is-assistant">
+            <p>
+              Опишите, что нужно изменить. Я подготовлю правку, а история
+              диалога останется здесь.
+            </p>
+          </div>
+        )}
+        {(aiConversation?.messages || []).map((message) => (
+          <div
+            key={message.id}
+            className={`lesson-ai-message is-${message.role}`}
+          >
+            <p>{message.text}</p>
+            {message.role === "user" && (
+              <span className="chat-message-status">✓ Отправлено</span>
+            )}
+          </div>
+        ))}
+        {isAiSending && (
+          <div className="lesson-ai-message is-assistant is-thinking">
+            <span className="chat-thinking-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>ИИ получил сообщение и готовит правку…</span>
+          </div>
+        )}
       </div>
       {aiImage && (
         <div className="lesson-ai-attachment">
@@ -598,10 +698,17 @@ export default function LessonContentEditor({
           onChange={(event) => setAiInput(event.target.value)}
           placeholder={
             isAiSending
-              ? "ИИ готовит правку..."
+              ? "Можно написать следующее сообщение — отправка после ответа"
               : "Напишите, что нужно изменить"
           }
-          disabled={isAiSending}
+          maxLength={10_000}
+          onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              askAi();
+            }
+          }}
         />
         <button
           type="button"
@@ -634,12 +741,20 @@ export default function LessonContentEditor({
         />
       </div>
 
+      {blockLimitError && (
+        <p className="lesson-editor-limit-error">{blockLimitError}</p>
+      )}
+
       <div className="lesson-content-editor-layout">
         <div className="lesson-editor-blocks">
-          {renderInsertControl(0)}
+          {showInsertControls &&
+            blocks.length < MAX_CONTENT_BLOCKS &&
+            renderInsertControl(0)}
           {blocks.map((block, index) => {
             const isActive = activeBlockId === block.id;
-            const canUseAiEditor = block.content_type !== "video";
+            const canUseAiEditor = !["video", "image"].includes(
+              block.content_type,
+            );
             return (
               <Fragment key={block.id}>
                 <div
@@ -773,7 +888,9 @@ export default function LessonContentEditor({
                     canUseAiEditor &&
                     renderAiEditor(block)}
                 </div>
-                {renderInsertControl(index + 1)}
+                {showInsertControls &&
+                  blocks.length < MAX_CONTENT_BLOCKS &&
+                  renderInsertControl(index + 1)}
               </Fragment>
             );
           })}

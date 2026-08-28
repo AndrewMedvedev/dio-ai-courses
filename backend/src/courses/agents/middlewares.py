@@ -49,7 +49,7 @@ class SummarizationMiddleware(BaseAgentMiddleware):
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.number_of_tokens = number_of_tokens
         self.system_prompt = system_prompt
-        self._router: LLMTextService | None = None
+        self._router: LLMTextService = LLMTextService(system_prompt=self.system_prompt)
 
     async def before_model(
         self,
@@ -57,8 +57,6 @@ class SummarizationMiddleware(BaseAgentMiddleware):
         messages: list[dict],
     ) -> list[dict]:
         """Выполняет шаг middleware `before_model`, чтобы расширить поведение агента без изменения сервиса."""
-        if self._router is None:
-            self._router = LLMTextService(token=service.token, system_prompt=self.system_prompt)
         str_messages = dumps(messages)
         count_tokens = len(tokens_encoder.encode(text=str_messages))
         if count_tokens >= self.number_of_tokens:
@@ -243,12 +241,12 @@ class SaveImageMiddleware(BaseAgentMiddleware):
         """Сохраняет изображение в s3 хранилище и обновляет ссылку в ответе."""
         file_bytes = base64.b64decode(response.image)
         filename = f"{uuid4()}.{response.output_format}"
-        client = MediaClient(token=service.runtime.context.access_token)
+        client = MediaClient()
         result = await client.save_image(
             request=PresignedUploadRequest(
                 filename=filename,
                 owner_id=service.runtime.context.course_id,
-                content_type=response.output_format,
+                content_type=f"image/{response.output_format}",
             ),
             file=file_bytes,
         )

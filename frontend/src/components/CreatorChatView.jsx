@@ -7,24 +7,47 @@ import {
   generationStages,
   intakeQuestions,
 } from "../creator/creatorChatConfig";
-import { askInterviewerAgent, saveDocument } from "../utils/api";
+import {
+  createAgentConversationKey,
+  useAgentStore,
+} from "../stores/agentStore";
+import { saveDocument } from "../utils/api";
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
 const ALLOWED_DOCUMENT_EXTENSION = /\.(pdf|docx|pptx|xlsx|md|html|txt|json)$/i;
+
+function createCourseId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (value) => {
+    const random = Math.floor(Math.random() * 16);
+    const digit = value === "x" ? random : (random & 0x3) | 0x8;
+    return digit.toString(16);
+  });
+}
+
 export default function CreatorChatView() {
-  const [messages, setMessages] = useState(() => [
-    {
-      id: createCreatorId("msg"),
-      role: "assistant",
-      text: intakeQuestions[0].prompt,
-    },
-  ]);
+  const [courseId] = useState(createCourseId);
+  const conversationKey = useMemo(
+    () => createAgentConversationKey("interviewer", courseId),
+    [courseId],
+  );
+  const conversation = useAgentStore(
+    (state) => state.conversations[conversationKey],
+  );
+  const initializeConversation = useAgentStore(
+    (state) => state.initializeConversation,
+  );
+  const appendAgentMessage = useAgentStore((state) => state.appendMessage);
+  const sendAgentMessage = useAgentStore((state) => state.sendMessage);
+  const clearConversation = useAgentStore((state) => state.clearConversation);
+  const cancelRequest = useAgentStore((state) => state.cancelRequest);
+  const messages = conversation?.messages || [];
+  const isThinking = conversation?.status === "loading";
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [inputValue, setInputValue] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [isThinking, setIsThinking] = useState(false);
   const [hasGenerationStarted, setHasGenerationStarted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -33,7 +56,6 @@ export default function CreatorChatView() {
   const [generatedBlocks, setGeneratedBlocks] = useState([]);
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   const [fileUploadError, setFileUploadError] = useState("");
-  const [interviewerChatId, setInterviewerChatId] = useState(null);
 
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -66,14 +88,16 @@ export default function CreatorChatView() {
     generatedBlocks[0] ||
     null;
   const currentQuestion = intakeQuestions[stepIndex] || null;
-  const isMaterialsStepComplete =
-    Boolean((answers.materials || "").trim()) || uploadedFiles.length > 0;
-  const briefingComplete = requiredQuestionIds.every((id) => {
-    if (id === "materials") {
-      return isMaterialsStepComplete;
-    }
-    return (answers[id] || "").trim().length > 0;
-  });
+
+  useEffect(() => {
+    initializeConversation({
+      key: conversationKey,
+      agent: "interviewer",
+      courseId,
+      initialMessage: intakeQuestions[0].prompt,
+    });
+    return () => cancelRequest(conversationKey);
+  }, [cancelRequest, conversationKey, courseId, initializeConversation]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -100,14 +124,7 @@ export default function CreatorChatView() {
   }, [isGenerating]);
 
   const pushAssistantMessage = (text) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: createCreatorId("msg"),
-        role: "assistant",
-        text,
-      },
-    ]);
+    appendAgentMessage(conversationKey, "assistant", text);
   };
 
   const applyGenerationStage = (stageIndex) => {
@@ -146,16 +163,17 @@ export default function CreatorChatView() {
   };
 
   const beginGeneration = () => {
-    if (hasGenerationStarted || isGenerating) {
-      return;
-    }
+    if (hasGenerationStarted) return;
 
     setHasGenerationStarted(true);
-    setIsGenerating(true);
-    generationStageRef.current = 0;
+    setIsGenerating(false);
+    setGenerationProgress(briefingPercent);
+    setGenerationStatus(
+      "Генерация курса запущена в фоне. Готовый курс появится в каталоге со статусом «Черновик».",
+    );
+    setWaitSeconds(0);
     setGeneratedBlocks([]);
     setSelectedBlockId(null);
-    applyGenerationStage(0);
   };
 
   const uploadAllFiles = async () => {
@@ -178,55 +196,6 @@ export default function CreatorChatView() {
 
     return true;
   };
-
-  const startGenerationWithFiles = async () => {
-    if (hasGenerationStarted || isGenerating || filesUploadRef.current) {
-      return;
-    }
-
-    filesUploadRef.current = true;
-    setFileUploadError("");
-    const filesOk = await uploadAllFiles();
-    filesUploadRef.current = false;
-
-    if (filesOk) {
-      beginGeneration();
-      return;
-    }
-
-    setFileUploadError(
-      "Не удалось загрузить один или несколько файлов. Переприкрепите файлы и попробуйте снова.",
-    );
-    setGenerationStatus("Ошибка загрузки файлов");
-    pushAssistantMessage(
-      "Не удалось загрузить один или несколько файлов. Переприкрепите файлы и попробуйте снова.",
-    );
-  };
-
-  useEffect(() => {
-    if (
-      !briefingComplete ||
-      hasGenerationStarted ||
-      isGenerating ||
-      isThinking ||
-      filesUploadRef.current
-    ) {
-      return undefined;
-    }
-
-    pushAssistantMessage(
-      "Бриф собран. Загружаю материалы и запускаю генерацию курса.",
-    );
-    startGenerationWithFiles();
-
-    return undefined;
-  }, [
-    briefingComplete,
-    stepIndex,
-    hasGenerationStarted,
-    isGenerating,
-    isThinking,
-  ]);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -265,15 +234,6 @@ export default function CreatorChatView() {
     const targetQuestion = intakeQuestions[stepIndex] || null;
     const messageText = text || "Файлы прикреплены";
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: createCreatorId("msg"),
-        role: "user",
-        text: messageText,
-      },
-    ]);
-
     if (targetQuestion && text) {
       setAnswers((prev) => ({
         ...prev,
@@ -281,38 +241,36 @@ export default function CreatorChatView() {
       }));
     }
 
-    setInputValue("");
-
-    if (!targetQuestion) {
-      return;
+    if (targetQuestion?.id === "materials" && uploadedFiles.length > 0) {
+      filesUploadRef.current = true;
+      setFileUploadError("");
+      const filesOk = await uploadAllFiles();
+      filesUploadRef.current = false;
+      if (!filesOk) return;
+      setUploadedFiles([]);
     }
 
-    setIsThinking(true);
+    setInputValue("");
     try {
-      const response = await askInterviewerAgent({
-        message: messageText,
-        chat_id: interviewerChatId,
-        answers: targetQuestion && text ? { [targetQuestion.id]: text } : {},
+      const response = await sendAgentMessage({
+        key: conversationKey,
+        agent: "interviewer",
+        courseId,
+        content: messageText,
+        emptyResponseMessage: "",
       });
-      if (response.chatId) {
-        setInterviewerChatId(response.chatId);
+      if (!response) return;
+
+      if (targetQuestion) {
+        setStepIndex((current) =>
+          Math.min(current + 1, intakeQuestions.length),
+        );
       }
-      const nextStep = stepIndex + 1;
-      setStepIndex(nextStep);
-      pushAssistantMessage(
-        response.content ||
-          (nextStep < intakeQuestions.length
-            ? intakeQuestions[nextStep].prompt
-            : "Принял финальные ответы. Проверяю бриф и запускаю генерацию."),
-      );
-    } catch (error) {
-      pushAssistantMessage(
-        error.userMessage ||
-          error.message ||
-          "Не удалось получить ответ интервьюера. Попробуйте ещё раз.",
-      );
-    } finally {
-      setIsThinking(false);
+      if (!String(response.content ?? "").trim()) {
+        beginGeneration();
+      }
+    } catch {
+      // Публичная ошибка отображается из Zustand-store без технических деталей.
     }
   };
 
@@ -381,18 +339,17 @@ export default function CreatorChatView() {
   };
 
   const clearChat = () => {
-    setMessages([
-      {
-        id: createCreatorId("msg"),
-        role: "assistant",
-        text: intakeQuestions[0].prompt,
-      },
-    ]);
+    clearConversation(conversationKey);
+    initializeConversation({
+      key: conversationKey,
+      agent: "interviewer",
+      courseId,
+      initialMessage: intakeQuestions[0].prompt,
+    });
     setStepIndex(0);
     setAnswers({});
     setInputValue("");
     setUploadedFiles([]);
-    setIsThinking(false);
     setHasGenerationStarted(false);
     setIsGenerating(false);
     setGenerationProgress(0);
@@ -401,7 +358,6 @@ export default function CreatorChatView() {
     setGeneratedBlocks([]);
     setSelectedBlockId(null);
     setFileUploadError("");
-    setInterviewerChatId(null);
     filesUploadRef.current = false;
     generationStageRef.current = 0;
   };
@@ -480,20 +436,38 @@ export default function CreatorChatView() {
             <span>{isGenerating ? "ИИ работает..." : "Диалог активен"}</span>
           </div>
 
-          <div className="creator-chat-messages" ref={messagesContainerRef}>
+          <div
+            className="creator-chat-messages"
+            ref={messagesContainerRef}
+            aria-live="polite"
+            aria-busy={isThinking}
+          >
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
               >
                 <p>{message.text}</p>
+                {message.role === "user" && (
+                  <span className="chat-message-status">✓ Отправлено</span>
+                )}
               </div>
             ))}
 
             {isThinking && (
               <div className="creator-chat-msg is-assistant is-thinking">
-                <p>Думаю над следующим уточнением...</p>
+                <span className="chat-thinking-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <p>Сообщение получено — думаю над следующим уточнением…</p>
               </div>
+            )}
+            {conversation?.error && (
+              <p className="lesson-ai-error" role="alert">
+                {conversation.error}
+              </p>
             )}
           </div>
 
@@ -548,6 +522,7 @@ export default function CreatorChatView() {
                     submitMessage();
                   }
                 }}
+                maxLength={10_000}
                 disabled={isGenerating}
               />
 
@@ -557,10 +532,11 @@ export default function CreatorChatView() {
                 onClick={submitMessage}
                 disabled={
                   isGenerating ||
+                  isThinking ||
                   (!inputValue.trim() && uploadedFiles.length === 0)
                 }
               >
-                Отправить
+                {isThinking ? "Отправлено" : "Отправить"}
               </button>
             </div>
 
@@ -585,7 +561,7 @@ export default function CreatorChatView() {
                 <button
                   type="button"
                   className="btn btn-solid"
-                  onClick={startGenerationWithFiles}
+                  onClick={submitMessage}
                 >
                   Повторить загрузку
                 </button>

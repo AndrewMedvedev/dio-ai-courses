@@ -3,7 +3,6 @@
 from typing import Any
 
 import logging
-from json import dumps
 
 from langsmith import traceable
 from openai import (
@@ -28,7 +27,7 @@ from src.llm_service.schemas import (
 from src.shared.application.dtos import Pagination
 
 from .infra.repository import SqlAIModelRepository
-from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY
+from .prompts import MODEL_SELECTION_TEXT, PROMPT_CHOOSE_MODEL, PROMPT_RETRY
 from .schemas import CacheAIModelsProtocol
 from .utils import (
     parse_llm_response,
@@ -36,6 +35,8 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
 PAGINATION_SIZE = 50
 
 BASE_MODEL_CONTEXT = 500_000
@@ -64,7 +65,11 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke(self, model: str, **kwargs) -> LLMTextResponse:
         result: Response = await self._client.responses.create(model=model, **kwargs)
-        return parse_llm_response(response=result, input_messages=kwargs["input"])
+        return parse_llm_response(
+            response=result,
+            input_messages=kwargs["input"],
+            text_format=kwargs.get("text"),
+        )
 
     @traceable(run_type="chain", name="ResolveModel")
     async def _resolve_model(
@@ -118,13 +123,13 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         selected_model: str,
     ) -> str:
         if model not in {i["name"] for i in models}:
-            prompt = PROMPT_RETRY.format(
-                models=models,
-                messages=schema,
-                user_requested_model=model,
+            result = await self._invoke(
+                model=selected_model,
+                input=f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",  # ruff: ignore[line-too-long]
+                instructions=PROMPT_RETRY,
+                text=MODEL_SELECTION_TEXT,
             )
-            result = await self._invoke(model=selected_model, input=prompt)
-            return result.output_text["model_name"]
+            return result.output.get("model_name", selected_model)
         return model
 
     @traceable(run_type="chain", name="ChooseModel")
@@ -134,9 +139,14 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         models: list[dict[str, Any]],
         selected_model: str,
     ) -> str:
-        prompt = PROMPT_CHOOSE_MODEL.format(models=models, messages=schema)
-        result = await self._invoke(model=selected_model, input=prompt)
-        return result.output["model_name"]
+
+        result = await self._invoke(
+            model=selected_model,
+            input=f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",
+            instructions=PROMPT_CHOOSE_MODEL,
+            text=MODEL_SELECTION_TEXT,
+        )
+        return result.output.get("model_name", selected_model)
 
 
 class LLMTextRouter(LLMRouter):
@@ -155,7 +165,11 @@ class LLMTextRouter(LLMRouter):
                 func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
             )
         ).items
-        input_messages = dumps(schema)
+        input_messages = schema.model_dump_json(
+            exclude_none=True,
+            by_alias=True,
+        )
+
         min_model, models = await self._select_model_by_length(
             input_messages=input_messages,
             models=models,
@@ -188,10 +202,10 @@ class LLMImageRouter(LLMRouter):
             min=2,
             max=30,
         ),
-        stop=stop_after_attempt(6),
+        stop=stop_after_attempt(2),
         reraise=True,
     )
-    @traceable(run_type="llm")
+    @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke_image(self, model: str, **kwargs) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
 
@@ -209,10 +223,10 @@ class LLMImageRouter(LLMRouter):
             min=2,
             max=30,
         ),
-        stop=stop_after_attempt(6),
+        stop=stop_after_attempt(2),
         reraise=True,
     )
-    @traceable(run_type="llm")
+    @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke_image_based(self, model: str, **kwargs) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе изображения"""
         result: ImagesResponse = await self._client.images.edit(model=model, **kwargs)
@@ -233,7 +247,10 @@ class LLMImageRouter(LLMRouter):
                 func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
             )
         ).items
-        input_messages = dumps(schema)
+        input_messages = schema.model_dump_json(
+            exclude_none=True,
+            by_alias=True,
+        )
         min_model, models = await self._select_model_by_length(
             input_messages=input_messages,
             models=models,

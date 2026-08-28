@@ -9,14 +9,17 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
-from src.core.infrastructure import checkpointer, qdrant_client
+from src.core.infrastructure import qdrant_client
 from src.llm_service import LLMTextService
 
+from ....application.domain_dtos import LessonDict
+from ....application.mappers import dict_to_lesson, lesson_to_dict
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....infra.database.repos.lesson import SqlLessonRepository
 from ....infra.vector_repo import VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import Context, RuntimeContext
+from ..serializer import checkpointer
 from .prompts import ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
 
@@ -33,12 +36,12 @@ class AgentState(TypedDict):
     order: int  # Порядковый номер урока
     lesson_description: str  # Описание урока из структуры модуля
     lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
-    lesson: NotRequired[Lesson]  # Сгенерированный урок
+    lesson: NotRequired[LessonDict]  # Сгенерированный урок
 
 
 async def plan_lesson_structure(
     state: AgentState,
-) -> dict[str, LessonStructure | Lesson]:
+) -> dict[str, LessonStructure | LessonDict]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
         system_prompt="""\
@@ -60,21 +63,22 @@ async def plan_lesson_structure(
     )
 
     prompt_template = f"""\
-    Спланируй структуру урока на основе следующих данных:
+        Спланируй структуру урока на основе следующих данных:
+        **Целевая аудитория:** {state["audience_description"]}
+        **Цели обучения курса:** {", ".join(state["learning_objectives"])}
+        **Порядковый номер урока в модуле:** {state["order"]}
+        **Описание урока:** {state["lesson_description"]}
+        Требования к результату:
+        1. Сформируй 4–5 контент-блоков, покрывающих тему урока от введения до закрепления.
+        2. Для каждого блока напиши подробный промпт (минимум 4–5 предложений),
+           учитывающий уровень аудитории и цели урока.
+        3. Выбери тип каждого блока исходя из содержания (text, program_code, mermaid,
+           quiz, math_formula, chemical_formula, musical_notation, image).
+        4. Блок типа image используй только если визуальная иллюстрация действительно
+           необходима для понимания материала. В одном уроке может быть строго
+           максимум одно изображение (один блок типа image).
 
-    **Целевая аудитория:** {state["audience_description"]}
-    **Цели обучения курса:** {", ".join(state["learning_objectives"])}
-    **Порядковый номер урока в модуле:** {state["order"]}
-    **Описание урока:** {state["lesson_description"]}
-
-    Требования к результату:
-    1. Сформируй 4–5 контент-блоков, покрывающих тему урока от введения до закрепления.
-    2. Для каждого блока напиши подробный промпт (минимум 4–5 предложений),
-       учитывающий уровень аудитории и цели урока.
-    3. Выбери тип каждого блока исходя из содержания (text, program_code, mermaid,
-       quiz, math_formula, chemical_formula, musical_notation).
-    5. Составь детальный промпт для практического задания (assignment_specification).
-    """
+        """
     logger.info(
         "Planning %s - module structure by description: '%s ...'",
         state["order"],
@@ -95,7 +99,7 @@ async def plan_lesson_structure(
         learning_objectives=lesson_structure.learning_objectives,
         order=state["order"],
     )
-    return {"lesson_structure": lesson_structure, "lesson": lesson}
+    return {"lesson_structure": lesson_structure, "lesson": lesson_to_dict(lesson)}
 
 
 async def build_content_block(
@@ -136,12 +140,12 @@ async def build_content_block(
     return order, content_block
 
 
-async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
+async def generate_content_blocks(state: AgentState) -> dict[str, LessonDict]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
     """
 
-    lesson_structure, lesson = state["lesson_structure"], state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    lesson_structure, lesson = state["lesson_structure"], dict_to_lesson(state["lesson"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
     logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))
 
     async with TaskGroup() as tg:
@@ -156,7 +160,7 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
                     lesson=lesson,
                 )
             )
-            for order, content in enumerate(lesson_structure.content_plan, 1)
+            for order, content in enumerate(lesson_structure.content_plan, start=1)
         ]
     content_by_order = sorted(task.result() for task in tasks)
     for _, content in content_by_order:
@@ -166,15 +170,15 @@ async def generate_content_blocks(state: AgentState) -> dict[str, Lesson]:
         lesson.title,
     )
 
-    return {"lesson": lesson}
+    return {"lesson": lesson_to_dict(lesson)}
 
 
 async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет урок, чтобы результат был доступен после завершения операции."""
-    lesson = state["lesson"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    lesson = dict_to_lesson(state["lesson"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
     await VectorRepository(client=qdrant_client).index_document(
-        text=get_content_blocks_context(lesson.content_blocks),  # type: ignore  # ruff:ignore[blanket-type-ignore]
+        text=get_content_blocks_context(lesson.content_blocks),
         metadata={
             "course_id": state["generation_context"].course_id,
             "lesson_id": f"{lesson.id}",

@@ -3,7 +3,13 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthenticatedImage } from "../hooks/useAuthenticatedImage";
 import { useSessionStore } from "../stores/sessionStore";
 
-export default function Header({ theme, toggleTheme }) {
+export default function Header({
+  theme,
+  toggleTheme,
+  canCreateCourse = false,
+  canReadCourse = false,
+  canManageOrganizations = false,
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const accessToken = useSessionStore((state) => state.accessToken);
@@ -17,6 +23,7 @@ export default function Header({ theme, toggleTheme }) {
   });
   const isCoursePath =
     location.pathname.startsWith("/course") || location.pathname === "/courses";
+  const isOrganizationsPath = location.pathname.startsWith("/organizations");
 
   const handleLogout = async () => {
     await logout();
@@ -32,30 +39,46 @@ export default function Header({ theme, toggleTheme }) {
       </Link>
 
       <nav className="nav">
-        <NavLink
-          to="/courses"
-          className={({ isActive }) =>
-            `nav-link ${isCoursePath ? "is-active" : ""}`
-          }
-        >
-          Каталог
-        </NavLink>
-        <NavLink
-          to="/creator"
-          className={({ isActive }) =>
-            `nav-link ${isActive ? "is-active" : ""}`
-          }
-        >
-          Создать курс
-        </NavLink>
-        <NavLink
-          to="/manual-course-builder"
-          className={({ isActive }) =>
-            `nav-link ${isActive ? "is-active" : ""}`
-          }
-        >
-          Создать курс самостоятельно
-        </NavLink>
+        {canReadCourse && (
+          <NavLink
+            to="/courses"
+            className={({ isActive }) =>
+              `nav-link ${isCoursePath ? "is-active" : ""}`
+            }
+          >
+            Каталог
+          </NavLink>
+        )}
+        {canManageOrganizations && (
+          <NavLink
+            to="/organizations"
+            className={() =>
+              `nav-link ${isOrganizationsPath ? "is-active" : ""}`
+            }
+          >
+            Организации
+          </NavLink>
+        )}
+        {canCreateCourse && (
+          <>
+            <NavLink
+              to="/creator"
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "is-active" : ""}`
+              }
+            >
+              Создать курс
+            </NavLink>
+            <NavLink
+              to="/manual-course-builder"
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "is-active" : ""}`
+              }
+            >
+              Создать курс самостоятельно
+            </NavLink>
+          </>
+        )}
       </nav>
 
       <div className="header-actions">

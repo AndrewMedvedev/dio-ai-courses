@@ -1,12 +1,10 @@
 import logging
-from collections.abc import Callable
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.sql import Select
+from sqlalchemy import select
 
 from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....domain.entities import (
     BasicInfo,
@@ -26,43 +24,45 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     model = CourseOrm
     model_mapper = CourseMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
-    async def paginate(self, pagination: Pagination) -> Page[Course]:
+    async def find(
+        self,
+        pagination: Pagination,
+    ) -> Page[Course]:
+        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
+
         stmt = (
             select(self.model)
             .order_by(self.model.created_at.desc())
             .where(self.model.status == CourseStatus.PUBLISHED)
         )
-        return await self._paginate(stmt, pagination)
 
-    async def _paginate(
+        return await paginate(
+            session=self._session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            mapper=self.model_mapper.from_model,
+        )
+
+    async def find_user_courses(
         self,
-        stmt: Select[tuple[CourseOrm]],
+        user_id: UUID,
         pagination: Pagination,
-        *,
-        model_mapper: Callable[[CourseOrm], Course] | None = None,
     ) -> Page[Course]:
-        if model_mapper is None:
-            model_mapper = self.model_mapper.from_model
-
-        count_stmt = select(func.count()).select_from(stmt.subquery())
-        total_items = await self._session.scalar(count_stmt)
-        if total_items == 0:
-            return Page.create([], total_items, pagination.page, pagination.size)
+        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
 
         stmt = (
-            stmt
+            select(self.model)
             .order_by(self.model.created_at.desc())
-            .offset(pagination.offset)
-            .limit(pagination.size)
+            .where(self.model.creator_id == user_id)
         )
-        results = await self._session.execute(stmt)
-        models = results.scalars().all()
 
-        return Page.create(
-            items=[model_mapper(model) for model in models],
-            total=total_items,  # pyright: ignore[reportArgumentType]
-            page=pagination.page,
-            size=pagination.size,
+        return await paginate(
+            session=self._session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            mapper=self.model_mapper.from_model,
         )
 
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:

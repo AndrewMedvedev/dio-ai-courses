@@ -12,7 +12,7 @@ from aiohttp import ClientTimeout
 from pydantic import BaseModel
 
 from ..core.settings import settings
-from ..shared.infra.http_client import HttpClient, HttpConfig
+from ..shared.infra.http_client import HttpClient, HttpConfig, Request
 from .dataclasses import StructuredTool
 from .middleware import BaseAgentMiddleware
 from .schemas import (
@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 def execute_once_per_loop[ResponseT: BaseModel](
     func: Callable[..., Awaitable[ResponseT]],
 ) -> Callable[..., Awaitable[ResponseT]]:
-    """Оборачивает вызов сервиса middleware, выполняемыми один раз за цикл агента."""
 
     @wraps(func)
     async def wrapper(
@@ -40,7 +39,6 @@ def execute_once_per_loop[ResponseT: BaseModel](
         *args,
         **kwargs,
     ) -> ResponseT:
-        """Выполняет действие `wrapper`, чтобы поддержать основной сценарий модуля."""
         for middleware in self.middlewares:
             messages = await middleware.before_agent(self, messages)
         response = await func(self, messages, *args, **kwargs)
@@ -54,8 +52,6 @@ def execute_once_per_loop[ResponseT: BaseModel](
 def execute_each_invoke[ResponseT: BaseModel](
     func: Callable[..., Awaitable[ResponseT]],
 ) -> Callable[..., Awaitable[ResponseT]]:
-    """Оборачивает каждый LLM-вызов middleware до и после обращения к модели."""
-
     @wraps(func)
     async def wrapper(
         self: LLMServiceProtocol,
@@ -63,7 +59,6 @@ def execute_each_invoke[ResponseT: BaseModel](
         *args,
         **kwargs,
     ) -> ResponseT:
-        """Выполняет действие `wrapper`, чтобы поддержать основной сценарий модуля."""
         for middleware in self.middlewares:
             messages = await middleware.before_model(self, messages)
         result = await func(self, messages, *args, **kwargs)
@@ -82,28 +77,25 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC, HttpClient)
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         super().__init__(
-            config=HttpConfig(base_url=settings.base_llm_router_url, timeout=ClientTimeout(5 * 60))
+            config=HttpConfig(
+                base_url=settings.base_llm_router_url, timeout=ClientTimeout(10 * 60)
+            )
         )
         self.middlewares = middlewares if middlewares is not None else []
         self.runtime = runtime
 
     async def _send_request(self, request: RequestT, path: str) -> ResponseT:
-        """Выполняет внутренний шаг `_send_request`, чтобы скрыть детали реализации от публичного API."""
-        async with self._get_session() as session:
-            answer = await session.post(url=path, json=request.model_dump(exclude_none=True))
-            answer.raise_for_status()
-            result = await answer.json()
-            return self.response_model.model_validate(result)
+        result = await self.post(
+            path=path,
+            request=Request(json=request.model_dump(exclude_none=True)),
+        )
+        return self.response_model.model_validate(result)
 
     @abstractmethod
-    async def _run_loop(self, *args, **kwargs) -> ResponseT:
-        """Выполняет основной цикл запроса к конкретному LLM-сервису."""
-        ...
+    async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
 
     async def _process_response(self, response: ResponseT, *args, **kwargs) -> ResponseT:
-        """Выполняет внутренний шаг `_process_response`, чтобы скрыть детали реализации от публичного API."""
         return response
 
 
@@ -121,8 +113,8 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         runtime: Runtime | None = None,
         maximum_number_of_parallel_executions: int = 4,
     ) -> None:
-        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         super().__init__(runtime=runtime, middlewares=middlewares)
+        self.model = model
         self.system_prompt = system_prompt
         self.tools = tools
         self.reasoning: Literal["low", "medium", "high"] | None = reasoning
@@ -135,7 +127,6 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        """Запускает обращение к сервису и возвращает обработанный результат."""
         return await self._run_loop(messages=messages, schema=schema)
 
     @execute_each_invoke
@@ -144,7 +135,6 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        """Выполняет внутренний шаг `_run_loop`, чтобы скрыть детали реализации от публичного API."""
         request = LLMTextRequest(
             input=messages,
             tools=[tool.to_tool_params() for tool in self.tools.values()] if self.tools else None,
@@ -154,16 +144,17 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         )
 
         if self.runtime is not None:
-            self.runtime.messages = messages
+            self.runtime.messages = list(messages)
         if schema is not None:
             request.format_schema(schema)
-        return await self._send_request(request=request, path="responses/text")
+        return await self._send_request(
+            request=request,
+            path=f"responses/text{f'?model={self.model}' if self.model is not None else ''}",
+        )
 
     def _build_tool_call_handler(self) -> Callable[[ToolCallParsed], Awaitable[dict]]:
-        """Выполняет внутренний шаг `_build_tool_call_handler`, чтобы скрыть детали реализации от публичного API."""
-
         async def base_handler(tool: ToolCallParsed) -> dict:
-            """Выполняет действие `base_handler`, чтобы поддержать основной сценарий модуля."""
+
             return await self._process_tool(tool)
 
         handler: Callable[[ToolCallParsed], Awaitable[dict]] = base_handler
@@ -176,18 +167,19 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         middleware: BaseAgentMiddleware,
         next_handler: Callable[[ToolCallParsed], Awaitable[dict]],
     ) -> Callable[[ToolCallParsed], Awaitable[dict]]:
-        """Выполняет внутренний шаг `_wrap_with`, чтобы скрыть детали реализации от публичного API."""
 
         async def wrapped(tool: ToolCallParsed) -> dict:
-            """Выполняет действие `wrapped`, чтобы поддержать основной сценарий модуля."""
+
             return await middleware.wrap_tool_call(self, tool, next_handler)
 
         return wrapped
 
     async def _process_tool(self, tool: ToolCallParsed) -> dict:
-        """Выполняет внутренний шаг `_process_tool`, чтобы скрыть детали реализации от публичного API."""
+
         logger.info("tool call %s", tool.name)
-        callable_func = self.tools[tool.name]
+        callable_func = self.tools.get(tool.name)  # pyright: ignore[reportOptionalMemberAccess]
+        if callable_func is None:
+            return {}
         async with self.semaphore:
             try:
                 result = await callable_func.run_tool(
@@ -207,7 +199,6 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         response: LLMTextResponse,
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        """Выполняет внутренний шаг `_process_response`, чтобы скрыть детали реализации от публичного API."""
         if response.tool_calls:
             handler = self._build_tool_call_handler()
             tasks = [handler(tool) for tool in response.tool_calls]
@@ -223,14 +214,12 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
 
     def __init__(
         self,
-        system_prompt: str | None = None,
         model: str | None = None,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         super().__init__(runtime=runtime, middlewares=middlewares)
-        self.system_prompt = system_prompt
+        self.model = model
 
     @execute_once_per_loop
     async def invoke(
@@ -238,9 +227,7 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
         messages: str,
         images: list[str] | None = None,
     ) -> LLMImageResponse:
-        """Запускает обращение к сервису и возвращает обработанный результат."""
-        prompt = f"{self.system_prompt}\n\n{messages}" if self.system_prompt else messages
-        return await self._run_loop(messages=prompt, images=images)
+        return await self._run_loop(messages=messages, images=images)
 
     @execute_each_invoke
     async def _run_loop(
@@ -248,8 +235,10 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
         messages: str,
         images: list[str] | None = None,
     ) -> LLMImageResponse:
-        """Выполняет внутренний шаг `_run_loop`, чтобы скрыть детали реализации от публичного API."""
         request = LLMImageRequest(image=images, prompt=messages)
         if self.runtime is not None:
             self.runtime.messages = messages
-        return await self._send_request(request=request, path="responses/image")
+        return await self._send_request(
+            request=request,
+            path=f"responses/image{f'?model={self.model}' if self.model is not None else ''}",
+        )

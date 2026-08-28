@@ -265,7 +265,7 @@ export default function CoursePage({
         </article>
 
         <article className="glass-card course-details-modules">
-          <h3>Блоки курса</h3>
+          <h3>Модули</h3>
           <ul className="course-blocks-list">
             {renderInsertControl(0)}
             {selectedCourse.blocks.map((block, index) => {
@@ -289,7 +289,7 @@ export default function CoursePage({
                         </span>
                         <div className="course-editor-grid">
                           <label className="course-editor-field">
-                            <span>Название блока</span>
+                            <span>Название модуля</span>
                             <input
                               value={block.title}
                               onChange={(event) =>

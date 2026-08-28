@@ -36,7 +36,7 @@ async def call_researcher_agent(
     runtime: Runtime[Context, ClientSession],
     schema: ResearchInput,
 ) -> dict:
-    """Вызывает researcher agent, чтобы вынести отдельный шаг обработки в специализированный сервис."""
+    """Вызывает researcher agent, чтобы вынести отдельный шаг обработки в специализированный сервис."""  # ruff: ignore[line-too-long]
     logger.info("Call researcher agent")
     researcher_agent = LLMTextService(
         system_prompt=RESEARCHER_PROMPT,
@@ -60,6 +60,7 @@ async def call_researcher_agent(
 
 def reasoner_agent(runtime: Runtime[Context, ClientSession]) -> LLMTextService:
     """Выполняет действие `reasoner_agent`, чтобы поддержать основной сценарий модуля."""
+
     return LLMTextService(
         system_prompt=REASONER_PROMPT.format(prompt=runtime.context.prompt),
         tools={

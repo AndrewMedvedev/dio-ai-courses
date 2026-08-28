@@ -24,11 +24,11 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
 
     async def assign_course(
         self,
-        module_ids: list[UUID],
+        module_id: UUID,
         course_id: UUID,
     ) -> None:
         """Связывает курс с родительской сущностью и фиксирует это отношение."""
-        stmt = update(self.model).where(self.model.id.in_(module_ids)).values(course_id=course_id)
+        stmt = update(self.model).where(self.model.id == module_id).values(course_id=course_id)
         await self._session.execute(stmt)
 
     async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
