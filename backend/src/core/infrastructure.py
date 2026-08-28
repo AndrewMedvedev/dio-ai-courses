@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 import dramatiq
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
+from dramatiq.middleware.prometheus import Prometheus
 from dramatiq.results import Results
 from dramatiq.results.backends import RedisBackend
 from faststream.rabbit import RabbitBroker
@@ -35,6 +36,7 @@ rabbitmq_broker = RabbitmqBroker(
 )
 rabbitmq_broker.add_middleware(Results(backend=result_backend))
 rabbitmq_broker.add_middleware(dramatiq.middleware.AsyncIO())
+rabbitmq_broker.add_middleware(Prometheus())
 
 dramatiq.set_broker(rabbitmq_broker)
 

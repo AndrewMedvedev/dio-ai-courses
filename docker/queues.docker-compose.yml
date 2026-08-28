@@ -18,7 +18,7 @@ services:
 
   dramatiq:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     command: >
       dramatiq src.courses.agents.course_generator.workflow

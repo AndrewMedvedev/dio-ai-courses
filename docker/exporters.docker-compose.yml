@@ -1,34 +1,46 @@
-# Добавьте эти сервисы в ваш основной docker-compose.yml
-# (в одну сеть с prometheus/postgres/redis/rabbitmq/backend)
-
 services:
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: postgres-exporter
+    restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://<user>:<password>@postgres:5432/<dbname>?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
     ports:
       - "9187:9187"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9187/metrics | grep -q '^pg_up'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: redis-exporter
+    restart: unless-stopped
     environment:
       REDIS_ADDR: "redis://redis:6379"
-    # REDIS_PASSWORD: "<если есть пароль>"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
     ports:
       - "9121:9121"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9121/metrics | grep -q '^redis_up'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    restart: unless-stopped
     ports:
-      - "7070:7070"
+      - "7070:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -36,24 +48,3 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     privileged: true
-
-  # --- RabbitMQ ---
-  # Метрики Prometheus у RabbitMQ уже встроены, экспортёр отдельно не нужен.
-  # В сервисе rabbitmq добавьте:
-  #   command: >
-  #     bash -c "rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server"
-  #   ports:
-  #     - "15692:15692"   # порт метрик плагина rabbitmq_prometheus
-
-  # --- Qdrant ---
-  # Метрики уже отдаются нативно на :6333/metrics, ничего добавлять не нужно,
-  # только убедитесь что порт 6333 доступен для prometheus.
-
-  # --- Dramatiq ---
-  # В коде backend/воркера подключите prometheus-миддлварь:
-  #   pip install "dramatiq[prometheus]"
-  #   и задайте переменные окружения перед запуском воркера:
-  #     dramatiq_prom_host=0.0.0.0
-  #     dramatiq_prom_port=9191
-  #   Миддлварь сама поднимет http-сервер с /metrics на 0.0.0.0:9191
-  #   Убедитесь что порт проброшен наружу контейнера воркера.

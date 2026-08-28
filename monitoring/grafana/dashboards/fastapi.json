@@ -1,14 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
   "__elements": {},
   "__requires": [
     {
@@ -66,7 +56,6 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "gnetId": 16110,
   "graphTooltip": 0,
   "id": null,
   "links": [],
@@ -107,7 +96,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -123,17 +114,13 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "sum(rate(http_requests_total[40m]))",
+          "expr": "sum(http_requests_total)",
           "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
-      "timeFrom": "24h",
-      "title": "Всего запросов",
+      "title": "Total Requests",
       "transformations": [
         {
           "id": "seriesToRows",
@@ -188,7 +175,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -204,17 +193,14 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "http_requests_total",
+          "expr": "sum by (method, handler) (http_requests_total)",
           "instant": true,
-          "interval": "",
-          "legendFormat": "{{method}} {{path}}",
-          "range": true,
+          "range": false,
+          "legendFormat": "{{method}} {{handler}}",
           "refId": "A"
         }
       ],
-      "timeFrom": "24h",
-      "title": "Количество запросов",
+      "title": "Requests by Endpoint",
       "transformations": [
         {
           "id": "seriesToRows",
@@ -234,7 +220,9 @@
         {
           "id": "partitionByValues",
           "options": {
-            "fields": ["Metric"]
+            "fields": [
+              "Metric"
+            ]
           }
         }
       ],
@@ -283,7 +271,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -299,15 +289,14 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "sum(rate(http_request_duration_seconds_sum[1m])) / sum(rate(http_request_duration_seconds_count[60m]))",
-          "interval": "",
-          "legendFormat": "{{method}} {{path}}",
-          "range": true,
+          "expr": "sum(rate(http_request_duration_seconds_sum[5m])) / clamp_min(sum(rate(http_request_duration_seconds_count[5m])), 0.000000001)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "avg",
           "refId": "A"
         }
       ],
-      "title": "Средняя длительность запросов",
+      "title": "Average Request Duration",
       "type": "bargauge"
     },
     {
@@ -330,10 +319,11 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 1
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -351,7 +341,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -367,33 +359,13 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "sum(rate(http_requests_total{status=\"404\"}[50m]))",
-          "interval": "",
-          "legendFormat": "",
-          "range": true,
+          "expr": "sum(http_requests_total{status=\"5xx\"}) or vector(0)",
+          "instant": true,
+          "range": false,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus_main"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "rate(http_requests_total{status=\"4xx\"}[1h])",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
         }
       ],
-      "timeFrom": "24h",
-      "title": "Всего исключений",
+      "title": "Server Errors (5xx)",
       "type": "stat"
     },
     {
@@ -448,12 +420,18 @@
                 "value": null
               },
               {
+                "color": "orange",
+                "value": 0.95
+              },
+              {
                 "color": "green",
-                "value": 0.8
+                "value": 0.99
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
         },
         "overrides": []
       },
@@ -483,32 +461,13 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "sum(rate(http_requests_total{status=\"200\"}[60m])) / sum(rate(http_requests_total[60m]))",
-          "interval": "",
-          "legendFormat": "{{path}}",
+          "expr": "(sum(rate(http_requests_total{status=\"2xx\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 0.000000001)) or vector(0)",
+          "legendFormat": "2xx",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus_main"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "rate(http_requests_total{status=\"2xx\"}[1h])",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
         }
       ],
-      "title": "Процент 2xx запросов",
+      "title": "2xx Success Rate",
       "type": "timeseries"
     },
     {
@@ -563,12 +522,18 @@
                 "value": null
               },
               {
+                "color": "orange",
+                "value": 0.01
+              },
+              {
                 "color": "red",
-                "value": 0.1
+                "value": 0.05
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
         },
         "overrides": []
       },
@@ -598,32 +563,13 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "sum(rate(http_requests_total{status_codes=\"404\"}[60m])) / sum(rate(http_requests_total[60m]))",
-          "interval": "",
-          "legendFormat": "{{path}}",
+          "expr": "(sum(rate(http_requests_total{status=\"4xx\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 0.000000001)) or vector(0)",
+          "legendFormat": "4xx",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus_main"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "http_requests_total{status=\"4xx\"}",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
         }
       ],
-      "title": "Процент 4xx запросов",
+      "title": "4xx Client Error Rate",
       "type": "timeseries"
     },
     {
@@ -712,15 +658,13 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[60m])) by (le))",
-          "interval": "",
-          "legendFormat": "{{path}}",
+          "expr": "histogram_quantile(0.99, sum by (le, method, handler) (rate(http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{method}} {{handler}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "99-й перцентиль длительности",
+      "title": "P99 Request Duration",
       "type": "timeseries"
     },
     {
@@ -778,7 +722,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "reqps"
         },
         "overrides": []
       },
@@ -808,32 +753,13 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "http_requests_total{app_name=\"$app_name\", path!=\"/metrics\"}",
-          "interval": "",
-          "legendFormat": "{{path}}",
+          "expr": "sum by (status) (rate(http_requests_total[5m]))",
+          "legendFormat": "{{status}}",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus_main"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "http_requests_created",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
         }
       ],
-      "title": "Запросов в обработке",
+      "title": "Requests / sec by Status",
       "type": "timeseries"
     },
     {
@@ -922,77 +848,34 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "rate(http_requests_total[60m])",
-          "interval": "",
-          "legendFormat": "{{path}}",
+          "expr": "sum by (method, handler) (rate(http_requests_total[5m]))",
+          "legendFormat": "{{method}} {{handler}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Запросов в секунду",
+      "title": "Requests / sec by Endpoint",
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "15s",
   "schemaVersion": 39,
-  "tags": [],
+  "tags": [
+    "fastapi",
+    "backend",
+    "application"
+  ],
   "templating": {
-    "list": [
-      {
-        "current": {},
-        "datasource": {
-          "type": "prometheus",
-          "uid": "prometheus_main"
-        },
-        "definition": "label_values(fastapi_app_info{}, app_name)",
-        "hide": 2,
-        "includeAll": false,
-        "label": "Application Name",
-        "multi": false,
-        "name": "app_name",
-        "options": [],
-        "query": {
-          "query": "label_values(fastapi_app_info{}, app_name)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
-        },
-        "description": "query with keyword",
-        "hide": 0,
-        "label": "Log Query",
-        "name": "log_keyword",
-        "options": [
-          {
-            "selected": true,
-            "text": "",
-            "value": ""
-          }
-        ],
-        "query": "",
-        "skipUrlSync": false,
-        "type": "textbox"
-      }
-    ]
+    "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "FastAPI Observability",
   "uid": "fastapi-observability",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
