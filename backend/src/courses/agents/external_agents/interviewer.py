@@ -1,5 +1,4 @@
 # pyright: reportOptionalMemberAccess=false, reportReturnType=false
-from typing import Any
 
 import logging
 from uuid import UUID
@@ -12,6 +11,7 @@ from ...application.repos import ChatRepository
 from ..middlewares import (
     ChatCheckpointerMiddleware,
     LemmatizationMiddleware,
+    StopInterview,
     SummarizationMiddleware,
     ToolCallLimitMiddleware,
 )
@@ -33,7 +33,7 @@ class InterviewerAgent:
         self._repo = repo
         self._session = session
 
-    async def call_agent(self, chat_id: UUID, context: Context) -> dict[str, Any] | str:
+    async def call_agent(self, chat_id: UUID, context: Context) -> str:
         """Выполняет действие `interviewer`, чтобы поддержать основной сценарий модуля."""
         agent = LLMTextService(
             system_prompt=INTERVIEWER_PROMPT,
@@ -58,17 +58,11 @@ class InterviewerAgent:
                     }
                 ),
                 ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
+                StopInterview(),
             ],
             runtime=Runtime(
                 context=context, state=State(chat_id=chat_id, db_session=self._session)
             ),
         )
         result = await agent.invoke(messages=[{"role": "user", "content": context.prompt}])
-        task_id = agent.runtime.state.task_id
-        if task_id:
-            logger.info(
-                "Interview completed, task_id=%s, course_id=%s", task_id, context.course_id
-            )
-            return {"task_id": task_id}
-
         return result.raw_text

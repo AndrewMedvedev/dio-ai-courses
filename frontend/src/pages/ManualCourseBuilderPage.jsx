@@ -24,6 +24,34 @@ import {
 } from "../utils/api";
 
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
+const MANUAL_BUILDER_DRAFT_KEY = "manual_course_builder_draft_v1";
+
+const EMPTY_MODULE_DRAFT = {
+  title: "",
+  description: "",
+  learningObjectives: "",
+};
+
+const EMPTY_STRUCTURE_DRAFT = {
+  title: "",
+  description: "",
+  learningObjectives: "",
+  estimatedTimeMinutes: "",
+};
+
+const EMPTY_LESSON_DRAFT = {
+  title: "",
+  description: "",
+  learningObjectives: "",
+  estimatedTimeMinutes: "",
+};
+
+const EMPTY_COURSE_DRAFT = {
+  title: "",
+  description: "",
+  difficulty: "beginner",
+  tags: "",
+};
 
 const AI_IMAGE_TYPES = new Set([
   "image/png",
@@ -90,6 +118,83 @@ function markdownToTextContentBlocks(markdown) {
     : [];
 }
 
+function getStorage() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function withoutFile(block) {
+  if (!block) return block;
+  const { file, ...rest } = block;
+  return {
+    ...rest,
+    fileName: rest.fileName || file?.name || "",
+    status: rest.status === "uploading" ? "error" : rest.status,
+    error:
+      rest.status === "uploading"
+        ? "Загрузка была прервана обновлением страницы. Добавьте файл заново или используйте уже сохранённый markdown."
+        : rest.error || "",
+  };
+}
+
+function loadManualBuilderDraft() {
+  const storage = getStorage();
+  if (!storage) return {};
+
+  try {
+    const parsed = JSON.parse(
+      storage.getItem(MANUAL_BUILDER_DRAFT_KEY) || "null",
+    );
+    if (!parsed || typeof parsed !== "object") return {};
+
+    return {
+      blocks: Array.isArray(parsed.blocks)
+        ? parsed.blocks.map(withoutFile)
+        : [],
+      lessons: Array.isArray(parsed.lessons) ? parsed.lessons : [],
+      selectedLessonIds: Array.isArray(parsed.selectedLessonIds)
+        ? parsed.selectedLessonIds
+        : [],
+      modules: Array.isArray(parsed.modules) ? parsed.modules : [],
+      moduleDraft: parsed.moduleDraft || EMPTY_MODULE_DRAFT,
+      editingStructure: parsed.editingStructure || null,
+      structureDraft: parsed.structureDraft || EMPTY_STRUCTURE_DRAFT,
+      activeLessonId: parsed.activeLessonId || null,
+      activeLessonDraft: parsed.activeLessonDraft || EMPTY_LESSON_DRAFT,
+      lessonContentDraft: parsed.lessonContentDraft || "",
+      courseDraft: parsed.courseDraft || EMPTY_COURSE_DRAFT,
+      createdCourse: parsed.createdCourse || null,
+      editingBlockId: parsed.editingBlockId || null,
+      chatBlockId: parsed.chatBlockId || null,
+      isModuleFormOpen: Boolean(parsed.isModuleFormOpen),
+      transferTargetModuleId: parsed.transferTargetModuleId || "",
+    };
+  } catch {
+    return {};
+  }
+}
+
+function saveManualBuilderDraft(draft) {
+  const storage = getStorage();
+  if (!storage) return;
+
+  storage.setItem(
+    MANUAL_BUILDER_DRAFT_KEY,
+    JSON.stringify({
+      ...draft,
+      blocks: (draft.blocks || []).map(withoutFile),
+    }),
+  );
+}
+
+function clearManualBuilderDraft() {
+  getStorage()?.removeItem(MANUAL_BUILDER_DRAFT_KEY);
+}
+
 function getApiErrorMessage(error, fallback) {
   const validationMessage = error?.validationErrors
     ? Object.entries(error.validationErrors)
@@ -122,15 +227,19 @@ const DIFFICULTY_OPTIONS = [
 
 export default function ManualCourseBuilderPage({ onCreateCourse }) {
   const fileInputRef = useRef(null);
+  const restoredDraftRef = useRef(loadManualBuilderDraft());
+  const restoredDraft = restoredDraftRef.current;
 
-  const [blocks, setBlocks] = useState([]);
+  const [blocks, setBlocks] = useState(restoredDraft.blocks || []);
   const [pendingBlockFocusId, setPendingBlockFocusId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const [lessons, setLessons] = useState([]);
-  const [selectedLessonIds, setSelectedLessonIds] = useState([]);
+  const [lessons, setLessons] = useState(restoredDraft.lessons || []);
+  const [selectedLessonIds, setSelectedLessonIds] = useState(
+    restoredDraft.selectedLessonIds || [],
+  );
 
-  const [modules, setModules] = useState([]);
+  const [modules, setModules] = useState(restoredDraft.modules || []);
   const [draggedModuleId, setDraggedModuleId] = useState(null);
   const [dragOverModuleId, setDragOverModuleId] = useState(null);
   const [draggedLessonId, setDraggedLessonId] = useState(null);
@@ -142,51 +251,56 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
   const [treeActionError, setTreeActionError] = useState("");
   const [isCreatingLesson, setIsCreatingLesson] = useState(false);
   const [lessonCreateError, setLessonCreateError] = useState("");
-  const [isModuleFormOpen, setIsModuleFormOpen] = useState(false);
+  const [isModuleFormOpen, setIsModuleFormOpen] = useState(
+    restoredDraft.isModuleFormOpen || false,
+  );
   const [isCreatingModule, setIsCreatingModule] = useState(false);
   const [isMovingLessons, setIsMovingLessons] = useState(false);
-  const [transferTargetModuleId, setTransferTargetModuleId] = useState("");
+  const [transferTargetModuleId, setTransferTargetModuleId] = useState(
+    restoredDraft.transferTargetModuleId || "",
+  );
   const [moduleCreateError, setModuleCreateError] = useState("");
-  const [moduleDraft, setModuleDraft] = useState({
-    title: "",
-    description: "",
-    learningObjectives: "",
-  });
-  const [editingStructure, setEditingStructure] = useState(null);
-  const [structureDraft, setStructureDraft] = useState({
-    title: "",
-    description: "",
-    learningObjectives: "",
-    estimatedTimeMinutes: "",
-  });
+  const [moduleDraft, setModuleDraft] = useState(
+    restoredDraft.moduleDraft || EMPTY_MODULE_DRAFT,
+  );
+  const [editingStructure, setEditingStructure] = useState(
+    restoredDraft.editingStructure || null,
+  );
+  const [structureDraft, setStructureDraft] = useState(
+    restoredDraft.structureDraft || EMPTY_STRUCTURE_DRAFT,
+  );
   const [structureEditError, setStructureEditError] = useState("");
   const [isSavingStructure, setIsSavingStructure] = useState(false);
-  const [activeLessonId, setActiveLessonId] = useState(null);
-  const [activeLessonDraft, setActiveLessonDraft] = useState({
-    title: "",
-    description: "",
-    learningObjectives: "",
-    estimatedTimeMinutes: "",
-  });
-  const [lessonContentDraft, setLessonContentDraft] = useState("");
+  const [activeLessonId, setActiveLessonId] = useState(
+    restoredDraft.activeLessonId || null,
+  );
+  const [activeLessonDraft, setActiveLessonDraft] = useState(
+    restoredDraft.activeLessonDraft || EMPTY_LESSON_DRAFT,
+  );
+  const [lessonContentDraft, setLessonContentDraft] = useState(
+    restoredDraft.lessonContentDraft || "",
+  );
   const [lessonContentError, setLessonContentError] = useState("");
   const [lessonMetaError, setLessonMetaError] = useState("");
   const [isSavingLessonContent, setIsSavingLessonContent] = useState(false);
   const [isSavingLessonMeta, setIsSavingLessonMeta] = useState(false);
-  const [courseDraft, setCourseDraft] = useState({
-    title: "",
-    description: "",
-    difficulty: "beginner",
-    tags: "",
-  });
-  const [createdCourse, setCreatedCourse] = useState(null);
+  const [courseDraft, setCourseDraft] = useState(
+    restoredDraft.courseDraft || EMPTY_COURSE_DRAFT,
+  );
+  const [createdCourse, setCreatedCourse] = useState(
+    restoredDraft.createdCourse || null,
+  );
   const [courseCreateError, setCourseCreateError] = useState("");
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [finishError, setFinishError] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
 
-  const [editingBlockId, setEditingBlockId] = useState(null);
-  const [chatBlockId, setChatBlockId] = useState(null);
+  const [editingBlockId, setEditingBlockId] = useState(
+    restoredDraft.editingBlockId || null,
+  );
+  const [chatBlockId, setChatBlockId] = useState(
+    restoredDraft.chatBlockId || null,
+  );
 
   const [aiInput, setAiInput] = useState("");
   const [aiImage, setAiImage] = useState(null);
@@ -282,6 +396,44 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
     () => () => cancelAgentRequest(aiConversationKey),
     [aiConversationKey, cancelAgentRequest],
   );
+
+  useEffect(() => {
+    saveManualBuilderDraft({
+      blocks,
+      lessons,
+      selectedLessonIds,
+      modules,
+      moduleDraft,
+      editingStructure,
+      structureDraft,
+      activeLessonId,
+      activeLessonDraft,
+      lessonContentDraft,
+      courseDraft,
+      createdCourse,
+      editingBlockId,
+      chatBlockId,
+      isModuleFormOpen,
+      transferTargetModuleId,
+    });
+  }, [
+    activeLessonDraft,
+    activeLessonId,
+    blocks,
+    chatBlockId,
+    courseDraft,
+    createdCourse,
+    editingBlockId,
+    editingStructure,
+    isModuleFormOpen,
+    lessonContentDraft,
+    lessons,
+    moduleDraft,
+    modules,
+    selectedLessonIds,
+    structureDraft,
+    transferTargetModuleId,
+  ]);
 
   useEffect(() => {
     const container = aiMessagesRef.current;
@@ -1465,6 +1617,7 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
 
     try {
       await onCreateCourse({ courseId: createdCourse.id });
+      clearManualBuilderDraft();
     } catch (error) {
       setFinishError(
         getApiErrorMessage(

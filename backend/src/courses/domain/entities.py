@@ -439,6 +439,14 @@ class Chat(Entity):
 
 
 @dataclass(kw_only=True, slots=True)
+class Student(Entity):
+    """Описывает доменную сущность `Student` и её данные для бизнес-логики."""
+
+    course_id: UUID
+    user_id: UUID
+
+
+@dataclass(kw_only=True, slots=True)
 class StudentPractice(Entity):
     """Описывает доменную сущность `StudentPractice` и её данные для бизнес-логики."""
 

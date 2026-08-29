@@ -144,7 +144,7 @@ async def create_first_admin() -> None:
 
         exists = await user_repo.get_by_email(admin_email)
         if exists:
-            logger.warning("Admin already exists")
+            logger.info("Admin already exists")
             return
 
         admin = _build_admin_user(admin_email)
@@ -162,7 +162,7 @@ async def create_user_admin() -> None:
 
         exists = await user_repo.get_by_email(user_email)
         if exists:
-            logger.warning("User already exists")
+            logger.info("User already exists")
             return
 
         user = _build_user(user_email)
@@ -215,7 +215,7 @@ async def create_default_organization() -> None:
             organization.id,
         )
         if membership_admin:
-            logger.warning("Admin membership already exists")
+            logger.info("Admin membership already exists")
         else:
             await membership_repo.create(
                 Membership(
@@ -226,7 +226,7 @@ async def create_default_organization() -> None:
             )
 
         if membership_user:
-            logger.warning("User membership already exists")
+            logger.info("User membership already exists")
         else:
             await membership_repo.create(
                 Membership(

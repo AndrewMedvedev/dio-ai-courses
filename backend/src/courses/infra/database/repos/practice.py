@@ -3,7 +3,7 @@ from typing import Any
 import logging
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
@@ -56,25 +56,3 @@ class SqlPracticeRepository(SqlAlchemyRepository[Practice, PracticeOrm]):
             }
             for row in result.all()
         ]
-
-    async def update(
-        self,
-        user_id: UUID,
-        module_id: UUID,
-        lesson_id: UUID,
-        **kwargs,
-    ) -> Practice | None:
-        """Обновляет существующую запись, чтобы сохранить изменённое состояние."""
-        stmt = (
-            update(self.model)
-            .values(**kwargs)
-            .where(
-                self.model.user_id == user_id,
-                self.model.module_id == module_id,
-                self.model.lesson_id == lesson_id,
-            )
-            .returning(self.model)
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)

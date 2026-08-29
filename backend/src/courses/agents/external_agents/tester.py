@@ -1,7 +1,7 @@
 from typing import Any
 
+import json
 import random
-from dataclasses import asdict
 from uuid import UUID
 
 from pydantic import TypeAdapter
@@ -34,7 +34,7 @@ class TesterAgent:
         user_id: UUID,
         module_id: UUID,
         lesson_id: UUID,
-    ) -> AnyKnowledgeTest:
+    ) -> dict[str, Any]:
         """Создает тест для студента на основе теории урока и его предыдущих практик."""
         random_type = random.choice(list(TestType))  # ruff: ignore[suspicious-non-cryptographic-random-usage]
         config = KNOWLEDGE_CONFIG.get(random_type, {})
@@ -47,30 +47,32 @@ class TesterAgent:
         ]
         practices = await self.practice_repo.read_by_module(user_id=user_id, module_id=module_id)
         if practices is not None:
-            messages.append({"role": "user", "content": f"Практики студента\n{practices}"})
+            messages.append({
+                "role": "user",
+                "content": f"Практика студента:\n{json.dumps(practices, ensure_ascii=False, indent=2)}",
+            })
         agent = LLMTextService(
             system_prompt=config.get("system_prompt", ""),
         )
         response_format: AnyKnowledgeTest = config.get("response_format")  # pyright: ignore[reportAssignmentType]
         result = await agent.invoke(messages=messages, schema=response_format)
-        response: AnyKnowledgeTest = TypeAdapter(response_format).validate_python(result.output)
-        await self.practice_repo.create(
+        practice: AnyKnowledgeTest = TypeAdapter(response_format).validate_python(result.output)
+        created = await self.practice_repo.create(
             Practice(
                 user_id=user_id,
                 module_id=module_id,
                 lesson_id=lesson_id,
-                practice=[asdict(response)],
+                practice=[practice.model_dump()],
             ),
         )
         await self.session.commit()
-        return response
+        return {"practice": practice, "practice_id": created.id}
 
     async def call_agent_checker(
         self,
         practice: dict[str, Any],
-        user_id: UUID,
-        module_id: UUID,
-        lesson_id: UUID,
+        answers: dict[str, str],
+        practice_id: UUID,
     ) -> PracticeResult:
         """Оставляет точку расширения для будущей проверки практических заданий."""
 
@@ -78,23 +80,28 @@ class TesterAgent:
             system_prompt=TEST_CHECKER_PROMPT,
         )
         result = await agent.invoke(
-            messages=[{"role": "user", "content": practice}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Практика студента:\n{json.dumps(practice, ensure_ascii=False, indent=2)}",
+                },
+                {
+                    "role": "user",
+                    "content": f"Ответы студента:\n{json.dumps(answers, ensure_ascii=False, indent=2)}",
+                },
+            ],
             schema=PracticeResult,
         )
         response = PracticeResult.model_validate(result.output)
         if response.is_passed:
             await self.practice_repo.update(
-                user_id=user_id,
-                module_id=module_id,
-                lesson_id=lesson_id,
+                uid=practice_id,
                 status=PracticeStatus.COMPLETED,
                 practice={"practice": practice, **response.model_dump()},
             )
         else:
             await self.practice_repo.update(
-                user_id=user_id,
-                module_id=module_id,
-                lesson_id=lesson_id,
+                uid=practice_id,
                 status=PracticeStatus.FAILED,
                 practice={"practice": practice, **response.model_dump()},
             )

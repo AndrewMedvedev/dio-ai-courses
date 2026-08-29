@@ -19,6 +19,13 @@ export const blockTypes = [
     template: { url: "", description: "" },
   },
   {
+    id: "image",
+    contentType: "image",
+    label: "Изображение",
+    hint: "Ссылка или data URL",
+    template: { image_url: "" },
+  },
+  {
     id: "program_code",
     contentType: "program_code",
     label: "Код",
@@ -145,9 +152,14 @@ function normalizeQuestion(question) {
     };
   }
   if (question && typeof question === "object") {
+    const options = Array.isArray(question.options)
+      ? question.options.join("\n")
+      : question.options;
+    const answerParts = [options, question.answer].filter(Boolean);
+
     return {
       question: typeof question.question === "string" ? question.question : "",
-      answer: typeof question.answer === "string" ? question.answer : "",
+      answer: answerParts.join("\n\n"),
     };
   }
   return { question: typeof question === "string" ? question : "", answer: "" };
@@ -229,7 +241,11 @@ export function normalizeContentBlock(block, ensureId = false) {
     normalized.md_content = String(source.md_content ?? source.content ?? "");
     normalized.explanation = String(source.explanation ?? "");
   } else if (contentType === "quiz") {
-    const questions = Array.isArray(source.questions) ? source.questions : [];
+    const questions = Array.isArray(source.questions)
+      ? source.questions
+      : source.questions && typeof source.questions === "object"
+        ? [source.questions]
+        : [];
     normalized.questions = questions.length
       ? questions.map(normalizeQuestion)
       : [{ question: "", answer: "" }];

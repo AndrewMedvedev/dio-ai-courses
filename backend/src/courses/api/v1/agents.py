@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import json
 from dataclasses import asdict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from pydantic import TypeAdapter
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
@@ -47,13 +50,6 @@ async def chat_with_interviewer(
         ),
     )
 
-    if "task_id" in result:
-        return Chat(
-            chat_id=request.chat_id,
-            course_id=request.course_id,
-            role="assistant",
-            content=result,
-        )
     return Chat(
         chat_id=request.chat_id,
         course_id=request.course_id,
@@ -127,7 +123,7 @@ async def create_test(
     lesson_id: UUID,
     agent: TesterAgentDep,
     identity: CurrentIdentity,
-) -> AnyKnowledgeTest:
+) -> dict[str, Any]:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     return await agent.call_agent_creator(
         user_id=identity.id,
@@ -137,23 +133,22 @@ async def create_test(
 
 
 @router.post(
-    "/check/test/{module_id}/{lesson_id}",
+    "/check/test/{practice_id}",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def check_test(
     practice: AnyKnowledgeTest,
-    module_id: UUID,
-    lesson_id: UUID,
+    answers: dict[str, str],
+    practice_id: UUID,
     agent: TesterAgentDep,
-    identity: CurrentIdentity,
+    _identity: CurrentIdentity,
 ) -> PracticeResult:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     return await agent.call_agent_checker(
         practice=practice.model_dump(),
-        user_id=identity.id,
-        module_id=module_id,
-        lesson_id=lesson_id,
+        answers=answers,
+        practice_id=practice_id,
     )
 
 
@@ -167,7 +162,7 @@ async def create_practice(
     lesson_id: UUID,
     agent: PracticeAgentDep,
     identity: CurrentIdentity,
-) -> FileUploadAssignment:
+) -> dict[str, Any]:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     return await agent.call_agent_creator(
         user_id=identity.id,
@@ -177,24 +172,22 @@ async def create_practice(
 
 
 @router.post(
-    "/check/practice/{module_id}/{lesson_id}",
+    "/check/practice/{practice_id}",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def check_practice(
-    practice: FileUploadAssignment,
-    module_id: UUID,
-    lesson_id: UUID,
+    practice_id: UUID,
     agent: PracticeAgentDep,
-    identity: CurrentIdentity,
+    _identity: CurrentIdentity,
     file: UploadFile = File(...),
+    practice: str = Form(),
 ) -> PracticeResult:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
+    practice_obj = TypeAdapter(FileUploadAssignment).validate_json(practice)
     content = await read_upload_with_limit(file)
     return await agent.call_agent_checker(
         file=content,
-        practice=asdict(practice),
-        user_id=identity.id,
-        module_id=module_id,
-        lesson_id=lesson_id,
+        practice=asdict(practice_obj),
+        practice_id=practice_id,
     )

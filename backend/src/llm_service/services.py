@@ -191,7 +191,9 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
                 logger.exception("tool call %s failed", tool.name)
                 return callable_func.to_tool_result(
                     call_id=tool.call_id,
-                    result=f"Tool '{tool.name}' failed to execute due to an internal error",
+                    result={
+                        "error": f"Tool '{tool.name}' failed to execute due to an internal error"
+                    },
                 )
 
     async def _process_response(

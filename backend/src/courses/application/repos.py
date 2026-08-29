@@ -211,12 +211,3 @@ class PracticeRepository(Repository[Practice]):
     async def read_by_module(self, user_id: UUID, module_id: UUID) -> list[dict[str, Any]]:
         """Получает практики пользователя внутри модуля без служебных полей."""
         ...
-
-    async def update(
-        self,
-        user_id: UUID,
-        module_id: UUID,
-        lesson_id: UUID,
-        **kwargs: Any,
-    ) -> Practice | None:
-        """Обновляет практику пользователя и возвращает актуальное состояние записи."""

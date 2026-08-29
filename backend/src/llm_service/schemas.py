@@ -60,7 +60,7 @@ class LLMTextResponse(BaseModel):
     """Структурированный результат парсинга ответа от Responses API"""
 
     output: dict[str, Any] | None = Field(None, description="Текст ответа модели в dict формате")
-    raw_text: str | None = Field(
+    raw_text: dict[str, Any] | str | None = Field(
         None, description="Сырой текстовый ответ модели, если JSON не ожидался"
     )
     tool_calls: list[ToolCallParsed] = Field(

@@ -9,6 +9,7 @@ export default function Header({
   canCreateCourse = false,
   canReadCourse = false,
   canManageOrganizations = false,
+  canManageModels = false,
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function Header({
   const isCoursePath =
     location.pathname.startsWith("/course") || location.pathname === "/courses";
   const isOrganizationsPath = location.pathname.startsWith("/organizations");
+  const isModelsPath = location.pathname.startsWith("/models");
 
   const handleLogout = async () => {
     await logout();
@@ -57,6 +59,14 @@ export default function Header({
             }
           >
             Организации
+          </NavLink>
+        )}
+        {canManageModels && (
+          <NavLink
+            to="/models"
+            className={() => `nav-link ${isModelsPath ? "is-active" : ""}`}
+          >
+            AI-модели
           </NavLink>
         )}
         {canCreateCourse && (

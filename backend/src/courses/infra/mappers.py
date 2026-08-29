@@ -17,6 +17,7 @@ from ..domain.entities import (
     Module,
     ModuleBasicInfo,
     Practice,
+    Student,
 )
 from .models import (
     ChatOrm,
@@ -26,6 +27,7 @@ from .models import (
     LessonTheorySessionOrm,
     ModuleOrm,
     PracticeOrm,
+    StudentOrm,
 )
 
 logger = logging.getLogger(__name__)
@@ -269,4 +271,26 @@ class PracticeMapper(ModelMapper[Practice, PracticeOrm]):
             lesson_id=entity.lesson_id,
             status=entity.status,
             practice=entity.practice,
+        )
+
+
+class StudentMapper(ModelMapper[Student, StudentOrm]):
+    @staticmethod
+    def from_model(model: StudentOrm) -> Student:
+        return Student(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            course_id=model.course_id,
+            user_id=model.user_id,
+        )
+
+    @staticmethod
+    def to_model(entity: Student) -> StudentOrm:
+        return StudentOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            course_id=entity.course_id,
+            user_id=entity.user_id,
         )

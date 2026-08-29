@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -16,7 +16,7 @@ class Chat(BaseModel):
     chat_id: UUID = Field(default_factory=uuid4)
     course_id: UUID
     role: Literal["assistant", "user"] = "user"
-    content: str
+    content: str | dict[str, Any]
 
 
 class EditorChat(Chat):

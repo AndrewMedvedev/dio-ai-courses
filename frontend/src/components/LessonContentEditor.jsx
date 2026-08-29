@@ -506,6 +506,7 @@ export default function LessonContentEditor({
             )}
           </>
         );
+
       case "quiz":
         return (
           <div className="lesson-block-field lesson-block-field-wide lesson-quiz-editor">

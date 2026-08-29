@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
@@ -53,6 +53,21 @@ async def get_user_courses(
     pagination: Pagination,
 ) -> Page[Course]:
     return await repo.find_user_courses(identity.id, pagination)
+
+
+@router.get(
+    "/{course_id}/status",
+    status_code=status.HTTP_200_OK,
+)
+async def get_status(
+    course_id: UUID,
+    repo: CourseRepoDep,
+    identity: CurrentIdentity,
+) -> dict[str, CourseStatus]:
+    result = await repo.get_course_status(course_id=course_id, user_id=identity.id)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return {"status": result}
 
 
 @router.get(

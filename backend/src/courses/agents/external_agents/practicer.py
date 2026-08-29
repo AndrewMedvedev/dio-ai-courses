@@ -1,6 +1,7 @@
 from typing import Any
 
 import base64
+import json
 from dataclasses import asdict
 from uuid import UUID
 
@@ -35,7 +36,7 @@ class PracticerAgent:
         user_id: UUID,
         module_id: UUID,
         lesson_id: UUID,
-    ) -> FileUploadAssignment:
+    ) -> dict[str, Any]:
         """Создает практическое задание для студента на основе теории урока и его предыдущих практик."""  # ruff: ignore[line-too-long]
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:
@@ -46,30 +47,31 @@ class PracticerAgent:
         ]
         practices = await self.practice_repo.read_by_module(user_id=user_id, module_id=module_id)
         if practices is not None:
-            messages.append({"role": "user", "content": f"Практики студента\n{practices}"})
+            messages.append({
+                "role": "user",
+                "content": f"Практики студента\n{json.dumps(practices, ensure_ascii=False, indent=2)}",
+            })
         agent = LLMTextService(
             system_prompt=FILE_UPLOAD_PROMPT,
         )
         result = await agent.invoke(messages=messages, schema=FileUploadAssignment)
-        response = TypeAdapter(FileUploadAssignment).validate_python(result.output)
-        await self.practice_repo.create(
+        practice = TypeAdapter(FileUploadAssignment).validate_python(result.output)
+        created = await self.practice_repo.create(
             Practice(
                 user_id=user_id,
                 module_id=module_id,
                 lesson_id=lesson_id,
-                practice=[asdict(response)],
+                practice=[asdict(practice)],
             ),
         )
         await self.session.commit()
-        return response
+        return {"practice": practice, "practice_id": created.id}
 
     async def call_agent_checker(
         self,
         practice: dict[str, Any],
         file: bytes,
-        user_id: UUID,
-        module_id: UUID,
-        lesson_id: UUID,
+        practice_id: UUID,
     ) -> PracticeResult:
         """Оставляет точку расширения для будущей проверки практических заданий."""
         file_str = base64.b64encode(file).decode("utf-8")
@@ -78,7 +80,7 @@ class PracticerAgent:
         )
         result = await agent.invoke(
             messages=[
-                {"role": "user", "content": practice},
+                {"role": "user", "content": json.dumps(practice, ensure_ascii=False, indent=2)},
                 {"role": "user", "content": f"Результат выполнения практики\n{file_str}"},
             ],
             schema=PracticeResult,
@@ -86,17 +88,13 @@ class PracticerAgent:
         response = PracticeResult.model_validate(result.output)
         if response.is_passed:
             await self.practice_repo.update(
-                user_id=user_id,
-                module_id=module_id,
-                lesson_id=lesson_id,
+                uid=practice_id,
                 status=PracticeStatus.COMPLETED,
                 practice={"practice": practice, **response.model_dump()},
             )
         else:
             await self.practice_repo.update(
-                user_id=user_id,
-                module_id=module_id,
-                lesson_id=lesson_id,
+                uid=practice_id,
                 status=PracticeStatus.FAILED,
                 practice={"practice": practice, **response.model_dump()},
             )

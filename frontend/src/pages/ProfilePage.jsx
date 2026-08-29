@@ -2,7 +2,12 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTop from "../components/SectionTop";
 import { useAuthenticatedImage } from "../hooks/useAuthenticatedImage";
+import {
+  COURSE_PERMISSIONS,
+  usePermissionStore,
+} from "../stores/permissionStore";
 import { useSessionStore } from "../stores/sessionStore";
+import { fetchMyCoursesPage } from "../utils/api";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const AVATAR_MAX_SIZE_BYTES = 5 * 1024 * 1024;
@@ -71,6 +76,22 @@ function hasErrors(errors) {
   return Object.values(errors).some(Boolean);
 }
 
+const COURSE_STATUS_LABELS = {
+  in_generation: "Генерируется",
+  draft: "Черновик",
+  invite_only: "Только по приглашению",
+  published: "Опубликован",
+  archived: "В архиве",
+};
+
+function getCourseStatusLabel(status) {
+  return COURSE_STATUS_LABELS[status] || status || "Статус не указан";
+}
+
+function getApiErrorMessage(error, fallback) {
+  return error?.userMessage || error?.message || fallback;
+}
+
 function validateAvatarFile(file) {
   if (!file) {
     throw new Error("Выберите файл для загрузки.");
@@ -102,25 +123,17 @@ export default function ProfilePage({
   teacherGroups,
   activeTeacherGroup,
   setActiveTeacherGroupId,
-  activeTeacherCourse,
-  teacherGroupName,
-  setTeacherGroupName,
-  teacherCourseId,
-  setTeacherCourseId,
-  teacherStudentName,
-  setTeacherStudentName,
-  createTeacherGroup,
-  addStudentToActiveGroup,
-  adjustStudentProgress,
-  simulateStudyTick,
   teacherLeaderboard,
   openCreator,
   canCreateCourse = false,
+  canUpdateCourse = false,
+  canDeleteCourse = false,
 }) {
   const user = useSessionStore((state) => state.user);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const updateProfile = useSessionStore((state) => state.updateProfile);
   const uploadAvatar = useSessionStore((state) => state.uploadAvatar);
+  const hasPermission = usePermissionStore((state) => state.hasPermission);
   const apiValidationErrors = useSessionStore(
     (state) => state.validationErrors,
   );
@@ -138,11 +151,30 @@ export default function ProfilePage({
   });
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const isAuthorMode = canCreateCourse && activeProfileTab === "teacher";
+  const [myCourses, setMyCourses] = useState([]);
+  const [myCoursesPage, setMyCoursesPage] = useState(1);
+  const [myCoursesMeta, setMyCoursesMeta] = useState({
+    page: 1,
+    size: 6,
+    total: 0,
+    pages: 1,
+    has_next: false,
+    has_prev: false,
+  });
+  const [isMyCoursesLoading, setIsMyCoursesLoading] = useState(false);
+  const [myCoursesError, setMyCoursesError] = useState("");
+
+  const canUpdateOwnCourses =
+    canUpdateCourse || hasPermission(COURSE_PERMISSIONS.UPDATE);
+  const canDeleteOwnCourses =
+    canDeleteCourse || hasPermission(COURSE_PERMISSIONS.DELETE);
+  const canManageCourses =
+    canCreateCourse || canUpdateOwnCourses || canDeleteOwnCourses;
+  const isAuthorMode = canManageCourses && activeProfileTab === "teacher";
   const visibleTabs = profileTabItems.filter((tab) =>
     isAuthorMode ? tab.id === "teacher" : tab.id !== "teacher",
   );
-  const authoredCourses = coursesData.slice(0, 3);
+  const authoredCourses = myCourses;
   const displayName = useMemo(() => getDisplayName(user), [user]);
   const profileEmail = user?.email || "Email загружается...";
   const initials = getInitials(displayName);
@@ -163,10 +195,50 @@ export default function ProfilePage({
   }, [user]);
 
   useEffect(() => {
-    if (!canCreateCourse && activeProfileTab === "teacher") {
+    if (!canManageCourses && activeProfileTab === "teacher") {
       setActiveProfileTab("overview");
     }
-  }, [activeProfileTab, canCreateCourse, setActiveProfileTab]);
+  }, [activeProfileTab, canManageCourses, setActiveProfileTab]);
+
+  useEffect(() => {
+    if (!canManageCourses || activeProfileTab !== "teacher") {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setIsMyCoursesLoading(true);
+    setMyCoursesError("");
+
+    fetchMyCoursesPage(
+      { page: myCoursesPage, size: myCoursesMeta.size },
+      { signal: controller.signal },
+    )
+      .then((response) => {
+        setMyCourses(response.items);
+        setMyCoursesMeta({
+          page: response.page || myCoursesPage,
+          size: response.size || myCoursesMeta.size,
+          total: response.total || 0,
+          pages: response.pages || response.total_pages || 1,
+          has_next: Boolean(response.has_next),
+          has_prev: Boolean(response.has_prev),
+        });
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setMyCourses([]);
+        setMyCoursesError(
+          getApiErrorMessage(error, "Не удалось загрузить ваши курсы."),
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsMyCoursesLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [activeProfileTab, canManageCourses, myCoursesPage, myCoursesMeta.size]);
 
   useEffect(() => {
     if (!avatarFile) {
@@ -320,13 +392,13 @@ export default function ProfilePage({
               >
                 Обучаюсь
               </button>
-              {canCreateCourse && (
+              {canManageCourses && (
                 <button
                   type="button"
                   className={isAuthorMode ? "is-active" : ""}
                   onClick={() => setActiveProfileTab("teacher")}
                 >
-                  Создаю курсы
+                  Мои курсы
                 </button>
               )}
             </div>
@@ -609,7 +681,7 @@ export default function ProfilePage({
             </article>
           )}
 
-          {canCreateCourse && activeProfileTab === "teacher" && (
+          {canManageCourses && activeProfileTab === "teacher" && (
             <>
               <section className="author-dashboard">
                 <div className="author-dashboard-head">
@@ -645,43 +717,132 @@ export default function ProfilePage({
 
               <div className="teacher-grid teacher-grid-in-profile">
                 <div className="teacher-dashboard-column">
-                  <article className="glass-card teacher-courses-card">
-                    <h3>Созданные курсы</h3>
-                    <p className="teacher-card-description">
-                      Курсы, опубликованные автором на платформе.
-                    </p>
-                    <ul className="teacher-authored-course-list">
-                      {authoredCourses.map((course) => {
-                        const courseGroups = teacherGroups.filter(
-                          (group) => group.courseId === course.id,
-                        );
-                        const studentsCount = courseGroups.reduce(
-                          (total, group) => total + group.students.length,
-                          0,
-                        );
+                  <article className="glass-card teacher-courses-card profile-my-courses-card">
+                    <div className="profile-my-courses-head">
+                      <div>
+                        <h3>Мои курсы</h3>
+                        <p className="teacher-card-description">
+                          Курсы текущего пользователя с редактированием и
+                          управлением статусом.
+                        </p>
+                      </div>
+                      {canCreateCourse && (
+                        <button
+                          type="button"
+                          className="btn btn-solid"
+                          onClick={openCreator}
+                        >
+                          Создать курс
+                        </button>
+                      )}
+                    </div>
 
+                    {isMyCoursesLoading && (
+                      <p className="profile-progress-note" role="status">
+                        <span className="profile-spinner" aria-hidden="true" />
+                        Загружаем ваши курсы...
+                      </p>
+                    )}
+                    {myCoursesError && (
+                      <p className="auth-field-error">{myCoursesError}</p>
+                    )}
+                    {!isMyCoursesLoading &&
+                      !myCoursesError &&
+                      authoredCourses.length === 0 && (
+                        <p className="teacher-empty">У вас пока нет курсов.</p>
+                      )}
+                    <ul className="teacher-authored-course-list profile-my-course-list">
+                      {authoredCourses.map((course) => {
                         return (
-                          <li key={course.id}>
-                            <button
-                              type="button"
-                              className="teacher-authored-course-btn"
-                              onClick={() => openCourse(course.id)}
-                            >
-                              <span className="teacher-authored-course-main">
-                                <strong>{course.title}</strong>
-                                <small>
-                                  {course.category || "Авторский курс"}
+                          <li
+                            key={course.id}
+                            className="profile-my-course-item"
+                          >
+                            <div className="profile-my-course-summary">
+                              <div
+                                className="teacher-authored-course-btn profile-my-course-card"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => openCourse(course.id)}
+                                onKeyDown={(event) => {
+                                  if (
+                                    event.key === "Enter" ||
+                                    event.key === " "
+                                  ) {
+                                    event.preventDefault();
+                                    openCourse(course.id);
+                                  }
+                                }}
+                              >
+                                <span className="teacher-authored-course-main">
+                                  <strong title={course.title}>
+                                    {course.title}
+                                  </strong>
+                                  <small>
+                                    {course.category ||
+                                      course.difficulty ||
+                                      "Авторский курс"}
+                                  </small>
+                                </span>
+                                <span className="teacher-authored-course-meta">
+                                  <span>
+                                    {getCourseStatusLabel(course.status)}
+                                  </span>
+                                  <span>
+                                    {course.blocks?.length || 0} модулей
+                                  </span>
+                                </span>
+                              </div>
+                              {!canUpdateOwnCourses && !canDeleteOwnCourses && (
+                                <small className="profile-readonly-note">
+                                  Read-only: нет прав управления курсами.
                                 </small>
-                              </span>
-                              <span className="teacher-authored-course-meta">
-                                <span>{course.blocks?.length || 0} блоков</span>
-                                <span>{studentsCount} учеников</span>
-                              </span>
-                            </button>
+                              )}
+                            </div>
                           </li>
                         );
                       })}
                     </ul>
+
+                    {myCoursesMeta.pages > 1 && (
+                      <nav
+                        className="courses-pagination"
+                        aria-label="Пагинация моих курсов"
+                      >
+                        <span>
+                          Всего: {myCoursesMeta.total}. Страница{" "}
+                          {myCoursesMeta.page} из {myCoursesMeta.pages}
+                        </span>
+                        <div className="courses-pagination-actions">
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={() =>
+                              setMyCoursesPage((page) => Math.max(1, page - 1))
+                            }
+                            disabled={
+                              !myCoursesMeta.has_prev || isMyCoursesLoading
+                            }
+                          >
+                            Назад
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={() =>
+                              setMyCoursesPage((page) =>
+                                Math.min(myCoursesMeta.pages, page + 1),
+                              )
+                            }
+                            disabled={
+                              !myCoursesMeta.has_next || isMyCoursesLoading
+                            }
+                          >
+                            Вперёд
+                          </button>
+                        </div>
+                      </nav>
+                    )}
                   </article>
 
                   <article className="glass-card teacher-groups-card">
@@ -746,99 +907,6 @@ export default function ProfilePage({
                     )}
                   </article>
                 </div>
-
-                <article className="glass-card teacher-students-card">
-                  <div className="teacher-card-head">
-                    <div>
-                      <h3>Ученики в потоке</h3>
-                      <p>
-                        {activeTeacherGroup
-                          ? activeTeacherGroup.name
-                          : "Сначала создайте поток"}
-                      </p>
-                      <span className="teacher-chip">
-                        {activeTeacherCourse?.title}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="teacher-add-student">
-                    <label>
-                      <span>Новый ученик</span>
-                      <input
-                        type="text"
-                        placeholder="Введите имя ученика"
-                        value={teacherStudentName}
-                        onChange={(event) =>
-                          setTeacherStudentName(event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            addStudentToActiveGroup();
-                          }
-                        }}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      onClick={addStudentToActiveGroup}
-                    >
-                      Добавить в поток
-                    </button>
-                  </div>
-
-                  {!activeTeacherGroup ||
-                  activeTeacherGroup.students.length === 0 ? (
-                    <p className="teacher-empty">
-                      Пока нет учеников. Добавьте первого студента в поток.
-                    </p>
-                  ) : (
-                    <ul className="teacher-students-list">
-                      {activeTeacherGroup.students.map((student) => (
-                        <li key={student.id} className="teacher-student-item">
-                          <div className="teacher-student-row">
-                            <strong>{student.name}</strong>
-                            <span>{student.progress}%</span>
-                          </div>
-                          <div className="course-progress-track">
-                            <div style={{ width: `${student.progress}%` }} />
-                          </div>
-                          <div className="teacher-student-actions">
-                            <small>
-                              Пройдено уроков: {student.lessonsDone}
-                            </small>
-                            <div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  adjustStudentProgress(student.id, -5)
-                                }
-                              >
-                                -5%
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  adjustStudentProgress(student.id, 5)
-                                }
-                              >
-                                +5%
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => simulateStudyTick(student.id)}
-                              >
-                                Зачесть урок
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
               </div>
             </>
           )}

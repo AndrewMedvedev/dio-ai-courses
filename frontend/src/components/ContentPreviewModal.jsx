@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import MermaidDiagram from "./MermaidDiagram";
 
 export default function ContentPreviewModal({ preview, onClose }) {
@@ -20,8 +21,14 @@ export default function ContentPreviewModal({ preview, onClose }) {
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [onClose, preview]);
 
   if (!preview) {
@@ -29,7 +36,15 @@ export default function ContentPreviewModal({ preview, onClose }) {
   }
 
   const increaseZoom = () => {
-    setImageZoom((currentZoom) => (currentZoom >= 3 ? 1 : currentZoom + 0.5));
+    setImageZoom((currentZoom) => Math.min(4, currentZoom + 0.25));
+  };
+
+  const decreaseZoom = () => {
+    setImageZoom((currentZoom) => Math.max(0.5, currentZoom - 0.25));
+  };
+
+  const resetZoom = () => {
+    setImageZoom(1);
     setPan({ x: 0, y: 0 });
   };
 
@@ -62,10 +77,14 @@ export default function ContentPreviewModal({ preview, onClose }) {
     setIsDragging(false);
   };
 
-  return (
-    <div className="content-preview-backdrop" role="presentation" onMouseDown={onClose}>
+  return createPortal(
+    <div
+      className="content-preview-backdrop"
+      role="presentation"
+      onMouseDown={onClose}
+    >
       <section
-        className="content-preview-modal"
+        className={`content-preview-modal is-${preview.type}`}
         role="dialog"
         aria-modal="true"
         aria-label="Увеличенный просмотр материала"
@@ -81,15 +100,35 @@ export default function ContentPreviewModal({ preview, onClose }) {
           ×
         </button>
         {(preview.type === "image" || preview.type === "diagram") && (
-          <button
-            type="button"
-            className="content-preview-zoom"
-            onClick={increaseZoom}
-            aria-label="Увеличить материал"
-            title="Увеличить"
-          >
-            +
-          </button>
+          <div className="content-preview-zoom-controls" aria-label="Масштаб">
+            <button
+              type="button"
+              className="content-preview-zoom"
+              onClick={decreaseZoom}
+              aria-label="Уменьшить материал"
+              title="Уменьшить"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="content-preview-zoom content-preview-zoom-reset"
+              onClick={resetZoom}
+              aria-label="Сбросить масштаб"
+              title="Сбросить масштаб"
+            >
+              {Math.round(imageZoom * 100)}%
+            </button>
+            <button
+              type="button"
+              className="content-preview-zoom"
+              onClick={increaseZoom}
+              aria-label="Увеличить материал"
+              title="Увеличить"
+            >
+              +
+            </button>
+          </div>
         )}
         <div className={`content-preview-body is-${preview.type}`}>
           {preview.type === "image" ? (
@@ -111,8 +150,7 @@ export default function ContentPreviewModal({ preview, onClose }) {
             <div
               className={`content-preview-diagram-scale content-preview-pan-layer ${isDragging ? "is-dragging" : ""}`}
               style={{
-                width: `${imageZoom * 100}%`,
-                transform: `translate(${pan.x}px, ${pan.y}px)`,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${imageZoom})`,
               }}
               onPointerDown={startDragging}
               onPointerMove={dragPreview}
@@ -129,6 +167,7 @@ export default function ContentPreviewModal({ preview, onClose }) {
           )}
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

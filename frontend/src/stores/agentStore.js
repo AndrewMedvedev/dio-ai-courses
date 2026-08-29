@@ -125,6 +125,22 @@ export const useAgentStore = create((set, get) => ({
     });
   },
 
+  setChatId: (key, chatId) => {
+    set((state) => {
+      const conversation = state.conversations[key];
+      if (!conversation) return state;
+      return {
+        conversations: {
+          ...state.conversations,
+          [key]: {
+            ...conversation,
+            chatId: chatId || null,
+          },
+        },
+      };
+    });
+  },
+
   appendMessage: (key, role, text) => {
     if (!String(text ?? "").trim()) return;
     set((state) => {
@@ -234,7 +250,8 @@ export const useAgentStore = create((set, get) => ({
       const latest = get().conversations[key];
       if (latest?.activeRequestId !== requestId) return response;
 
-      const responseText = String(response?.content ?? "").trim();
+      const responseText =
+        typeof response?.content === "string" ? response.content.trim() : "";
       const visibleResponseText =
         responseDisplayMessage === undefined
           ? responseText

@@ -22,24 +22,32 @@ import CreatorPage from "./pages/CreatorPage";
 import ManualCourseBuilderPage from "./pages/ManualCourseBuilderPage";
 import ProfilePage from "./pages/ProfilePage";
 import OrganizationsPage from "./pages/OrganizationsPage";
+import ModelsPage from "./pages/ModelsPage";
 import AuthPage from "./pages/AuthPage";
 import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
 import { getRouteState } from "./utils/routeState";
+import { useRouteScrollRestoration } from "./hooks/useRouteScrollRestoration";
 import { useTeacherGroups } from "./hooks/useTeacherGroups";
 import {
+  AI_MODEL_PERMISSIONS,
   COURSE_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   usePermissionStore,
 } from "./stores/permissionStore";
 import { useSessionStore } from "./stores/sessionStore";
+import { resolveTheme, useThemeStore } from "./stores/themeStore";
+import { useUiLayoutStore } from "./stores/uiLayoutStore";
 import {
+  archiveCourse as archiveCourseApi,
   fetchCoursesPage,
   getCourse,
   getLessonBasicInfo,
   getModuleBasicInfo,
   isTokenExpired,
   isUuid,
+  publishCourse as publishCourseApi,
+  setCourseInviteOnly as setCourseInviteOnlyApi,
   updateCourse as updateCourseApi,
   updateLesson as updateLessonApi,
   updateModule as updateModuleApi,
@@ -74,6 +82,17 @@ const mergeCourse = (courses, nextCourse) => {
     : [...courses, nextCourse];
 };
 
+const mergeCoursePage = (currentCourses, nextCourses) =>
+  nextCourses.map((nextCourse) => {
+    const currentCourse = currentCourses.find(
+      (course) => course.id === nextCourse.id,
+    );
+
+    if (!currentCourse) return nextCourse;
+
+    return mergeCourse([currentCourse], nextCourse)[0];
+  });
+
 const mergeModule = (course, nextModule) => ({
   ...course,
   blocks: (course.blocks || []).map((block) =>
@@ -100,6 +119,18 @@ const mergeLesson = (course, nextLesson) => ({
   })),
 });
 
+function getCourseRouteTarget(pathname) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] !== "course") return { type: "", id: "" };
+
+  const contentTypeIndex = segments[2] === "edit" ? 3 : 2;
+  const contentIdIndex = segments[2] === "edit" ? 4 : 3;
+  return {
+    type: segments[contentTypeIndex] || "course",
+    id: segments[contentIdIndex] || "",
+  };
+}
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,22 +150,32 @@ function AppContent() {
   const expiresAt = useSessionStore((state) => state.expiresAt);
   const loadIdentity = useSessionStore((state) => state.loadIdentity);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const activeProfileTab = useUiLayoutStore((state) => state.activeProfileTab);
+  const setActiveProfileTab = useUiLayoutStore(
+    (state) => state.setActiveProfileTab,
+  );
+  const coursesPage = useUiLayoutStore((state) => state.coursesPage);
+  const setCoursesPage = useUiLayoutStore((state) => state.setCoursesPage);
   const [initialRouteState] = useState(() =>
     getRouteState(window.location.pathname),
   );
 
-  const [theme, setTheme] = useState("light");
+  const resolvedTheme = resolveTheme(theme);
   const [editableCourses, setEditableCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState("");
-  const [coursesPage, setCoursesPage] = useState(1);
   const [coursesPageSize] = useState(9);
   const [coursesTotalPages, setCoursesTotalPages] = useState(1);
   const [coursesTotal, setCoursesTotal] = useState(0);
   const coursesPageRequestRef = useRef(0);
   const courseRequestRef = useRef(0);
+  const loadedCourseDetailsRef = useRef(new Set());
   const moduleRequestRef = useRef(0);
+  const loadedModuleDetailsRef = useRef(new Set());
   const lessonRequestRef = useRef(0);
+  const loadedLessonDetailsRef = useRef(new Set());
   const [isCourseEditMode, setIsCourseEditMode] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(
     initialRouteState.courseId,
@@ -148,24 +189,12 @@ function AppContent() {
   const [selectedPracticeId, setSelectedPracticeId] = useState(
     initialRouteState.practiceId,
   );
-  const [activeProfileTab, setActiveProfileTab] = useState("overview");
   const [completedLessons, setCompletedLessons] = useState({});
   const [completedPractices, setCompletedPractices] = useState({});
   const {
     teacherGroups,
     activeTeacherGroup,
     setActiveTeacherGroupId,
-    activeTeacherCourse,
-    teacherGroupName,
-    setTeacherGroupName,
-    teacherCourseId,
-    setTeacherCourseId,
-    teacherStudentName,
-    setTeacherStudentName,
-    createTeacherGroup,
-    addStudentToActiveGroup,
-    adjustStudentProgress,
-    simulateStudyTick,
     teacherLeaderboard,
   } = useTeacherGroups(editableCourses, "");
   const isAuthenticated = Boolean(
@@ -221,6 +250,29 @@ function AppContent() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasAnyPermission(Object.values(ORGANIZATION_PERMISSIONS));
+  const canCreateModel =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasAnyPermission([
+      AI_MODEL_PERMISSIONS.CREATE,
+      "ai_model:CREATE",
+      "CREATE",
+    ]);
+  const canDeleteModel =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasAnyPermission([
+      AI_MODEL_PERMISSIONS.DELETE,
+      "ai_model:DELETE",
+      "DELETE",
+    ]);
+  const canManageModels = isAuthenticated && arePermissionsLoaded;
+
+  useRouteScrollRestoration();
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme;
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (!accessToken || !refreshToken) {
@@ -260,7 +312,7 @@ function AppContent() {
     )
       .then((response) => {
         if (coursesPageRequestRef.current !== requestId) return;
-        setEditableCourses(response.items);
+        setEditableCourses((prev) => mergeCoursePage(prev, response.items));
         setCoursesTotalPages(response.total_pages || 1);
         setCoursesTotal(response.total || response.items.length);
         if (!selectedCourseId && response.items[0]?.id) {
@@ -303,14 +355,21 @@ function AppContent() {
   }, [editableCourses, location.pathname]);
 
   useEffect(() => {
+    const courseFromState = editableCourses.find(
+      (course) => course.id === selectedCourseId,
+    );
+    const hasLoadedBlocks = Boolean(courseFromState?.blocks?.length);
+
     if (
       !canViewCourseInfo ||
       !selectedCourseId ||
-      editableCourses.some((course) => course.id === selectedCourseId)
+      hasLoadedBlocks ||
+      loadedCourseDetailsRef.current.has(selectedCourseId)
     ) {
       return;
     }
 
+    loadedCourseDetailsRef.current.add(selectedCourseId);
     const requestId = courseRequestRef.current + 1;
     courseRequestRef.current = requestId;
     setCoursesLoading(true);
@@ -367,6 +426,170 @@ function AppContent() {
     ) ||
     selectedBlock.practice?.[0] ||
     null;
+
+  useEffect(() => {
+    if (!canViewCourseInfo || !selectedCourse.id) {
+      return;
+    }
+
+    const target = getCourseRouteTarget(location.pathname);
+
+    if (target.type === "block" && target.id) {
+      const block = selectedCourse.blocks.find((item) => item.id === target.id);
+      const shouldLoadBlock =
+        block &&
+        isUuid(block.id) &&
+        !block.lessons?.length &&
+        !loadedModuleDetailsRef.current.has(block.id);
+
+      if (!shouldLoadBlock) return;
+
+      loadedModuleDetailsRef.current.add(block.id);
+      const requestId = moduleRequestRef.current + 1;
+      moduleRequestRef.current = requestId;
+      setCoursesError("");
+
+      getModuleBasicInfo(block.id)
+        .then((loadedBlock) => {
+          if (moduleRequestRef.current !== requestId) return;
+          setEditableCourses((prev) =>
+            prev.map((course) =>
+              course.id === selectedCourse.id
+                ? mergeModule(course, loadedBlock)
+                : course,
+            ),
+          );
+          setSelectedBlockId(loadedBlock.id);
+          setSelectedLessonId(loadedBlock.lessons?.[0]?.id ?? null);
+          setSelectedPracticeId(loadedBlock.practice?.[0]?.id ?? null);
+        })
+        .catch((error) => {
+          if (moduleRequestRef.current === requestId) {
+            setCoursesError(
+              error.userMessage ||
+                error.message ||
+                "Не удалось загрузить уроки модуля.",
+            );
+          }
+        });
+    }
+
+    if (target.type === "lesson" && target.id) {
+      const blockWithLesson = selectedCourse.blocks.find((block) =>
+        (block.lessons || []).some((lesson) => lesson.id === target.id),
+      );
+
+      if (blockWithLesson) {
+        if (selectedBlockId !== blockWithLesson.id) {
+          setSelectedBlockId(blockWithLesson.id);
+        }
+        if (selectedLessonId !== target.id) {
+          setSelectedLessonId(target.id);
+        }
+        return;
+      }
+
+      const modulesToLoad = selectedCourse.blocks.filter(
+        (block) =>
+          isUuid(block.id) &&
+          !block.lessons?.length &&
+          !loadedModuleDetailsRef.current.has(block.id),
+      );
+
+      if (modulesToLoad.length === 0) return;
+
+      modulesToLoad.forEach((block) =>
+        loadedModuleDetailsRef.current.add(block.id),
+      );
+      const requestId = moduleRequestRef.current + 1;
+      moduleRequestRef.current = requestId;
+      setCoursesError("");
+
+      Promise.all(modulesToLoad.map((block) => getModuleBasicInfo(block.id)))
+        .then((loadedBlocks) => {
+          if (moduleRequestRef.current !== requestId) return;
+          setEditableCourses((prev) =>
+            prev.map((course) => {
+              if (course.id !== selectedCourse.id) return course;
+              return loadedBlocks.reduce(
+                (nextCourse, loadedBlock) =>
+                  mergeModule(nextCourse, loadedBlock),
+                course,
+              );
+            }),
+          );
+
+          const parentBlock = loadedBlocks.find((block) =>
+            (block.lessons || []).some((lesson) => lesson.id === target.id),
+          );
+          if (parentBlock) {
+            setSelectedBlockId(parentBlock.id);
+            setSelectedLessonId(target.id);
+            setSelectedPracticeId(parentBlock.practice?.[0]?.id ?? null);
+          }
+        })
+        .catch((error) => {
+          if (moduleRequestRef.current === requestId) {
+            setCoursesError(
+              error.userMessage ||
+                error.message ||
+                "Не удалось загрузить уроки модулей.",
+            );
+          }
+        });
+    }
+  }, [
+    canViewCourseInfo,
+    location.pathname,
+    selectedBlockId,
+    selectedCourse,
+    selectedLessonId,
+  ]);
+
+  useEffect(() => {
+    if (!canViewCourseInfo || !selectedCourse.id || !selectedLessonId) {
+      return;
+    }
+
+    const lesson = selectedCourse.blocks
+      .flatMap((block) => block.lessons || [])
+      .find((item) => item.id === selectedLessonId);
+    const shouldLoadLesson =
+      lesson &&
+      isUuid(lesson.id) &&
+      !loadedLessonDetailsRef.current.has(lesson.id) &&
+      !lesson.contentBlocks?.length &&
+      !lesson.content_blocks?.length &&
+      !lesson.markdown &&
+      !lesson.content;
+
+    if (!shouldLoadLesson) return;
+
+    loadedLessonDetailsRef.current.add(lesson.id);
+    const requestId = lessonRequestRef.current + 1;
+    lessonRequestRef.current = requestId;
+    setCoursesError("");
+
+    getLessonBasicInfo(lesson.id)
+      .then((loadedLesson) => {
+        if (lessonRequestRef.current !== requestId || !loadedLesson) return;
+        setEditableCourses((prev) =>
+          prev.map((course) =>
+            course.id === selectedCourse.id
+              ? mergeLesson(course, loadedLesson)
+              : course,
+          ),
+        );
+      })
+      .catch((error) => {
+        if (lessonRequestRef.current === requestId) {
+          setCoursesError(
+            error.userMessage || error.message || "Не удалось загрузить урок.",
+          );
+        }
+      });
+  }, [canViewCourseInfo, selectedCourse, selectedLessonId]);
+
   const lessonSequence = selectedCourse.blocks.flatMap((block) =>
     block.lessons.map((lesson) => ({
       blockId: block.id,
@@ -505,14 +728,58 @@ function AppContent() {
     }
   };
 
-  const deleteCourse = (courseId) => {
+  const updateCourseStatus = async (courseId, action) => {
+    if (!courseId) {
+      return null;
+    }
+    if (action !== "archive" && !canUpdateCourse) {
+      return null;
+    }
+    if (action === "archive" && !canDeleteCourse) {
+      return null;
+    }
+
+    const statusAction = {
+      publish: publishCourseApi,
+      invite_only: setCourseInviteOnlyApi,
+      archive: archiveCourseApi,
+    }[action];
+
+    if (!statusAction) {
+      return null;
+    }
+
+    try {
+      const result = await statusAction(courseId);
+      const nextStatus =
+        result?.status ||
+        (action === "publish"
+          ? "published"
+          : action === "invite_only"
+            ? "invite_only"
+            : "archived");
+      setEditableCourses((prev) =>
+        prev.map((course) =>
+          course.id === courseId ? { ...course, status: nextStatus } : course,
+        ),
+      );
+      return nextStatus;
+    } catch (error) {
+      setCoursesError(
+        error.userMessage ||
+          error.message ||
+          "Не удалось изменить статус курса.",
+      );
+      throw error;
+    }
+  };
+
+  const deleteCourse = async (courseId) => {
     if (!canDeleteCourse) {
       return;
     }
 
-    setEditableCourses((prev) =>
-      prev.filter((course) => course.id !== courseId),
-    );
+    await updateCourseStatus(courseId, "archive");
 
     if (selectedCourse?.id === courseId) {
       setIsCourseEditMode(false);
@@ -1084,7 +1351,7 @@ function AppContent() {
   return (
     <div
       className={`page ${location.pathname === "/" ? "is-home-page" : "is-inner-page"}`}
-      data-theme={theme}
+      data-theme={resolvedTheme}
     >
       <div className="aim-grid" aria-hidden="true">
         <div className="aim-grid-plane" />
@@ -1124,13 +1391,12 @@ function AppContent() {
       </svg>
 
       <Header
-        theme={theme}
+        theme={resolvedTheme}
         canCreateCourse={canCreateCourse}
         canReadCourse={canBrowseCourses}
         canManageOrganizations={canManageOrganizations}
-        toggleTheme={() =>
-          setTheme((prev) => (prev === "light" ? "dark" : "light"))
-        }
+        canManageModels={canManageModels}
+        toggleTheme={toggleTheme}
       />
 
       <main>
@@ -1174,10 +1440,8 @@ function AppContent() {
                     completedPractices={completedPractices}
                     openCourse={openCourse}
                     openCreator={openCreator}
-                    deleteCourse={deleteCourse}
                     canCreateCourse={canCreateCourse}
                     canReadCourse={canBrowseCourses}
-                    canDeleteCourse={canDeleteCourse}
                     isLoading={coursesLoading}
                     error={coursesError}
                     page={coursesPage}
@@ -1212,6 +1476,7 @@ function AppContent() {
                       canUpdateCourse={canUpdateCourse}
                       canDeleteCourse={canDeleteCourse}
                       deleteCourse={deleteCourse}
+                      updateCourseStatus={updateCourseStatus}
                       updateCourse={updateCourse}
                       updateCourseBlock={updateCourseBlock}
                       insertCourseBlock={insertCourseBlock}
@@ -1319,6 +1584,17 @@ function AppContent() {
                   }
                 />
               </Route>
+              <Route element={<ProtectedRoute />}>
+                <Route
+                  path="/models"
+                  element={
+                    <ModelsPage
+                      canCreateModel={canCreateModel}
+                      canDeleteModel={canDeleteModel}
+                    />
+                  }
+                />
+              </Route>
               <Route
                 element={
                   <ProtectedRoute permission={COURSE_PERMISSIONS.CREATE} />
@@ -1361,20 +1637,11 @@ function AppContent() {
                       teacherGroups={teacherGroups}
                       activeTeacherGroup={activeTeacherGroup}
                       setActiveTeacherGroupId={setActiveTeacherGroupId}
-                      activeTeacherCourse={activeTeacherCourse}
-                      teacherGroupName={teacherGroupName}
-                      setTeacherGroupName={setTeacherGroupName}
-                      teacherCourseId={teacherCourseId}
-                      setTeacherCourseId={setTeacherCourseId}
-                      teacherStudentName={teacherStudentName}
-                      setTeacherStudentName={setTeacherStudentName}
-                      createTeacherGroup={createTeacherGroup}
-                      addStudentToActiveGroup={addStudentToActiveGroup}
-                      adjustStudentProgress={adjustStudentProgress}
-                      simulateStudyTick={simulateStudyTick}
                       teacherLeaderboard={teacherLeaderboard}
                       openCreator={openCreator}
                       canCreateCourse={canCreateCourse}
+                      canUpdateCourse={canUpdateCourse}
+                      canDeleteCourse={canDeleteCourse}
                     />
                   }
                 />

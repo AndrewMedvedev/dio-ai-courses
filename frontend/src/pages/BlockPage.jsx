@@ -12,11 +12,8 @@ export default function BlockPage({
   isCourseEditMode,
   updateCourseBlock,
   updateLesson,
-  updatePractice,
   moveLesson,
-  movePractice,
   deleteLesson,
-  deletePractice,
 }) {
   const completedLessonsInBlock = selectedBlock.lessons.filter(
     (lesson) => completedLessons[lesson.id],
@@ -53,7 +50,9 @@ export default function BlockPage({
   };
 
   return (
-    <section className="container section block-view">
+    <section
+      className={`container section block-view ${isCourseEditMode ? "is-course-edit-layout" : ""}`}
+    >
       <SectionTop label="Блок" title={selectedBlock.title} />
       <button
         type="button"
@@ -306,82 +305,12 @@ export default function BlockPage({
           </ul>
         </article>
 
-        <article className="glass-card block-practice-card">
-          <h3>Практика и задания</h3>
-          <ul className="practice-progress-list">
-            {selectedBlock.practice.map((task, index) => (
-              <li key={task.id}>
-                {isCourseEditMode ? (
-                  <div className="course-editor-panel content-editor-panel">
-                    <div className="course-editor-grid">
-                      <label className="course-editor-field">
-                        <span>Название практики</span>
-                        <input
-                          value={task.title || ""}
-                          onChange={(event) =>
-                            updatePractice(task.id, {
-                              title: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                      <label className="course-editor-field">
-                        <span>Длительность</span>
-                        <input
-                          value={task.duration || ""}
-                          onChange={(event) =>
-                            updatePractice(task.id, {
-                              duration: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                      <label className="course-editor-field course-editor-field-wide">
-                        <span>Краткое описание</span>
-                        <textarea
-                          value={task.brief || ""}
-                          onChange={(event) =>
-                            updatePractice(task.id, {
-                              brief: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="course-editor-actions">
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() =>
-                          movePractice(selectedBlock.id, task.id, -1)
-                        }
-                        disabled={index === 0}
-                      >
-                        Выше
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() =>
-                          movePractice(selectedBlock.id, task.id, 1)
-                        }
-                        disabled={index === selectedBlock.practice.length - 1}
-                      >
-                        Ниже
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-flat editor-danger-btn"
-                        onClick={() =>
-                          deletePractice(selectedBlock.id, task.id)
-                        }
-                        disabled={selectedBlock.practice.length <= 1}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+        {!isCourseEditMode && (
+          <article className="glass-card block-practice-card">
+            <h3>Практика и задания</h3>
+            <ul className="practice-progress-list">
+              {selectedBlock.practice.map((task) => (
+                <li key={task.id}>
                   <button
                     type="button"
                     className="practice-progress-item"
@@ -401,11 +330,11 @@ export default function BlockPage({
                         : "Не выполнено"}
                     </span>
                   </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </article>
+                </li>
+              ))}
+            </ul>
+          </article>
+        )}
       </div>
     </section>
   );

@@ -12,6 +12,7 @@ python -m uvicorn main:app --reload --port 8001
 
 - [Permissions](docs/permissions.md) — подробное описание системных прав по модулям, scopes и назначению.
 - [API ИИ-агентов Courses](docs/ai-agents-api.md) — HTTP-контракты интервьюера, редактора и ментора, внутренняя генерация курсов и агенты практики.
+- [API документов курса](docs/documents-api.md) — загрузка пользовательских документов, конвертация файлов в Markdown, ограничения и ошибки.
 
 ## API
 
@@ -24,6 +25,7 @@ python -m uvicorn main:app --reload --port 8001
 - enrollment/progress endpoints
 - practice attempts endpoints
 - async course generation endpoints
+- document upload and Markdown conversion endpoints
 
 ## OpenAI-compatible generation
 

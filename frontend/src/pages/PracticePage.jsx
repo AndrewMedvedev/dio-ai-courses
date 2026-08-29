@@ -4,7 +4,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ContentPreviewModal from "../components/ContentPreviewModal";
 import CourseNavigationTree from "../components/CourseNavigationTree";
-import LessonContentEditor from "../components/LessonContentEditor";
+import {
+  LessonPracticeAgent,
+  LessonTestAgent,
+} from "../components/LessonAgentAssessments";
+
 import MermaidDiagram from "../components/MermaidDiagram";
 import SectionTop from "../components/SectionTop";
 import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
@@ -38,7 +42,6 @@ export default function PracticePage({
   openLesson,
   openPractice,
   isCourseEditMode,
-  updatePractice,
 }) {
   const [preview, setPreview] = useState(null);
   const [activeTab, setActiveTab] = useState("practice");
@@ -124,111 +127,62 @@ export default function PracticePage({
           openBlock={openBlock}
           openLesson={openLesson}
           openPractice={openPractice}
-          mode="practice"
+          mode={isCourseEditMode ? "theory" : "practice"}
         />
         <article className="glass-card practice-main-card">
-          <div
-            className="lesson-mode-switch"
-            role="tablist"
-            aria-label="Тип материала"
-          >
-            <button
-              type="button"
-              aria-selected="false"
-              onClick={() => openLesson(selectedBlock.lessons[0]?.id)}
-              disabled={!selectedBlock.lessons[0]}
+          {!isCourseEditMode && (
+            <div
+              className="lesson-mode-switch"
+              role="tablist"
+              aria-label="Тип материала"
             >
-              Теория
-            </button>
-            <button
-              type="button"
-              className={activeTab === "questions" ? "is-active" : ""}
-              aria-selected={activeTab === "questions"}
-              onClick={() => setActiveTab("questions")}
-            >
-              Проверочные вопросы
-            </button>
-            <button
-              type="button"
-              className={activeTab === "practice" ? "is-active" : ""}
-              aria-selected={activeTab === "practice"}
-              onClick={() => setActiveTab("practice")}
-            >
-              Практика
-            </button>
-          </div>
-          {activeTab === "questions" ? (
-            <div className="lesson-questions-placeholder">
-              <p className="course-category">Проверочные вопросы</p>
-              <h2>Проверочные вопросы по модулю «{selectedBlock.title}»</h2>
-              <p>
-                Вопросы появятся после подготовки контрольных заданий по урокам
-                этого модуля.
-              </p>
+              <button
+                type="button"
+                aria-selected="false"
+                onClick={() => openLesson(selectedBlock.lessons[0]?.id)}
+                disabled={!selectedBlock.lessons[0]}
+              >
+                Теория
+              </button>
+              <button
+                type="button"
+                className={activeTab === "questions" ? "is-active" : ""}
+                aria-selected={activeTab === "questions"}
+                onClick={() => setActiveTab("questions")}
+              >
+                Проверочные вопросы
+              </button>
+              <button
+                type="button"
+                className={activeTab === "practice" ? "is-active" : ""}
+                aria-selected={activeTab === "practice"}
+                onClick={() => setActiveTab("practice")}
+              >
+                Практика
+              </button>
             </div>
+          )}
+          {!isCourseEditMode && activeTab === "questions" ? (
+            <LessonTestAgent
+              key={`${selectedBlock.id}:${selectedBlock.lessons[0]?.id}:test`}
+              moduleId={selectedBlock.id}
+              lessonId={selectedBlock.lessons[0]?.id}
+            />
+          ) : !isCourseEditMode && activeTab === "practice" ? (
+            <LessonPracticeAgent
+              key={`${selectedBlock.id}:${selectedBlock.lessons[0]?.id}:practice`}
+              moduleId={selectedBlock.id}
+              lessonId={selectedBlock.lessons[0]?.id}
+            />
           ) : (
             <>
               {!isCourseEditMode && (
                 <p className="course-category">{selectedCourse.title}</p>
               )}
               {isCourseEditMode && (
-                <div className="course-editor-panel lesson-editor-panel">
-                  <div className="course-editor-grid">
-                    <label className="course-editor-field">
-                      <span>Название практики</span>
-                      <input
-                        value={selectedPractice.title}
-                        onChange={(event) =>
-                          updatePractice(selectedPractice.id, {
-                            title: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="course-editor-field">
-                      <span>Длительность</span>
-                      <input
-                        value={selectedPractice.duration}
-                        onChange={(event) =>
-                          updatePractice(selectedPractice.id, {
-                            duration: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="course-editor-field course-editor-field-wide">
-                      <span>Краткое описание</span>
-                      <textarea
-                        value={selectedPractice.brief || ""}
-                        onChange={(event) =>
-                          updatePractice(selectedPractice.id, {
-                            brief: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                </div>
-              )}
-              {isCourseEditMode && (
-                <LessonContentEditor
-                  courseId={selectedCourse.id}
-                  lesson={{
-                    ...selectedPractice,
-                    markdown:
-                      selectedPractice.markdown ||
-                      selectedPractice.result ||
-                      "",
-                  }}
-                  contentLabel="Контент практики"
-                  blocksLabel="Блоки практики"
-                  onChange={(changes) =>
-                    updatePractice(selectedPractice.id, {
-                      markdown: changes.markdown,
-                      result: "",
-                    })
-                  }
-                />
+                <p className="course-viewer-muted">
+                  Редактирование практики в конструкторе отключено.
+                </p>
               )}
               {!isCourseEditMode && selectedPractice.markdown ? (
                 <div className="practice-markdown lesson-markdown">

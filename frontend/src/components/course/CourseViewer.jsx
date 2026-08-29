@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  LessonPracticeAgent,
+  LessonTestAgent,
+} from "../LessonAgentAssessments";
 import LessonChatWorkspace from "../LessonChatWorkspace";
 import SectionTop from "../SectionTop";
 import {
-  enrollUserToCourse,
   getCourseBasicInfo,
   getLessonById,
   getLessonContentBlocks,
@@ -115,7 +118,6 @@ export default function CourseViewer({ localCourse = null }) {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isLoadingLesson, setIsLoadingLesson] = useState(false);
-  const [isSubmittingEnrollment, setIsSubmittingEnrollment] = useState(false);
   const [activeTab, setActiveTab] = useState("theory");
   const [error, setError] = useState(null);
   const effectiveCourseId = courseId || "";
@@ -342,27 +344,6 @@ export default function CourseViewer({ localCourse = null }) {
     }
   };
 
-  const handleEnroll = async () => {
-    if (!canReadCourseContent || !course?.id) {
-      return;
-    }
-
-    setIsSubmittingEnrollment(true);
-    setError(null);
-
-    try {
-      await enrollUserToCourse(course.id);
-      setIsEnrolled(true);
-      setIsLearningStarted(true);
-      setSelectedModuleId(null);
-      setSelectedLessonId(null);
-    } catch (enrollError) {
-      setError(enrollError.message || "Не удалось записаться на курс");
-    } finally {
-      setIsSubmittingEnrollment(false);
-    }
-  };
-
   if (!canViewCourseInfo) {
     return (
       <section className="container section course-viewer">
@@ -460,31 +441,22 @@ export default function CourseViewer({ localCourse = null }) {
           <div>
             <h2>Содержимое курса закрыто</h2>
             <p>
-              Запишитесь на курс, чтобы открыть модули, уроки, теорию и
-              ИИ-ментора.
+              {canUpdateCourse
+                ? "Откройте редактор, чтобы управлять содержимым, модулями и уроками курса."
+                : "Содержимое курса пока закрыто."}
             </p>
           </div>
-          <div className="generated-course-actions">
-            <button
-              type="button"
-              className="btn btn-solid"
-              onClick={handleEnroll}
-              disabled={isSubmittingEnrollment}
-            >
-              {isSubmittingEnrollment
-                ? "Записываем..."
-                : "Записаться и перейти к обучению"}
-            </button>
-            {canUpdateCourse && (
+          {canUpdateCourse && (
+            <div className="generated-course-actions generated-course-edit-actions">
               <button
                 type="button"
-                className="btn btn-outline"
+                className="btn btn-solid"
                 onClick={openCourseEditor}
               >
                 Редактировать курс
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </article>
       </section>
     );
@@ -667,23 +639,28 @@ export default function CourseViewer({ localCourse = null }) {
                   >
                     Проверочные вопросы
                   </button>
-                  <button type="button" aria-selected="false" disabled>
+                  <button
+                    type="button"
+                    className={activeTab === "practice" ? "is-active" : ""}
+                    aria-selected={activeTab === "practice"}
+                    onClick={() => setActiveTab("practice")}
+                  >
                     Практика
                   </button>
                 </div>
 
                 {activeTab === "questions" ? (
-                  <div className="lesson-questions-placeholder">
-                    <p className="course-category">Проверочные вопросы</p>
-                    <h2>
-                      Проверочные вопросы по модулю «
-                      {selectedBlock?.title || "Модуль"}»
-                    </h2>
-                    <p>
-                      Проверочные вопросы отображаются внутри теоретических
-                      content blocks типа quiz.
-                    </p>
-                  </div>
+                  <LessonTestAgent
+                    key={`${selectedBlock.id}:${selectedLesson.id}:test`}
+                    moduleId={selectedBlock.id}
+                    lessonId={selectedLesson.id}
+                  />
+                ) : activeTab === "practice" ? (
+                  <LessonPracticeAgent
+                    key={`${selectedBlock.id}:${selectedLesson.id}:practice`}
+                    moduleId={selectedBlock.id}
+                    lessonId={selectedLesson.id}
+                  />
                 ) : (
                   <>
                     <p className="course-category">{course.title}</p>

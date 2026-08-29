@@ -470,6 +470,33 @@ function normalizeOrganizationPage(response) {
   };
 }
 
+function normalizeModelsPage(response) {
+  const totalItems = response?.total_items ?? response?.total ?? 0;
+  const size = response?.size || 10;
+
+  return {
+    page: response?.page || 1,
+    size,
+    total_items: totalItems,
+    total: totalItems,
+    total_pages:
+      response?.total_pages ??
+      response?.pages ??
+      Math.max(1, Math.ceil(totalItems / size)),
+    has_next: Boolean(response?.has_next),
+    has_prev: Boolean(response?.has_prev),
+    items: Array.isArray(response?.items) ? response.items : [],
+  };
+}
+
+function sanitizeModelPayload(data = {}) {
+  return {
+    name: typeof data.name === "string" ? data.name.trim() : "",
+    description: data.description || "",
+    context: data.context || "",
+  };
+}
+
 function sanitizeOrganizationPayload(data = {}, { partial = false } = {}) {
   const payload = {
     name: data.name,
@@ -516,6 +543,32 @@ export async function updateOrganization(organizationId, data) {
 
 export async function deleteOrganization(organizationId) {
   return requestJson(`/organizations/${encodeURIComponent(organizationId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function fetchModelsPage(params = {}) {
+  const response = await requestJson("/ai/models/get", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      page: params.page || 1,
+      size: params.size || 10,
+    }),
+  });
+  return normalizeModelsPage(response);
+}
+
+export async function createModel(data) {
+  return requestJson("/ai/models/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sanitizeModelPayload(data)),
+  });
+}
+
+export async function deleteModel(modelUid) {
+  return requestJson(`/ai/models/${encodeURIComponent(modelUid)}`, {
     method: "DELETE",
   });
 }
@@ -579,8 +632,11 @@ export async function updateRoleById() {
   );
 }
 
-const DOCUMENT_MAX_SIZE_BYTES = 30 * 1024 * 1024;
-const DOCUMENT_ALLOWED_EXTENSION = /\.(pdf|docx|pptx|xlsx|md|html|txt|json)$/i;
+export const DOCUMENT_MAX_SIZE_BYTES = 30 * 1024 * 1024;
+export const DOCUMENT_ALLOWED_EXTENSION =
+  /\.(pdf|docx|pptx|xlsx|md|html|txt|json)$/i;
+export const DOCUMENT_ALLOWED_EXTENSIONS_LABEL =
+  ".pdf, .docx, .pptx, .xlsx, .md, .html, .txt и .json";
 
 function validateDocumentFile(file) {
   if (!file) {
@@ -588,7 +644,7 @@ function validateDocumentFile(file) {
   }
   if (!DOCUMENT_ALLOWED_EXTENSION.test(file.name || "")) {
     throw new ApiError(
-      "Поддерживаются файлы .pdf, .docx, .pptx, .xlsx, .md, .html, .txt и .json.",
+      `Поддерживаются файлы ${DOCUMENT_ALLOWED_EXTENSIONS_LABEL}.`,
       { status: 400 },
     );
   }
@@ -719,6 +775,7 @@ function lessonMarkdownFromBlocks(contentBlocks) {
 const SUPPORTED_CONTENT_TYPES = new Set([
   "text",
   "video",
+  "image",
   "program_code",
   "mermaid",
   "quiz",
@@ -994,28 +1051,95 @@ function normalizeContentBlock(block) {
   return normalized;
 }
 
+function readTheoryContentBlocks(data) {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const directBlocks =
+    data.content_blocks ||
+    data.contentBlocks ||
+    data.theory_blocks ||
+    data.theoryBlocks ||
+    data.blocks ||
+    data.items ||
+    data.results ||
+    null;
+
+  if (Array.isArray(directBlocks)) {
+    return directBlocks;
+  }
+
+  const nestedSources = [
+    data.data,
+    data.lesson,
+    data.lesson_theory,
+    data.lessonTheory,
+    data.theory,
+    data.content,
+  ];
+
+  for (const source of nestedSources) {
+    const nestedBlocks = readTheoryContentBlocks(source);
+    if (Array.isArray(nestedBlocks)) {
+      return nestedBlocks;
+    }
+  }
+
+  return null;
+}
+
+function readTheoryMarkdown(data) {
+  if (typeof data === "string") {
+    return data;
+  }
+  if (!data || typeof data !== "object") {
+    return "";
+  }
+
+  const markdown =
+    data.markdown || data.md_content || data.mdContent || data.text || null;
+
+  if (typeof markdown === "string") {
+    return markdown;
+  }
+  if (typeof data.content === "string") {
+    return data.content;
+  }
+  if (typeof data.theory === "string") {
+    return data.theory;
+  }
+
+  const nestedSources = [
+    data.data,
+    data.lesson,
+    data.lesson_theory,
+    data.lessonTheory,
+    data.theory,
+    data.content,
+  ];
+
+  for (const source of nestedSources) {
+    const nestedMarkdown = readTheoryMarkdown(source);
+    if (nestedMarkdown) {
+      return nestedMarkdown;
+    }
+  }
+
+  return "";
+}
+
 function normalizeTheoryContentBlocks(data) {
-  const rawBlocks = Array.isArray(data)
-    ? data
-    : data?.content_blocks ||
-      data?.contentBlocks ||
-      data?.theory_blocks ||
-      data?.theoryBlocks ||
-      data?.blocks ||
-      null;
+  const rawBlocks = readTheoryContentBlocks(data);
 
   if (Array.isArray(rawBlocks)) {
     return rawBlocks.map(normalizeContentBlock).filter(Boolean);
   }
 
-  const markdown =
-    data?.theory ||
-    data?.markdown ||
-    data?.md_content ||
-    data?.mdContent ||
-    data?.content ||
-    data?.text ||
-    (typeof data === "string" ? data : "");
+  const markdown = readTheoryMarkdown(data);
 
   return markdown
     ? [
@@ -1306,6 +1430,8 @@ function normalizePaginatedResponse(data, { page = 1, size = 20 } = {}) {
     total: totalItems,
     total_pages: totalPages,
     pages: totalPages,
+    has_next: Boolean(data?.has_next ?? data?.hasNext ?? page < totalPages),
+    has_prev: Boolean(data?.has_prev ?? data?.hasPrev ?? page > 1),
   };
 }
 
@@ -1325,6 +1451,19 @@ export async function fetchCoursesPage(
 export async function fetchCourses(params = {}, options = {}) {
   const response = await fetchCoursesPage(params, options);
   return response.items;
+}
+
+export async function fetchMyCoursesPage(
+  { page = 1, size = 10 } = {},
+  options = {},
+) {
+  const data = await jsonRequest(
+    "/course/my-courses",
+    "POST",
+    { page, size },
+    options,
+  );
+  return normalizePaginatedResponse(data, { page, size });
 }
 
 export async function createCourse(data, options = {}) {
@@ -1558,6 +1697,116 @@ function normalizeAgentResponse(data) {
     chatId: data?.chat_id || data?.chatId || null,
     content: data?.content ?? data?.response?.content ?? "",
   };
+}
+
+function extractCourseStatus(data) {
+  if (typeof data === "string") return data;
+  if (!data || typeof data !== "object") return "";
+  return (
+    data.status ||
+    data.course_status ||
+    data.courseStatus ||
+    data.state ||
+    Object.values(data).find((value) => typeof value === "string") ||
+    ""
+  );
+}
+
+export async function fetchCourseStatus(courseId, options = {}) {
+  const data = await requestJson(
+    `/course/${encodeURIComponent(courseId)}/status`,
+    { method: "GET", ...(options || {}) },
+  );
+  return { raw: data, status: extractCourseStatus(data) };
+}
+
+export async function publishCourse(courseId, options = {}) {
+  const data = await requestJson(
+    `/course/publish/${encodeURIComponent(courseId)}`,
+    { method: "POST", ...(options || {}) },
+  );
+  return { raw: data, status: extractCourseStatus(data) || "published" };
+}
+
+export async function setCourseInviteOnly(courseId, options = {}) {
+  const data = await requestJson(
+    `/course/${encodeURIComponent(courseId)}/invite-only`,
+    { method: "POST", ...(options || {}) },
+  );
+  return { raw: data, status: extractCourseStatus(data) || "invite_only" };
+}
+
+export async function archiveCourse(courseId, options = {}) {
+  const data = await requestJson(
+    `/course/delete/${encodeURIComponent(courseId)}`,
+    { method: "DELETE", ...(options || {}) },
+  );
+  return { raw: data, status: extractCourseStatus(data) || "archived" };
+}
+
+function normalizeCreatedPracticeResponse(data) {
+  const practice = data?.practice || data?.assignment || data?.test || data;
+  return {
+    practice,
+    practiceId: data?.practice_id || data?.practiceId || data?.id || null,
+    raw: data,
+  };
+}
+
+function appendPracticeAssignmentFormFields(formData, assignment = {}) {
+  formData.append("practice", JSON.stringify(assignment));
+}
+
+export async function generateLessonTest(moduleId, lessonId, options = {}) {
+  return normalizeCreatedPracticeResponse(
+    await requestJson(
+      `/agent/test/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
+      { method: "POST", ...(options || {}) },
+    ),
+  );
+}
+
+export async function checkLessonTest(practiceId, payload, options = {}) {
+  return jsonRequest(
+    `/agent/check/test/${encodeURIComponent(practiceId)}`,
+    "POST",
+    payload,
+    options,
+  );
+}
+
+export async function generateLessonPractice(moduleId, lessonId, options = {}) {
+  return normalizeCreatedPracticeResponse(
+    await requestJson(
+      `/agent/practice/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
+      { method: "POST", ...(options || {}) },
+    ),
+  );
+}
+
+export async function checkLessonPractice(
+  practiceId,
+  assignment,
+  file,
+  options = {},
+) {
+  const formData = new FormData();
+  appendPracticeAssignmentFormFields(formData, assignment);
+  formData.append("file", file);
+
+  const response = await apiFetch(
+    `/agent/check/practice/${encodeURIComponent(practiceId)}`,
+    { method: "POST", body: formData, ...(options || {}) },
+  );
+
+  if (!response.ok) {
+    throw await createApiError(
+      response,
+      "Не удалось проверить практическое задание.",
+    );
+  }
+
+  return response.json();
 }
 
 function toAgentChatPayload(payload = {}) {

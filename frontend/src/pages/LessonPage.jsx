@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import CourseNavigationTree from "../components/CourseNavigationTree";
 import ContentBlocks from "../components/course/ContentBlocks";
+import {
+  LessonPracticeAgent,
+  LessonTestAgent,
+} from "../components/LessonAgentAssessments";
 import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import SectionTop from "../components/SectionTop";
@@ -24,33 +28,58 @@ export default function LessonPage({
   const hasContent = Boolean(selectedLesson.markdown || selectedLesson.content);
   const [activeTab, setActiveTab] = useState("theory");
   const [contentBlocks, setContentBlocks] = useState([]);
+  const [contentBlocksLessonId, setContentBlocksLessonId] = useState("");
   const [isLoadingTheory, setIsLoadingTheory] = useState(false);
   const [theoryError, setTheoryError] = useState("");
   const isChatAvailable = !isCourseEditMode && activeTab === "theory";
+  const showStudentTabs = !isCourseEditMode;
+  const lessonContentBlocks = Array.isArray(selectedLesson.contentBlocks)
+    ? selectedLesson.contentBlocks
+    : Array.isArray(selectedLesson.content_blocks)
+      ? selectedLesson.content_blocks
+      : [];
   const visibleContentBlocks = contentBlocks.length
     ? contentBlocks
-    : hasContent
-      ? [
-          {
-            content_type: "text",
-            ai_generated: false,
-            md_content: selectedLesson.markdown || selectedLesson.content,
-          },
-        ]
-      : [];
+    : lessonContentBlocks.length
+      ? lessonContentBlocks
+      : hasContent
+        ? [
+            {
+              content_type: "text",
+              ai_generated: false,
+              md_content: selectedLesson.markdown || selectedLesson.content,
+            },
+          ]
+        : [];
+  const editorLesson = isCourseEditMode
+    ? {
+        ...selectedLesson,
+        contentBlocks: visibleContentBlocks,
+        content_blocks: visibleContentBlocks,
+      }
+    : selectedLesson;
+  const isEditorWaitingForTheory =
+    isCourseEditMode &&
+    isLoadingTheory &&
+    contentBlocksLessonId !== selectedLesson.id &&
+    lessonContentBlocks.length === 0 &&
+    !hasContent;
 
   useEffect(() => {
     setActiveTab("theory");
-  }, [selectedLesson.id]);
+  }, [isCourseEditMode, selectedLesson.id]);
 
   useEffect(() => {
-    if (isCourseEditMode || !selectedLesson.id) {
+    if (!selectedLesson.id) {
       setContentBlocks([]);
+      setContentBlocksLessonId("");
       setTheoryError("");
       return;
     }
 
     let isMounted = true;
+    setContentBlocks([]);
+    setContentBlocksLessonId("");
     setIsLoadingTheory(true);
     setTheoryError("");
 
@@ -58,6 +87,7 @@ export default function LessonPage({
       .then((blocks) => {
         if (isMounted) {
           setContentBlocks(blocks);
+          setContentBlocksLessonId(selectedLesson.id);
         }
       })
       .catch((error) => {
@@ -68,6 +98,7 @@ export default function LessonPage({
               "Не удалось загрузить теорию урока.",
           );
           setContentBlocks([]);
+          setContentBlocksLessonId(selectedLesson.id);
         }
       })
       .finally(() => {
@@ -79,7 +110,7 @@ export default function LessonPage({
     return () => {
       isMounted = false;
     };
-  }, [isCourseEditMode, selectedLesson.id]);
+  }, [selectedLesson.id]);
 
   return (
     <section
@@ -152,35 +183,40 @@ export default function LessonPage({
               >
                 Теория
               </button>
-              <button
-                type="button"
-                className={activeTab === "questions" ? "is-active" : ""}
-                aria-selected={activeTab === "questions"}
-                onClick={() => setActiveTab("questions")}
-              >
-                Проверочные вопросы
-              </button>
-              <button
-                type="button"
-                aria-selected="false"
-                onClick={() => {
-                  setActiveTab("practice");
-                  openPractice(selectedBlock.practice[0]?.id);
-                }}
-                disabled={!selectedBlock.practice[0]}
-              >
-                Практика
-              </button>
+              {showStudentTabs && (
+                <>
+                  <button
+                    type="button"
+                    className={activeTab === "questions" ? "is-active" : ""}
+                    aria-selected={activeTab === "questions"}
+                    onClick={() => setActiveTab("questions")}
+                  >
+                    Проверочные вопросы
+                  </button>
+                  <button
+                    type="button"
+                    className={activeTab === "practice" ? "is-active" : ""}
+                    aria-selected={activeTab === "practice"}
+                    onClick={() => setActiveTab("practice")}
+                    disabled={!selectedBlock.id || !selectedLesson.id}
+                  >
+                    Практика
+                  </button>
+                </>
+              )}
             </div>
-            {activeTab === "questions" ? (
-              <div className="lesson-questions-placeholder">
-                <p className="course-category">Проверочные вопросы</p>
-                <h2>Проверочные вопросы по модулю «{selectedBlock.title}»</h2>
-                <p>
-                  Вопросы появятся после подготовки контрольных заданий по
-                  урокам этого модуля.
-                </p>
-              </div>
+            {showStudentTabs && activeTab === "questions" ? (
+              <LessonTestAgent
+                key={`${selectedBlock.id}:${selectedLesson.id}:test`}
+                moduleId={selectedBlock.id}
+                lessonId={selectedLesson.id}
+              />
+            ) : showStudentTabs && activeTab === "practice" ? (
+              <LessonPracticeAgent
+                key={`${selectedBlock.id}:${selectedLesson.id}:practice`}
+                moduleId={selectedBlock.id}
+                lessonId={selectedLesson.id}
+              />
             ) : (
               <>
                 {!isCourseEditMode && (
@@ -228,13 +264,27 @@ export default function LessonPage({
                       </label>
                     </div>
 
-                    <LessonContentEditor
-                      courseId={selectedCourse.id}
-                      lesson={selectedLesson}
-                      onChange={(changes) =>
-                        updateLesson(selectedLesson.id, changes)
-                      }
-                    />
+                    {isEditorWaitingForTheory ? (
+                      <p className="course-viewer-muted">
+                        Загружаем теорию урока...
+                      </p>
+                    ) : theoryError ? (
+                      <article
+                        className="glass-card course-viewer-error"
+                        role="alert"
+                      >
+                        {theoryError}
+                      </article>
+                    ) : (
+                      <LessonContentEditor
+                        key={`${selectedLesson.id}:${contentBlocksLessonId}`}
+                        courseId={selectedCourse.id}
+                        lesson={editorLesson}
+                        onChange={(changes) =>
+                          updateLesson(selectedLesson.id, changes)
+                        }
+                      />
+                    )}
                   </div>
                 )}
 

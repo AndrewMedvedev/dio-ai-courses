@@ -17,6 +17,11 @@ export const ORGANIZATION_PERMISSIONS = {
   DELETE: "organization:delete",
 };
 
+export const AI_MODEL_PERMISSIONS = {
+  CREATE: "ai_model:create",
+  DELETE: "ai_model:delete",
+};
+
 function normalizePermissionCode(permission) {
   if (typeof permission === "string") {
     return permission.trim().replace(".", ":");

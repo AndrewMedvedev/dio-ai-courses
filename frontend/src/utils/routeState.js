@@ -16,28 +16,30 @@ export function getRouteState(pathname, courseList = []) {
   if (segments[0] === "course") {
     const courseId = segments[1];
     const course = courseList.find((item) => item.id === courseId);
-    if (course) {
-      selectedCourse = course;
-      selectedBlock = course.blocks?.[0] || {
-        id: null,
-        lessons: [],
-        practice: [],
-      };
-      selectedLesson = selectedBlock.lessons?.[0] || { id: null };
-      selectedPractice = selectedBlock.practice?.[0] ?? null;
+    selectedCourse = course || { id: courseId || null, blocks: [] };
+    selectedBlock = selectedCourse.blocks?.[0] || {
+      id: null,
+      lessons: [],
+      practice: [],
+    };
+    selectedLesson = selectedBlock.lessons?.[0] || { id: null };
+    selectedPractice = selectedBlock.practice?.[0] ?? null;
 
+    if (course) {
       const contentTypeIndex = segments[2] === "edit" ? 3 : 2;
       const contentIdIndex = segments[2] === "edit" ? 4 : 3;
 
       if (segments[contentTypeIndex] === "block" && segments[contentIdIndex]) {
-        const block = course.blocks.find(
-          (item) => item.id === segments[contentIdIndex],
-        );
-        if (block) {
-          selectedBlock = block;
-          selectedLesson = block.lessons?.[0] || { id: null };
-          selectedPractice = block.practice?.[0] ?? null;
-        }
+        const blockId = segments[contentIdIndex];
+        const block = course.blocks.find((item) => item.id === blockId);
+        selectedBlock = block || {
+          id: blockId,
+          title: "Модуль не выбран",
+          lessons: [],
+          practice: [],
+        };
+        selectedLesson = selectedBlock.lessons?.[0] || { id: null };
+        selectedPractice = selectedBlock.practice?.[0] ?? null;
       }
 
       if (segments[contentTypeIndex] === "lesson" && segments[contentIdIndex]) {
@@ -51,6 +53,8 @@ export function getRouteState(pathname, courseList = []) {
             block.lessons.find((lesson) => lesson.id === lessonId) ||
             block.lessons[0];
           selectedPractice = block.practice?.[0] ?? null;
+        } else {
+          selectedLesson = { id: lessonId };
         }
       }
 
@@ -66,11 +70,13 @@ export function getRouteState(pathname, courseList = []) {
           selectedBlock = block;
           selectedPractice =
             (block.practice || []).find(
-              (practice) => practice.id === practiceId,
+              (practice) => practiceId === practice.id,
             ) ||
             block.practice?.[0] ||
             null;
           selectedLesson = block.lessons?.[0] || { id: null };
+        } else {
+          selectedPractice = { id: practiceId };
         }
       }
     }

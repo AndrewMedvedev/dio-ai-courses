@@ -6,6 +6,7 @@ from typing import Any
 
 import asyncio
 import base64
+import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
@@ -70,6 +71,17 @@ class ToolCallLimitMiddleware(BaseAgentMiddleware):
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.tool_limits = tool_limits
 
+    @staticmethod
+    def _is_tool_error(result: dict[str, Any]) -> bool:
+        output = result.get("output")
+        if not isinstance(output, str):
+            return False
+        try:
+            parsed = json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            return False
+        return isinstance(parsed, dict) and "error" in parsed
+
     async def wrap_tool_call(
         self,
         service: LLMTextServiceProtocol,
@@ -79,8 +91,10 @@ class ToolCallLimitMiddleware(BaseAgentMiddleware):
         """Выполняет шаг middleware `wrap_tool_call`, чтобы расширить поведение агента без изменения сервиса."""
         if tool.name in self.tool_limits:
             if self.tool_limits[tool.name] > 0:
-                self.tool_limits[tool.name] -= 1
-                return await super().wrap_tool_call(service, tool, handler)
+                result = await handler(tool)
+                if not self._is_tool_error(result):
+                    self.tool_limits[tool.name] -= 1
+                return result
             callable_func = service.tools[tool.name]
             logger.info("The tool %s call has reached the limit", tool.name)
             return callable_func.to_tool_result(
@@ -252,3 +266,24 @@ class SaveImageMiddleware(BaseAgentMiddleware):
         )
         response.image = result
         return response
+
+
+class StopInterview(BaseAgentMiddleware):
+    async def after_model(
+        self,
+        service: LLMServiceProtocol,
+        response: LLMTextResponse,
+    ) -> LLMTextResponse:
+        task_id = self._get_task_id(service)
+        if task_id:
+            logger.info("Interview completed, task_id=%s", task_id)
+            response.tool_calls = []  # останавливает рекурсию в _process_response
+            response.raw_text = {"task_id": task_id}  # прячем payload в уже существующее поле
+        return response
+
+    @staticmethod
+    def _get_task_id(service: LLMServiceProtocol) -> str | None:
+        runtime = service.runtime
+        if runtime is None or runtime.state is None:
+            return None
+        return getattr(runtime.state, "task_id", None)

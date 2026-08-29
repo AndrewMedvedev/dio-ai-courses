@@ -50,7 +50,7 @@ class CourseOrm(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    users: Mapped[list[StudentsOrm]] = relationship(back_populates="course")
+    users: Mapped[list[StudentOrm]] = relationship(back_populates="course")
 
 
 class ModuleOrm(Base):
@@ -128,7 +128,7 @@ class ChatOrm(Base):
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 
-class StudentsOrm(Base):
+class StudentOrm(Base):
     __tablename__ = "students"
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))

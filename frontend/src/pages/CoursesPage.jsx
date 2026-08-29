@@ -1,15 +1,12 @@
 // Витрина готовых курсов, созданных пользователями AI Course Lab
-import { useState } from "react";
 import SectionTop from "../components/SectionTop";
 
 export default function CoursesPage({
   coursesData,
   openCourse,
   openCreator,
-  deleteCourse,
   canCreateCourse,
   canReadCourse,
-  canDeleteCourse,
   isLoading = false,
   error = "",
   page = 1,
@@ -18,16 +15,7 @@ export default function CoursesPage({
   totalItems = 0,
   onPageChange,
 }) {
-  const [deletedCourseIds, setDeletedCourseIds] = useState([]);
-
-  const catalogCourses = coursesData.filter(
-    (course) => !deletedCourseIds.includes(course.id),
-  );
-
-  const handleDeleteCourse = (courseId) => {
-    setDeletedCourseIds((current) => [...current, courseId]);
-    deleteCourse(courseId);
-  };
+  const catalogCourses = coursesData;
 
   const pages = Array.from(
     { length: Math.max(1, totalPages) },
@@ -103,18 +91,6 @@ export default function CoursesPage({
                       <span key={tag}>{tag}</span>
                     ))}
                   </div>
-                )}
-                {canDeleteCourse && (
-                  <button
-                    type="button"
-                    className="btn btn-outline course-delete-btn"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDeleteCourse(course.id);
-                    }}
-                  >
-                    Удалить курс
-                  </button>
                 )}
               </article>
             ))}

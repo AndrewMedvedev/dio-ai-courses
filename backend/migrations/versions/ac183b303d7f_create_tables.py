@@ -1,18 +1,18 @@
 """create tables
 
-Revision ID: 32813d24edbc
+Revision ID: ac183b303d7f
 Revises:
-Create Date: 2026-08-20 15:29:44.544890
+Create Date: 2026-08-29 16:50:45.277497
 
 """
 from typing import Sequence, Union
-
+from src.courses.infra.types import ContentBlockListType
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from src.courses.infra.types import ContentBlockListType
+
 # revision identifiers, used by Alembic.
-revision: str = '32813d24edbc'
+revision: str = 'ac183b303d7f'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -62,12 +62,11 @@ def upgrade() -> None:
     sa.Column('description', sa.TEXT(), nullable=False),
     sa.Column('difficulty', sa.Enum('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT', name='difficultylevel'), nullable=False),
     sa.Column('tags', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('status', sa.Enum('IN_GENERATION', 'DRAFT', 'PUBLISHED', 'ARCHIVED', name='coursestatus'), nullable=False),
+    sa.Column('status', sa.Enum('IN_GENERATION', 'DRAFT', 'INVITE_ONLY', 'PUBLISHED', 'ARCHIVED', name='coursestatus'), nullable=False),
     sa.Column('popularity', sa.Integer(), nullable=False),
     sa.Column('creator_id', sa.Uuid(), nullable=False),
     sa.Column('image_url', sa.String(), nullable=True),
     sa.Column('learning_objectives', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('assignment', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -174,19 +173,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('password_hash')
     )
     op.create_index('ix_users_is_active', 'users', ['is_active'], unique=False)
-    op.create_table('course_users',
-    sa.Column('course_id', sa.Uuid(), nullable=False),
-    sa.Column('user_id', sa.Uuid(), nullable=False),
-    sa.Column('role', sa.TEXT(), nullable=False),
-    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['course_id'], ['courses.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('course_id', 'user_id', name='uq_course_user')
-    )
-    op.create_index('ix_course_users_user_id', 'course_users', ['user_id'], unique=False)
     op.create_table('memberships',
     sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('organization_id', sa.Uuid(), nullable=False),
@@ -206,7 +192,6 @@ def upgrade() -> None:
     sa.Column('description', sa.TEXT(), nullable=False),
     sa.Column('order', sa.Integer(), nullable=True),
     sa.Column('learning_objectives', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('assignment', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -215,6 +200,18 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_modules_course_id', 'modules', ['course_id'], unique=False)
+    op.create_table('students',
+    sa.Column('course_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['course_id'], ['courses.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('course_id', 'user_id', name='uq_student')
+    )
+    op.create_index('ix_students_user_id', 'students', ['user_id'], unique=False)
     op.create_table('lessons',
     sa.Column('module_id', sa.Uuid(), nullable=True),
     sa.Column('title', sa.String(), nullable=False),
@@ -223,7 +220,6 @@ def upgrade() -> None:
     sa.Column('learning_objectives', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('estimated_time_minutes', sa.Integer(), nullable=True),
     sa.Column('content_blocks', ContentBlockListType(astext_type=sa.Text()), nullable=False),
-    sa.Column('assignment', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -232,19 +228,35 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_lessons_module_id', 'lessons', ['module_id'], unique=False)
+    op.create_table('lesson_theory_sessions',
+    sa.Column('lesson_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('active_time_seconds', sa.Integer(), nullable=False),
+    sa.Column('max_scroll_depth_percent', sa.Integer(), nullable=False),
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.CheckConstraint('active_time_seconds >= 0', name='ck_lesson_theory_session_active_time_non_negative'),
+    sa.CheckConstraint('max_scroll_depth_percent BETWEEN 0 AND 100', name='ck_lesson_theory_session_scroll_depth_range'),
+    sa.ForeignKeyConstraint(['lesson_id'], ['lessons.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('lesson_theory_sessions')
     op.drop_index('ix_lessons_module_id', table_name='lessons')
     op.drop_table('lessons')
+    op.drop_index('ix_students_user_id', table_name='students')
+    op.drop_table('students')
     op.drop_index('ix_modules_course_id', table_name='modules')
     op.drop_table('modules')
     op.drop_table('memberships')
-    op.drop_index('ix_course_users_user_id', table_name='course_users')
-    op.drop_table('course_users')
     op.drop_index('ix_users_is_active', table_name='users')
     op.drop_table('users')
     op.drop_table('roles')

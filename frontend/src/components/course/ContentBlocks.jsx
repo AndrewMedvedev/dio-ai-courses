@@ -1,5 +1,7 @@
+import { useId, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import ContentPreviewModal from "../ContentPreviewModal";
 import MermaidDiagram from "../MermaidDiagram";
 import SyntaxHighlightedCode from "../SyntaxHighlightedCode";
 
@@ -20,14 +22,23 @@ function safeMarkdownUrl(url) {
   return value.includes(":") ? "" : value;
 }
 
-const markdownComponents = {
+const createMarkdownComponents = (onPreview) => ({
   code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
     const language = match?.[1]?.toLowerCase();
     const code = String(children).replace(/\n$/, "");
 
     if (language === "mermaid") {
-      return <MermaidDiagram chart={code} />;
+      return (
+        <button
+          type="button"
+          className="content-preview-trigger content-preview-diagram-trigger"
+          onClick={() => onPreview({ type: "diagram", chart: code })}
+          aria-label="Открыть схему для подробного просмотра"
+        >
+          <MermaidDiagram chart={code} />
+        </button>
+      );
     }
 
     return (
@@ -36,7 +47,7 @@ const markdownComponents = {
       </SyntaxHighlightedCode>
     );
   },
-};
+});
 
 const getTextContent = (block) => {
   const candidates = [
@@ -53,7 +64,7 @@ const getTextContent = (block) => {
   );
 };
 
-function TextBlock({ block, index }) {
+function TextBlock({ block, index, onPreview }) {
   const text = getTextContent(block);
 
   return (
@@ -64,7 +75,7 @@ function TextBlock({ block, index }) {
         <div className="lesson-markdown content-block-markdown">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            components={markdownComponents}
+            components={createMarkdownComponents(onPreview)}
             urlTransform={safeMarkdownUrl}
           >
             {text}
@@ -77,8 +88,73 @@ function TextBlock({ block, index }) {
   );
 }
 
+const normalizeQuizQuestions = (block) => {
+  const sourceQuestions = block?.questions;
+
+  if (Array.isArray(sourceQuestions)) {
+    return sourceQuestions.map((question) => {
+      if (Array.isArray(question)) {
+        return {
+          title: typeof question[0] === "string" ? question[0] : "Вопрос",
+          answer: question.slice(1).filter(Boolean).join("\n"),
+        };
+      }
+
+      if (question && typeof question === "object") {
+        const options = Array.isArray(question.options)
+          ? question.options.join("\n")
+          : question.options;
+        const answerParts = [options, question.answer].filter(Boolean);
+
+        return {
+          title:
+            typeof question.question === "string" && question.question.trim()
+              ? question.question
+              : "Вопрос",
+          answer: answerParts.join("\n\n"),
+        };
+      }
+
+      return {
+        title: typeof question === "string" ? question : "Вопрос",
+        answer: "",
+      };
+    });
+  }
+
+  if (sourceQuestions && typeof sourceQuestions === "object") {
+    const options = Array.isArray(sourceQuestions.options)
+      ? sourceQuestions.options.join("\n")
+      : sourceQuestions.options;
+    const answerParts = [options, sourceQuestions.answer].filter(Boolean);
+
+    return [
+      {
+        title:
+          typeof sourceQuestions.question === "string" &&
+          sourceQuestions.question.trim()
+            ? sourceQuestions.question
+            : "Вопрос",
+        answer: answerParts.join("\n\n"),
+      },
+    ];
+  }
+
+  return [];
+};
+
 function QuizBlock({ block, index }) {
-  const questions = Array.isArray(block?.questions) ? block.questions : [];
+  const questions = normalizeQuizQuestions(block);
+  const reactId = useId();
+  const quizId = String(reactId).replace(/[^a-zA-Z0-9_-]/g, "");
+  const [expandedQuestions, setExpandedQuestions] = useState({});
+
+  const toggleQuestion = (questionIndex) => {
+    setExpandedQuestions((current) => ({
+      ...current,
+      [questionIndex]: !current[questionIndex],
+    }));
+  };
 
   return (
     <article className="content-block-card">
@@ -87,17 +163,30 @@ function QuizBlock({ block, index }) {
       {questions.length > 0 ? (
         <ol className="quiz-question-list">
           {questions.map((question, questionIndex) => {
-            const questionParts = Array.isArray(question)
-              ? question
-              : [question];
-            const title = question?.question || questionParts[0];
-            const details =
-              question?.answer || questionParts.slice(1).join("\n");
+            const title = question.title;
+            const details = question.answer;
+            const isExpanded = Boolean(expandedQuestions[questionIndex]);
+            const answerId = `quiz-answer-${quizId}-${index}-${questionIndex}`;
 
             return (
               <li key={`question-${questionIndex}`}>
-                <strong>{typeof title === "string" ? title : "Вопрос"}</strong>
-                {details && <pre className="content-block-pre">{details}</pre>}
+                <button
+                  type="button"
+                  className="quiz-question-toggle"
+                  aria-expanded={isExpanded}
+                  aria-controls={details ? answerId : undefined}
+                  onClick={() => toggleQuestion(questionIndex)}
+                >
+                  <strong>{title}</strong>
+                  <span aria-hidden="true">
+                    {isExpanded ? "Скрыть" : "Показать"}
+                  </span>
+                </button>
+                {details && isExpanded && (
+                  <pre id={answerId} className="content-block-pre">
+                    {details}
+                  </pre>
+                )}
               </li>
             );
           })}
@@ -146,13 +235,25 @@ function ImageBlock({ block, index }) {
   );
 }
 
-function MermaidBlock({ block, index }) {
+function MermaidBlock({ block, index, onPreview }) {
   return (
     <article className="content-block-card">
       <div className="course-viewer-eyebrow">Блок {index + 1} · mermaid</div>
       {block.title && <h3>{block.title}</h3>}
       {block.md_content ? (
-        <MermaidDiagram chart={block.md_content} />
+        <button
+          type="button"
+          className="content-preview-trigger content-preview-diagram-trigger"
+          onClick={() =>
+            onPreview({
+              type: "diagram",
+              chart: block.md_content,
+            })
+          }
+          aria-label={`Открыть схему${block.title ? `: ${block.title}` : ""}`}
+        >
+          <MermaidDiagram chart={block.md_content} />
+        </button>
       ) : (
         <p className="course-viewer-muted">Код диаграммы отсутствует.</p>
       )}
@@ -239,7 +340,7 @@ function getBlockContentType(block) {
   return aliases[rawType] || rawType;
 }
 
-function renderContentBlock(block, index) {
+function renderContentBlock(block, index, onPreview) {
   const normalizedBlock = {
     ...block,
     content_type: getBlockContentType(block),
@@ -252,6 +353,7 @@ function renderContentBlock(block, index) {
           key={`content-${index}`}
           block={normalizedBlock}
           index={index}
+          onPreview={onPreview}
         />
       );
     case "video":
@@ -292,6 +394,7 @@ function renderContentBlock(block, index) {
           key={`content-${index}`}
           block={normalizedBlock}
           index={index}
+          onPreview={onPreview}
         />
       );
     case "math_formula":
@@ -333,6 +436,8 @@ function renderContentBlock(block, index) {
 }
 
 export default function ContentBlocks({ blocks }) {
+  const [preview, setPreview] = useState(null);
+
   if (!Array.isArray(blocks) || blocks.length === 0) {
     return (
       <article className="course-viewer-card theory-section">
@@ -351,8 +456,11 @@ export default function ContentBlocks({ blocks }) {
     >
       <h2 id="theory-title">Теория урока</h2>
       <div className="content-blocks-list">
-        {blocks.map((block, index) => renderContentBlock(block, index))}
+        {blocks.map((block, index) =>
+          renderContentBlock(block, index, setPreview),
+        )}
       </div>
+      <ContentPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </section>
   );
 }

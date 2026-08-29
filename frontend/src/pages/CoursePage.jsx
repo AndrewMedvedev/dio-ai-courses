@@ -15,6 +15,7 @@ export default function CoursePage({
   canUpdateCourse,
   canDeleteCourse,
   deleteCourse,
+  updateCourseStatus,
   updateCourse,
   updateCourseBlock,
   insertCourseBlock,
@@ -22,6 +23,7 @@ export default function CoursePage({
   deleteBlock,
 }) {
   const [activeBlockId, setActiveBlockId] = useState(null);
+  const [statusAction, setStatusAction] = useState("");
 
   if (!canReadCourse) {
     return (
@@ -74,6 +76,16 @@ export default function CoursePage({
     setActiveBlockId(blockId);
   };
 
+  const changeStatus = async (action) => {
+    if (!updateCourseStatus || statusAction) return;
+    setStatusAction(action);
+    try {
+      await updateCourseStatus(selectedCourse.id, action);
+    } finally {
+      setStatusAction("");
+    }
+  };
+
   const renderInsertControl = (index) =>
     isCourseEditMode ? (
       <li className="course-block-insert" key={`insert-${index}`}>
@@ -114,15 +126,54 @@ export default function CoursePage({
               : "Редактировать курс"}
           </button>
         )}
-        {canDeleteCourse && (
-          <button
-            type="button"
-            className="btn btn-outline course-delete-btn"
-            onClick={() => deleteCourse(selectedCourse.id)}
-          >
-            Удалить курс
-          </button>
-        )}
+        {isCourseEditMode &&
+          canUpdateCourse &&
+          selectedCourse.status !== "archived" && (
+            <>
+              {selectedCourse.status !== "published" && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => changeStatus("publish")}
+                  disabled={statusAction === "publish"}
+                >
+                  {statusAction === "publish" ? "Публикуем..." : "Опубликовать"}
+                </button>
+              )}
+              {selectedCourse.status !== "invite_only" && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => changeStatus("invite_only")}
+                  disabled={statusAction === "invite_only"}
+                >
+                  {statusAction === "invite_only"
+                    ? "Сохраняем..."
+                    : "Только для приглашённых"}
+                </button>
+              )}
+            </>
+          )}
+        {isCourseEditMode &&
+          canDeleteCourse &&
+          selectedCourse.status !== "archived" && (
+            <button
+              type="button"
+              className="btn btn-outline course-delete-btn"
+              onClick={async () => {
+                if (statusAction) return;
+                setStatusAction("archive");
+                try {
+                  await deleteCourse(selectedCourse.id);
+                } finally {
+                  setStatusAction("");
+                }
+              }}
+              disabled={statusAction === "archive"}
+            >
+              {statusAction === "archive" ? "Удаляем..." : "Удалить курс"}
+            </button>
+          )}
       </div>
       <div className="course-details-grid">
         <article className="glass-card course-details-main">

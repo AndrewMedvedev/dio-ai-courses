@@ -128,6 +128,51 @@ const DIAGRAM_TYPE_PATTERN =
 const hasDiagramType = (source) =>
   DIAGRAM_TYPE_PATTERN.test(String(source ?? "").trim());
 
+const quoteUnsafeSquareLabels = (source) =>
+  String(source ?? "").replace(/\[([^\]\n]+)\]/g, (match, label) => {
+    const trimmed = label.trim();
+
+    if (!trimmed || /^["'`]/.test(trimmed)) {
+      return match;
+    }
+
+    if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) {
+      return match;
+    }
+
+    return `["${trimmed.replace(/"/g, "#quot;")}"]`;
+  });
+
+const stripInlineComments = (source) =>
+  String(source ?? "")
+    .split("\n")
+    .map((line) => {
+      if (/^\s*%%/.test(line)) return line;
+      return line.replace(/\s+%%.*$/, "");
+    })
+    .join("\n");
+
+const splitStuckFlowchartStatements = (source) =>
+  String(source ?? "")
+    // A["Текст"]"direction TB -> A["Текст"]\ndirection TB
+    .replace(/\]\s*["']\s*(?=direction\b)/gi, "]\n")
+    // A["Текст"]"node[Текст] -> A["Текст"]\nnode[Текст]
+    .replace(/\]\s*["']\s*(?=[A-Za-z_][\w-]*\s*[\[({])/g, "]\n")
+    // direction TBnode[Текст] -> direction TB\nnode[Текст]
+    .replace(/\bdirection\s+(TB|TD|BT|RL|LR)(?=[A-Za-z_])/gi, "direction $1\n")
+    // A[Текст]B --> C / A["Текст"]B --> C
+    .replace(
+      /(\])([A-Za-z_][\w-]*\s*(?=(?:[-=.]{1,3}[->.]|-->|---|==>|\.\.)))/g,
+      "$1\n$2",
+    )
+    // A[Текст]B[Другой текст] / A["Текст"]B["Другой текст"]
+    .replace(/(\])([A-Za-z_][\w-]*\s*(?=[\[({]))/g, "$1\n$2")
+    // subgraph "Название"direction TB / subgraph "Название"node[Текст]
+    .replace(
+      /((?:^|\n)\s*subgraph\s+["'][^"'\n]+["'])(\s*(?:direction\b|[A-Za-z_][\w-]*\s*(?=[\[({])))/g,
+      "$1\n$2",
+    );
+
 /* -------------------------------------------------------------------------- */
 /* УЛУЧШЕННЫЙ ремонт — удаляем все обратные слеши, вставляем пробелы между узлами */
 /* -------------------------------------------------------------------------- */
@@ -138,14 +183,23 @@ const repairCommonErrors = (source) => {
   // 1. Удаляем init-директивы
   result = stripInitDirectives(result);
 
-  // 2. Убираем все обратные слеши перед кавычками (любое количество)
+  // 2. Mermaid поддерживает комментарии отдельной строкой, но inline `%%` часто ломают парсер.
+  result = stripInlineComments(result);
+
+  // 3. Убираем все обратные слеши перед кавычками (любое количество)
   result = result.replace(/\\(?:\\\\)*(["'])/g, "$1");
 
-  // 3. Вставляем пробел между закрывающей скобкой и следующим идентификатором, если нет пробела
-  //    Например: ]D2 -> ] D2, ))D3 -> )) D3
-  result = result.replace(/([\]\)])([A-Za-z])/g, "$1 $2");
+  // 4. Разбиваем склеенные инструкции вида A[Текст]B --> C.
+  result = splitStuckFlowchartStatements(result);
 
-  // 4. Оборачиваем subgraph в кавычки, если их нет (используем двойные)
+  // 5. Mermaid 11 строже парсит спецсимволы внутри [label].
+  result = quoteUnsafeSquareLabels(result);
+
+  // 6. Повторяем после закавычивания, потому что строка могла стать A["Текст"]B --> C.
+  result = splitStuckFlowchartStatements(result);
+  result = result.replace(/([\]\)])([A-Za-z_])/g, "$1 $2");
+
+  // 7. Оборачиваем subgraph в кавычки, если их нет (используем двойные)
   result = result.replace(
     /subgraph\s+([^\s"'\n][^\n]*?)(\s*\n)/g,
     (match, title, rest) => {
@@ -154,7 +208,7 @@ const repairCommonErrors = (source) => {
     },
   );
 
-  // 5. Удаляем лишние пустые строки и пробелы в начале строк
+  // 8. Удаляем лишние пустые строки и пробелы в начале строк
   result = result.replace(/\n\s*\n/g, "\n");
   result = result.replace(/^[ \t]+/gm, "");
 
@@ -226,16 +280,59 @@ const normalizeRenderedSvg = (svg) => {
 /* -------------------------------------------------------------------------- */
 const isErrorSvg = (svg) => {
   if (!svg) return true;
-  return /syntax error|parse error|error-icon|mermaid version/i.test(svg);
+
+  try {
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(svg, "image/svg+xml");
+
+    if (parsed.querySelector("parsererror")) {
+      return true;
+    }
+
+    const svgElement = parsed.documentElement;
+    if (!svgElement || svgElement.nodeName.toLowerCase() !== "svg") {
+      return true;
+    }
+
+    const rootClass = svgElement.getAttribute("class") || "";
+    const roleDescription =
+      svgElement.getAttribute("aria-roledescription") || "";
+    const visibleText = svgElement.textContent || "";
+
+    return (
+      /\berror\b/i.test(rootClass) ||
+      /\berror\b/i.test(roleDescription) ||
+      /\b(?:syntax|parse|lexical) error\b/i.test(visibleText)
+    );
+  } catch (error) {
+    console.warn("[MermaidDiagram] SVG error detection failed", error);
+    return false;
+  }
 };
 
 /* -------------------------------------------------------------------------- */
 /* DOM cleanup */
 /* -------------------------------------------------------------------------- */
+const escapeSelectorValue = (value) =>
+  typeof CSS !== "undefined" && typeof CSS.escape === "function"
+    ? CSS.escape(value)
+    : String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+
 const cleanupMermaidDom = (id) => {
-  if (typeof document === "undefined") return;
-  document.getElementById(id)?.remove();
-  document.getElementById(`d${id}`)?.remove();
+  if (typeof document === "undefined" || !id) return;
+
+  [id, `d${id}`, `i${id}`].forEach((elementId) => {
+    document.getElementById(elementId)?.remove();
+  });
+
+  const escapedId = escapeSelectorValue(id);
+  document
+    .querySelectorAll(`[id^="${escapedId}"], [id^="d${escapedId}"]`)
+    .forEach((element) => {
+      if (!element.closest(".mermaid-diagram")) {
+        element.remove();
+      }
+    });
 };
 
 /* -------------------------------------------------------------------------- */
@@ -326,6 +423,7 @@ export default function MermaidDiagram({ chart }) {
     let cancelled = false;
 
     setStatus("loading");
+    setSvg("");
 
     const execute = async () => {
       const result = await enqueueRender(() =>
@@ -356,6 +454,7 @@ export default function MermaidDiagram({ chart }) {
 
     return () => {
       cancelled = true;
+      renderVersionRef.current += 1;
     };
   }, [normalizedChart, componentId]);
 

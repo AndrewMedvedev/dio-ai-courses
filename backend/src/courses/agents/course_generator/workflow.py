@@ -19,15 +19,19 @@ from .nodes import Context, agent
 async def generate_course(generation_context: dict[str, Any]) -> dict[str, str]:
     """Генерирует курс, чтобы автоматически подготовить часть учебного контента."""
     context = Context(**generation_context)
-    async with session_factory() as session:
-        await invoke_or_resume(
-            graph=agent,
-            input_data={"generation_context": context},
-            config=RunnableConfig(
-                configurable={
-                    "thread_id": f"course:{context.course_id}",
-                }
-            ),
-            context=RuntimeContext(db_session=session),
-        )
-        return {"course_id": str(context.course_id)}
+    try:
+        async with session_factory() as session:
+            await invoke_or_resume(
+                graph=agent,
+                input_data={"generation_context": context},
+                config=RunnableConfig(
+                    configurable={
+                        "thread_id": f"course:{context.course_id}",
+                    }
+                ),
+                context=RuntimeContext(db_session=session),
+            )
+            return {"course_id": str(context.course_id)}
+    except Exception as e:
+        print(e)
+        raise e

@@ -107,3 +107,18 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
         modules = await self.select_modules_by_id_course(uid)
 
         return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore  # ruff:ignore[blanket-type-ignore]
+
+    async def get_course_status(
+        self,
+        course_id: UUID,
+        user_id: UUID,
+    ) -> CourseStatus | None:
+        """Получает статус курса по его идентификатору."""
+        stmt = select(self.model.status).where(
+            self.model.id == course_id,
+            self.model.creator_id == user_id,
+        )
+
+        result = await self._session.execute(stmt)
+
+        return result.scalar_one_or_none()
