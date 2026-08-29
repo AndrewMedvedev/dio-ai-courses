@@ -19,6 +19,7 @@ import {
   fetchCourseStatus,
   saveDocument,
 } from "../utils/api";
+import { getLocalStorage } from "../utils/storage";
 
 const MAX_FILES = 5;
 
@@ -28,14 +29,6 @@ const PROGRESS_TICK_MS = 500;
 const STATUS_ERROR_TIMEOUT_MS = 25 * 60 * 1000;
 const LONG_GENERATION_MS = 25 * 60 * 1000;
 const NOT_FOUND_STATUS = 404;
-
-function safeStorage() {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-}
 
 function createUuid() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -51,11 +44,11 @@ function getGenerationKey(courseId) {
 }
 
 function createCourseId() {
-  return safeStorage()?.getItem(ACTIVE_CREATOR_COURSE_KEY) || createUuid();
+  return getLocalStorage()?.getItem(ACTIVE_CREATOR_COURSE_KEY) || createUuid();
 }
 
 function readGenerationState(courseId) {
-  const storage = safeStorage();
+  const storage = getLocalStorage();
   if (!storage || !courseId) return null;
   try {
     const value = JSON.parse(
@@ -68,14 +61,14 @@ function readGenerationState(courseId) {
 }
 
 function writeGenerationState(record) {
-  const storage = safeStorage();
+  const storage = getLocalStorage();
   if (!storage || !record?.courseId) return;
   storage.setItem(getGenerationKey(record.courseId), JSON.stringify(record));
   storage.setItem(ACTIVE_CREATOR_COURSE_KEY, record.courseId);
 }
 
 function clearGenerationState(courseId) {
-  const storage = safeStorage();
+  const storage = getLocalStorage();
   if (!storage || !courseId) return;
   storage.removeItem(getGenerationKey(courseId));
   if (storage.getItem(ACTIVE_CREATOR_COURSE_KEY) === courseId) {

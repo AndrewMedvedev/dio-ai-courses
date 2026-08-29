@@ -26,11 +26,11 @@ import ModelsPage from "./pages/ModelsPage";
 import AuthPage from "./pages/AuthPage";
 import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
+import { getErrorMessage } from "./utils/errors";
 import { getRouteState } from "./utils/routeState";
 import { useRouteScrollRestoration } from "./hooks/useRouteScrollRestoration";
 import { useTeacherGroups } from "./hooks/useTeacherGroups";
 import {
-  AI_MODEL_PERMISSIONS,
   COURSE_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   usePermissionStore,
@@ -44,7 +44,6 @@ import {
   getCourse,
   getLessonBasicInfo,
   getModuleBasicInfo,
-  isTokenExpired,
   isUuid,
   publishCourse as publishCourseApi,
   setCourseInviteOnly as setCourseInviteOnlyApi,
@@ -52,72 +51,25 @@ import {
   updateLesson as updateLessonApi,
   updateModule as updateModuleApi,
 } from "./utils/api";
-
-const EMPTY_COURSE = {
-  id: "",
-  title: "Курс не выбран",
-  description: "",
-  category: "",
-  duration: "",
-  level: "",
-  format: "",
-  learningObjectives: [],
-  blocks: [],
-};
-
-const mergeCourse = (courses, nextCourse) => {
-  if (!nextCourse?.id) return courses;
-  return courses.some((course) => course.id === nextCourse.id)
-    ? courses.map((course) =>
-        course.id === nextCourse.id
-          ? {
-              ...course,
-              ...nextCourse,
-              blocks: nextCourse.blocks?.length
-                ? nextCourse.blocks
-                : course.blocks,
-            }
-          : course,
-      )
-    : [...courses, nextCourse];
-};
-
-const mergeCoursePage = (currentCourses, nextCourses) =>
-  nextCourses.map((nextCourse) => {
-    const currentCourse = currentCourses.find(
-      (course) => course.id === nextCourse.id,
-    );
-
-    if (!currentCourse) return nextCourse;
-
-    return mergeCourse([currentCourse], nextCourse)[0];
-  });
-
-const mergeModule = (course, nextModule) => ({
-  ...course,
-  blocks: (course.blocks || []).map((block) =>
-    block.id === nextModule.id
-      ? {
-          ...block,
-          ...nextModule,
-          lessons: nextModule.lessons?.length
-            ? nextModule.lessons
-            : block.lessons,
-          practice: block.practice || [],
-        }
-      : block,
-  ),
-});
-
-const mergeLesson = (course, nextLesson) => ({
-  ...course,
-  blocks: (course.blocks || []).map((block) => ({
-    ...block,
-    lessons: (block.lessons || []).map((lesson) =>
-      lesson.id === nextLesson.id ? { ...lesson, ...nextLesson } : lesson,
-    ),
-  })),
-});
+import {
+  createEmptyCourseBlock,
+  getSelectedBlock,
+  getSelectedCourse,
+  getSelectedLesson,
+  getSelectedPractice,
+  mergeCourse,
+  mergeCoursePage,
+  mergeLesson,
+  mergeModule,
+  moveItem,
+} from "./course/courseState";
+import {
+  getBlockProgress,
+  getCourseProgress,
+  getLessonSequence,
+  getOverallProgress,
+} from "./course/courseProgress";
+import { useAppPermissions } from "./hooks/useAppPermissions";
 
 function getCourseRouteTarget(pathname) {
   const segments = pathname.split("/").filter(Boolean);
@@ -140,14 +92,27 @@ function AppContent() {
   const resetPermissions = usePermissionStore(
     (state) => state.resetPermissions,
   );
-  const hasPermission = usePermissionStore((state) => state.hasPermission);
-  const hasAnyPermission = usePermissionStore(
-    (state) => state.hasAnyPermission,
-  );
-  const arePermissionsLoaded = usePermissionStore((state) => state.isLoaded);
-  const accessToken = useSessionStore((state) => state.accessToken);
-  const refreshToken = useSessionStore((state) => state.refreshToken);
-  const expiresAt = useSessionStore((state) => state.expiresAt);
+  const {
+    accessToken,
+    refreshToken,
+    arePermissionsLoaded,
+    canCreateCourse,
+    canReadCourse,
+    canOpenCourse,
+    canBrowseCourses,
+    canViewCourseInfo,
+    canUpdateCourse,
+    canDeleteCourse,
+    canCreateOrganization,
+    canReadOrganization,
+    canReadOwnOrganization,
+    canUpdateOrganization,
+    canDeleteOrganization,
+    canManageOrganizations,
+    canCreateModel,
+    canDeleteModel,
+    canManageModels,
+  } = useAppPermissions();
   const loadIdentity = useSessionStore((state) => state.loadIdentity);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const theme = useThemeStore((state) => state.theme);
@@ -197,76 +162,6 @@ function AppContent() {
     setActiveTeacherGroupId,
     teacherLeaderboard,
   } = useTeacherGroups(editableCourses, "");
-  const isAuthenticated = Boolean(
-    accessToken && refreshToken && expiresAt && !isTokenExpired(expiresAt),
-  );
-  const canCreateCourse =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.CREATE);
-  const canReadCourse =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.READ);
-  const canOpenCourse =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasAnyPermission([
-      COURSE_PERMISSIONS.READ,
-      COURSE_PERMISSIONS.COURSE_READ,
-      COURSE_PERMISSIONS.UPDATE,
-    ]);
-  const canBrowseCourses = !isAuthenticated || canReadCourse;
-  const canViewCourseInfo = !isAuthenticated || canOpenCourse;
-  const canUpdateCourse =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.UPDATE);
-  const canDeleteCourse =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.DELETE);
-  const canCreateOrganization =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(ORGANIZATION_PERMISSIONS.CREATE);
-  const canReadOrganization =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(ORGANIZATION_PERMISSIONS.READ);
-  const canReadOwnOrganization =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(ORGANIZATION_PERMISSIONS.ORGANIZATION_READ);
-  const canUpdateOrganization =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(ORGANIZATION_PERMISSIONS.UPDATE);
-  const canDeleteOrganization =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(ORGANIZATION_PERMISSIONS.DELETE);
-  const canManageOrganizations =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasAnyPermission(Object.values(ORGANIZATION_PERMISSIONS));
-  const canCreateModel =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasAnyPermission([
-      AI_MODEL_PERMISSIONS.CREATE,
-      "ai_model:CREATE",
-      "CREATE",
-    ]);
-  const canDeleteModel =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasAnyPermission([
-      AI_MODEL_PERMISSIONS.DELETE,
-      "ai_model:DELETE",
-      "DELETE",
-    ]);
-  const canManageModels = isAuthenticated && arePermissionsLoaded;
 
   useRouteScrollRestoration();
 
@@ -326,9 +221,7 @@ function AppContent() {
         ) {
           return;
         }
-        setCoursesError(
-          error.userMessage || error.message || "Не удалось загрузить курсы.",
-        );
+        setCoursesError(getErrorMessage(error, "Не удалось загрузить курсы."));
         setEditableCourses([]);
         setCoursesTotalPages(1);
         setCoursesTotal(0);
@@ -382,9 +275,7 @@ function AppContent() {
       })
       .catch((error) => {
         if (courseRequestRef.current === requestId) {
-          setCoursesError(
-            error.userMessage || error.message || "Не удалось загрузить курс.",
-          );
+          setCoursesError(getErrorMessage(error, "Не удалось загрузить курс."));
         }
       })
       .finally(() => {
@@ -394,38 +285,13 @@ function AppContent() {
       });
   }, [canViewCourseInfo, editableCourses, selectedCourseId]);
 
-  const selectedCourse =
-    editableCourses.find((course) => course.id === selectedCourseId) ||
-    editableCourses[0] ||
-    EMPTY_COURSE;
-  const selectedBlock = (selectedCourse.blocks || []).find(
-    (block) => block.id === selectedBlockId,
-  ) ||
-    selectedCourse.blocks?.[0] || {
-      id: "",
-      title: "Модуль не выбран",
-      lessons: [],
-      practice: [],
-      learningObjectives: [],
-    };
-  const selectedLesson = (selectedBlock.lessons || []).find(
-    (lesson) => lesson.id === selectedLessonId,
-  ) ||
-    selectedBlock.lessons?.[0] || {
-      id: "",
-      title: "Урок не выбран",
-      duration: "",
-      summary: "",
-      content: "",
-      markdown: "",
-      contentBlocks: [],
-    };
-  const selectedPractice =
-    selectedBlock.practice?.find(
-      (practice) => practice.id === selectedPracticeId,
-    ) ||
-    selectedBlock.practice?.[0] ||
-    null;
+  const selectedCourse = getSelectedCourse(editableCourses, selectedCourseId);
+  const selectedBlock = getSelectedBlock(selectedCourse, selectedBlockId);
+  const selectedLesson = getSelectedLesson(selectedBlock, selectedLessonId);
+  const selectedPractice = getSelectedPractice(
+    selectedBlock,
+    selectedPracticeId,
+  );
 
   useEffect(() => {
     if (!canViewCourseInfo || !selectedCourse.id) {
@@ -466,9 +332,7 @@ function AppContent() {
         .catch((error) => {
           if (moduleRequestRef.current === requestId) {
             setCoursesError(
-              error.userMessage ||
-                error.message ||
-                "Не удалось загрузить уроки модуля.",
+              getErrorMessage(error, "Не удалось загрузить уроки модуля."),
             );
           }
         });
@@ -531,9 +395,7 @@ function AppContent() {
         .catch((error) => {
           if (moduleRequestRef.current === requestId) {
             setCoursesError(
-              error.userMessage ||
-                error.message ||
-                "Не удалось загрузить уроки модулей.",
+              getErrorMessage(error, "Не удалось загрузить уроки модулей."),
             );
           }
         });
@@ -583,20 +445,12 @@ function AppContent() {
       })
       .catch((error) => {
         if (lessonRequestRef.current === requestId) {
-          setCoursesError(
-            error.userMessage || error.message || "Не удалось загрузить урок.",
-          );
+          setCoursesError(getErrorMessage(error, "Не удалось загрузить урок."));
         }
       });
   }, [canViewCourseInfo, selectedCourse, selectedLessonId]);
 
-  const lessonSequence = selectedCourse.blocks.flatMap((block) =>
-    block.lessons.map((lesson) => ({
-      blockId: block.id,
-      lessonId: lesson.id,
-      lessonTitle: lesson.title,
-    })),
-  );
+  const lessonSequence = getLessonSequence(selectedCourse);
   const currentLessonIndex = lessonSequence.findIndex(
     (item) => item.lessonId === selectedLesson.id,
   );
@@ -604,58 +458,29 @@ function AppContent() {
   const hasNextLesson =
     currentLessonIndex >= 0 && currentLessonIndex < lessonSequence.length - 1;
 
-  const completedLessonsInBlock = selectedBlock.lessons.filter(
-    (lesson) => completedLessons[lesson.id],
-  ).length;
-  const completedPracticesInBlock = (selectedBlock.practice || []).filter(
-    (practice) => completedPractices[practice.id],
-  ).length;
-  const totalItemsInBlock =
-    selectedBlock.lessons.length + (selectedBlock.practice || []).length;
-  const completedInBlock = completedLessonsInBlock + completedPracticesInBlock;
-  const blockProgressPercent = totalItemsInBlock
-    ? Math.round((completedInBlock / totalItemsInBlock) * 100)
-    : 0;
-  const totalLessonsCount = editableCourses.reduce(
-    (total, course) =>
-      total +
-      course.blocks.reduce((sum, block) => sum + block.lessons.length, 0),
-    0,
-  );
-  const totalPracticesCount = editableCourses.reduce(
-    (total, course) =>
-      total +
-      course.blocks.reduce((sum, block) => sum + block.practice.length, 0),
-    0,
-  );
-  const completedLessonsCount =
-    Object.values(completedLessons).filter(Boolean).length;
-  const completedPracticesCount =
-    Object.values(completedPractices).filter(Boolean).length;
-  const totalProgressItems = totalLessonsCount + totalPracticesCount;
-  const overallProgressPercent = totalProgressItems
-    ? Math.round(
-        ((completedLessonsCount + completedPracticesCount) /
-          totalProgressItems) *
-          100,
-      )
-    : 0;
+  const {
+    completedLessonsInBlock,
+    completedPracticesInBlock,
+    totalItemsInBlock,
+    completedInBlock,
+    blockProgressPercent,
+  } = getBlockProgress(selectedBlock, completedLessons, completedPractices);
+  const {
+    totalLessonsCount,
+    totalPracticesCount,
+    completedLessonsCount,
+    completedPracticesCount,
+    overallProgressPercent,
+  } = getOverallProgress(editableCourses, completedLessons, completedPractices);
   const profileActiveCourse = selectedCourse || editableCourses[0];
-  const profileActiveCourseTotal = profileActiveCourse.blocks.reduce(
-    (total, block) => total + block.lessons.length + block.practice.length,
-    0,
-  );
-  const profileActiveCourseCompleted = profileActiveCourse.blocks.reduce(
-    (total, block) =>
-      total +
-      block.lessons.filter((lesson) => completedLessons[lesson.id]).length +
-      block.practice.filter((practice) => completedPractices[practice.id])
-        .length,
-    0,
-  );
-  const profileActiveCourseProgress = Math.round(
-    (profileActiveCourseCompleted / Math.max(1, profileActiveCourseTotal)) *
-      100,
+  const {
+    total: profileActiveCourseTotal,
+    completed: profileActiveCourseCompleted,
+    progress: profileActiveCourseProgress,
+  } = getCourseProgress(
+    profileActiveCourse,
+    completedLessons,
+    completedPractices,
   );
 
   useEffect(() => {
@@ -717,9 +542,7 @@ function AppContent() {
       navigate(`/course/${nextCourse.id}`);
     } catch (error) {
       if (courseRequestRef.current === requestId) {
-        setCoursesError(
-          error.userMessage || error.message || "Не удалось загрузить курс.",
-        );
+        setCoursesError(getErrorMessage(error, "Не удалось загрузить курс."));
       }
     } finally {
       if (courseRequestRef.current === requestId) {
@@ -766,9 +589,7 @@ function AppContent() {
       return nextStatus;
     } catch (error) {
       setCoursesError(
-        error.userMessage ||
-          error.message ||
-          "Не удалось изменить статус курса.",
+        getErrorMessage(error, "Не удалось изменить статус курса."),
       );
       throw error;
     }
@@ -816,9 +637,7 @@ function AppContent() {
       navigate(`/course/${selectedCourse.id}/block/${nextBlock.id}`);
     } catch (error) {
       if (moduleRequestRef.current === requestId) {
-        setCoursesError(
-          error.userMessage || error.message || "Не удалось загрузить модуль.",
-        );
+        setCoursesError(getErrorMessage(error, "Не удалось загрузить модуль."));
       }
     }
   };
@@ -875,9 +694,7 @@ function AppContent() {
       navigate(`/course/${selectedCourse.id}/lesson/${lessonId}`);
     } catch (error) {
       if (lessonRequestRef.current === requestId) {
-        setCoursesError(
-          error.userMessage || error.message || "Не удалось загрузить урок.",
-        );
+        setCoursesError(getErrorMessage(error, "Не удалось загрузить урок."));
       }
     }
   };
@@ -987,9 +804,7 @@ function AppContent() {
           }
         })
         .catch((error) => {
-          setCoursesError(
-            error.userMessage || error.message || "Не удалось сохранить курс.",
-          );
+          setCoursesError(getErrorMessage(error, "Не удалось сохранить курс."));
         });
     }
   };
@@ -1027,9 +842,7 @@ function AppContent() {
         })
         .catch((error) => {
           setCoursesError(
-            error.userMessage ||
-              error.message ||
-              "Не удалось сохранить модуль.",
+            getErrorMessage(error, "Не удалось сохранить модуль."),
           );
         });
     }
@@ -1040,33 +853,9 @@ function AppContent() {
       return null;
     }
 
-    const suffix = Date.now().toString(36);
-    const blockId = `${selectedCourse.id}-block-${suffix}`;
-    const lessonId = `${blockId}-lesson-1`;
-    const newBlock = {
-      id: blockId,
-      title: "Новый блок",
-      description: "",
-      duration: "2 недели",
-      lessons: [
-        {
-          id: lessonId,
-          title: "Новый урок",
-          duration: "20 минут",
-          summary: "",
-          content: "",
-          markdown: "Новый текстовый блок.",
-          contentBlocks: [
-            {
-              content_type: "text",
-              ai_generated: false,
-              md_content: "Новый текстовый блок.",
-            },
-          ],
-        },
-      ],
-      practice: [],
-    };
+    const { id: blockId, block: newBlock } = createEmptyCourseBlock(
+      selectedCourse.id,
+    );
 
     setEditableCourses((prev) =>
       prev.map((course) => {
@@ -1124,9 +913,7 @@ function AppContent() {
           }
         })
         .catch((error) => {
-          setCoursesError(
-            error.userMessage || error.message || "Не удалось сохранить урок.",
-          );
+          setCoursesError(getErrorMessage(error, "Не удалось сохранить урок."));
         });
     }
   };
@@ -1153,22 +940,6 @@ function AppContent() {
           : course,
       ),
     );
-  };
-
-  const moveItem = (items, itemId, direction) => {
-    const currentIndex = items.findIndex((item) => item.id === itemId);
-    const nextIndex = currentIndex + direction;
-
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= items.length) {
-      return items;
-    }
-
-    const nextItems = [...items];
-    [nextItems[currentIndex], nextItems[nextIndex]] = [
-      nextItems[nextIndex],
-      nextItems[currentIndex],
-    ];
-    return nextItems;
   };
 
   const moveBlock = (blockId, direction) => {

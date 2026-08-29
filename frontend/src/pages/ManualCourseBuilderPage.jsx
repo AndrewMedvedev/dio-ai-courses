@@ -22,6 +22,7 @@ import {
   isAuthenticated,
   redirectToLogin,
 } from "../utils/api";
+import { getLocalStorage } from "../utils/storage";
 
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
 const MANUAL_BUILDER_DRAFT_KEY = "manual_course_builder_draft_v1";
@@ -118,15 +119,6 @@ function markdownToTextContentBlocks(markdown) {
     : [];
 }
 
-function getStorage() {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return null;
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 function withoutFile(block) {
   if (!block) return block;
   const { file, ...rest } = block;
@@ -142,7 +134,7 @@ function withoutFile(block) {
 }
 
 function loadManualBuilderDraft() {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage) return {};
 
   try {
@@ -179,7 +171,7 @@ function loadManualBuilderDraft() {
 }
 
 function saveManualBuilderDraft(draft) {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage) return;
 
   storage.setItem(
@@ -192,7 +184,7 @@ function saveManualBuilderDraft(draft) {
 }
 
 function clearManualBuilderDraft() {
-  getStorage()?.removeItem(MANUAL_BUILDER_DRAFT_KEY);
+  getLocalStorage()?.removeItem(MANUAL_BUILDER_DRAFT_KEY);
 }
 
 function getApiErrorMessage(error, fallback) {

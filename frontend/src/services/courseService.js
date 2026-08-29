@@ -5,6 +5,7 @@ import {
   getLessonTheory,
   getModuleBasicInfo,
 } from "../utils/api";
+import { getLocalStorage } from "../utils/storage";
 
 const ENROLLMENT_KEY_PREFIX = "course_enrollment_";
 const courseCache = new Map();
@@ -13,21 +14,6 @@ const lessonCache = new Map();
 const lessonTheoryCache = new Map();
 
 const getEnrollmentKey = (courseId) => `${ENROLLMENT_KEY_PREFIX}${courseId}`;
-
-const safeLocalStorage = () => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return null;
-    }
-
-    const testKey = "__course_viewer_storage_test__";
-    window.localStorage.setItem(testKey, "1");
-    window.localStorage.removeItem(testKey);
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-};
 
 function replaceModule(course, module) {
   return {
@@ -150,7 +136,7 @@ export async function getLessonContentBlocks(lessonId) {
 }
 
 export async function isUserEnrolled(courseId) {
-  const storage = safeLocalStorage();
+  const storage = getLocalStorage({ requireWriteAccess: true });
 
   if (!storage || !courseId) {
     return false;
@@ -164,7 +150,7 @@ export async function enrollUserToCourse(courseId) {
     throw new Error("Невозможно записаться: идентификатор курса отсутствует");
   }
 
-  const storage = safeLocalStorage();
+  const storage = getLocalStorage({ requireWriteAccess: true });
 
   if (storage) {
     storage.setItem(getEnrollmentKey(courseId), "true");

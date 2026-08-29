@@ -234,6 +234,31 @@ const createRenderCandidates = (source) => {
 /* -------------------------------------------------------------------------- */
 /* SVG normalization */
 /* -------------------------------------------------------------------------- */
+const sanitizeRenderedSvg = (svgElement) => {
+  svgElement
+    .querySelectorAll("script, foreignObject, iframe, object, embed")
+    .forEach((element) => element.remove());
+
+  svgElement.querySelectorAll("*").forEach((element) => {
+    [...element.attributes].forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim();
+
+      if (name.startsWith("on")) {
+        element.removeAttribute(attribute.name);
+        return;
+      }
+
+      if (
+        (name === "href" || name.endsWith(":href")) &&
+        /^javascript:/i.test(value)
+      ) {
+        element.removeAttribute(attribute.name);
+      }
+    });
+  });
+};
+
 const normalizeRenderedSvg = (svg) => {
   if (!svg) return "";
   try {
@@ -244,6 +269,7 @@ const normalizeRenderedSvg = (svg) => {
       return svg;
     }
 
+    sanitizeRenderedSvg(svgElement);
     svgElement.removeAttribute("width");
     svgElement.removeAttribute("height");
     svgElement.setAttribute("width", "100%");

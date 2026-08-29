@@ -1,15 +1,12 @@
-const getStoredTheme = () => {
-  try {
-    return JSON.parse(localStorage.getItem("app-theme-storage") || "{}")?.state
-      ?.theme;
-  } catch {
-    return null;
-  }
-};
+import { readJsonFromStorage } from "./utils/storage";
+
+const getStoredTheme = () =>
+  readJsonFromStorage("app-theme-storage", {})?.state?.theme;
 
 const resolveTheme = (theme) => {
   if (theme === "system") {
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    return typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
   }

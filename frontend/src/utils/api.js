@@ -1,3 +1,5 @@
+import { getLocalStorage } from "./storage";
+
 const SESSION_KEY = "aicolab_session";
 const API_BASE = "/api/v1";
 const REFRESH_SKEW_SECONDS = 30;
@@ -20,19 +22,8 @@ export class ApiError extends Error {
   }
 }
 
-function getStorage() {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return null;
-    }
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 export function readStoredSession() {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage) {
     return emptySession();
   }
@@ -52,7 +43,7 @@ export function readStoredSession() {
 }
 
 export function saveStoredSession(session) {
-  const storage = getStorage();
+  const storage = getLocalStorage();
   if (!storage) return;
 
   if (!session) {
