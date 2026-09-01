@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from markitdown import MarkItDown
 
-from src.core.infrastructure import thread_executor
+from src.core.others import thread_executor
 
 from ..domain.exceptions import PayloadTooLargeError
 

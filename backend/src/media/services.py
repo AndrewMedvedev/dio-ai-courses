@@ -34,14 +34,15 @@ class AttachmentService:
         self.repository = repository
 
     async def create_presigned_upload_url(
-        self, request: PresignedUploadRequest
+        self,
+        request: PresignedUploadRequest,
     ) -> PresignedUploadResponse:
         """Создание подписанного URL для прямой загрузки файла в хранилище"""
 
         # 1. Создание уникального ключа
         extension = Path(request.filename).suffix.lower()
-        unique_name = f"{uuid4()}.{extension}"
-        storage_key = f"{request.owner_id}/{unique_name}"
+        unique_name = f"{uuid4()}{extension}"
+        storage_key = f"{request.folder}/{request.owner_id}/{unique_name}"
 
         # 2. Генерация подписанного URL для загрузки
         presigned_url = await self.storage.create_presigned_upload_url(
@@ -58,7 +59,9 @@ class AttachmentService:
         )
 
     async def confirm_upload(
-        self, request: ConfirmUploadRequest, uploaded_by: UUID
+        self,
+        request: ConfirmUploadRequest,
+        uploaded_by: UUID,
     ) -> AttachmentResponse:
         """Подтверждение загрузки файла"""
 

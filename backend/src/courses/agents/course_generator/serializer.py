@@ -3,7 +3,7 @@ from typing import cast
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from langgraph.checkpoint.redis.jsonplus_redis import JsonPlusRedisSerializer
 
-from src.core.infrastructure import checkpointer as base_checkpointer
+from src.core.redis import checkpointer as base_checkpointer
 
 serializer = JsonPlusRedisSerializer(
     allowed_json_modules=[

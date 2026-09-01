@@ -3,13 +3,12 @@ from typing import Any, BinaryIO, Protocol
 from collections.abc import AsyncIterator
 from uuid import UUID
 
-from src.shared.domain.repos import Repository
+from src.shared.application.repos import Repository
 
 from .entities import Attachment
 
 
 class AttachmentRepository(Repository[Attachment]):
-
     async def get_by_storage_key(self, storage_key: str) -> Attachment | None:
         """Получение вложения по уникальному ключу объекта в хранилище"""
 
@@ -18,7 +17,6 @@ class AttachmentRepository(Repository[Attachment]):
 
 
 class Storage(Protocol):
-
     async def upload(self, file: BinaryIO, storage_key: str, content_type: str) -> None:
         """Загружает файл в хранилище"""
 
@@ -29,14 +27,14 @@ class Storage(Protocol):
         """
 
     async def upload_stream(
-            self, chunks: AsyncIterator[bytes], storage_key: str, content_type: str
+        self, chunks: AsyncIterator[bytes], storage_key: str, content_type: str
     ) -> None:
         """
         Потоковая загрузка файла в хранилище (рекомендуемо для больших файлов)
         """
 
     async def download_stream(
-            self, storage_key: str, chunk_size: int = 4 * 1024 * 1024
+        self, storage_key: str, chunk_size: int = 4 * 1024 * 1024
     ) -> AsyncIterator[bytes]:
         """
         Потоковая загрузка файла (рекомендуется для больших файлов).
@@ -46,7 +44,7 @@ class Storage(Protocol):
         """Удаление файла"""
 
     async def create_presigned_upload_url(
-            self, storage_key: str, content_type: str, expires_in: int = 3600
+        self, storage_key: str, content_type: str, expires_in: int = 3600
     ) -> str:
         """
         Генерирует подписанный URL для прямой загрузки с фронтенда

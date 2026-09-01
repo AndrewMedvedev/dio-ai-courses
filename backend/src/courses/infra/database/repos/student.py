@@ -1,11 +1,10 @@
-from typing import Any
-
 import logging
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
+from src.shared.application.dtos import Page, Pagination
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....domain.entities import (
     Student,
@@ -31,3 +30,23 @@ class SqlStudentRepository(SqlAlchemyRepository[Student, StudentOrm]):
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
+
+    async def find_by_course(
+        self,
+        course_id: UUID,
+        pagination: Pagination,
+    ) -> Page[Student]:
+        """Получает студентов, записанных на курс, с пагинацией."""
+
+        stmt = select(self.model).where(
+            self.model.course_id == course_id,
+        )
+
+        return await paginate(
+            session=self._session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            mapper=self.model_mapper.from_model,
+            sort="created_at:desc",
+        )

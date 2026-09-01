@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from src.core.infrastructure import rabbit_broker
+from src.core.broker import rabbit_broker
 from src.core.settings import settings
 from src.shared.domain.events import EventPublisher
 from src.shared.infra.events import RabbitMQEventPublisher

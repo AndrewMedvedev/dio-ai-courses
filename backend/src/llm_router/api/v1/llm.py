@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from src.iam.dependencies.identity import CurrentIdentity
 from src.llm_service import LLMImageRequest, LLMImageResponse, LLMTextRequest, LLMTextResponse
 
 from ...dependencies import LLMImageRouterDep, LLMTextRouterDep
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/responses", tags=["LLM Router"])
 async def invoke_text(
     schema: LLMTextRequest,
     service: LLMTextRouterDep,
-    # _identity: CurrentIdentity,
+    _identity: CurrentIdentity,
     model: str | None = None,
 ) -> LLMTextResponse:
     """Обрабатывает HTTP-запрос `invoke_text` и связывает API с сервисным слоем."""
@@ -24,7 +25,7 @@ async def invoke_text(
 async def invoke(
     schema: LLMImageRequest,
     service: LLMImageRouterDep,
-    # _identity: CurrentIdentity,
+    _identity: CurrentIdentity,
     model: str | None = None,
 ) -> LLMImageResponse:
     """Запускает обращение к сервису и возвращает обработанный результат."""

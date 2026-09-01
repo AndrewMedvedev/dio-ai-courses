@@ -1,43 +1,22 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from collections.abc import Callable
 
-from fastapi import Depends, Query
+from fastapi import Depends
 
 from src.iam.application.dtos import Identity, PermissionQueryParamFilters, PermissionResponse
 from src.iam.domain.exceptions import PermissionDeniedError
-from src.iam.domain.vo import PermissionScope
 from src.shared.application.dtos import Page
 from src.shared.dependencies import PaginationDep
 
-from .base import PermissionRepositoryDep
 from .identity import CurrentIdentity
-
-
-def get_permission_filters(
-    resource: Annotated[str | None, Query(description="Ресурс права")] = None,
-    action: Annotated[str | None, Query(description="Действие права")] = None,
-    scopes: Annotated[list[PermissionScope] | None, Query(description="Скоупы права")] = None,
-    op: Annotated[
-        Literal["and", "or"], Query(description="Логический оператор для связи фильтров")
-    ] = "and",
-    sort: Annotated[str | None, Query(description="Поле и направление сортировки")] = None,
-    search: Annotated[str | None, Query(description="Полнотекстовый поиск")] = None,
-) -> PermissionQueryParamFilters:
-    return PermissionQueryParamFilters(
-        resource=resource,
-        action=action,
-        scopes=scopes,
-        op=op,
-        sort=sort,
-        search=search,
-    )
+from .repos import PermissionRepositoryDep
 
 
 async def get_permission_list(
     permission_repo: PermissionRepositoryDep,
     pagination: PaginationDep,
-    filters: Annotated[PermissionQueryParamFilters, Depends(get_permission_filters)],
+    filters: Annotated[PermissionQueryParamFilters, Depends()],
 ) -> Page[PermissionResponse]:
     permission_page = await permission_repo.find(pagination, filters)
     return permission_page.to_response(PermissionResponse.model_validate)

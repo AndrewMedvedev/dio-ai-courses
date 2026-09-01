@@ -2,7 +2,9 @@
 
 from typing import Any
 
+import base64
 import logging
+import operator
 
 from langsmith import traceable
 from openai import (
@@ -11,12 +13,12 @@ from openai import (
 from openai.types.images_response import ImagesResponse
 from openai.types.responses.response import Response
 from tenacity import (
+    before_sleep_log,
     retry,
-    stop_after_attempt,
-    wait_exponential,
+    retry_if_exception,
 )
 
-from src.core.infrastructure import tokens_encoder
+from src.core.others import tokens_encoder
 from src.core.settings import settings
 from src.llm_service.schemas import (
     LLMImageRequest,
@@ -27,11 +29,14 @@ from src.llm_service.schemas import (
 from src.shared.application.dtos import Pagination
 
 from .infra.repository import SqlAIModelRepository
-from .prompts import MODEL_SELECTION_TEXT, PROMPT_CHOOSE_MODEL, PROMPT_RETRY
+from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
 from .schemas import CacheAIModelsProtocol
 from .utils import (
+    is_retryable_error,
     parse_llm_response,
+    stop_strategy,
     to_langsmith_llm_output,
+    wait_strategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,7 +44,18 @@ logger = logging.getLogger(__name__)
 
 PAGINATION_SIZE = 50
 
-BASE_MODEL_CONTEXT = 500_000
+BASE_MODEL_CONTEXT = 400000
+
+LLM_RETRY = {
+    "retry": retry_if_exception(is_retryable_error),
+    "wait": wait_strategy,
+    "stop": stop_strategy,
+    "reraise": True,
+    "before_sleep": before_sleep_log(
+        logger,
+        logging.WARNING,
+    ),
+}
 
 
 class LLMRouter:  # ruff: ignore[class-as-data-structure]
@@ -53,18 +69,13 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         self._ai_model_repos = ai_model_repos
         self._wrapper = wrapper
 
-    @retry(
-        wait=wait_exponential(
-            multiplier=2,
-            min=2,
-            max=30,
-        ),
-        stop=stop_after_attempt(3),
-        reraise=True,
-    )
+    @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke(self, model: str, **kwargs) -> LLMTextResponse:
         result: Response = await self._client.responses.create(model=model, **kwargs)
+        print("*" * 400)
+        print(result)
+        print("*" * 400)
         return parse_llm_response(
             response=result,
             input_messages=kwargs["input"],
@@ -110,8 +121,8 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         count_tokens = len(tokens_encoder.encode(text=input_messages))
         if count_tokens >= BASE_MODEL_CONTEXT:
             filtered_models = [model for model in models if model["context"] > count_tokens]
-            min_model = min(filtered_models, key=lambda model: model.context)
-            return min_model.name, filtered_models
+            min_model = min(filtered_models, key=operator.itemgetter("context"))
+            return min_model["name"], filtered_models
         return settings.text_ai_model, models
 
     @traceable(run_type="chain", name="FallbackModel")
@@ -127,7 +138,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
                 model=selected_model,
                 input=f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",  # ruff: ignore[line-too-long]
                 instructions=PROMPT_RETRY,
-                text=MODEL_SELECTION_TEXT,
+                text=build_model_selection_text(models),
             )
             return result.output.get("model_name", selected_model)
         return model
@@ -144,7 +155,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             model=selected_model,
             input=f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",
             instructions=PROMPT_CHOOSE_MODEL,
-            text=MODEL_SELECTION_TEXT,
+            text=build_model_selection_text(models),
         )
         return result.output.get("model_name", selected_model)
 
@@ -196,15 +207,7 @@ class LLMImageRouter(LLMRouter):
     ) -> None:
         super().__init__(ai_model_repos=ai_model_repos, client=client, wrapper=wrapper)
 
-    @retry(
-        wait=wait_exponential(
-            multiplier=2,
-            min=2,
-            max=30,
-        ),
-        stop=stop_after_attempt(2),
-        reraise=True,
-    )
+    @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke_image(self, model: str, **kwargs) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
@@ -217,19 +220,15 @@ class LLMImageRouter(LLMRouter):
             output_format=result.output_format,
         )
 
-    @retry(
-        wait=wait_exponential(
-            multiplier=2,
-            min=2,
-            max=30,
-        ),
-        stop=stop_after_attempt(2),
-        reraise=True,
-    )
+    @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke_image_based(self, model: str, **kwargs) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе изображения"""
-        result: ImagesResponse = await self._client.images.edit(model=model, **kwargs)
+        images = [base64.b64decode(image) for image in kwargs["image"]]
+        kwargs.pop("image")
+        result: ImagesResponse = await self._client.images.edit(
+            model=model, image=images, **kwargs
+        )
         return LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,

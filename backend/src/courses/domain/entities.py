@@ -63,18 +63,18 @@ class VideoBlock(ContentBlock):
     description: str
 
 
-@dataclass(kw_only=True, slots=True)
-class ImageBlock(ContentBlock):
-    """Блок с текстовым теоретическим материалом.
+# @dataclass(kw_only=True, slots=True)
+# class ImageBlock(ContentBlock):
+#     """Блок с изображением.
 
-    Attributes:
-        content_type: Тип контента (всегда IMAGE).
-        ai_generated: Флаг AI-генерации.
-        image_id: id изображения.
-    """
+#     Attributes:
+#         content_type: Тип контента (всегда IMAGE).
+#         ai_generated: Флаг AI-генерации.
+#         image_id: id изображения.
+#     """
 
-    content_type: ContentType = ContentType.IMAGE
-    image_id: str
+#     content_type: ContentType = ContentType.IMAGE
+#     image_id: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -131,7 +131,7 @@ class QuizBlock(ContentBlock):
     """Блок с вопросами и ответами.
 
     Attributes:
-        content_type: Тип контента (всегда MERMAID).
+        content_type: Тип контента (всегда QUIZ).
         ai_generated: Флаг AI-генерации.
         questions: Список вопросов и ответов.
     """
@@ -198,7 +198,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 AnyContentBlock = (
     TextBlock
     | VideoBlock
-    | ImageBlock
+    # | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock
@@ -399,6 +399,7 @@ class Course(AggregateRoot):
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[Module] = field(default_factory=list)
+    students: list[Student] = field(default_factory=list)
 
     def append_module(self, module: Module) -> None:
         """Выполняет действие `append_module`, чтобы поддержать основной сценарий модуля."""

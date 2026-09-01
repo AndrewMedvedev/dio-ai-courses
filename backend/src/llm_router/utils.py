@@ -6,12 +6,14 @@ import logging
 import re
 import uuid
 
+import openai
 import orjson
 from json_repair import repair_json
 from langsmith import traceable
 from openai.types.responses.response import Response
+from tenacity import RetryCallState
 
-from src.core.infrastructure import redis_client
+from src.core.redis import redis_client
 from src.llm_service.schemas import LLMTextResponse, ToolCallParsed
 from src.shared.application.dtos import Page
 from src.shared.domain.exceptions import NotFoundError
@@ -23,6 +25,104 @@ _JSON_FENCE_RE = re.compile(
     r"\A\s*```(?:json)?\s*\n(.*)\n```\s*\Z",
     re.DOTALL | re.IGNORECASE,
 )
+
+
+RETRYABLE_STATUS_CODES = {
+    429,
+    500,
+    502,
+    503,
+    504,
+}
+
+NUMBER_RETRY_STATUS_CODES = 4
+
+NUMBER_RETRY = 3
+
+
+def get_status_code(exc: BaseException) -> int | None:
+
+    if isinstance(exc, openai.APIStatusError):
+        return exc.status_code
+
+    return None
+
+
+def is_retryable_error(exc: BaseException) -> bool:
+
+    if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+        return False
+
+    if isinstance(exc, openai.APIStatusError):
+        return exc.status_code in RETRYABLE_STATUS_CODES
+
+    return isinstance(exc, Exception)
+
+
+def wait_strategy(retry_state: RetryCallState) -> float:
+    outcome = retry_state.outcome
+
+    if outcome is None:
+        return 0.0
+    exc = outcome.exception()
+
+    if exc is None:
+        return 0.0
+
+    attempt = retry_state.attempt_number
+    status_code = get_status_code(exc)
+
+    if status_code == 429:
+        response = getattr(exc, "response", None)
+
+        if response is not None:
+            retry_after = response.headers.get("retry-after")
+
+            if retry_after:
+                try:
+                    return float(retry_after)
+                except (TypeError, ValueError):
+                    pass
+
+        # 5, 10, 20, 40, 60, 60...
+        return min(
+            60.0,
+            5.0 * (2 ** (attempt - 1)),
+        )
+
+    if status_code is not None and 500 <= status_code <= 599:
+        # 3, 6, 12, 24, 30...
+        return min(
+            30.0,
+            3.0 * (2 ** (attempt - 1)),
+        )
+
+    # Ошибка нашего кода:
+    # 1, 2, 4...
+    return min(
+        5.0,
+        1.0 * (2 ** (attempt - 1)),
+    )
+
+
+def stop_strategy(retry_state: RetryCallState) -> bool:
+    outcome = retry_state.outcome
+
+    if outcome is None:
+        return False
+
+    exc = outcome.exception()
+
+    if exc is None:
+        return True
+
+    attempt = retry_state.attempt_number
+    status_code = get_status_code(exc)
+
+    if status_code in RETRYABLE_STATUS_CODES:
+        return attempt >= NUMBER_RETRY_STATUS_CODES
+
+    return attempt >= NUMBER_RETRY
 
 
 class StructuredOutputError(ValueError):
@@ -119,6 +219,48 @@ def _normalize_input_messages(
     return []
 
 
+def _response_item_to_dict(item: Any) -> dict[str, Any]:
+    """
+
+    Lossless-преобразование output item Responses API в dict.
+
+    Критически важно НЕ фильтровать reasoning/function_call/message.
+
+    Например reasoning-модель может вернуть:
+
+        reasoning
+
+        message
+
+        function_call
+
+    Все эти элементы должны попасть в следующий input Responses API.
+
+    Если удалить reasoning, API может вернуть:
+
+        Item 'msg_...' of type 'message' was provided
+
+        without its required 'reasoning' item: 'rs_...'
+
+    """
+
+    if hasattr(item, "model_dump"):
+        return item.model_dump(
+            mode="json",
+            exclude_none=True,
+            exclude_unset=True,
+        )
+
+    if isinstance(item, dict):
+        return dict(item)
+
+    try:
+        return dict(item)
+
+    except (TypeError, ValueError) as exc:
+        raise TypeError(f"Unsupported Responses API output item: {type(item)!r}") from exc
+
+
 @traceable(run_type="parser", name="ParseLLMResponse")
 def parse_llm_response(  # ruff: ignore[complex-structure]
     response: Response,
@@ -153,28 +295,19 @@ def parse_llm_response(  # ruff: ignore[complex-structure]
     for item in getattr(response, "output", None) or []:
         item_type = getattr(item, "type", None)
 
+        item_dict = _response_item_to_dict(item)
+
+        messages.append(item_dict)
+
         if item_type == "message":
-            item_dict = (
-                item.model_dump(
-                    mode="json",
-                    exclude_none=True,
-                    exclude_unset=True,
-                )
-                if hasattr(item, "model_dump")
-                else dict(item)
-            )
-
-            # messages хранит полную историю:
-            # старый input + новый ответ модели.
-            messages.append(item_dict)
-
             for content in getattr(item, "content", None) or []:
-                if getattr(content, "type", None) == "output_text":
-                    text = getattr(content, "text", "")
+                if getattr(content, "type", None) != "output_text":
+                    continue
 
-                    if text:
-                        output_parts.append(text)
+                text = getattr(content, "text", "")
 
+                if text:
+                    output_parts.append(text)
         elif item_type == "function_call":
             raw_arguments = getattr(item, "arguments", "{}") or "{}"
 
@@ -187,15 +320,6 @@ def parse_llm_response(  # ruff: ignore[complex-structure]
                     raw_arguments,
                 )
                 arguments = {}
-
-            function_call_message = {
-                "type": "function_call",
-                "call_id": item.call_id,
-                "name": item.name,
-                "arguments": raw_arguments,
-            }
-
-            messages.append(function_call_message)
 
             tool_calls.append(
                 ToolCallParsed(
@@ -222,7 +346,7 @@ def parse_llm_response(  # ruff: ignore[complex-structure]
 
     output: dict[str, Any] | None = None
 
-    if structured_output:
+    if structured_output and not tool_calls:
         if not output_buffer:
             raise StructuredOutputError(
                 "Structured output was requested, but the model returned no output_text"

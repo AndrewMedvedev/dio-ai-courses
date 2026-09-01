@@ -1,3 +1,6 @@
+# ruff: file-ignore[line-too-long]
+
+
 from typing import Any
 
 import json
@@ -9,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService
 from src.shared.domain.exceptions import NotFoundError
+from src.shared.infra.services import SrvBaseClient
 
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
@@ -23,8 +27,10 @@ class TesterAgent:
         session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
+        client: SrvBaseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
+        self._client = client
         self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
@@ -52,6 +58,7 @@ class TesterAgent:
                 "content": f"Практика студента:\n{json.dumps(practices, ensure_ascii=False, indent=2)}",
             })
         agent = LLMTextService(
+            client=self._client,
             system_prompt=config.get("system_prompt", ""),
         )
         response_format: AnyKnowledgeTest = config.get("response_format")  # pyright: ignore[reportAssignmentType]
@@ -77,6 +84,7 @@ class TesterAgent:
         """Оставляет точку расширения для будущей проверки практических заданий."""
 
         agent = LLMTextService(
+            client=self._client,
             system_prompt=TEST_CHECKER_PROMPT,
         )
         result = await agent.invoke(

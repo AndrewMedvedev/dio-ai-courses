@@ -5,7 +5,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from src.core.infrastructure import Base
+from src.core.database import Base
 import src.iam.infra.database.models
 import src.llm_router.infra.models
 import src.courses.infra.models

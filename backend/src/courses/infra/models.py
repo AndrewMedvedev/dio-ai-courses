@@ -18,7 +18,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ...core.infrastructure import Base
+from src.core.database import Base
+
 from ..domain.entities import (
     AnyContentBlock,
 )
@@ -50,7 +51,7 @@ class CourseOrm(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    users: Mapped[list[StudentOrm]] = relationship(back_populates="course")
+    students: Mapped[list[StudentOrm]] = relationship(back_populates="course")
 
 
 class ModuleOrm(Base):
@@ -134,7 +135,7 @@ class StudentOrm(Base):
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))
     user_id: Mapped[UUID]
 
-    course: Mapped[CourseOrm] = relationship(back_populates="users")
+    course: Mapped[CourseOrm] = relationship(back_populates="students")
 
     __table_args__ = (
         UniqueConstraint("course_id", "user_id", name="uq_student"),

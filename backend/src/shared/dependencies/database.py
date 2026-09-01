@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.infrastructure import get_db
+from src.core.database import get_db
 from src.shared.application.transaction import Transaction
 
 from .events import EventPublisherDep

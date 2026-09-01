@@ -1,10 +1,12 @@
+from typing import Any
+
 from uuid import UUID
 
 from sqlalchemy import ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.infrastructure import Base
+from src.core.database import Base
 from src.shared.infra.database.types import (
     DatatimeTz,
     DatetimeNull,
@@ -26,7 +28,31 @@ class UserOrm(Base):
 
     memberships: Mapped[list["MembershipOrm"]] = relationship(back_populates="user")
 
-    __table_args__ = (Index("ix_users_is_active", "is_active"),)
+    __table_args__ = (
+        Index("ix_users_is_active", "is_active"),
+    )
+
+
+class ServiceAccountOrm(Base):
+    __tablename__ = "service_accounts"
+
+    name: Mapped[str]
+    description: Mapped[TextNull]
+
+    client_id: Mapped[StrUnique]
+    client_secret_hash: Mapped[str]
+
+    organization_id: Mapped[UUID]
+    roles: Mapped[list[UUID]] = mapped_column(JSONB)
+    is_active: Mapped[bool]
+
+    __table_args__ = (
+        Index(
+            "ix_service_accounts_organization_active",
+            "organization_id",
+            "is_active",
+        ),
+    )
 
 
 class MembershipOrm(Base):
@@ -39,6 +65,11 @@ class MembershipOrm(Base):
     is_active: Mapped[bool]
 
     user: Mapped["UserOrm"] = relationship(back_populates="memberships")
+
+    __table_args__ = (
+        Index("ix_memberships_organization_id", "organization_id"),
+        UniqueConstraint("user_id", "organization_id", name="uq_memberships_user_organization"),
+    )
 
 
 class PermissionOrm(Base):
@@ -62,16 +93,18 @@ class RoleOrm(Base):
     code: Mapped[StrUnique]
     description: Mapped[TextNull]
 
-    permissions: Mapped[list[dict[str, str]]] = mapped_column(JSONB)
-
+    permissions: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     is_default: Mapped[bool]
+
+    author_id: Mapped[UUID | None] = mapped_column(nullable=True)
+    organization_id: Mapped[UUID | None] = mapped_column(nullable=True)
 
 
 class InvitationOrm(Base):
     __tablename__ = "invitations"
 
     email: Mapped[str]
-    token: Mapped[str]
+    token: Mapped[StrUnique]
     invited_by: Mapped[UUID]
 
     granted_roles: Mapped[list[UUID]] = mapped_column(JSONB)
@@ -80,3 +113,7 @@ class InvitationOrm(Base):
 
     used_at: Mapped[DatetimeNull]
     is_used: Mapped[bool]
+
+    __table_args__ = (
+        Index("ix_invitations_organization_used", "organization_id", "is_used"),
+    )

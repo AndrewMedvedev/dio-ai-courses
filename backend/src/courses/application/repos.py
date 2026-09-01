@@ -39,6 +39,7 @@ from ..domain.entities import (
     Module,
     ModuleBasicInfo,
     Practice,
+    Student,
 )
 
 
@@ -127,6 +128,12 @@ class CourseRepository(BasicInfoProtocol[Course, CourseBasicInfo]):
         """Выбирает краткие данные модулей, входящих в указанный курс."""
         ...
 
+    async def find_student_courses(
+        self,
+        user_id: UUID,
+        pagination: Pagination,
+    ) -> Page[Course]: ...
+
 
 class DocumentRepository(Repository[Document]):
     """
@@ -211,3 +218,7 @@ class PracticeRepository(Repository[Practice]):
     async def read_by_module(self, user_id: UUID, module_id: UUID) -> list[dict[str, Any]]:
         """Получает практики пользователя внутри модуля без служебных полей."""
         ...
+
+
+class StudentRepository(Repository[Student]):
+    async def read(self, user_id: UUID, course_id: UUID) -> Student | None: ...

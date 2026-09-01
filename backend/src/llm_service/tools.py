@@ -8,12 +8,12 @@ import copy
 import inspect
 from collections.abc import Callable
 
-from openai.lib._pydantic import to_strict_json_schema  # ruff:ignore[import-private-name]
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 from .dataclasses import ParamGroup, StructuredTool
+from .strict_schema import to_strict_json_schema
 
 
 class InjectedToolArg:
@@ -120,6 +120,7 @@ def tool(
     description: str | None = None,
 ) -> Callable[[Callable], StructuredTool]:
     """Выполняет действие `tool`, чтобы поддержать основной сценарий модуля."""
+
     def decorator(func: Callable) -> StructuredTool:
         """Выполняет действие `decorator`, чтобы поддержать основной сценарий модуля."""
         tool_name = name or (func.__name__)

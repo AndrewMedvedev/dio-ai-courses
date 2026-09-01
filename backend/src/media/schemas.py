@@ -18,6 +18,8 @@ class PresignedUploadRequest(BaseModel):
     """Запрос для загрузки файла"""
 
     filename: str = Field(..., min_length=1, max_length=255, description="Имя файла")
+    folder: str = Field(..., min_length=1, max_length=255, description="Имя папки")
+
     content_type: str = Field(
         ...,
         pattern=r"^[\w\-]+/[\w\-\.]+$",

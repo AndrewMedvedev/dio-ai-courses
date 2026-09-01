@@ -10,8 +10,10 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from qdrant_client import models
 
-from src.core.infrastructure import checkpointer, qdrant_client, thread_executor
 from src.core.logging import configure_logging
+from src.core.others import thread_executor
+from src.core.qdrant import qdrant_client
+from src.core.redis import checkpointer
 from src.core.settings import settings
 from src.courses.api.v1 import router as courses_router
 from src.iam.api.v1 import router as iam_router

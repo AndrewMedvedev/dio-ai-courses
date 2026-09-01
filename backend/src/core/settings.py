@@ -203,8 +203,7 @@ class Settings(BaseSettings):
     base_llm_router_url: str = "http://localhost:8000/api/v1/"
     attachments_url: str = "http://localhost:8000/api/v1/attachments/"
     chromium_ws_endpoint: str = "ws://localhost:3000/playwright/chromium"
-    text_ai_model: str = "gemini-3.1-flash-lite"
-    # text_ai_model: str = "gpt-4.1-nano"
+    text_ai_model: str = "gemini-2.5-flash-lite"
     image_ai_model: str = "gpt-image-2"
     app: AppSettings = AppSettings()
     postgres: PostgresSettings = PostgresSettings()

@@ -2,7 +2,7 @@ from typing import Protocol
 
 from uuid import UUID
 
-from src.shared.schemas import Page, Pagination
+from src.shared.application.dtos import Page, Pagination
 
 from .dtos import ActivityLogFilters
 from .models import ActivityLog

@@ -1,5 +1,6 @@
 # ruff: file-ignore[no-self-use, unused-method-argument]
 # pyright: reportOptionalSubscript=false, reportArgumentType=false, reportGeneralTypeIssues=false, reportOptionalIterable=false
+import asyncio
 from typing import Any, Literal
 
 import logging
@@ -8,11 +9,10 @@ from asyncio import Semaphore, gather
 from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
 
-from aiohttp import ClientTimeout
 from pydantic import BaseModel
 
-from ..core.settings import settings
-from ..shared.infra.http_client import HttpClient, HttpConfig, Request
+from src.shared.infra.services import SrvBaseClient
+
 from .dataclasses import StructuredTool
 from .middleware import BaseAgentMiddleware
 from .schemas import (
@@ -69,28 +69,23 @@ def execute_each_invoke[ResponseT: BaseModel](
     return wrapper
 
 
-class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC, HttpClient):
+class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
     response_model: type[ResponseT]
 
     def __init__(
         self,
+        client: SrvBaseClient,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        super().__init__(
-            config=HttpConfig(
-                base_url=settings.base_llm_router_url, timeout=ClientTimeout(10 * 60)
-            )
-        )
+        self._client = client
         self.middlewares = middlewares if middlewares is not None else []
         self.runtime = runtime
 
     async def _send_request(self, request: RequestT, path: str) -> ResponseT:
-        result = await self.post(
-            path=path,
-            request=Request(json=request.model_dump(exclude_none=True)),
-        )
-        return self.response_model.model_validate(result)
+        async with self._client._get_token_session() as session:
+            response = await session.post(url=path, json=request.model_dump(exclude_none=True))
+            return self.response_model.model_validate(await response.json())
 
     @abstractmethod
     async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
@@ -104,6 +99,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
 
     def __init__(
         self,
+        client: SrvBaseClient,
         model: str | None = None,
         system_prompt: str | None = None,
         tools: dict[str, StructuredTool] | None = None,
@@ -113,7 +109,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         runtime: Runtime | None = None,
         maximum_number_of_parallel_executions: int = 4,
     ) -> None:
-        super().__init__(runtime=runtime, middlewares=middlewares)
+        super().__init__(client=client, runtime=runtime, middlewares=middlewares)
         self.model = model
         self.system_prompt = system_prompt
         self.tools = tools
@@ -127,6 +123,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
+        await asyncio.sleep(15)
         return await self._run_loop(messages=messages, schema=schema)
 
     @execute_each_invoke
@@ -147,9 +144,13 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
             self.runtime.messages = list(messages)
         if schema is not None:
             request.format_schema(schema)
+        # return await self._send_request(
+        #     request=request,
+        #     path=f"/api/v1/responses/text{f'?model={self.model}' if self.model is not None else ''}",
+        # )
         return await self._send_request(
             request=request,
-            path=f"responses/text{f'?model={self.model}' if self.model is not None else ''}",
+            path="/api/v1/responses/text?model=gpt-5.4-mini",
         )
 
     def _build_tool_call_handler(self) -> Callable[[ToolCallParsed], Awaitable[dict]]:
@@ -216,11 +217,12 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
 
     def __init__(
         self,
+        client: SrvBaseClient,
         model: str | None = None,
         middlewares: Sequence[BaseAgentMiddleware] | None = None,
         runtime: Runtime | None = None,
     ) -> None:
-        super().__init__(runtime=runtime, middlewares=middlewares)
+        super().__init__(client=client, runtime=runtime, middlewares=middlewares)
         self.model = model
 
     @execute_once_per_loop
@@ -237,10 +239,10 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
         messages: str,
         images: list[str] | None = None,
     ) -> LLMImageResponse:
-        request = LLMImageRequest(image=images, prompt=messages)
+        request = LLMImageRequest(image=images, prompt=str(messages))
         if self.runtime is not None:
             self.runtime.messages = messages
         return await self._send_request(
             request=request,
-            path=f"responses/image{f'?model={self.model}' if self.model is not None else ''}",
+            path=f"/api/v1/responses/image{f'?model={self.model}' if self.model is not None else ''}",
         )

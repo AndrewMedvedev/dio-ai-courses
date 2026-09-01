@@ -1,3 +1,5 @@
+# ruff: file-ignore[line-too-long]
+
 from typing import Any
 
 import base64
@@ -10,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService
 from src.shared.domain.exceptions import NotFoundError
+from src.shared.infra.services import SrvBaseClient
 
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import FileUploadAssignment, Practice
@@ -25,8 +28,10 @@ class PracticerAgent:
         session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
+        client: SrvBaseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
+        self._client = client
         self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
@@ -37,7 +42,7 @@ class PracticerAgent:
         module_id: UUID,
         lesson_id: UUID,
     ) -> dict[str, Any]:
-        """Создает практическое задание для студента на основе теории урока и его предыдущих практик."""  # ruff: ignore[line-too-long]
+        """Создает практическое задание для студента на основе теории урока и его предыдущих практик."""
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:
             raise NotFoundError(message="Урок не найден")
@@ -52,6 +57,7 @@ class PracticerAgent:
                 "content": f"Практики студента\n{json.dumps(practices, ensure_ascii=False, indent=2)}",
             })
         agent = LLMTextService(
+            client=self._client,
             system_prompt=FILE_UPLOAD_PROMPT,
         )
         result = await agent.invoke(messages=messages, schema=FileUploadAssignment)
@@ -76,6 +82,7 @@ class PracticerAgent:
         """Оставляет точку расширения для будущей проверки практических заданий."""
         file_str = base64.b64encode(file).decode("utf-8")
         agent = LLMTextService(
+            client=self._client,
             system_prompt=PRACTICE_FILE_CHECKER_PROMPT,
         )
         result = await agent.invoke(

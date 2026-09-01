@@ -18,14 +18,9 @@ def apply_permission_query_param_filters(
     filters: PermissionQueryParamFilters,
 ) -> Select[tuple[PermissionOrm]]:
 
-    def _filter_resource(value: str):
-        return model.resource == value
-
-    def _filter_action(value: str):
-        return model.action == value
-
-    def _filter_scopes(value: list[str]):
-        return model.scopes.op("?|")(value) if value else None
+    def _filter_resource(value: str): return model.resource == value
+    def _filter_action(value: str): return model.action == value
+    def _filter_scopes(value: list[str]): return model.scopes.op("?|")(value) if value else None
 
     filters_map = {
         "resource": _filter_resource,
@@ -68,9 +63,7 @@ class SqlPermissionRepository:
         await self._session.execute(upsert_stmt)
 
     async def find(
-        self,
-        pagination: Pagination,
-        filters: PermissionQueryParamFilters | None = None,
+            self, pagination: Pagination, filters: PermissionQueryParamFilters | None = None,
     ) -> Page[Permission]:
 
         stmt = select(self.model)

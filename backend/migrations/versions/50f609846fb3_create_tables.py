@@ -1,18 +1,18 @@
 """create tables
 
-Revision ID: ac183b303d7f
+Revision ID: 50f609846fb3
 Revises:
-Create Date: 2026-08-29 16:50:45.277497
+Create Date: 2026-08-31 00:04:33.666024
 
 """
 from typing import Sequence, Union
-from src.courses.infra.types import ContentBlockListType
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-
+from src.courses.infra.types import ContentBlockListType
 # revision identifiers, used by Alembic.
-revision: str = 'ac183b303d7f'
+revision: str = '50f609846fb3'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -105,8 +105,10 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('token')
     )
+    op.create_index('ix_invitations_organization_used', 'invitations', ['organization_id', 'is_used'], unique=False)
     op.create_table('organizations',
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
@@ -150,6 +152,8 @@ def upgrade() -> None:
     sa.Column('description', sa.TEXT(), nullable=True),
     sa.Column('permissions', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('is_default', sa.Boolean(), nullable=False),
+    sa.Column('author_id', sa.Uuid(), nullable=True),
+    sa.Column('organization_id', sa.Uuid(), nullable=True),
     sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -157,6 +161,22 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('code')
     )
+    op.create_table('service_accounts',
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('description', sa.TEXT(), nullable=True),
+    sa.Column('client_id', sa.String(), nullable=False),
+    sa.Column('client_secret_hash', sa.String(), nullable=False),
+    sa.Column('organization_id', sa.Uuid(), nullable=False),
+    sa.Column('roles', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('id', sa.Uuid(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('client_id')
+    )
+    op.create_index('ix_service_accounts_organization_active', 'service_accounts', ['organization_id', 'is_active'], unique=False)
     op.create_table('users',
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('username', sa.String(), nullable=True),
@@ -184,8 +204,10 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'organization_id', name='uq_memberships_user_organization')
     )
+    op.create_index('ix_memberships_organization_id', 'memberships', ['organization_id'], unique=False)
     op.create_table('modules',
     sa.Column('course_id', sa.Uuid(), nullable=True),
     sa.Column('title', sa.String(), nullable=False),
@@ -256,13 +278,17 @@ def downgrade() -> None:
     op.drop_table('students')
     op.drop_index('ix_modules_course_id', table_name='modules')
     op.drop_table('modules')
+    op.drop_index('ix_memberships_organization_id', table_name='memberships')
     op.drop_table('memberships')
     op.drop_index('ix_users_is_active', table_name='users')
     op.drop_table('users')
+    op.drop_index('ix_service_accounts_organization_active', table_name='service_accounts')
+    op.drop_table('service_accounts')
     op.drop_table('roles')
     op.drop_table('practices')
     op.drop_table('permissions')
     op.drop_table('organizations')
+    op.drop_index('ix_invitations_organization_used', table_name='invitations')
     op.drop_table('invitations')
     op.drop_index(op.f('ix_documents_title'), table_name='documents')
     op.drop_index(op.f('ix_documents_parent_node_id'), table_name='documents')

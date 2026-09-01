@@ -202,8 +202,8 @@ IAM предоставляет универсальный механизм:
 authorization, не меняя Identity, JWT и базовые permission checks.
 """
 
+from .authorization import authorize, can, has_permission
 from .registry import get_permission_policies, register_policy
-from .services import authorize, can, has_permission
 
 __all__ = [
     "authorize",

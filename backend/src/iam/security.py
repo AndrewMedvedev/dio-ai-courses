@@ -3,6 +3,7 @@ from typing import Any
 import asyncio
 import logging
 import os
+import secrets
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from uuid import UUID, uuid4
@@ -13,6 +14,7 @@ from passlib.context import CryptContext
 
 from src.core.settings import settings
 from src.iam.application.dtos import IdentityType
+from src.iam.consts import CLIENT_ID_BYTES_LENGTH, CLIENT_SECRET_BYTES_LENGTH
 from src.iam.domain.exceptions import UnauthorizedError, WeakPasswordError
 from src.iam.domain.vo import Email
 from src.shared.utils.time import current_datetime
@@ -102,12 +104,14 @@ def create_authentication_token(user_id: UUID) -> str:
 
 
 def create_access_token(
-    user_id: UUID,
-    email: Email,
-    membership_id: UUID,
+    *,
+    identity_id: UUID,
+    identity_type: IdentityType,
     organization_id: UUID,
     roles: set[str],
     permissions: set[str],
+    email: Email | None = None,
+    membership_id: UUID | None = None,
 ) -> str:
 
     now = current_datetime()
@@ -115,19 +119,24 @@ def create_access_token(
 
     payload = {
         # Базовые поля
-        "sub": str(user_id),
+        "sub": str(identity_id),
         "exp": expires_at.timestamp(),
         "iat": now.timestamp(),
         "typ": "access",
         "jti": str(uuid4()),
         # Кастомные поля
-        "idt": IdentityType.USER.value,
-        "mid": str(membership_id),
+        "idt": identity_type.value,
         "org_id": str(organization_id),
-        "email": str(email),
         "roles": list(roles),
         "perms": list(permissions),
     }
+
+    # Специфичные для пользователя поля
+    if email is not None:
+        payload["email"] = email.value
+
+    if membership_id is not None:
+        payload["mid"] = str(membership_id)
 
     return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
 
@@ -192,3 +201,15 @@ def validate_password_strength(
         )
 
         raise WeakPasswordError("Password is too weak.", suggestions=suggestions, warning=warning)
+
+
+def generate_client_id() -> str:
+    """Генерирует публичный идентификатор сервисного аккаунта."""
+
+    return secrets.token_urlsafe(CLIENT_ID_BYTES_LENGTH)
+
+
+def generate_client_secret() -> str:
+    """Генерирует криптографически стойкий client secret."""
+
+    return secrets.token_urlsafe(CLIENT_SECRET_BYTES_LENGTH)

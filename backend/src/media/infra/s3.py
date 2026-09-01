@@ -2,6 +2,7 @@ from typing import Any, BinaryIO
 
 from contextlib import asynccontextmanager
 
+from aiobotocore.config import AioConfig
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 
@@ -24,6 +25,10 @@ class S3Storage(Storage):
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
             "endpoint_url": endpoint_url,
+            "config": AioConfig(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            ),
         }
         self.bucket_name = bucket_name
         self.session = get_session()

@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from src.iam.domain.entities import Invitation, Membership, Permission, Role, User
+from src.iam.domain.entities import Invitation, Membership, Permission, Role, ServiceAccount, User
 from src.iam.domain.vo import Email
 from src.shared.application.dtos import Page, Pagination
-from src.shared.domain.repos import Repository
+from src.shared.application.repos import Repository
 
 from .dtos import PermissionQueryParamFilters
 
@@ -11,6 +11,11 @@ from .dtos import PermissionQueryParamFilters
 class UserRepository(Repository[User]):
 
     async def get_by_email(self, email: Email) -> User | None: ...
+
+
+class ServiceAccountRepository(Repository[ServiceAccount]):
+
+    async def get_by_client_id(self, client_id: str) -> ServiceAccount | None: ...
 
 
 class MembershipRepository(Repository[Membership]):

@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..core.infrastructure import session_factory
+from ..core.database import session_factory
 
 # Импорты доменных классов (убедитесь, что пути соответствуют вашей структуре)
 from ..courses.domain.entities import (
@@ -256,7 +256,7 @@ async def main():
     """Запускает сценарий модуля и связывает подготовку данных с основным действием."""
     async with session_factory() as session:
         # Укажите реальный UUID создателя (можно взять из JSON или передать)
-        creator_id = UUID("87c91906-21bb-45e5-bba8-875f77d9dec9")
+        creator_id = UUID("75a830b9-0781-4b70-bd86-f8777001b6ca")
         loaded_courses: list[Course] = []
 
         for course_file in COURSE_JSON_FILES:

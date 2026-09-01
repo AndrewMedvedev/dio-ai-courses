@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService, Runtime
+from src.shared.infra.services import SrvBaseClient
 
 from ...application.repos import ChatRepository
 from ..middlewares import (
@@ -29,13 +30,15 @@ logger = logging.getLogger(__name__)
 
 
 class InterviewerAgent:
-    def __init__(self, repo: ChatRepository, session: AsyncSession):
+    def __init__(self, repo: ChatRepository, session: AsyncSession, client: SrvBaseClient):
+        self._client = client
         self._repo = repo
         self._session = session
 
     async def call_agent(self, chat_id: UUID, context: Context) -> str:
         """Выполняет действие `interviewer`, чтобы поддержать основной сценарий модуля."""
         agent = LLMTextService(
+            client=self._client,
             system_prompt=INTERVIEWER_PROMPT,
             tools={
                 "complete_interview": complete_interview,

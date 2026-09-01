@@ -2,6 +2,7 @@ from .entities import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
+    # ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
@@ -13,6 +14,7 @@ from .vo import ExtendedContentType
 
 _BLOCK_REGISTRY: dict[str, type[AnyContentBlock]] = {
     ExtendedContentType.TEXT: TextBlock,
+    # ExtendedContentType.IMAGE: ImageBlock,
     ExtendedContentType.VIDEO: VideoBlock,
     ExtendedContentType.PROGRAM_CODE: CodeBlock,
     ExtendedContentType.QUIZ: QuizBlock,
@@ -21,4 +23,3 @@ _BLOCK_REGISTRY: dict[str, type[AnyContentBlock]] = {
     ExtendedContentType.CHEMICAL_FORMULA: ChemicalBlock,
     ExtendedContentType.MUSICAL_NOTATION: MusicalBlock,
 }
-

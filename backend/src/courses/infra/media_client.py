@@ -2,32 +2,27 @@ from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout
 
-from src.core.settings import settings
 from src.media.schemas import ConfirmUploadRequest, PresignedUploadRequest
-from src.shared.domain.constants import HttpStatus
 from src.shared.domain.exceptions import BadRequestError
-from src.shared.infra.http_client import HttpClient, HttpConfig, Request
+from src.shared.infra.services import SrvBaseClient
 
 
-class MediaClient(HttpClient):
-    def __init__(self) -> None:
+class MediaClient:
+    def __init__(self, client: SrvBaseClient) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
-        super().__init__(
-            config=HttpConfig(
-                base_url=settings.attachments_url,
-                timeout=ClientTimeout(60),
-            )
-        )
+        self._client = client
 
     async def get_presigned_upload_url(
         self,
         schema: PresignedUploadRequest,
     ) -> dict[str, Any]:
         """Получает presigned upload url, чтобы вызывающий код работал через единый интерфейс."""
-        return await self.post(
-            path="presigned-upload",
-            request=Request(json=schema.model_dump(mode="json", exclude_none=True)),
-        )
+        async with self._client._get_token_session() as session:
+            result = await session.post(
+                url="/api/v1/attachments/presigned-upload",
+                json=schema.model_dump(mode="json", exclude_none=True),
+            )
+            return await result.json()
 
     @staticmethod
     async def upload_file(
@@ -47,7 +42,7 @@ class MediaClient(HttpClient):
                 },
             ) as response,
         ):
-            if HttpStatus.OK <= response.status < HttpStatus.MULTIPLE_CHOICES:
+            if 200 <= response.status < 300:
                 return
 
             body = await response.text()
@@ -57,12 +52,14 @@ class MediaClient(HttpClient):
     async def confirm_upload(
         self,
         schema: ConfirmUploadRequest,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Подтверждает upload, чтобы завершить ранее начатую операцию."""
-        return await self.post(
-            path="confirm-upload",
-            request=Request(json=schema.model_dump(mode="json", exclude_none=True)),
-        )
+        async with self._client._get_token_session() as session:
+            result = await session.post(
+                url="/api/v1/attachments/confirm-upload",
+                json=schema.model_dump(mode="json", exclude_none=True),
+            )
+        return await result.json()
 
     async def save_image(
         self,
@@ -85,4 +82,4 @@ class MediaClient(HttpClient):
                 original_filename=request.filename,
             ),
         )
-        return uploaded_file["id"]
+        return f"{uploaded_file["owner_id"]}/{uploaded_file["id"]}"

@@ -10,7 +10,8 @@ from src.iam.application.dtos import (
     TokensResponse,
     UserCredentials,
 )
-from src.iam.dependencies import AuthServiceDep, CurrentIdentity
+from src.iam.dependencies import CurrentIdentity
+from src.iam.dependencies.services import AuthServiceDep
 
 router = APIRouter(prefix="/auth", tags=["Аутентификация | Auth"])
 
@@ -42,8 +43,8 @@ async def get_token(request: TokenRequest, service: AuthServiceDep) -> TokensRes
     summary="Обновить пару токенов",
 )
 async def refresh_tokens(
-    refresh_token: Annotated[str, Body(description="Refresh токен (долгоживущий)")],
-    service: AuthServiceDep,
+        refresh_token: Annotated[str, Body(description="Refresh токен (долгоживущий)")],
+        service: AuthServiceDep,
 ) -> TokensResponse:
     return await service.refresh_tokens(refresh_token)
 
@@ -53,7 +54,7 @@ async def refresh_tokens(
     status_code=status.HTTP_200_OK,
     summary="Выйти из аккаунта",
 )
-async def logout(request: LogoutRequest, service: AuthServiceDep) -> None:
+async def logout(request: LogoutRequest, service: AuthServiceDep) -> TokensResponse:
     return await service.logout(request)
 
 
@@ -61,7 +62,7 @@ async def logout(request: LogoutRequest, service: AuthServiceDep) -> None:
     path="/identity",
     status_code=status.HTTP_200_OK,
     response_model=IdentityResponse,
-    summary="Получить текущий авторизованный субъект",
+    summary="Получить текущий авторизованный субъект"
 )
 async def get_current_identity(identity: CurrentIdentity) -> IdentityResponse:
     return IdentityResponse.model_validate(identity)

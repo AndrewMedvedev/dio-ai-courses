@@ -3,7 +3,7 @@ from typing import Any
 from dramatiq import actor
 from langchain_core.runnables import RunnableConfig
 
-from src.core.infrastructure import session_factory
+from src.core.database import session_factory
 
 from ..schemas import RuntimeContext
 from .helper import invoke_or_resume

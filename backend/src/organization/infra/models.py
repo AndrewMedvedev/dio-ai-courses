@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.infrastructure import Base
+from src.core.database import Base
 
 
 class OrganizationOrm(Base):

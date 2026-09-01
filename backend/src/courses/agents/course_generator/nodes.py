@@ -11,14 +11,15 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime as GraphRuntime
 from sqlalchemy.exc import IntegrityError
 
-from src.core.infrastructure import session_factory
+from src.core.database import session_factory
 from src.llm_service import LLMTextService, Runtime
 
-from ...application.domain_dtos import CourseDict, ModuleDict
+from ...application.domain_dtos import CourseDict, CourseStructureDict, ModuleDict
 from ...application.mappers import course_to_dict, dict_to_course
 from ...domain.entities import Course
 from ...domain.vo import CourseStatus
 from ...infra.database.repos.course import SqlCourseRepository
+from ...infra.services import course_client
 from ..schemas import Context, RuntimeContext
 from .helper import invoke_or_resume
 from .serializer import checkpointer
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 class AgentState(TypedDict):
     generation_context: Context  # Контекстная информация курса
     thinks: NotRequired[str]  # Мысли - план reasoning агента
-    course_structure: NotRequired[CourseStructure]  # Сгенерированная структура курса
+    course_structure: NotRequired[CourseStructureDict]  # Сгенерированная структура курса
     course: NotRequired[CourseDict]  # Готовый курс
 
 
@@ -46,6 +47,7 @@ async def reasoning(state: AgentState) -> dict[str, str]:
     agent = reasoner_agent(
         runtime=Runtime(
             context=state["generation_context"],
+            state=course_client,
         )
     )
     result = await agent.invoke(
@@ -62,6 +64,7 @@ async def plan_course_structure(state: AgentState) -> dict:
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
 
     agent = LLMTextService(
+        client=course_client,
         system_prompt=PLANNER_PROMPT,
     )
     result = await agent.invoke(
@@ -80,7 +83,10 @@ async def plan_course_structure(state: AgentState) -> dict:
         tags=course_structure.tags,
     )
     logger.info("Added `title`, `description` and `learning_objectives` in course")
-    return {"course_structure": course_structure, "course": course_to_dict(course)}
+    return {
+        "course_structure": course_structure.model_dump_json(),
+        "course": course_to_dict(course),
+    }
 
 
 async def save_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
@@ -131,7 +137,7 @@ async def generate_modules(state: AgentState) -> dict[str, CourseDict]:
     course_structure, course = state["course_structure"], state["course"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     start_time = time.monotonic()
-    total_modules = len(course_structure.module_descriptions)
+    total_modules = len(course_structure["module_descriptions"])
     logger.info("Start generate %s modules ...", total_modules)
 
     # Создаём задачу для каждого модуля
@@ -144,11 +150,11 @@ async def generate_modules(state: AgentState) -> dict[str, CourseDict]:
                     generation_context=state["generation_context"],
                     order=order,
                     module_description=desc,
-                    audience_description=course_structure.audience_description,
-                    learning_objectives=course_structure.learning_objectives,
+                    audience_description=course_structure["audience_description"],
+                    learning_objectives=course_structure["learning_objectives"],
                 )
             )
-            for order, desc in enumerate(course_structure.module_descriptions, start=1)
+            for order, desc in enumerate(course_structure["module_descriptions"], start=1)
         ]
 
     # Собираем результаты в правильном порядке

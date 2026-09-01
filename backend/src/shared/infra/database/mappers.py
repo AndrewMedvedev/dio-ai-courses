@@ -1,6 +1,6 @@
 import abc
 
-from src.core.infrastructure import Base
+from src.core.database import Base
 from src.shared.domain.entities import Entity
 
 

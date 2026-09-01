@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from datetime import datetime
 from uuid import UUID
@@ -121,3 +121,65 @@ class CourseDict(TypedDict):
     image_url: str | None
     learning_objectives: list[str]
     modules: list[ModuleDict]
+
+
+ContentTypeValue = Literal[
+    "text",
+    "program_code",
+    "mermaid",
+    "quiz",
+    "math_formula",
+    "chemical_formula",
+    "musical_notation",
+    "image",
+]
+
+DifficultyLevelValue = Literal[
+    "beginner",
+    "intermediate",
+    "advanced",
+    "expert",
+]
+
+
+class ContentSpecificationDict(TypedDict):
+    content_type: ContentTypeValue
+    prompt: str
+
+
+class LessonStructureDict(TypedDict):
+    title: str
+
+    description: str
+
+    learning_objectives: list[str]
+
+    content_plan: list[ContentSpecificationDict]
+
+    estimated_time_minutes: int
+
+
+class ModuleStructureDict(TypedDict):
+    title: str
+
+    description: str
+
+    learning_objectives: list[str]
+
+    lessons_descriptions: list[str]
+
+
+class CourseStructureDict(TypedDict):
+    title: str
+
+    description: str
+
+    difficulty: DifficultyLevelValue
+
+    tags: list[str]
+
+    audience_description: str
+
+    learning_objectives: list[str]
+
+    module_descriptions: list[str]

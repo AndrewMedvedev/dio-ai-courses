@@ -6,6 +6,7 @@ from uuid import UUID
 from src.core.settings import settings
 from src.iam.application.builders import build_login_response
 from src.iam.application.dtos import (
+    IdentityType,
     LoginResponse,
     LogoutRequest,
     TokenRequest,
@@ -66,9 +67,9 @@ def create_tokens_for_user(
     """Выпуск пары токенов для пользователя."""
 
     permissions = {grant.permission for role in roles for grant in role.permissions}
-
     access_token = create_access_token(
-        user_id=user.id,
+        identity_id=user.id,
+        identity_type=IdentityType.USER,
         email=user.email,
         membership_id=membership.id,
         organization_id=membership.organization_id,

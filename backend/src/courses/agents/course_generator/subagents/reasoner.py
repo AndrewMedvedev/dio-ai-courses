@@ -1,9 +1,9 @@
 import logging
 
-from aiohttp import ClientSession
 from pydantic import BaseModel, Field
 
 from src.llm_service import LLMTextService, Runtime, tool
+from src.shared.infra.services import SrvBaseClient
 
 from ...middlewares import LemmatizationMiddleware, ToolCallLimitMiddleware
 from ...schemas import Context
@@ -14,11 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 @tool(name="call_critique_agent", description="Вызвать агента критика")
-async def call_critique_agent(runtime: Runtime[Context, ClientSession]) -> dict:
+async def call_critique_agent(runtime: Runtime[Context, SrvBaseClient]) -> dict:
     """Вызывает critique agent, чтобы вынести отдельный шаг обработки в специализированный сервис."""
     logger.info("Call critique agent")
     prompt = runtime.context.prompt
     critic_agent = LLMTextService(
+        client=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=CRITIC_PROMPT.format(prompt=prompt),
     )
     result = await critic_agent.invoke(messages=runtime.messages)
@@ -33,12 +34,13 @@ class ResearchInput(BaseModel):
 
 @tool(name="call_researcher_agent", description="Вызвать агента исследователя")
 async def call_researcher_agent(
-    runtime: Runtime[Context, ClientSession],
+    runtime: Runtime[Context, SrvBaseClient],
     schema: ResearchInput,
 ) -> dict:
     """Вызывает researcher agent, чтобы вынести отдельный шаг обработки в специализированный сервис."""  # ruff: ignore[line-too-long]
     logger.info("Call researcher agent")
     researcher_agent = LLMTextService(
+        client=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=RESEARCHER_PROMPT,
         tools={
             "knowledge_search": knowledge_search,
@@ -58,10 +60,11 @@ async def call_researcher_agent(
     return {"role": "assistant", "content": result.raw_text}
 
 
-def reasoner_agent(runtime: Runtime[Context, ClientSession]) -> LLMTextService:
+def reasoner_agent(runtime: Runtime[Context, SrvBaseClient]) -> LLMTextService:
     """Выполняет действие `reasoner_agent`, чтобы поддержать основной сценарий модуля."""
 
     return LLMTextService(
+        client=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=REASONER_PROMPT.format(prompt=runtime.context.prompt),
         tools={
             "call_researcher_agent": call_researcher_agent,

@@ -9,13 +9,17 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
-from src.core.infrastructure import qdrant_client
+from src.core.qdrant import qdrant_client
 from src.llm_service import LLMTextService
 
-from ....application.domain_dtos import LessonDict
-from ....application.mappers import dict_to_lesson, lesson_to_dict
+from ....application.domain_dtos import (
+    LessonDict,
+    LessonStructureDict,
+)
+from ....application.mappers import dict_to_lesson, lesson_to_dict, model_to_typed_dict
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....infra.database.repos.lesson import SqlLessonRepository
+from ....infra.services import course_client
 from ....infra.vector_repo import VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import Context, RuntimeContext
@@ -35,15 +39,16 @@ class AgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер урока
     lesson_description: str  # Описание урока из структуры модуля
-    lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
+    lesson_structure: NotRequired[LessonStructureDict]  # Структура/сценарий урока
     lesson: NotRequired[LessonDict]  # Сгенерированный урок
 
 
 async def plan_lesson_structure(
     state: AgentState,
-) -> dict[str, LessonStructure | LessonDict]:
+) -> dict[str, LessonStructureDict | LessonDict]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
+        client=course_client,
         system_prompt="""\
     Ты опытный методист и разработчик образовательных курсов.
     Твоя задача — спланировать детальную структуру одного урока: разбить материал
@@ -59,7 +64,6 @@ async def plan_lesson_structure(
       от простого к сложному.
 
     """,
-        temperature=0.2,
     )
 
     prompt_template = f"""\
@@ -72,12 +76,7 @@ async def plan_lesson_structure(
         1. Сформируй 4–5 контент-блоков, покрывающих тему урока от введения до закрепления.
         2. Для каждого блока напиши подробный промпт (минимум 4–5 предложений),
            учитывающий уровень аудитории и цели урока.
-        3. Выбери тип каждого блока исходя из содержания (text, program_code, mermaid,
-           quiz, math_formula, chemical_formula, musical_notation, image).
-        4. Блок типа image используй только если визуальная иллюстрация действительно
-           необходима для понимания материала. В одном уроке может быть строго
-           максимум одно изображение (один блок типа image).
-
+        3. Выбери тип каждого блока исходя из содержания (text, program_code, mermaid, quiz, math_formula, chemical_formula, musical_notation).
         """
     logger.info(
         "Planning %s - module structure by description: '%s ...'",
@@ -99,7 +98,10 @@ async def plan_lesson_structure(
         learning_objectives=lesson_structure.learning_objectives,
         order=state["order"],
     )
-    return {"lesson_structure": lesson_structure, "lesson": lesson_to_dict(lesson)}
+    return {
+        "lesson_structure": model_to_typed_dict(lesson_structure),
+        "lesson": lesson_to_dict(lesson),
+    }
 
 
 async def build_content_block(
@@ -130,6 +132,7 @@ async def build_content_block(
         content_type=content_type,
         context=generation_context,
         prompt=prompt_template,
+        client=course_client,
     )
     elapsed_time = time.monotonic() - start_time
     logger.info(
@@ -145,7 +148,11 @@ async def generate_content_blocks(state: AgentState) -> dict[str, LessonDict]:
     используя сгенерированный план
     """
 
-    lesson_structure, lesson = state["lesson_structure"], dict_to_lesson(state["lesson"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    lesson_structure_data = state["lesson_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+
+    lesson = dict_to_lesson(state["lesson"])  # pyright: ignore[reportTypedDictNotRequiredAccess]
+
+    lesson_structure = LessonStructure.model_validate(lesson_structure_data)
     logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))
 
     async with TaskGroup() as tg:

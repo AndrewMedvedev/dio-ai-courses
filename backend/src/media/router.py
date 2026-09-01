@@ -29,6 +29,7 @@ router = APIRouter(prefix="/attachments", tags=["Медиа контент"])
     """,
 )
 async def create_presigned_upload_url(
+    _identity: CurrentIdentity,
     request: PresignedUploadRequest,
     service: AttachmentServiceDep,
 ) -> PresignedUploadResponse:
@@ -58,7 +59,9 @@ async def confirm_upload(
     summary="Получить presigned URL для скачивания",
 )
 async def get_presigned_download_url(
-    attachment_id: UUID, service: AttachmentServiceDep
+    _identity: CurrentIdentity,
+    attachment_id: UUID,
+    service: AttachmentServiceDep,
 ) -> PresignedDownloadResponse:
     """Получает presigned download url, чтобы вызывающий код работал через единый интерфейс."""
     return await service.create_presigned_download_url(attachment_id)
@@ -70,27 +73,13 @@ async def get_presigned_download_url(
     response_model=AttachmentResponse,
     summary="Получение информации и файле",
 )
-async def get_attachment(attachment_id: UUID, repository: AttachmentRepoDep) -> AttachmentResponse:
+async def get_attachment(
+    _identity: CurrentIdentity,
+    attachment_id: UUID,
+    repository: AttachmentRepoDep,
+) -> AttachmentResponse:
     """Получает attachment, чтобы вызывающий код работал через единый интерфейс."""
     attachment = await repository.read(attachment_id)
     if attachment is None:
         raise NotFoundError(f"Attachment with ID {attachment_id} not found")
     return map_attachment_to_response(attachment)
-
-
-"""@router.delete(
-    path="/{attachment_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Удалить файл (Soft-delete)"
-)
-async def delete_attachment(attachment_id: UUID, project_repo: AttachmentRepoDep) -> None:
-    ...
-
-
-@router.get(
-    path="/owner/{owner_type}/{owner_id}",
-    status_code=status.HTTP_200_OK,
-    response_model=...,
-    summary="Получение всех файлов владельца"
-)
-async def get_owner_attachments(owner_type: str, owner_id: UUID) -> ...: ..."""

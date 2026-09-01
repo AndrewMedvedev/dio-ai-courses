@@ -3,7 +3,7 @@ from importlib import import_module
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.infrastructure import session_factory
+from src.core.database import session_factory
 from src.core.settings import settings
 from src.iam.domain.entities import Membership, Permission, Role, User
 from src.iam.domain.permissions.registry import get_permissions
@@ -11,9 +11,9 @@ from src.iam.domain.types import RoleId
 from src.iam.domain.vo import (
     Email,
     FullName,
-    PasswordHash,
     PermissionGrant,
     PermissionScope,
+    SecretHash,
     Username,
 )
 from src.iam.infra.database.repos.membership import SqlMembershipRepository
@@ -33,6 +33,7 @@ SYSTEM_PERMISSION_MODULES = (
     "src.iam.domain.permissions.users",
     "src.organization.domain.permissions.organizations",
     "src.courses.domain.permissions.courses",
+    "src.courses.domain.permissions.theory_session",
     "src.llm_router.domain.permissions.ai_models",
 )
 
@@ -47,7 +48,7 @@ def _build_admin_user(admin_email: Email) -> User:
         email=admin_email,
         username=Username("admin"),
         full_name=FullName("System Admin"),
-        password_hash=PasswordHash(hash_password(settings.admin.password)),
+        password_hash=SecretHash(hash_password(settings.admin.password)),
     )
 
 
@@ -56,7 +57,7 @@ def _build_user(user_email: Email) -> User:
         email=user_email,
         username=Username("user"),
         full_name=FullName("little user"),
-        password_hash=PasswordHash(hash_password("12345")),
+        password_hash=SecretHash(hash_password("12345")),
     )
 
 
@@ -81,7 +82,6 @@ async def _get_or_create_user_role(session: AsyncSession) -> Role:
                 {"scope": "own", "permission": "users.update"},
                 {"scope": "course", "permission": "course.read"},
                 {"scope": "organization", "permission": "course.read"},
-                {"scope": "own", "permission": "organization.organization_read"},
             ]
         },
         is_default=True,

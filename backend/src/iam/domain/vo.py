@@ -2,7 +2,7 @@ from typing import ClassVar
 
 import re
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import StrEnum, auto
 
 from email_validator import EmailNotValidError, validate_email
 
@@ -14,16 +14,16 @@ class PermissionScope(StrEnum):
     Уровни доступа:
      - `global` - админ платформы.
      - `organization` - в рамках компании.
+     - `project` - в рамках проекта.
      - `own` - только своё.
-     - `course` - в рамках курса.
      - `object` - уровень объекта.
     """
 
-    GLOBAL = "global"
-    ORGANIZATION = "organization"
-    OWN = "own"
-    COURSE = "course"
-    OBJECT = "object"
+    GLOBAL = auto()
+    ORGANIZATION = auto()
+    COURSE = auto()
+    OWN = auto()
+    OBJECT = auto()
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,15 +209,15 @@ class Email:
 
 
 @dataclass(frozen=True, slots=True)
-class PasswordHash(ValueObject):
+class SecretHash(ValueObject):
     value: str
 
     def __post_init__(self) -> None:
         if not self.value.strip():
-            raise ValueError("Password hash cannot be empty")
+            raise ValueError("Secret hash cannot be empty")
 
     def __repr__(self) -> str:
-        return "PasswordHash(******)"
+        return "SecretHash(******)"
 
     def __str__(self) -> str:
         return "******"

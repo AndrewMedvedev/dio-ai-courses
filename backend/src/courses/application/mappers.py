@@ -1,7 +1,9 @@
-from typing import cast
+from typing import Any, cast
 
 from dataclasses import asdict
 from datetime import datetime
+
+from pydantic import BaseModel
 
 from ..domain.constants import _BLOCK_REGISTRY
 from ..domain.entities import AnyContentBlock, Course, Lesson, Module, Question, QuizBlock
@@ -31,6 +33,21 @@ _BLOCK_REGISTRY_DICT: dict[str, type[AnyContentBlockDict]] = {
     ExtendedContentType.CHEMICAL_FORMULA: ChemicalBlockDict,
     ExtendedContentType.MUSICAL_NOTATION: MusicalBlockDict,
 }
+
+
+def model_to_typed_dict[DictT](model: BaseModel) -> DictT:
+    return cast(
+        DictT,
+        model.model_dump(mode="json"),
+    )
+
+
+def typed_dict_to_model[ModelT: BaseModel](
+    data: dict[str, Any],
+    model_type: type[ModelT],
+) -> ModelT:
+
+    return model_type.model_validate(data)
 
 
 def _to_datetime(value: datetime | str) -> datetime:

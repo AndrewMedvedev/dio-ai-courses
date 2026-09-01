@@ -1,6 +1,6 @@
 from fastapi import Depends, Request
 
-from src.core.infrastructure import redis_client
+from src.core.redis import redis_client
 from src.shared.domain.exceptions import RateLimitExceededError
 from src.shared.infra.rate_limiter import IdentifierFunc, RateLimiter, ip_identifier
 
@@ -12,7 +12,7 @@ def get_rate_limiter() -> RateLimiter:
 
 
 def create_rate_limiter(
-        max_requests: int, window_seconds: int, identifier: IdentifierFunc = ip_identifier
+    max_requests: int, window_seconds: int, identifier: IdentifierFunc = ip_identifier
 ):
     """Создание зависимости для проверки лимита запросов."""
 

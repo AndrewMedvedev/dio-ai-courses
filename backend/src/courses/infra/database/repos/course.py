@@ -15,7 +15,7 @@ from ....domain.vo import CourseStatus
 from ...mappers import (
     CourseMapper,
 )
-from ...models import CourseOrm, ModuleOrm
+from ...models import CourseOrm, ModuleOrm, StudentOrm
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,34 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
+        )
+
+    async def find_student_courses(
+        self,
+        user_id: UUID,
+        pagination: Pagination,
+    ) -> Page[Course]:
+        """Получает курсы, на которые записан студент."""
+
+        stmt = (
+            select(self.model)
+            .join(
+                StudentOrm,
+                StudentOrm.course_id == self.model.id,
+            )
+            .where(
+                StudentOrm.user_id == user_id,
+                self.model.status != CourseStatus.ARCHIVED,
+            )
+        )
+
+        return await paginate(
+            session=self._session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            mapper=self.model_mapper.from_model,
+            sort="created_at:desc",
         )
 
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:
@@ -122,3 +150,24 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
         result = await self._session.execute(stmt)
 
         return result.scalar_one_or_none()
+
+    async def find_students(
+        self,
+        course_id: UUID,
+        pagination: Pagination,
+    ) -> Page[Course]:
+        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
+
+        stmt = (
+            select(self.model.students)
+            .order_by(self.model.created_at.desc())
+            .where(self.model.id == course_id)
+        )
+
+        return await paginate(
+            session=self._session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            mapper=self.model_mapper.from_model,
+        )

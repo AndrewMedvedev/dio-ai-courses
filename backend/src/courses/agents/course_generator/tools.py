@@ -5,7 +5,7 @@ import logging
 from ddgs import DDGS
 from pydantic import BaseModel, Field, NonNegativeFloat
 
-from src.core.infrastructure import qdrant_client
+from src.core.qdrant import qdrant_client
 from src.llm_service import Runtime, tool
 
 from ...infra.vector_repo import VectorRepository

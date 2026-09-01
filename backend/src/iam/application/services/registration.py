@@ -1,4 +1,4 @@
-from src.iam.application.dtos import TokensResponse, UserCreate
+from src.iam.application.dtos import CreateUserDTO, TokensResponse
 from src.iam.application.repos import (
     InvitationRepository,
     MembershipRepository,
@@ -28,7 +28,7 @@ class RegistrationService:
         self._role_repo = role_repo
         self._invitation_repo = invitation_repo
 
-    async def accept_invitation(self, token: str, dto: UserCreate) -> TokensResponse:
+    async def accept_invitation(self, token: str, dto: CreateUserDTO) -> TokensResponse:
         """Принять приглашение. Регистрирует пользователя в системе."""
 
         if (invitation := await self._invitation_repo.get_by_token(token)) is None \

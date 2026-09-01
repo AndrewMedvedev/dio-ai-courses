@@ -9,7 +9,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ...core.database import Base
+from src.core.database import Base
+
 from ..utils.time import current_datetime
 
 
@@ -72,7 +73,7 @@ class InboxRepository:
         result = await self.session.execute(stmt)
 
         return list(result.scalars().all())
-    
+
     async def mark_processed(self, message_id: str, event_type: str) -> None:
         """
         Пометить inbox-сообщение как успешно обработанное.

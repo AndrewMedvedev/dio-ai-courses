@@ -6,6 +6,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import Runtime
+from src.shared.infra.services import SrvBaseClient
 
 from ...application.dtos import EditorChat
 from ...application.repos import ChatRepository
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 class EditorAgent:
-    def __init__(self, repo: ChatRepository, session: AsyncSession):
+    def __init__(self, repo: ChatRepository, session: AsyncSession, client: SrvBaseClient):
+        self._client = client
         self._repo = repo
         self._session = session
 
@@ -44,23 +46,25 @@ class EditorAgent:
 
         runtime = Runtime(context=context, state=State(chat_id=chat.chat_id))
 
-        if chat.content_type == ContentType.IMAGE:
-            return await generate_image(
-                content_type=chat.content_type,
-                context=context,
-                images=chat.images,
-                prompt=messages,
-                runtime=runtime,
-                middlewares=[
-                    SummarizationMiddleware(
-                        system_prompt=PROMPT_SUMMARIZE_CHAT,
-                        number_of_tokens=30_000,
-                    ),
-                    ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
-                ],
-            )
+        # if chat.content_type == ContentType.IMAGE:
+        #     return await generate_image(
+        #         client=self._client,
+        #         content_type=chat.content_type,
+        #         context=context,
+        #         images=chat.images,
+        #         prompt=chat.content,
+        #         runtime=runtime,
+        #         middlewares=[
+        #             SummarizationMiddleware(
+        #                 system_prompt=PROMPT_SUMMARIZE_CHAT,
+        #                 number_of_tokens=30_000,
+        #             ),
+        #             ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
+        #         ],
+        #     )
 
         return await generate_text(
+            client=self._client,
             content_type=chat.content_type,
             context=context,
             prompt=messages,

@@ -10,12 +10,12 @@ from src.llm_service import (
     LLMTextService,
     Runtime,
 )
+from src.shared.infra.services import SrvBaseClient
 
 from ....domain.entities import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
-    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
@@ -41,10 +41,10 @@ THEORIST_CONFIG = {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
         "response_format": TextBlock,
     },
-    ContentType.IMAGE: {
-        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
-        "response_format": ImageBlock,
-    },
+    # ContentType.IMAGE: {
+    #     "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
+    #     "response_format": ImageBlock,
+    # },
     ContentType.QUIZ: {
         "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.QUIZ],
@@ -73,6 +73,7 @@ async def generate_image(
     content_type: ContentType,
     context: Context,
     prompt: str,
+    client: SrvBaseClient,
     images: list[str] | None = None,
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
@@ -80,6 +81,7 @@ async def generate_image(
     """Генерирует изображение, чтобы автоматически подготовить часть учебного контента."""
     content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMImageService(
+        client=client,
         runtime=runtime or Runtime(context=context),
         middlewares=[
             SaveImageMiddleware(),
@@ -98,12 +100,14 @@ async def generate_text(
     content_type: ContentType,
     context: Context,
     prompt: str,
+    client: SrvBaseClient,
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
 ) -> AnyContentBlock:
     """Генерирует text, чтобы автоматически подготовить часть учебного контента."""
     content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMTextService(
+        client=client,
         system_prompt=content_config.get("system_prompt", ""),
         tools=content_config.get("tools"),
         middlewares=middlewares,
@@ -124,6 +128,7 @@ async def call_theory_agent(
     content_type: ContentType,
     context: Context,
     prompt: str,
+    client: SrvBaseClient,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -134,13 +139,15 @@ async def call_theory_agent(
     """
 
     logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
-    if content_type == ContentType.IMAGE:
-        return await generate_image(
-            content_type=content_type,
-            context=context,
-            prompt=prompt,
-        )
+    # if content_type == ContentType.IMAGE:
+    #     return await generate_image(
+    #         client=client,
+    #         content_type=content_type,
+    #         context=context,
+    #         prompt=prompt,
+    #     )
     return await generate_text(
+        client=client,
         content_type=content_type,
         context=context,
         prompt=prompt,

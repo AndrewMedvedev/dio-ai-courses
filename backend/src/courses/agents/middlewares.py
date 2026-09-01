@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from pymorphy3 import MorphAnalyzer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.infrastructure import thread_executor, tokens_encoder
+from src.core.others import thread_executor, tokens_encoder
 from src.llm_service import (
     BaseAgentMiddleware,
     LLMImageResponse,
@@ -38,6 +38,7 @@ from ..application.repos import (
 )
 from ..domain.entities import Chat
 from ..infra.media_client import MediaClient
+from ..infra.services import course_client
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,10 @@ class SummarizationMiddleware(BaseAgentMiddleware):
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.number_of_tokens = number_of_tokens
         self.system_prompt = system_prompt
-        self._router: LLMTextService = LLMTextService(system_prompt=self.system_prompt)
+        self._router: LLMTextService = LLMTextService(
+            client=course_client,
+            system_prompt=self.system_prompt,
+        )
 
     async def before_model(
         self,
@@ -255,9 +259,9 @@ class SaveImageMiddleware(BaseAgentMiddleware):
         """Сохраняет изображение в s3 хранилище и обновляет ссылку в ответе."""
         file_bytes = base64.b64decode(response.image)
         filename = f"{uuid4()}.{response.output_format}"
-        client = MediaClient()
-        result = await client.save_image(
+        result = await MediaClient(client=course_client).save_image(
             request=PresignedUploadRequest(
+                folder="course-images",
                 filename=filename,
                 owner_id=service.runtime.context.course_id,
                 content_type=f"image/{response.output_format}",

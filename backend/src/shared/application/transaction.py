@@ -7,10 +7,10 @@ from .uow import UnitOfWork
 
 class Transaction:
     def __init__(
-            self,
-            uow: UnitOfWork,
-            publisher: EventPublisher,
-            recorder: ActivityRecorder | None = None,
+        self,
+        uow: UnitOfWork,
+        publisher: EventPublisher,
+        recorder: ActivityRecorder | None = None,
     ) -> None:
         self._uow = uow
         self._publisher = publisher

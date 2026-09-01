@@ -9,11 +9,12 @@ from typing_extensions import Doc
 
 from src.shared.domain.entities import Entity
 from src.shared.domain.exceptions import InvariantViolationError
+from src.shared.domain.helpers import apply_changes
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 from .events import UserInvited
 from .types import RoleId
-from .vo import Email, FullName, PasswordHash, PermissionGrant, PermissionScope, Username
+from .vo import Email, FullName, PermissionGrant, PermissionScope, SecretHash, Username
 
 INVITATION_EXPIRES_IN_DAYS = 7
 
@@ -51,32 +52,8 @@ class User(Entity):
     username: Username | None = None
     full_name: FullName | None = None
     avatar_url: str | None = None
-    password_hash: PasswordHash
+    password_hash: SecretHash
     is_active: bool = True
-
-    def update(
-        self,
-        username: Username | None = None,
-        full_name: FullName | None = None,
-        avatar_url: str | None = None,
-    ) -> None:
-        """Обновляет профиль пользователя."""
-
-        changes = False
-
-        kwargs = {
-            "username": username,
-            "full_name": full_name,
-            "avatar_url": avatar_url,
-        }
-
-        for field_name, value in kwargs.items():
-            if value is not None and getattr(self, field_name) != value:
-                setattr(self, field_name, value)
-                changes = True
-
-        if changes:
-            self.updated_at = current_datetime()
 
     def deactivate(self) -> None:
         """Деактивировать учётную запись."""
@@ -109,9 +86,10 @@ class ServiceAccount(Entity):
     """
 
     name: str
+    description: str | None = None
 
     client_id: str
-    client_secret_hash: ...
+    client_secret_hash: SecretHash
 
     organization_id: UUID
 
@@ -163,7 +141,7 @@ class Membership(Entity):
             raise InvariantViolationError("Expired membership cannot be active.")
 
     @property
-    def is_expired(self) -> bool:
+    def is_expired(self) -> None:
         return self.expires_at is not None and self.expires_at <= current_datetime()
 
     def extend(self, expires_at: datetime) -> None:
@@ -243,31 +221,54 @@ class Role(Entity):
     description: str | None = None
 
     permissions: set[PermissionGrant]
-    is_default: Annotated[bool, Doc("Является ли роль системной")]
+    is_default: Annotated[bool, Doc("Является ли роль системной")] = False
+
+    author_id: UUID | None = None
+    organization_id: UUID | None = None
+
+    def update(
+            self,
+            name: str | None = None,
+            code: str | None = None,
+            description: str | None = None,
+    ) -> None:
+        if self.is_default:
+            raise InvariantViolationError("Default role cannot be updated.")
+
+        apply_changes(self, name=name, code=code, description=description)
 
     def has_permission(self, permission: str, scope: PermissionScope) -> bool:
         return PermissionGrant(permission=permission, scope=scope) in self.permissions
 
     def grant_permission(self, grant: str, scope: PermissionScope) -> None:
 
-        permission_grant = PermissionGrant(permission=grant, scope=scope)
-        if permission_grant in self.permissions:
+        grant = PermissionGrant(permission=grant, scope=scope)
+        if grant in self.permissions:
             return
 
-        self.permissions.add(permission_grant)
+        self.permissions.add(grant)
         self.updated_at = current_datetime()
 
     def revoke_permission(self, grant: str, scope: PermissionScope) -> None:
 
-        permission_grant = PermissionGrant(permission=grant, scope=scope)
-        if permission_grant not in self.permissions:
+        grant = PermissionGrant(permission=grant, scope=scope)
+        if grant not in self.permissions:
             return
 
         if len(self.permissions) == 1:
             raise InvariantViolationError("Role must contain a leat one grant.")
 
-        self.permissions.discard(permission_grant)
+        self.permissions.discard(grant)
         self.updated_at = current_datetime()
+
+    def remove(self) -> None:
+        if self.is_default:
+            raise InvariantViolationError("Default role cannot be deleted.")
+
+        if self.is_deleted:
+            return
+
+        self.deleted_at = current_datetime()
 
 
 @dataclass(kw_only=True)
@@ -291,11 +292,11 @@ class Invitation(Entity):
 
     @classmethod
     def create(
-        cls,
-        email: Email,
-        invited_by: UUID,
-        granted_roles: set[RoleId],
-        organization_id: UUID,
+            cls,
+            email: Email,
+            invited_by: UUID,
+            granted_roles: set[RoleId],
+            organization_id: UUID,
     ) -> Self:
         expires_at = get_expiration_time(expires_in=timedelta(days=INVITATION_EXPIRES_IN_DAYS))
         invitation = cls(

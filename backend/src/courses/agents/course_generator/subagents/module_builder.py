@@ -10,13 +10,14 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
-from src.core.infrastructure import session_factory
+from src.core.database import session_factory
 from src.llm_service import LLMTextService
 
-from ....application.domain_dtos import LessonDict, ModuleDict
-from ....application.mappers import dict_to_module, module_to_dict
+from ....application.domain_dtos import LessonDict, ModuleDict, ModuleStructureDict
+from ....application.mappers import dict_to_module, model_to_typed_dict, module_to_dict
 from ....domain.entities import Module
 from ....infra.database.repos.module import SqlModuleRepository
+from ....infra.services import course_client
 from ...schemas import Context, RuntimeContext
 from ..helper import invoke_or_resume
 from ..serializer import checkpointer
@@ -34,22 +35,22 @@ class AgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер модуля
     module_description: str  # Описание модуля из структуры курса
-    module_structure: NotRequired[ModuleStructure]  # Структура/сценарий модуля
+    module_structure: NotRequired[ModuleStructureDict]  # Структура/сценарий модуля
     module: NotRequired[ModuleDict]  # Сгенерированный модуль
 
 
 async def plan_module_structure(
     state: AgentState,
-) -> dict[str, ModuleStructure | ModuleDict]:
+) -> dict[str, ModuleStructureDict | ModuleDict]:
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
+        client=course_client,
         system_prompt="""\
     Ты полезный ассистент для планирования структуры образовательного модуля
     по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
     и заданиями.
     """,
-        temperature=0.2,
     )
     prompt_template = f"""\
     Сгенерируй структуру модуля используя следующую информацию:
@@ -78,7 +79,10 @@ async def plan_module_structure(
         learning_objectives=module_structure.learning_objectives,
         order=state["order"],
     )
-    return {"module_structure": module_structure, "module": module_to_dict(module)}
+    return {
+        "module_structure": model_to_typed_dict(module_structure),
+        "module": module_to_dict(module),
+    }
 
 
 async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
@@ -132,7 +136,7 @@ async def generate_lessons(state: AgentState) -> dict[str, ModuleDict]:
 
     module_structure, module = state["module_structure"], state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
     start_time = time.monotonic()
-    total_modules = len(module_structure.lessons_descriptions)
+    total_modules = len(module_structure["lessons_descriptions"])
     logger.info("Start generate %s lessons ...", total_modules)
     async with TaskGroup() as tg:
         tasks = [
@@ -144,10 +148,10 @@ async def generate_lessons(state: AgentState) -> dict[str, ModuleDict]:
                     generation_context=state["generation_context"],
                     module_id=module["id"],
                     audience_description=state["audience_description"],
-                    learning_objectives=module_structure.learning_objectives,
+                    learning_objectives=module_structure["learning_objectives"],
                 )
             )
-            for order, desc in enumerate(module_structure.lessons_descriptions, start=1)
+            for order, desc in enumerate(module_structure["lessons_descriptions"], start=1)
         ]
 
     # Собираем результаты в правильном порядке

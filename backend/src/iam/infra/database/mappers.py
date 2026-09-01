@@ -1,18 +1,25 @@
 from uuid import UUID
 
-from src.iam.domain.entities import Invitation, Membership, Permission, Role, User
-from src.iam.domain.types import RoleId
+from src.iam.domain.entities import Invitation, Membership, Permission, Role, ServiceAccount, User
 from src.iam.domain.vo import (
     Email,
     FullName,
-    PasswordHash,
     PermissionGrant,
     PermissionScope,
+    SecretHash,
     Username,
 )
 from src.shared.infra.database import ModelMapper
 
-from .models import InvitationOrm, MembershipOrm, PermissionOrm, RoleOrm, UserOrm
+from ...domain.types import RoleId
+from .models import (
+    InvitationOrm,
+    MembershipOrm,
+    PermissionOrm,
+    RoleOrm,
+    ServiceAccountOrm,
+    UserOrm,
+)
 
 
 class UserMapper(ModelMapper[User, UserOrm]):
@@ -24,10 +31,10 @@ class UserMapper(ModelMapper[User, UserOrm]):
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,
             email=Email(model.email),
-            username=Username(model.username) if model.username is not None else None,
-            full_name=FullName(model.full_name) if model.full_name is not None else None,
+            username=Username(model.username),
+            full_name=FullName(model.full_name),
             avatar_url=model.avatar_url,
-            password_hash=PasswordHash(model.password_hash),
+            password_hash=SecretHash(model.password_hash),
             is_active=model.is_active,
         )
 
@@ -39,11 +46,45 @@ class UserMapper(ModelMapper[User, UserOrm]):
             updated_at=entity.updated_at,
             deleted_at=entity.deleted_at,
             email=entity.email.value,
-            username=entity.username.value if entity.username is not None else None,
-            full_name=entity.full_name.value if entity.full_name is not None else None,
+            username=entity.username.value,
+            full_name=entity.full_name.value,
             avatar_url=entity.avatar_url,
             password_hash=entity.password_hash.get_hashed_value(),
             is_active=entity.is_active,
+        )
+
+
+class ServiceAccountMapper(ModelMapper[ServiceAccount, ServiceAccountOrm]):
+    @staticmethod
+    def from_model(model: ServiceAccountOrm) -> ServiceAccount:
+        return ServiceAccount(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
+            name=model.name,
+            description=model.description,
+            client_id=model.client_id,
+            client_secret_hash=SecretHash(model.client_secret_hash),
+            organization_id=model.organization_id,
+            roles={RoleId(UUID(str(role_id))) for role_id in model.roles},
+            is_active=model.is_active,
+        )
+
+    @staticmethod
+    def to_model(service_account: ServiceAccount) -> ServiceAccountOrm:
+        return ServiceAccountOrm(
+            id=service_account.id,
+            created_at=service_account.created_at,
+            updated_at=service_account.updated_at,
+            deleted_at=service_account.deleted_at,
+            name=service_account.name,
+            description=service_account.description,
+            client_id=service_account.client_id,
+            client_secret_hash=service_account.client_secret_hash.get_hashed_value(),
+            organization_id=service_account.organization_id,
+            roles=[str(role_id) for role_id in service_account.roles],
+            is_active=service_account.is_active,
         )
 
 
@@ -128,6 +169,8 @@ class RoleMapper(ModelMapper[Role, RoleOrm]):
                 for grant in model.permissions
             },
             is_default=model.is_default,
+            author_id=model.author_id,
+            organization_id=model.organization_id,
         )
 
     @staticmethod
@@ -141,13 +184,12 @@ class RoleMapper(ModelMapper[Role, RoleOrm]):
             code=role.code,
             description=role.description,
             permissions=[
-                {
-                    "permission": grant.permission,
-                    "scope": grant.scope.value,
-                }
+                {"permission": grant.permission, "scope": grant.scope.value}
                 for grant in role.permissions
             ],
             is_default=role.is_default,
+            author_id=role.author_id,
+            organization_id=role.organization_id,
         )
 
 
@@ -162,7 +204,7 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
             email=Email(model.email),
             token=model.token,
             invited_by=model.invited_by,
-            granted_roles={RoleId(UUID(str(role_id))) for role_id in model.granted_roles},
+            granted_roles=set(model.granted_roles),
             organization_id=model.organization_id,
             expires_at=model.expires_at,
             used_at=model.used_at,

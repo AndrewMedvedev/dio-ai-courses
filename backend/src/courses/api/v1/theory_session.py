@@ -53,14 +53,14 @@ async def update(
 
 
 @router.get(
-    "/{lesson_id}",
+    "/{lesson_id}/{user_id}",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get(
-    identity: CurrentIdentity,
+    user_id: UUID,
     repo: TheorySessionRepoDep,
     lesson_id: UUID,
     filters: Annotated[LessonTheorySessionFilters, Query()],
 ) -> list[LessonTheorySession]:
-    return await repo.find(lesson_id=lesson_id, user_id=identity.id, filters=filters)
+    return await repo.find(lesson_id=lesson_id, user_id=user_id, filters=filters)
