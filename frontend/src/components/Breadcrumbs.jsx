@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useUiLayoutStore } from "../stores/uiLayoutStore";
 
 const staticRoutes = {
   courses: "Каталог",
@@ -16,7 +17,15 @@ export default function Breadcrumbs({
   selectedPractice,
 }) {
   const location = useLocation();
+  const routeHistory = useUiLayoutStore((state) => state.routeHistory);
   const segments = location.pathname.split("/").filter(Boolean);
+  const currentRoute = `${location.pathname}${location.search || ""}${location.hash || ""}`;
+  const previousRoute = [...routeHistory]
+    .reverse()
+    .find(
+      (route) =>
+        route !== currentRoute && route !== "/login" && route !== "/register",
+    );
 
   if (segments.length === 0) {
     return null;
@@ -30,21 +39,36 @@ export default function Breadcrumbs({
       to: location.pathname,
     });
   } else {
+    const courseId = selectedCourse?.id || segments[1];
+    const mode =
+      segments[2] === "edit" || segments[2] === "metrics" ? segments[2] : "";
+    const contentTypeIndex = mode ? 3 : 2;
+    const contentType = segments[contentTypeIndex];
+    const courseRoute = courseId ? `/course/${courseId}` : location.pathname;
+    const modeRoute = mode && courseId ? `${courseRoute}/${mode}` : "";
+
     crumbs.push({ label: "Каталог", to: "/courses" });
     crumbs.push({
       label: selectedCourse?.title || "Курс",
-      to: selectedCourse ? `/course/${selectedCourse.id}` : location.pathname,
+      to: mode === "edit" ? modeRoute : courseRoute,
     });
 
-    if (segments[2] === "block" && selectedBlock) {
+    if (mode === "metrics") {
+      crumbs.push({ label: "Метрики", to: modeRoute });
+    }
+
+    if (contentType === "block" && selectedBlock) {
       crumbs.push({ label: selectedBlock.title, to: location.pathname });
     }
 
-    if (segments[2] === "lesson" && selectedLesson) {
+    if (
+      (contentType === "lesson" || contentType === "lessons") &&
+      selectedLesson
+    ) {
       crumbs.push({ label: selectedLesson.title, to: location.pathname });
     }
 
-    if (segments[2] === "practice" && selectedPractice) {
+    if (contentType === "practice" && selectedPractice) {
       crumbs.push({ label: selectedPractice.title, to: location.pathname });
     }
   }
@@ -59,7 +83,9 @@ export default function Breadcrumbs({
               {isLast ? (
                 <span aria-current="page">{crumb.label}</span>
               ) : (
-                <Link to={crumb.to}>{crumb.label}</Link>
+                <Link to={crumb.to} replace={crumb.to === previousRoute}>
+                  {crumb.label}
+                </Link>
               )}
             </li>
           );

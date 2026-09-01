@@ -1,5 +1,5 @@
 // Страница отдельного урока с навигацией по курсу и блочным редактором контента
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CourseNavigationTree from "../components/CourseNavigationTree";
 import ContentBlocks from "../components/course/ContentBlocks";
 import {
@@ -10,6 +10,9 @@ import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import SectionTop from "../components/SectionTop";
 import { getLessonContentBlocks } from "../services/courseService";
+import { useGoBack } from "../hooks/useGoBack";
+import { useTheorySessionTracker } from "../hooks/useTheorySessionTracker";
+import { useUiLayoutStore } from "../stores/uiLayoutStore";
 import { printLessonSummary } from "../utils/printLessonSummary";
 
 export default function LessonPage({
@@ -19,20 +22,27 @@ export default function LessonPage({
   completedLessons,
   completedPractices,
   openBlock,
-  openBlockPage,
   openLesson,
   openPractice,
   isCourseEditMode,
   updateLesson,
 }) {
   const hasContent = Boolean(selectedLesson.markdown || selectedLesson.content);
-  const [activeTab, setActiveTab] = useState("theory");
+  const persistedActiveTab = useUiLayoutStore((state) =>
+    state.getLessonActiveTab(selectedLesson.id),
+  );
+  const setLessonActiveTab = useUiLayoutStore(
+    (state) => state.setLessonActiveTab,
+  );
   const [contentBlocks, setContentBlocks] = useState([]);
   const [contentBlocksLessonId, setContentBlocksLessonId] = useState("");
   const [isLoadingTheory, setIsLoadingTheory] = useState(false);
   const [theoryError, setTheoryError] = useState("");
-  const isChatAvailable = !isCourseEditMode && activeTab === "theory";
+  const theoryContainerRef = useRef(null);
+  const theoryContentRef = useRef(null);
   const showStudentTabs = !isCourseEditMode;
+  const activeTab = showStudentTabs ? persistedActiveTab : "theory";
+  const isChatAvailable = !isCourseEditMode && activeTab === "theory";
   const lessonContentBlocks = Array.isArray(selectedLesson.contentBlocks)
     ? selectedLesson.contentBlocks
     : Array.isArray(selectedLesson.content_blocks)
@@ -65,9 +75,19 @@ export default function LessonPage({
     lessonContentBlocks.length === 0 &&
     !hasContent;
 
-  useEffect(() => {
-    setActiveTab("theory");
-  }, [isCourseEditMode, selectedLesson.id]);
+  const shouldTrackTheorySession = !isCourseEditMode && activeTab === "theory";
+  const goBack = useGoBack({
+    fallbackPath: isCourseEditMode
+      ? `/course/${selectedCourse.id}/edit/block/${selectedBlock.id}`
+      : `/course/${selectedCourse.id}/block/${selectedBlock.id}`,
+  });
+
+  useTheorySessionTracker(selectedLesson.id, {
+    enabled: shouldTrackTheorySession,
+    scrollContainerRef: theoryContainerRef,
+    contentRef: theoryContentRef,
+    isContentReady: !isLoadingTheory && !theoryError,
+  });
 
   useEffect(() => {
     if (!selectedLesson.id) {
@@ -122,7 +142,7 @@ export default function LessonPage({
       <button
         type="button"
         className="btn btn-outline back-btn"
-        onClick={() => openBlockPage(selectedBlock.id)}
+        onClick={goBack}
         aria-label="Назад к блоку"
         title="Назад к блоку"
       >
@@ -161,6 +181,7 @@ export default function LessonPage({
           mode="theory"
         />
         <article
+          ref={theoryContainerRef}
           className={`glass-card lesson-main-card ${isCourseEditMode ? "is-editing" : ""}`}
           onScroll={(event) => {
             event.currentTarget.classList.toggle(
@@ -179,7 +200,7 @@ export default function LessonPage({
                 type="button"
                 className={activeTab === "theory" ? "is-active" : ""}
                 aria-selected={activeTab === "theory"}
-                onClick={() => setActiveTab("theory")}
+                onClick={() => setLessonActiveTab(selectedLesson.id, "theory")}
               >
                 Теория
               </button>
@@ -189,7 +210,9 @@ export default function LessonPage({
                     type="button"
                     className={activeTab === "questions" ? "is-active" : ""}
                     aria-selected={activeTab === "questions"}
-                    onClick={() => setActiveTab("questions")}
+                    onClick={() =>
+                      setLessonActiveTab(selectedLesson.id, "questions")
+                    }
                   >
                     Проверочные вопросы
                   </button>
@@ -197,7 +220,9 @@ export default function LessonPage({
                     type="button"
                     className={activeTab === "practice" ? "is-active" : ""}
                     aria-selected={activeTab === "practice"}
-                    onClick={() => setActiveTab("practice")}
+                    onClick={() =>
+                      setLessonActiveTab(selectedLesson.id, "practice")
+                    }
                     disabled={!selectedBlock.id || !selectedLesson.id}
                   >
                     Практика
@@ -219,13 +244,6 @@ export default function LessonPage({
               />
             ) : (
               <>
-                {!isCourseEditMode && (
-                  <>
-                    <p className="course-category">{selectedCourse.title}</p>
-                    <p className="lesson-summary">{selectedLesson.summary}</p>
-                  </>
-                )}
-
                 {isCourseEditMode && (
                   <div className="course-editor-panel lesson-editor-panel">
                     <div className="course-editor-grid">
@@ -300,7 +318,14 @@ export default function LessonPage({
                     {theoryError}
                   </article>
                 ) : !isCourseEditMode ? (
-                  <ContentBlocks blocks={visibleContentBlocks} />
+                  <div className="lesson-theory-content">
+                    <p className="course-category">{selectedCourse.title}</p>
+                    <p className="lesson-summary">{selectedLesson.summary}</p>
+                    <ContentBlocks
+                      ref={theoryContentRef}
+                      blocks={visibleContentBlocks}
+                    />
+                  </div>
                 ) : null}
               </>
             )}

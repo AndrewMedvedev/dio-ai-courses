@@ -28,6 +28,7 @@ import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
 import { getErrorMessage } from "./utils/errors";
 import { getRouteState } from "./utils/routeState";
+import { useRouteHistoryTracker } from "./hooks/useRouteHistoryTracker";
 import { useRouteScrollRestoration } from "./hooks/useRouteScrollRestoration";
 import { useTeacherGroups } from "./hooks/useTeacherGroups";
 import {
@@ -40,6 +41,8 @@ import { resolveTheme, useThemeStore } from "./stores/themeStore";
 import { useUiLayoutStore } from "./stores/uiLayoutStore";
 import {
   archiveCourse as archiveCourseApi,
+  createLesson as createLessonApi,
+  createModule as createModuleApi,
   fetchCoursesPage,
   getCourse,
   getLessonBasicInfo,
@@ -49,6 +52,7 @@ import {
   setCourseInviteOnly as setCourseInviteOnlyApi,
   updateCourse as updateCourseApi,
   updateLesson as updateLessonApi,
+  updateLessonContentBlocks,
   updateModule as updateModuleApi,
 } from "./utils/api";
 import {
@@ -75,10 +79,15 @@ function getCourseRouteTarget(pathname) {
   const segments = pathname.split("/").filter(Boolean);
   if (segments[0] !== "course") return { type: "", id: "" };
 
-  const contentTypeIndex = segments[2] === "edit" ? 3 : 2;
-  const contentIdIndex = segments[2] === "edit" ? 4 : 3;
+  const routeModeOffset =
+    segments[2] === "edit" || segments[2] === "metrics" ? 1 : 0;
+  const contentTypeIndex = 2 + routeModeOffset;
+  const contentIdIndex = 3 + routeModeOffset;
   return {
-    type: segments[contentTypeIndex] || "course",
+    type:
+      segments[contentTypeIndex] === "lessons"
+        ? "lesson"
+        : segments[contentTypeIndex] || "course",
     id: segments[contentIdIndex] || "",
   };
 }
@@ -94,7 +103,6 @@ function AppContent() {
   );
   const {
     accessToken,
-    refreshToken,
     arePermissionsLoaded,
     canCreateCourse,
     canReadCourse,
@@ -116,6 +124,7 @@ function AppContent() {
   const loadIdentity = useSessionStore((state) => state.loadIdentity);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const theme = useThemeStore((state) => state.theme);
+  const themeHasHydrated = useThemeStore((state) => state.hasHydrated);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const activeProfileTab = useUiLayoutStore((state) => state.activeProfileTab);
   const setActiveProfileTab = useUiLayoutStore(
@@ -128,6 +137,9 @@ function AppContent() {
   );
 
   const resolvedTheme = resolveTheme(theme);
+  const appliedTheme = themeHasHydrated
+    ? resolvedTheme
+    : document.documentElement.dataset.theme || resolvedTheme;
   const [editableCourses, setEditableCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState("");
@@ -163,14 +175,15 @@ function AppContent() {
     teacherLeaderboard,
   } = useTeacherGroups(editableCourses, "");
 
+  useRouteHistoryTracker();
   useRouteScrollRestoration();
 
   useEffect(() => {
-    document.documentElement.dataset.theme = resolvedTheme;
-  }, [resolvedTheme]);
+    document.documentElement.dataset.theme = appliedTheme;
+  }, [appliedTheme]);
 
   useEffect(() => {
-    if (!accessToken || !refreshToken) {
+    if (!accessToken) {
       resetPermissions();
       return;
     }
@@ -181,7 +194,6 @@ function AppContent() {
     loadCurrentUser();
   }, [
     accessToken,
-    refreshToken,
     loadIdentity,
     loadCurrentUser,
     resetPermissions,
@@ -487,7 +499,10 @@ function AppContent() {
     if (location.pathname.includes("/edit") && canUpdateCourse) {
       setIsCourseEditMode(true);
     }
-  }, [canUpdateCourse, location.pathname]);
+    if (!location.pathname.includes("/edit") && isCourseEditMode) {
+      setIsCourseEditMode(false);
+    }
+  }, [canUpdateCourse, isCourseEditMode, location.pathname]);
 
   useEffect(() => {
     if (!canUpdateCourse && isCourseEditMode) {
@@ -604,26 +619,31 @@ function AppContent() {
 
     if (selectedCourse?.id === courseId) {
       setIsCourseEditMode(false);
-      navigate("/courses");
+      navigate("/courses", { replace: true });
     }
   };
 
-  const openBlock = async (blockId) => {
-    if (!canOpenCourse || !blockId || !selectedCourse.id) return;
+  const loadBlockDetails = async (blockId) => {
+    if (!canOpenCourse || !blockId || !selectedCourse.id) return null;
     const requestId = moduleRequestRef.current + 1;
     moduleRequestRef.current = requestId;
     setCoursesError("");
 
-    const fallbackBlock =
-      selectedCourse.blocks.find((block) => block.id === blockId) ||
-      selectedCourse.blocks[0];
+    const fallbackBlock = selectedCourse.blocks.find(
+      (block) => block.id === blockId,
+    ) || {
+      id: blockId,
+      title: "Модуль не выбран",
+      lessons: [],
+      practice: [],
+    };
     setSelectedBlockId(blockId);
 
     try {
       const loadedBlock = isUuid(blockId)
         ? await getModuleBasicInfo(blockId)
         : fallbackBlock;
-      if (moduleRequestRef.current !== requestId) return;
+      if (moduleRequestRef.current !== requestId) return null;
       const nextBlock = loadedBlock || fallbackBlock;
       setEditableCourses((prev) =>
         prev.map((course) =>
@@ -632,14 +652,22 @@ function AppContent() {
             : course,
         ),
       );
+      setSelectedBlockId(nextBlock.id || blockId);
       setSelectedLessonId(nextBlock.lessons?.[0]?.id ?? null);
       setSelectedPracticeId(nextBlock.practice?.[0]?.id ?? null);
-      navigate(`/course/${selectedCourse.id}/block/${nextBlock.id}`);
+      return nextBlock;
     } catch (error) {
       if (moduleRequestRef.current === requestId) {
         setCoursesError(getErrorMessage(error, "Не удалось загрузить модуль."));
       }
+      return null;
     }
+  };
+
+  const openBlock = async (blockId) => {
+    const nextBlock = await loadBlockDetails(blockId);
+    if (!nextBlock) return;
+    navigate(`/course/${selectedCourse.id}/block/${nextBlock.id || blockId}`);
   };
 
   const openBlockInEditMode = async (blockId) => {
@@ -647,8 +675,11 @@ function AppContent() {
       return;
     }
 
-    await openBlock(blockId);
-    navigate(`/course/${selectedCourse.id}/edit/block/${blockId}`);
+    const nextBlock = await loadBlockDetails(blockId);
+    if (!nextBlock) return;
+    navigate(
+      `/course/${selectedCourse.id}/edit/block/${nextBlock.id || blockId}`,
+    );
   };
 
   const openBlockPage = async (blockId) => {
@@ -656,16 +687,11 @@ function AppContent() {
   };
 
   const openBlockPageInEditMode = async (blockId) => {
-    if (!canUpdateCourse) {
-      return;
-    }
-
-    await openBlock(blockId);
-    navigate(`/course/${selectedCourse.id}/edit/block/${blockId}`);
+    await openBlockInEditMode(blockId);
   };
 
-  const openLesson = async (lessonId) => {
-    if (!canOpenCourse || !lessonId || !selectedCourse.id) return;
+  const loadLessonDetails = async (lessonId) => {
+    if (!canOpenCourse || !lessonId || !selectedCourse.id) return null;
     const requestId = lessonRequestRef.current + 1;
     lessonRequestRef.current = requestId;
     setCoursesError("");
@@ -683,7 +709,7 @@ function AppContent() {
       const loadedLesson = isUuid(lessonId)
         ? await getLessonBasicInfo(lessonId)
         : nextBlock?.lessons.find((lesson) => lesson.id === lessonId);
-      if (lessonRequestRef.current !== requestId || !loadedLesson) return;
+      if (lessonRequestRef.current !== requestId || !loadedLesson) return null;
       setEditableCourses((prev) =>
         prev.map((course) =>
           course.id === selectedCourse.id
@@ -691,12 +717,19 @@ function AppContent() {
             : course,
         ),
       );
-      navigate(`/course/${selectedCourse.id}/lesson/${lessonId}`);
+      return loadedLesson;
     } catch (error) {
       if (lessonRequestRef.current === requestId) {
         setCoursesError(getErrorMessage(error, "Не удалось загрузить урок."));
       }
+      return null;
     }
+  };
+
+  const openLesson = async (lessonId) => {
+    const loadedLesson = await loadLessonDetails(lessonId);
+    if (!loadedLesson) return;
+    navigate(`/course/${selectedCourse.id}/lesson/${lessonId}`);
   };
 
   const openLessonInEditMode = async (lessonId) => {
@@ -704,7 +737,8 @@ function AppContent() {
       return;
     }
 
-    await openLesson(lessonId);
+    const loadedLesson = await loadLessonDetails(lessonId);
+    if (!loadedLesson) return;
     navigate(`/course/${selectedCourse.id}/edit/lesson/${lessonId}`);
   };
 
@@ -763,12 +797,13 @@ function AppContent() {
     navigate(`/course/${selectedCourse.id}/edit/practice/${practiceId}`);
   };
 
-  const openCourseInEditMode = () => {
-    if (!canUpdateCourse) {
+  const openCourseInEditMode = (courseId = selectedCourse.id) => {
+    if (!canUpdateCourse || !courseId) {
       return;
     }
 
-    navigate(`/course/${selectedCourse.id}/edit`);
+    setIsCourseEditMode(true);
+    navigate(`/course/${courseId}/edit`);
   };
 
   const toggleLessonComplete = (lessonId) => {
@@ -848,34 +883,213 @@ function AppContent() {
     }
   };
 
-  const insertCourseBlock = (index) => {
+  const insertCourseBlock = async (index) => {
     if (!canUpdateCourse) {
       return null;
     }
 
-    const { id: blockId, block: newBlock } = createEmptyCourseBlock(
-      selectedCourse.id,
-    );
+    const insertLocalBlock = (newBlock) => {
+      setEditableCourses((prev) =>
+        prev.map((course) => {
+          if (course.id !== selectedCourse.id) {
+            return course;
+          }
 
-    setEditableCourses((prev) =>
-      prev.map((course) => {
-        if (course.id !== selectedCourse.id) {
-          return course;
-        }
-
-        const safeIndex = Math.min(Math.max(index, 0), course.blocks.length);
-        return {
-          ...course,
-          blocks: [
+          const safeIndex = Math.min(Math.max(index, 0), course.blocks.length);
+          const blocks = [
             ...course.blocks.slice(0, safeIndex),
             newBlock,
             ...course.blocks.slice(safeIndex),
-          ],
-        };
-      }),
-    );
+          ].map((block, blockIndex) => ({ ...block, order: blockIndex + 1 }));
 
-    return blockId;
+          return {
+            ...course,
+            blocks,
+          };
+        }),
+      );
+    };
+
+    if (!isUuid(selectedCourse.id)) {
+      const { id: blockId, block: newBlock } = createEmptyCourseBlock(
+        selectedCourse.id,
+      );
+      insertLocalBlock(newBlock);
+      return blockId;
+    }
+
+    const safeIndex = Math.min(
+      Math.max(index, 0),
+      selectedCourse.blocks?.length || 0,
+    );
+    const moduleOrder = safeIndex + 1;
+    try {
+      const savedModule = await createModuleApi(selectedCourse.id, {
+        title: "Новый блок",
+        description: "",
+        order: moduleOrder,
+        learningObjectives: [],
+      });
+
+      if (!savedModule?.id || !isUuid(savedModule.id)) {
+        throw new Error("Backend не вернул корректный id модуля.");
+      }
+
+      const newBlock = {
+        ...savedModule,
+        title: savedModule.title || "Новый блок",
+        description: savedModule.description || "",
+        order: savedModule.order ?? moduleOrder,
+        duration: savedModule.duration || "Модуль курса",
+        lessons: [],
+        practice: savedModule.practice || [],
+      };
+
+      insertLocalBlock(newBlock);
+
+      const reorderedBlocks = [
+        ...(selectedCourse.blocks || []).slice(0, safeIndex),
+        newBlock,
+        ...(selectedCourse.blocks || []).slice(safeIndex),
+      ];
+      Promise.all(
+        reorderedBlocks
+          .map((block, blockIndex) => ({ ...block, order: blockIndex + 1 }))
+          .filter((block) => isUuid(block.id))
+          .map((block) =>
+            updateModuleApi(selectedCourse.id, block.id, {
+              order: block.order,
+            }),
+          ),
+      ).catch((error) => {
+        setCoursesError(
+          getErrorMessage(
+            error,
+            "Модуль создан, но порядок не удалось сохранить.",
+          ),
+        );
+      });
+
+      return savedModule.id;
+    } catch (error) {
+      setCoursesError(
+        getErrorMessage(error, "Не удалось создать модуль на backend."),
+      );
+      return null;
+    }
+  };
+
+  const addLessonToBlock = async (blockId) => {
+    if (!canUpdateCourse || !selectedCourse.id || !blockId) {
+      return null;
+    }
+
+    const targetBlock = selectedCourse.blocks.find(
+      (block) => block.id === blockId,
+    );
+    if (!targetBlock) {
+      return null;
+    }
+
+    const lessonOrder = (targetBlock.lessons?.length || 0) + 1;
+    const defaultMarkdown = "Новый текстовый блок.";
+    const defaultContentBlocks = [
+      {
+        content_type: "text",
+        ai_generated: false,
+        md_content: defaultMarkdown,
+      },
+    ];
+
+    if (!isUuid(selectedCourse.id) || !isUuid(blockId)) {
+      const lessonId = `${blockId}-lesson-${Date.now().toString(36)}`;
+      const newLesson = {
+        id: lessonId,
+        title: `Урок ${lessonOrder}`,
+        duration: "20 минут",
+        summary: "",
+        description: "",
+        content: defaultMarkdown,
+        markdown: defaultMarkdown,
+        contentBlocks: defaultContentBlocks,
+        content_blocks: defaultContentBlocks,
+        order: lessonOrder,
+      };
+      setEditableCourses((prev) =>
+        prev.map((course) =>
+          course.id === selectedCourse.id
+            ? {
+                ...course,
+                blocks: course.blocks.map((block) =>
+                  block.id === blockId
+                    ? {
+                        ...block,
+                        lessons: [...(block.lessons || []), newLesson],
+                      }
+                    : block,
+                ),
+              }
+            : course,
+        ),
+      );
+      return lessonId;
+    }
+
+    try {
+      const savedLesson = await createLessonApi({
+        moduleId: blockId,
+        title: `Урок ${lessonOrder}`,
+        description: "",
+        order: lessonOrder,
+        learningObjectives: [],
+        estimatedTimeMinutes: 20,
+      });
+
+      const lessonWithContent = savedLesson?.id
+        ? await updateLessonContentBlocks(savedLesson.id, defaultContentBlocks)
+        : savedLesson;
+      const newLesson = {
+        ...(lessonWithContent || savedLesson),
+        title:
+          (lessonWithContent || savedLesson)?.title || `Урок ${lessonOrder}`,
+        duration: (lessonWithContent || savedLesson)?.duration || "20 мин.",
+        summary: (lessonWithContent || savedLesson)?.summary || "",
+        description: (lessonWithContent || savedLesson)?.description || "",
+        content: (lessonWithContent || savedLesson)?.content || defaultMarkdown,
+        markdown:
+          (lessonWithContent || savedLesson)?.markdown || defaultMarkdown,
+        contentBlocks:
+          (lessonWithContent || savedLesson)?.contentBlocks ||
+          defaultContentBlocks,
+        content_blocks:
+          (lessonWithContent || savedLesson)?.content_blocks ||
+          defaultContentBlocks,
+        order: (lessonWithContent || savedLesson)?.order ?? lessonOrder,
+      };
+
+      setEditableCourses((prev) =>
+        prev.map((course) =>
+          course.id === selectedCourse.id
+            ? {
+                ...course,
+                blocks: course.blocks.map((block) =>
+                  block.id === blockId
+                    ? {
+                        ...block,
+                        lessons: [...(block.lessons || []), newLesson],
+                      }
+                    : block,
+                ),
+              }
+            : course,
+        ),
+      );
+
+      return newLesson.id;
+    } catch (error) {
+      setCoursesError(getErrorMessage(error, "Не удалось создать урок."));
+      return null;
+    }
   };
 
   const updateLesson = (lessonId, changes) => {
@@ -1026,7 +1240,7 @@ function AppContent() {
     );
 
     if (selectedBlock.id === blockId) {
-      navigate(`/course/${selectedCourse.id}`);
+      navigate(`/course/${selectedCourse.id}`, { replace: true });
     }
   };
 
@@ -1062,7 +1276,9 @@ function AppContent() {
     );
 
     if (selectedLesson.id === lessonId) {
-      navigate(`/course/${selectedCourse.id}/block/${blockId}`);
+      navigate(`/course/${selectedCourse.id}/block/${blockId}`, {
+        replace: true,
+      });
     }
   };
 
@@ -1098,7 +1314,9 @@ function AppContent() {
     );
 
     if (selectedPractice?.id === practiceId) {
-      navigate(`/course/${selectedCourse.id}/block/${blockId}`);
+      navigate(`/course/${selectedCourse.id}/block/${blockId}`, {
+        replace: true,
+      });
     }
   };
 
@@ -1122,7 +1340,7 @@ function AppContent() {
   return (
     <div
       className={`page ${location.pathname === "/" ? "is-home-page" : "is-inner-page"}`}
-      data-theme={resolvedTheme}
+      data-theme={appliedTheme}
     >
       <div className="aim-grid" aria-hidden="true">
         <div className="aim-grid-plane" />
@@ -1162,7 +1380,7 @@ function AppContent() {
       </svg>
 
       <Header
-        theme={resolvedTheme}
+        theme={appliedTheme}
         canCreateCourse={canCreateCourse}
         canReadCourse={canBrowseCourses}
         canManageOrganizations={canManageOrganizations}
@@ -1269,6 +1487,7 @@ function AppContent() {
                       openPractice={openPracticeInEditMode}
                       isCourseEditMode={isCourseEditMode}
                       updateCourseBlock={updateCourseBlock}
+                      addLessonToBlock={addLessonToBlock}
                       updateLesson={updateLesson}
                       updatePractice={updatePractice}
                       moveLesson={moveLesson}
@@ -1294,6 +1513,24 @@ function AppContent() {
                       isCourseEditMode={isCourseEditMode}
                       updateLesson={updateLesson}
                     />
+                  }
+                />
+                <Route
+                  path="/course/:courseId/metrics"
+                  element={
+                    <CourseViewer localCourse={selectedCourse} mode="metrics" />
+                  }
+                />
+                <Route
+                  path="/course/:courseId/metrics/lessons/:lessonId"
+                  element={
+                    <CourseViewer localCourse={selectedCourse} mode="metrics" />
+                  }
+                />
+                <Route
+                  path="/course/:courseId/metrics/lesson/:lessonId"
+                  element={
+                    <CourseViewer localCourse={selectedCourse} mode="metrics" />
                   }
                 />
                 <Route

@@ -448,6 +448,20 @@
     margin: 0;
 }
 
+.creator-chat-checklist li.is-active {
+    border-color: rgba(var(--accent-rgb), 0.7);
+    background: rgba(var(--accent-rgb), 0.16);
+}
+
+.creator-chat-checklist li.is-active span {
+    color: var(--ink-accent);
+    background: rgba(var(--accent-rgb), 0.18);
+}
+
+.creator-chat-checklist li.is-active p {
+    color: var(--text);
+}
+
 .creator-chat-checklist li.is-done {
     border-color: rgba(var(--success-rgb), 0.66);
     background: rgba(var(--success-rgb), 0.14);

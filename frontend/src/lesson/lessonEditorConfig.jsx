@@ -1,5 +1,6 @@
 import MermaidDiagram from "../components/MermaidDiagram";
 import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
+import { getMediaId } from "../utils/media";
 
 export const MAX_CONTENT_BLOCKS = 10;
 
@@ -22,8 +23,8 @@ export const blockTypes = [
     id: "image",
     contentType: "image",
     label: "Изображение",
-    hint: "Ссылка или data URL",
-    template: { image_url: "" },
+    hint: "Файл в хранилище",
+    template: { image_id: "" },
   },
   {
     id: "program_code",
@@ -231,7 +232,9 @@ export function normalizeContentBlock(block, ensureId = false) {
     normalized.url = String(source.url ?? "");
     normalized.description = String(source.description ?? "");
   } else if (contentType === "image") {
-    normalized.image_url = String(source.image_url ?? source.url ?? "");
+    normalized.image_id = getMediaId(
+      source.image_id ?? source.imageId ?? source.image_url ?? source.url ?? "",
+    );
   } else if (contentType === "program_code") {
     normalized.language = String(source.language ?? "text");
     normalized.code = String(source.code ?? "");
@@ -277,7 +280,7 @@ export function stripUiFields(block) {
     payload.url = normalized.url;
     payload.description = normalized.description;
   } else if (normalized.content_type === "image") {
-    payload.image_url = normalized.image_url;
+    payload.image_id = normalized.image_id;
   } else if (normalized.content_type === "program_code") {
     payload.language = normalized.language;
     payload.code = normalized.code;
@@ -361,7 +364,7 @@ export function blockToMarkdown(block) {
       .join("\n\n");
   }
   if (normalized.content_type === "image") {
-    return normalized.image_url ? `![](${normalized.image_url})` : "";
+    return normalized.image_id ? `Изображение: ${normalized.image_id}` : "";
   }
   if (normalized.content_type === "program_code") {
     return [
@@ -430,7 +433,7 @@ export function getBlockTitle(block) {
     return normalized.url || prefix;
   }
   if (normalized.content_type === "image") {
-    return normalized.image_url || prefix;
+    return normalized.image_id || prefix;
   }
   return normalized.formula || prefix;
 }

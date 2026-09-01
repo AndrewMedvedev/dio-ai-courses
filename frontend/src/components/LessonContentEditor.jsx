@@ -6,7 +6,10 @@ import {
   createAgentConversationKey,
   useAgentStore,
 } from "../stores/agentStore";
+import { useSessionStore } from "../stores/sessionStore";
 import { convertDocumentToMarkdown } from "../utils/api";
+import { attachmentsApi } from "../utils/attachments";
+import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 import {
   allowedImageExtension,
   allowedImageTypes,
@@ -24,6 +27,53 @@ import {
   stripUiFields,
   templates,
 } from "../lesson/lessonEditorConfig";
+
+const IMAGE_MAX_SIZE_BYTES = 15 * 1024 * 1024;
+const MAX_AI_REFERENCE_IMAGES = 2;
+
+function getUserId(user) {
+  return user?.id || user?.user_id || user?.userId || "";
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
+async function readFileAsBase64(file) {
+  return arrayBufferToBase64(await file.arrayBuffer());
+}
+
+async function readImageUrlAsBase64(url) {
+  if (!url) return null;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(
+      "Не удалось прочитать текущее изображение блока для AI-редактора.",
+    );
+  }
+  return arrayBufferToBase64(await response.arrayBuffer());
+}
+
+function getUploadedImageId(uploadResult) {
+  return getMediaId(
+    uploadResult?.storage_key ||
+      uploadResult?.storageKey ||
+      uploadResult?.file_id ||
+      uploadResult?.fileId ||
+      uploadResult?.image_id ||
+      uploadResult?.imageId ||
+      uploadResult?.id ||
+      uploadResult?.attachment_id,
+  );
+}
 
 export default function LessonContentEditor({
   courseId,
@@ -43,7 +93,8 @@ export default function LessonContentEditor({
   const [insertIndex, setInsertIndex] = useState(null);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState("");
-  const [aiImage, setAiImage] = useState(null);
+  const [aiReferenceImages, setAiReferenceImages] = useState([]);
+  const [aiReferenceError, setAiReferenceError] = useState("");
   const [proposal, setProposal] = useState(null);
   const [proposalError, setProposalError] = useState("");
   const [blockLimitError, setBlockLimitError] = useState("");
@@ -57,12 +108,21 @@ export default function LessonContentEditor({
   );
   const sendAgentMessage = useAgentStore((state) => state.sendMessage);
   const cancelAgentRequest = useAgentStore((state) => state.cancelRequest);
+  const user = useSessionStore((state) => state.user);
+  const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
+  const currentUserId = getUserId(user);
   const isAiSending = aiConversation?.status === "loading";
-  const aiError = proposalError || aiConversation?.error || "";
+  const aiError =
+    proposalError || aiReferenceError || aiConversation?.error || "";
+  const [uploadingImageBlockId, setUploadingImageBlockId] = useState("");
+  const [imageUploadError, setImageUploadError] = useState("");
+  const [imageUploadPreview, setImageUploadPreview] = useState(null);
   const fileInputRef = useRef(null);
   const aiImageInputRef = useRef(null);
   const aiMessagesRef = useRef(null);
   const blockRefs = useRef(new Map());
+  const aiReferenceImagesRef = useRef([]);
+  const imageUploadPreviewRef = useRef(null);
 
   useEffect(() => {
     const nextBlocks = normalizeContentBlocks(
@@ -74,7 +134,17 @@ export default function LessonContentEditor({
     setInsertIndex(null);
     setIsAiOpen(false);
     setAiInput("");
-    setAiImage(null);
+    setAiReferenceImages((current) => {
+      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      return [];
+    });
+    setAiReferenceError("");
+    setImageUploadPreview((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return null;
+    });
+    setImageUploadError("");
+    setUploadingImageBlockId("");
     setProposal(null);
     setProposalError("");
     setBlockLimitError("");
@@ -83,6 +153,25 @@ export default function LessonContentEditor({
   useEffect(
     () => () => cancelAgentRequest(aiConversationKey),
     [aiConversationKey, cancelAgentRequest],
+  );
+
+  useEffect(() => {
+    aiReferenceImagesRef.current = aiReferenceImages;
+  }, [aiReferenceImages]);
+
+  useEffect(() => {
+    imageUploadPreviewRef.current = imageUploadPreview;
+  }, [imageUploadPreview]);
+
+  useEffect(
+    () => () => {
+      aiReferenceImagesRef.current.forEach((image) =>
+        URL.revokeObjectURL(image.previewUrl),
+      );
+      const preview = imageUploadPreviewRef.current;
+      if (preview?.previewUrl) URL.revokeObjectURL(preview.previewUrl);
+    },
+    [],
   );
 
   useEffect(() => {
@@ -97,6 +186,12 @@ export default function LessonContentEditor({
       });
     });
   }, [activeBlockId]);
+
+  useEffect(() => {
+    if (!user) {
+      loadCurrentUser();
+    }
+  }, [loadCurrentUser, user]);
 
   useEffect(() => {
     const container = aiMessagesRef.current;
@@ -207,6 +302,30 @@ export default function LessonContentEditor({
     commitBlocks(nextBlocks, blockId);
   };
 
+  const uploadCourseImageFile = async (file) => {
+    if (!currentUserId) {
+      throw new Error(
+        "Не удалось определить пользователя для загрузки изображения.",
+      );
+    }
+
+    const uploadResult = await attachmentsApi.uploadAttachment(
+      file,
+      MEDIA_FOLDERS.COURSE_IMAGES,
+      currentUserId,
+      {
+        folder: MEDIA_FOLDERS.COURSE_IMAGES,
+        maxSizeBytes: IMAGE_MAX_SIZE_BYTES,
+        allowedMimeTypes: allowedImageTypes,
+      },
+    );
+    const imageId = getUploadedImageId(uploadResult);
+    if (!imageId) {
+      throw new Error("Хранилище не вернуло идентификатор изображения.");
+    }
+    return imageId;
+  };
+
   const importFiles = async (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) {
@@ -236,12 +355,14 @@ export default function LessonContentEditor({
         allowedImageTypes.has(file.type) ||
         (file.type === "" && allowedImageExtension.test(file.name))
       ) {
-        const dataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-        importedContent.push({ type: "image", data: { image_url: dataUrl } });
+        try {
+          const imageId = await uploadCourseImageFile(file);
+          importedContent.push({ type: "image", data: { image_id: imageId } });
+        } catch (error) {
+          setBlockLimitError(
+            error?.message || "Не удалось загрузить изображение в хранилище.",
+          );
+        }
         continue;
       }
 
@@ -285,42 +406,59 @@ export default function LessonContentEditor({
 
   const askAi = async () => {
     const prompt = aiInput.trim();
-    if ((!prompt && !aiImage) || isAiSending) {
-      return;
-    }
     const activeBlock = blocks.find((block) => block.id === activeBlockId);
-    if (
-      !activeBlock ||
-      activeBlock.content_type === "video" ||
-      activeBlock.content_type === "image"
-    ) {
+    const isImageBlock = activeBlock?.content_type === "image";
+    if (!prompt || isAiSending) {
       return;
     }
+    if (!activeBlock || activeBlock.content_type === "video") {
+      return;
+    }
+
     const currentBlock = stripUiFields(activeBlock);
     setProposalError("");
+    setAiReferenceError("");
     setAiInput("");
-    setAiImage(null);
 
     try {
+      const currentImageBase64 = isImageBlock
+        ? await readImageUrlAsBase64(
+            getMediaUrl(
+              currentUserId,
+              MEDIA_FOLDERS.COURSE_IMAGES,
+              activeBlock.image_id,
+            ),
+          )
+        : null;
+      const referenceImageBase64 = isImageBlock
+        ? await Promise.all(
+            aiReferenceImages.map((image) => readFileAsBase64(image.file)),
+          )
+        : [];
+      const images = [currentImageBase64, ...referenceImageBase64].filter(
+        Boolean,
+      );
       const response = await sendAgentMessage({
         key: aiConversationKey,
         agent: "editor",
         courseId,
-        content: prompt || "Измени блок с учётом прикреплённого изображения.",
+        content: prompt,
         contentBlocks: blocks
           .filter((block) => block.id !== activeBlock.id)
           .map(stripUiFields),
         editorPayload: {
           content_type: activeBlock.content_type,
           content_block: JSON.stringify(currentBlock),
-          images: aiImage ? [aiImage.src] : [],
+          images: isImageBlock && images.length > 0 ? images : undefined,
         },
         emptyResponseMessage: "",
         responseDisplayMessage: (agentResponse) =>
           agentResponse?.parsedContent &&
           typeof agentResponse.parsedContent === "object" &&
           !Array.isArray(agentResponse.parsedContent)
-            ? "Правка готова. Проверьте предложенный вариант и примените его, если он подходит."
+            ? isImageBlock
+              ? "Изображение обновлено. Результат уже сохранён в хранилище."
+              : "Правка готова. Проверьте предложенный вариант и примените его, если он подходит."
             : "",
       });
       if (!response) return;
@@ -340,32 +478,90 @@ export default function LessonContentEditor({
         content_type: activeBlock.content_type,
         ai_generated: true,
       };
+      if (isImageBlock) {
+        const imageId = getMediaId(
+          response.parsedContent.image_id || response.parsedContent.imageId,
+        );
+        if (!imageId) {
+          setProposalError("ИИ не вернул идентификатор готового изображения.");
+          return;
+        }
+        updateBlock(activeBlock.id, { image_id: imageId, ai_generated: true });
+        setAiReferenceImages((current) => {
+          current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+          return [];
+        });
+        return;
+      }
       setProposal({
         blockId: activeBlock.id,
         block: proposedBlock,
         content: blockToMarkdown(proposedBlock),
       });
-    } catch {
-      // Публичная сетевая ошибка хранится в Zustand-store.
+    } catch (error) {
+      if (!error?.status) {
+        setProposalError(error?.message || "Не удалось отправить запрос ИИ.");
+      }
+      // Публичная сетевая ошибка API хранится в Zustand-store.
     }
   };
 
-  const attachAiImage = (event) => {
-    const [file] = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (
-      !file ||
-      !allowedImageTypes.has(file.type) ||
-      file.size > 50 * 1024 * 1024
-    ) {
-      return;
-    }
+  const addAiReferenceFiles = (files) => {
+    const selectedFiles = Array.from(files || []);
+    if (selectedFiles.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAiImage({ name: file.name, src: String(reader.result) });
-    };
-    reader.readAsDataURL(file);
+    const nextImages = [];
+    const errors = [];
+    let slotsLeft = MAX_AI_REFERENCE_IMAGES - aiReferenceImages.length;
+
+    selectedFiles.forEach((file) => {
+      if (slotsLeft <= 0) {
+        errors.push(
+          `Можно приложить не более ${MAX_AI_REFERENCE_IMAGES} референсов.`,
+        );
+        return;
+      }
+      if (!allowedImageTypes.has(file.type)) {
+        errors.push(
+          `${file.name || "Файл"}: выберите изображение PNG, JPEG, WebP или GIF.`,
+        );
+        return;
+      }
+      if (file.size > IMAGE_MAX_SIZE_BYTES) {
+        errors.push(`${file.name}: файл больше 15 МБ.`);
+        return;
+      }
+      nextImages.push({
+        id: `ai-ref-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        file,
+        name: file.name,
+        previewUrl: URL.createObjectURL(file),
+      });
+      slotsLeft -= 1;
+    });
+
+    setAiReferenceError([...new Set(errors)].join(" "));
+    if (nextImages.length > 0) {
+      setAiReferenceImages((current) => [...current, ...nextImages]);
+    }
+  };
+
+  const attachAiImages = (event) => {
+    addAiReferenceFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const removeAiReferenceImage = (imageId) => {
+    setAiReferenceImages((current) =>
+      current.filter((image) => {
+        if (image.id === imageId) {
+          URL.revokeObjectURL(image.previewUrl);
+          return false;
+        }
+        return true;
+      }),
+    );
+    setAiReferenceError("");
   };
 
   const applyProposal = () => {
@@ -399,7 +595,11 @@ export default function LessonContentEditor({
     setInsertIndex(null);
     setIsAiOpen(false);
     setAiInput("");
-    setAiImage(null);
+    setAiReferenceImages((current) => {
+      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      return [];
+    });
+    setAiReferenceError("");
     setProposal(null);
     scrollToBlock(blockId);
   };
@@ -431,6 +631,140 @@ export default function LessonContentEditor({
     </label>
   );
 
+  const uploadImageBlockFile = async (block, file) => {
+    if (!file) return;
+    setImageUploadError("");
+
+    if (block.image_id) {
+      setImageUploadError(
+        "В image-блоке может быть только одно изображение. Удалите текущее перед новой загрузкой.",
+      );
+      return;
+    }
+
+    if (!allowedImageTypes.has(file.type)) {
+      setImageUploadError("Выберите изображение PNG, JPEG, WebP или GIF.");
+      return;
+    }
+    if (file.size > IMAGE_MAX_SIZE_BYTES) {
+      setImageUploadError("Максимальный размер изображения — 15 МБ.");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImageUploadPreview((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return { blockId: block.id, previewUrl, name: file.name };
+    });
+    setUploadingImageBlockId(block.id);
+
+    try {
+      const imageId = await uploadCourseImageFile(file);
+      updateBlock(block.id, { image_id: imageId, ai_generated: false });
+      setImageUploadPreview((current) => {
+        if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+        return null;
+      });
+    } catch (error) {
+      setImageUploadError(
+        error?.message || "Не удалось загрузить изображение в хранилище.",
+      );
+    } finally {
+      setUploadingImageBlockId("");
+    }
+  };
+
+  const renderImageBlockFields = (block) => {
+    const currentImageUrl = getMediaUrl(
+      currentUserId,
+      MEDIA_FOLDERS.COURSE_IMAGES,
+      block.image_id,
+    );
+    const activePreview =
+      imageUploadPreview?.blockId === block.id ? imageUploadPreview : null;
+    const previewUrl = activePreview?.previewUrl || currentImageUrl;
+    const isUploading = uploadingImageBlockId === block.id;
+    const canUploadImage = !isUploading && !block.image_id;
+
+    return (
+      <div className="lesson-block-field lesson-block-field-wide lesson-image-block-editor">
+        <span>Итоговое изображение блока</span>
+        <label
+          className={`lesson-image-block-dropzone ${previewUrl ? "has-image" : ""} ${!canUploadImage ? "is-disabled" : ""}`}
+          onDragOver={(event) => {
+            if (canUploadImage) event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (!canUploadImage) {
+              setImageUploadError(
+                "В image-блоке уже есть изображение. Удалите его перед новой загрузкой.",
+              );
+              return;
+            }
+            const [file] = Array.from(event.dataTransfer.files || []);
+            uploadImageBlockFile(block, file);
+          }}
+        >
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            disabled={!canUploadImage}
+            onChange={(event) => {
+              const [file] = Array.from(event.target.files || []);
+              event.target.value = "";
+              if (!canUploadImage) {
+                setImageUploadError(
+                  "В image-блоке уже есть изображение. Удалите его перед новой загрузкой.",
+                );
+                return;
+              }
+              uploadImageBlockFile(block, file);
+            }}
+          />
+          {previewUrl ? (
+            <div className="lesson-image-block-preview">
+              <img src={previewUrl} alt="Предпросмотр изображения блока" />
+              {activePreview && <small>{activePreview.name}</small>}
+            </div>
+          ) : (
+            <div className="lesson-image-block-empty">
+              <strong>
+                {isUploading ? "Загружаем..." : "Перетащите изображение сюда"}
+              </strong>
+              <small>
+                или нажмите, чтобы выбрать файл. PNG, JPEG, WebP или GIF до 15
+                МБ.
+              </small>
+            </div>
+          )}
+        </label>
+        <div className="lesson-image-block-actions">
+          <small>
+            В блоке хранится одно изображение. Чтобы загрузить другое, сначала
+            удалите текущее.
+          </small>
+          {block.image_id && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={isUploading}
+              onClick={() => {
+                setImageUploadError("");
+                updateBlock(block.id, { image_id: "", ai_generated: false });
+              }}
+            >
+              Удалить изображение
+            </button>
+          )}
+        </div>
+        {imageUploadError && (
+          <p className="lesson-ai-error">{imageUploadError}</p>
+        )}
+      </div>
+    );
+  };
+
   const renderBlockFields = (block) => {
     switch (block.content_type) {
       case "text":
@@ -455,12 +789,7 @@ export default function LessonContentEditor({
           </>
         );
       case "image":
-        return renderInputField(
-          block,
-          "image_url",
-          "Ссылка на изображение",
-          "https://... или data:image/...",
-        );
+        return renderImageBlockFields(block);
       case "program_code":
         return (
           <>
@@ -663,37 +992,47 @@ export default function LessonContentEditor({
           </div>
         )}
       </div>
-      {aiImage && (
-        <div className="lesson-ai-attachment">
-          <img src={aiImage.src} alt="Прикрепленное изображение" />
-          <span>{aiImage.name}</span>
-          <button
-            type="button"
-            onClick={() => setAiImage(null)}
-            aria-label="Удалить изображение"
-          >
-            ×
-          </button>
+      {block.content_type === "image" && aiReferenceImages.length > 0 && (
+        <div className="lesson-ai-reference-grid">
+          {aiReferenceImages.map((image) => (
+            <div className="lesson-ai-reference-preview" key={image.id}>
+              <img src={image.previewUrl} alt={image.name} />
+              <button
+                type="button"
+                onClick={() => removeAiReferenceImage(image.id)}
+                aria-label={`Удалить ${image.name}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
         </div>
       )}
       {aiError && <p className="lesson-ai-error">{aiError}</p>}
-      <div className="lesson-ai-composer">
-        <input
-          ref={aiImageInputRef}
-          className="lesson-ai-image-input"
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          onChange={attachAiImage}
-        />
-        <button
-          type="button"
-          className="lesson-ai-attach"
-          onClick={() => aiImageInputRef.current?.click()}
-          aria-label="Прикрепить изображение до 50 МБ"
-          title="Прикрепить изображение до 50 МБ"
-        >
-          +
-        </button>
+      <div
+        className={`lesson-ai-composer ${block.content_type === "image" ? "has-attach" : ""}`}
+      >
+        {block.content_type === "image" && (
+          <>
+            <input
+              ref={aiImageInputRef}
+              className="lesson-ai-image-input"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={attachAiImages}
+            />
+            <button
+              type="button"
+              className="lesson-ai-attach"
+              onClick={() => aiImageInputRef.current?.click()}
+              aria-label="Прикрепить референсы до 15 МБ"
+              title="Прикрепить референсы до 15 МБ"
+            >
+              +
+            </button>
+          </>
+        )}
         <textarea
           value={aiInput}
           onChange={(event) => setAiInput(event.target.value)}
@@ -715,7 +1054,7 @@ export default function LessonContentEditor({
           type="button"
           className="lesson-ai-send"
           onClick={askAi}
-          disabled={isAiSending || (!aiInput.trim() && !aiImage)}
+          disabled={isAiSending || !aiInput.trim()}
           aria-label="Отправить сообщение"
           title="Отправить"
         >
@@ -753,9 +1092,7 @@ export default function LessonContentEditor({
             renderInsertControl(0)}
           {blocks.map((block, index) => {
             const isActive = activeBlockId === block.id;
-            const canUseAiEditor = !["video", "image"].includes(
-              block.content_type,
-            );
+            const canUseAiEditor = block.content_type !== "video";
             return (
               <Fragment key={block.id}>
                 <div
@@ -873,13 +1210,29 @@ export default function LessonContentEditor({
                           <strong>{getBlockTitle(block)}</strong>
                         </div>
                         <div className="lesson-markdown">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={markdownComponents}
-                            urlTransform={safeMarkdownUrl}
-                          >
-                            {blockToMarkdown(block) || "Блок пока пуст."}
-                          </ReactMarkdown>
+                          {block.content_type === "image" ? (
+                            block.image_id ? (
+                              <img
+                                className="lesson-image-block-preview-img"
+                                src={getMediaUrl(
+                                  currentUserId,
+                                  MEDIA_FOLDERS.COURSE_IMAGES,
+                                  block.image_id,
+                                )}
+                                alt="Изображение блока"
+                              />
+                            ) : (
+                              "Блок пока пуст."
+                            )
+                          ) : (
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
+                              urlTransform={safeMarkdownUrl}
+                            >
+                              {blockToMarkdown(block) || "Блок пока пуст."}
+                            </ReactMarkdown>
+                          )}
                         </div>
                       </div>
                     )}

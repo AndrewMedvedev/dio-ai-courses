@@ -9,21 +9,25 @@ import { isTokenExpired } from "../utils/api";
 
 export function useAppPermissions() {
   const hasPermission = usePermissionStore((state) => state.hasPermission);
-  const hasAnyPermission = usePermissionStore((state) => state.hasAnyPermission);
+  const hasAnyPermission = usePermissionStore(
+    (state) => state.hasAnyPermission,
+  );
   const arePermissionsLoaded = usePermissionStore((state) => state.isLoaded);
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const expiresAt = useSessionStore((state) => state.expiresAt);
 
   const isAuthenticated = Boolean(
-    accessToken && refreshToken && expiresAt && !isTokenExpired(expiresAt),
+    accessToken && expiresAt && (!isTokenExpired(expiresAt) || refreshToken),
   );
   const canCreateCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(COURSE_PERMISSIONS.CREATE);
   const canReadCourse =
-    isAuthenticated && arePermissionsLoaded && hasPermission(COURSE_PERMISSIONS.READ);
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(COURSE_PERMISSIONS.READ);
   const canOpenCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
@@ -69,12 +73,12 @@ export function useAppPermissions() {
   const canCreateModel =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasAnyPermission([AI_MODEL_PERMISSIONS.CREATE, "ai_model:CREATE", "CREATE"]);
+    hasPermission(AI_MODEL_PERMISSIONS.CREATE);
   const canDeleteModel =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasAnyPermission([AI_MODEL_PERMISSIONS.DELETE, "ai_model:DELETE", "DELETE"]);
-  const canManageModels = isAuthenticated && arePermissionsLoaded;
+    hasPermission(AI_MODEL_PERMISSIONS.DELETE);
+  const canManageModels = canCreateModel || canDeleteModel;
 
   return {
     accessToken,

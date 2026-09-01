@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   LessonPracticeAgent,
   LessonTestAgent,
 } from "../LessonAgentAssessments";
 import LessonChatWorkspace from "../LessonChatWorkspace";
+import CourseNavigationTree from "../CourseNavigationTree";
 import SectionTop from "../SectionTop";
 import {
   getCourseBasicInfo,
+  getCourseLearningStructure,
   getLessonById,
   getLessonContentBlocks,
   getModuleById,
-  isUserEnrolled,
 } from "../../services/courseService";
 import ContentBlocks from "./ContentBlocks";
 import CourseBasicInfo from "./CourseBasicInfo";
@@ -23,8 +24,13 @@ import {
   usePermissionStore,
 } from "../../stores/permissionStore";
 import { useSessionStore } from "../../stores/sessionStore";
+import { useStudentStore } from "../../stores/studentStore";
+import { useUiLayoutStore } from "../../stores/uiLayoutStore";
+import { useTheorySessionTracker } from "../../hooks/useTheorySessionTracker";
+import { getErrorMessage } from "../../utils/errors";
 import { isTokenExpired, isUuid } from "../../utils/api";
 import ModuleList from "./ModuleList";
+import LessonMetricsDashboard from "./LessonMetricsDashboard";
 import "./course-viewer.css";
 
 function findBlockByLesson(course, lessonId) {
@@ -86,14 +92,16 @@ function toLessonBasicInfoFromLearningLesson(lesson) {
   };
 }
 
-export default function CourseViewer({ localCourse = null }) {
+export default function CourseViewer({ localCourse = null, mode = "view" }) {
   const { courseId, blockId, lessonId } = useParams();
   const navigate = useNavigate();
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const expiresAt = useSessionStore((state) => state.expiresAt);
+  const identity = useSessionStore((state) => state.identity);
+  const user = useSessionStore((state) => state.user);
   const isAuthenticated = Boolean(
-    accessToken && refreshToken && expiresAt && !isTokenExpired(expiresAt),
+    accessToken && expiresAt && (!isTokenExpired(expiresAt) || refreshToken),
   );
   const hasCourseInfoPermission = usePermissionStore((state) =>
     state.hasAnyPermission([
@@ -116,11 +124,40 @@ export default function CourseViewer({ localCourse = null }) {
   );
   const [contentBlocks, setContentBlocks] = useState([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState("");
+  const theoryContainerRef = useRef(null);
+  const theoryContentRef = useRef(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isLoadingLesson, setIsLoadingLesson] = useState(false);
-  const [activeTab, setActiveTab] = useState("theory");
   const [error, setError] = useState(null);
   const effectiveCourseId = courseId || "";
+  const isMetricsMode = mode === "metrics";
+  const signCourse = useStudentStore((state) => state.signCourse);
+  const loadMyCourses = useStudentStore((state) => state.loadMyCourses);
+  const isCourseEnrolled = useStudentStore((state) => state.isCourseEnrolled);
+  const isCourseSigning = useStudentStore((state) =>
+    state.isCourseSigning(course?.id || effectiveCourseId),
+  );
+  const currentUserId =
+    identity?.id ||
+    identity?.user_id ||
+    identity?.userId ||
+    user?.id ||
+    user?.user_id;
+  const courseCreatorId =
+    course?.creator_id ||
+    course?.creatorId ||
+    course?.author_id ||
+    course?.authorId ||
+    course?.user_id ||
+    course?.userId;
+  const isOwnCourse = Boolean(
+    currentUserId && courseCreatorId && currentUserId === courseCreatorId,
+  );
+  const canViewWithoutEnrollment = isOwnCourse;
+  const canNavigateCourseContent = isMetricsMode
+    ? canUpdateCourse
+    : canReadCourseContent;
 
   const selectedBlock = useMemo(() => {
     if (!course) {
@@ -155,6 +192,26 @@ export default function CourseViewer({ localCourse = null }) {
     [selectedLesson],
   );
 
+  const activeTab = useUiLayoutStore((state) =>
+    state.getLessonActiveTab(selectedLesson?.id),
+  );
+  const setLessonActiveTab = useUiLayoutStore(
+    (state) => state.setLessonActiveTab,
+  );
+
+  const shouldTrackTheorySession =
+    mode === "view" &&
+    canReadCourseContent &&
+    (isEnrolled || isOwnCourse) &&
+    activeTab === "theory";
+
+  useTheorySessionTracker(selectedLesson?.id, {
+    enabled: shouldTrackTheorySession,
+    scrollContainerRef: theoryContainerRef,
+    contentRef: theoryContentRef,
+    isContentReady: !isLoadingLesson && !error,
+  });
+
   useEffect(() => {
     let isMounted = true;
 
@@ -167,12 +224,21 @@ export default function CourseViewer({ localCourse = null }) {
           throw new Error("Идентификатор курса не указан");
         }
 
-        const basicCourse =
-          !isUuid(effectiveCourseId) && localCourse?.id === effectiveCourseId
+        const basicCourse = isMetricsMode
+          ? await getCourseLearningStructure(effectiveCourseId)
+          : !isUuid(effectiveCourseId) && localCourse?.id === effectiveCourseId
             ? localCourse
             : await getCourseBasicInfo(effectiveCourseId);
+
+        if (!isMetricsMode && canReadCourseContent) {
+          await loadMyCourses({ page: 1, size: 100 }).catch(() => null);
+        }
+
         const enrolled = canReadCourseContent
-          ? await isUserEnrolled(basicCourse.id)
+          ? useStudentStore.getState().isCourseEnrolled(basicCourse.id) ||
+            (basicCourse.students || []).some(
+              (student) => student?.course_id === basicCourse.id,
+            )
           : false;
 
         if (!isMounted) {
@@ -184,7 +250,8 @@ export default function CourseViewer({ localCourse = null }) {
         setSelectedModuleId(blockId ?? null);
         setSelectedLessonId(lessonId ?? null);
         setIsLearningStarted(
-          Boolean(blockId || lessonId) && canReadCourseContent,
+          isMetricsMode ||
+            (Boolean(blockId || lessonId) && canReadCourseContent),
         );
       } catch (loadError) {
         if (isMounted) {
@@ -202,10 +269,18 @@ export default function CourseViewer({ localCourse = null }) {
     return () => {
       isMounted = false;
     };
-  }, [blockId, canReadCourseContent, effectiveCourseId, lessonId, localCourse]);
+  }, [
+    blockId,
+    canReadCourseContent,
+    effectiveCourseId,
+    isMetricsMode,
+    lessonId,
+    loadMyCourses,
+    localCourse,
+  ]);
 
   useEffect(() => {
-    if (!canReadCourseContent || !selectedLesson?.id) {
+    if (isMetricsMode || !canReadCourseContent || !selectedLesson?.id) {
       setContentBlocks([]);
       return;
     }
@@ -238,20 +313,19 @@ export default function CourseViewer({ localCourse = null }) {
     return () => {
       isMounted = false;
     };
-  }, [canReadCourseContent, selectedLesson?.id]);
-
-  useEffect(() => {
-    setActiveTab("theory");
-  }, [selectedLesson?.id]);
+  }, [canReadCourseContent, isMetricsMode, selectedLesson?.id]);
 
   const openCourseOverview = () => {
-    if (!canReadCourseContent) {
+    if (!canNavigateCourseContent) {
       return;
     }
 
     setIsLearningStarted(true);
     setSelectedModuleId(null);
     setSelectedLessonId(null);
+    navigate(
+      isMetricsMode ? `/course/${course.id}/metrics` : `/course/${course.id}`,
+    );
   };
 
   const startLearning = () => {
@@ -265,7 +339,7 @@ export default function CourseViewer({ localCourse = null }) {
   };
 
   const openBlock = async (blockId) => {
-    if (!canReadCourseContent) {
+    if (!canNavigateCourseContent) {
       return;
     }
 
@@ -291,6 +365,11 @@ export default function CourseViewer({ localCourse = null }) {
           ),
         };
       });
+      navigate(
+        isMetricsMode
+          ? `/course/${course.id}/metrics`
+          : `/course/${course.id}/block/${nextBlock.id || blockId}`,
+      );
     } catch (loadError) {
       setSelectedModuleId(fallbackBlock?.id ?? null);
       setError(loadError.message || "Не удалось загрузить модуль");
@@ -298,12 +377,11 @@ export default function CourseViewer({ localCourse = null }) {
   };
 
   const openLesson = async (nextLessonId) => {
-    if (!canReadCourseContent) {
+    if (!canNavigateCourseContent) {
       return;
     }
 
     const fallbackBlock = findBlockByLesson(course, nextLessonId);
-    setActiveTab("theory");
     setSelectedModuleId(fallbackBlock?.id ?? selectedModuleId);
     setSelectedLessonId(nextLessonId);
     setContentBlocks([]);
@@ -333,6 +411,11 @@ export default function CourseViewer({ localCourse = null }) {
           })),
         };
       });
+      navigate(
+        isMetricsMode
+          ? `/course/${course.id}/metrics/lessons/${nextLessonId}`
+          : `/course/${course.id}/lesson/${nextLessonId}`,
+      );
     } catch (loadError) {
       setError(loadError.message || "Не удалось загрузить урок");
     }
@@ -344,7 +427,38 @@ export default function CourseViewer({ localCourse = null }) {
     }
   };
 
-  if (!canViewCourseInfo) {
+  const openCourseMetrics = () => {
+    if (course?.id && canUpdateCourse) {
+      navigate(`/course/${course.id}/metrics`);
+    }
+  };
+
+  const enrollToCourse = async () => {
+    if (!course?.id || isCourseSigning) {
+      return;
+    }
+
+    setEnrollmentError("");
+    try {
+      const student = await signCourse(course.id);
+      setCourse((currentCourse) =>
+        currentCourse
+          ? {
+              ...currentCourse,
+              students: [...(currentCourse.students || []), student],
+            }
+          : currentCourse,
+      );
+      setIsEnrolled(true);
+      setIsLearningStarted(true);
+    } catch (error) {
+      setEnrollmentError(
+        getErrorMessage(error, "Не удалось записаться на курс."),
+      );
+    }
+  };
+
+  if (!canViewCourseInfo && !isMetricsMode) {
     return (
       <section className="container section course-viewer">
         <SectionTop label="Курс" title="Доступ ограничен" />
@@ -377,7 +491,18 @@ export default function CourseViewer({ localCourse = null }) {
     );
   }
 
-  if (!canReadCourseContent) {
+  if (isMetricsMode && !canUpdateCourse) {
+    return (
+      <section className="container section course-viewer course-enrollment-view">
+        <SectionTop label="Метрики курса" title="Доступ ограничен" />
+        <article className="glass-card course-viewer-error">
+          Для просмотра метрик нужны права управления курсом.
+        </article>
+      </section>
+    );
+  }
+
+  if (!isMetricsMode && !canReadCourseContent) {
     return (
       <section className="container section course-viewer course-enrollment-view">
         <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
@@ -412,13 +537,22 @@ export default function CourseViewer({ localCourse = null }) {
                 </button>
               )}
               {canUpdateCourse && (
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={openCourseEditor}
-                >
-                  Редактировать курс
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={openCourseEditor}
+                  >
+                    Редактировать курс
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-solid"
+                    onClick={openCourseMetrics}
+                  >
+                    Посмотреть метрики
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -427,7 +561,7 @@ export default function CourseViewer({ localCourse = null }) {
     );
   }
 
-  if (!isEnrolled) {
+  if (!isMetricsMode && !isEnrolled && !canViewWithoutEnrollment) {
     return (
       <section className="container section course-viewer course-enrollment-view">
         <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
@@ -441,28 +575,49 @@ export default function CourseViewer({ localCourse = null }) {
           <div>
             <h2>Содержимое курса закрыто</h2>
             <p>
-              {canUpdateCourse
-                ? "Откройте редактор, чтобы управлять содержимым, модулями и уроками курса."
-                : "Содержимое курса пока закрыто."}
+              Запишитесь на курс, чтобы открыть модули, уроки, теорию, практику
+              и ИИ-ментора.
             </p>
           </div>
-          {canUpdateCourse && (
-            <div className="generated-course-actions generated-course-edit-actions">
-              <button
-                type="button"
-                className="btn btn-solid"
-                onClick={openCourseEditor}
-              >
-                Редактировать курс
-              </button>
-            </div>
+          <div className="generated-course-actions generated-course-edit-actions">
+            <button
+              type="button"
+              className="btn btn-solid"
+              onClick={enrollToCourse}
+              disabled={isCourseSigning}
+            >
+              {isCourseSigning ? "Записываем..." : "Записаться на курс"}
+            </button>
+            {canUpdateCourse && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={openCourseEditor}
+                >
+                  Редактировать курс
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={openCourseMetrics}
+                >
+                  Посмотреть метрики
+                </button>
+              </>
+            )}
+          </div>
+          {enrollmentError && (
+            <p className="lesson-ai-error" role="alert">
+              {enrollmentError}
+            </p>
           )}
         </article>
       </section>
     );
   }
 
-  if (!isLearningStarted) {
+  if (!isMetricsMode && !isLearningStarted) {
     return (
       <section className="container section course-viewer course-enrollment-view">
         <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
@@ -474,9 +629,15 @@ export default function CourseViewer({ localCourse = null }) {
         <CourseBasicInfo course={course} />
         <article className="glass-card generated-course-enroll-card">
           <div>
-            <h2>Курс доступен для прохождения</h2>
+            <h2>
+              {canViewWithoutEnrollment
+                ? "Курс доступен для просмотра"
+                : "Курс доступен для прохождения"}
+            </h2>
             <p>
-              Нажмите кнопку, чтобы открыть структуру курса и начать обучение.
+              {canViewWithoutEnrollment
+                ? "Нажмите кнопку, чтобы открыть структуру курса для чтения."
+                : "Нажмите кнопку, чтобы открыть структуру курса и начать обучение."}
             </p>
           </div>
           <div className="generated-course-actions">
@@ -485,16 +646,27 @@ export default function CourseViewer({ localCourse = null }) {
               className="btn btn-solid"
               onClick={startLearning}
             >
-              Перейти к обучению
+              {canViewWithoutEnrollment
+                ? "Посмотреть теорию"
+                : "Перейти к обучению"}
             </button>
             {canUpdateCourse && (
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={openCourseEditor}
-              >
-                Редактировать курс
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={openCourseEditor}
+                >
+                  Редактировать курс
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={openCourseMetrics}
+                >
+                  Посмотреть метрики
+                </button>
+              </>
             )}
           </div>
         </article>
@@ -502,14 +674,18 @@ export default function CourseViewer({ localCourse = null }) {
     );
   }
 
-  const sectionLabel = selectedLesson
-    ? "Урок"
-    : selectedBlock
-      ? "Модуль"
-      : "Курс";
-  const sectionTitle =
-    selectedLesson?.title || selectedBlock?.title || course.title;
-  const isLessonChatEnabled = canReadCourseContent && Boolean(selectedLesson);
+  const sectionLabel = isMetricsMode
+    ? "Метрики курса"
+    : selectedLesson
+      ? "Урок"
+      : selectedBlock
+        ? "Модуль"
+        : "Курс";
+  const sectionTitle = isMetricsMode
+    ? selectedLesson?.title || selectedBlock?.title || course.title
+    : selectedLesson?.title || selectedBlock?.title || course.title;
+  const isLessonChatEnabled =
+    !isMetricsMode && canReadCourseContent && Boolean(selectedLesson);
   const isChatAvailable = isLessonChatEnabled && activeTab === "theory";
 
   return (
@@ -532,62 +708,27 @@ export default function CourseViewer({ localCourse = null }) {
           contentBlocks,
         }}
       >
-        <aside
-          className="course-nav-tree generated-course-navigation-shell"
-          aria-label="Навигация по курсу"
-        >
-          <button
-            type="button"
-            className={`generated-course-nav-course ${!selectedBlock ? "is-active" : ""}`}
-            onClick={openCourseOverview}
-          >
-            <strong>{course.title}</strong>
-            <span>Курс</span>
-          </button>
-
-          {course.blocks.length > 0 ? (
-            <ul className="course-nav-block-list">
-              {course.blocks.map((block, blockIndex) => (
-                <li
-                  key={block.id}
-                  className={`course-nav-block ${selectedBlock?.id === block.id ? "is-active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="course-nav-block-btn"
-                    onClick={() => openBlock(block.id)}
-                  >
-                    <span>{blockIndex + 1}</span>
-                    <strong>{block.title}</strong>
-                  </button>
-                  <ul className="course-nav-item-list">
-                    {block.lessons.map((lesson, lessonIndex) => (
-                      <li key={lesson.id}>
-                        <button
-                          type="button"
-                          className={`course-nav-item-btn ${selectedLesson?.id === lesson.id ? "is-active" : ""}`}
-                          onClick={() => openLesson(lesson.id)}
-                        >
-                          <span className="course-nav-item-number">
-                            {blockIndex + 1}.{lessonIndex + 1}
-                          </span>
-                          <span className="course-nav-item-title">
-                            {lesson.title}
-                          </span>
-                          <span className="course-nav-item-status" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          ) : (
+        {course.blocks.length > 0 ? (
+          <CourseNavigationTree
+            selectedCourse={course}
+            selectedBlock={selectedBlock || course.blocks[0]}
+            selectedLessonId={selectedLesson?.id || ""}
+            selectedPracticeId=""
+            completedLessons={{}}
+            completedPractices={{}}
+            openBlock={openBlock}
+            openLesson={openLesson}
+            openPractice={() => {}}
+            mode={isMetricsMode ? "metrics" : "theory"}
+          />
+        ) : (
+          <aside className="course-nav-tree generated-course-navigation-shell">
             <p className="course-viewer-muted">В курсе пока нет модулей.</p>
-          )}
-        </aside>
+          </aside>
+        )}
 
         <article
+          ref={theoryContainerRef}
           className="glass-card lesson-main-card generated-course-main-card"
           onScroll={(event) => {
             event.currentTarget.classList.toggle(
@@ -597,7 +738,27 @@ export default function CourseViewer({ localCourse = null }) {
           }}
         >
           <div className="lesson-scroll-frame generated-course-scroll-frame">
-            {!selectedBlock ? (
+            {isMetricsMode ? (
+              selectedLesson ? (
+                <LessonMetricsDashboard
+                  courseId={course.id}
+                  lesson={selectedLesson}
+                />
+              ) : (
+                <div className="lesson-metrics-dashboard">
+                  <div className="metrics-dashboard-head">
+                    <div>
+                      <span className="metrics-mode-badge">Режим метрик</span>
+                      <h2>Выберите урок</h2>
+                      <p>
+                        Нажмите на урок в дереве курса, чтобы открыть выбор
+                        студента и дашборд.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : !selectedBlock ? (
               <>
                 <CourseBasicInfo course={course} />
                 <ModuleList
@@ -627,7 +788,9 @@ export default function CourseViewer({ localCourse = null }) {
                     type="button"
                     className={activeTab === "theory" ? "is-active" : ""}
                     aria-selected={activeTab === "theory"}
-                    onClick={() => setActiveTab("theory")}
+                    onClick={() =>
+                      setLessonActiveTab(selectedLesson.id, "theory")
+                    }
                   >
                     Теория
                   </button>
@@ -635,7 +798,9 @@ export default function CourseViewer({ localCourse = null }) {
                     type="button"
                     className={activeTab === "questions" ? "is-active" : ""}
                     aria-selected={activeTab === "questions"}
-                    onClick={() => setActiveTab("questions")}
+                    onClick={() =>
+                      setLessonActiveTab(selectedLesson.id, "questions")
+                    }
                   >
                     Проверочные вопросы
                   </button>
@@ -643,7 +808,9 @@ export default function CourseViewer({ localCourse = null }) {
                     type="button"
                     className={activeTab === "practice" ? "is-active" : ""}
                     aria-selected={activeTab === "practice"}
-                    onClick={() => setActiveTab("practice")}
+                    onClick={() =>
+                      setLessonActiveTab(selectedLesson.id, "practice")
+                    }
                   >
                     Практика
                   </button>
@@ -662,7 +829,7 @@ export default function CourseViewer({ localCourse = null }) {
                     lessonId={selectedLesson.id}
                   />
                 ) : (
-                  <>
+                  <div className="lesson-theory-content">
                     <p className="course-category">{course.title}</p>
                     <LessonBasicInfo lesson={lessonBasicInfo} />
                     {isLoadingLesson ? (
@@ -670,9 +837,13 @@ export default function CourseViewer({ localCourse = null }) {
                         Загружаем теорию урока...
                       </p>
                     ) : (
-                      <ContentBlocks blocks={contentBlocks} />
+                      <ContentBlocks
+                        ref={theoryContentRef}
+                        blocks={contentBlocks}
+                        ownerUserId={courseCreatorId || currentUserId}
+                      />
                     )}
-                  </>
+                  </div>
                 )}
               </>
             )}

@@ -5,15 +5,13 @@ import {
   getLessonTheory,
   getModuleBasicInfo,
 } from "../utils/api";
-import { getLocalStorage } from "../utils/storage";
+import { getMyCourses, signCourse } from "./studentApi";
 
-const ENROLLMENT_KEY_PREFIX = "course_enrollment_";
+const ENROLLMENT_PAGE_SIZE = 100;
 const courseCache = new Map();
 const moduleCache = new Map();
 const lessonCache = new Map();
 const lessonTheoryCache = new Map();
-
-const getEnrollmentKey = (courseId) => `${ENROLLMENT_KEY_PREFIX}${courseId}`;
 
 function replaceModule(course, module) {
   return {
@@ -136,13 +134,12 @@ export async function getLessonContentBlocks(lessonId) {
 }
 
 export async function isUserEnrolled(courseId) {
-  const storage = getLocalStorage({ requireWriteAccess: true });
-
-  if (!storage || !courseId) {
+  if (!courseId) {
     return false;
   }
 
-  return storage.getItem(getEnrollmentKey(courseId)) === "true";
+  const courses = await getMyCourses({ page: 1, size: ENROLLMENT_PAGE_SIZE });
+  return courses.items.some((course) => course.id === courseId);
 }
 
 export async function enrollUserToCourse(courseId) {
@@ -150,11 +147,5 @@ export async function enrollUserToCourse(courseId) {
     throw new Error("Невозможно записаться: идентификатор курса отсутствует");
   }
 
-  const storage = getLocalStorage({ requireWriteAccess: true });
-
-  if (storage) {
-    storage.setItem(getEnrollmentKey(courseId), "true");
-  }
-
-  return true;
+  return signCourse(courseId);
 }

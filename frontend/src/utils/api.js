@@ -1,3 +1,4 @@
+import { getMediaId } from "./media";
 import { getLocalStorage } from "./storage";
 
 const SESSION_KEY = "aicolab_session";
@@ -122,15 +123,73 @@ export const tokenStorage = {
   isTokenExpired,
 };
 
+function decodeJwtExp(token) {
+  if (!token || typeof token !== "string") return null;
+
+  try {
+    const encodedPayload = token.split(".")[1] || "";
+    const base64Payload = encodedPayload
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(base64Payload));
+    return Number(payload?.exp) || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeExpiresAt(value, accessToken) {
+  if (value === null || value === undefined || value === "") {
+    return decodeJwtExp(accessToken);
+  }
+
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue > 0) {
+    return numericValue > 9999999999
+      ? Math.floor(numericValue / 1000)
+      : numericValue;
+  }
+
+  const parsedDate = Date.parse(value);
+  if (Number.isFinite(parsedDate)) {
+    return Math.floor(parsedDate / 1000);
+  }
+
+  return decodeJwtExp(accessToken);
+}
+
+function normalizeTokenResponse(data) {
+  const source = data?.tokens || data?.data || data || {};
+  const accessToken =
+    source.access_token || source.accessToken || source.access || null;
+  const refreshToken =
+    source.refresh_token || source.refreshToken || source.refresh || null;
+  const rawExpiresAt =
+    source.expires_at ||
+    source.expiresAt ||
+    source.exp ||
+    source.access_expires_at ||
+    source.accessTokenExpiresAt;
+
+  return {
+    accessToken,
+    refreshToken,
+    expiresAt: normalizeExpiresAt(rawExpiresAt, accessToken),
+  };
+}
+
 function saveTokensFromResponse(data) {
   const current = readStoredSession();
+  const tokens = normalizeTokenResponse(data);
   const nextSession = {
     ...current,
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt: data.expires_at,
+    accessToken: tokens.accessToken || current.accessToken,
+    refreshToken: tokens.refreshToken || current.refreshToken,
+    expiresAt: tokens.expiresAt || current.expiresAt,
   };
   saveStoredSession(nextSession);
+  return nextSession;
 }
 
 function clearTokens() {
@@ -152,7 +211,9 @@ export function setTokenChangeHandler(handler) {
 
 export function isAuthenticated() {
   const { access, refresh, expiresAt } = getTokens();
-  return Boolean(access && refresh && expiresAt && !isTokenExpired(expiresAt));
+  return Boolean(
+    access && expiresAt && (!isTokenExpired(expiresAt) || refresh),
+  );
 }
 
 function buildRedirectUrl() {
@@ -166,10 +227,6 @@ export function redirectToLogin() {
   clearTokens();
   if (typeof unauthorizedHandler === "function") {
     unauthorizedHandler();
-  }
-
-  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-    window.location.assign(buildRedirectUrl());
   }
 }
 
@@ -262,23 +319,34 @@ async function createApiError(response, fallbackMessage) {
   });
 }
 
+async function postRefreshToken(refresh, body) {
+  return fetch(`${API_BASE}/auth/token/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 async function refreshAccessToken() {
   const { refresh } = getTokens();
   if (!refresh) return null;
 
   if (!refreshPromise) {
-    refreshPromise = fetch(`${API_BASE}/auth/token/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(refresh),
-    })
+    refreshPromise = postRefreshToken(refresh, refresh)
       .then(async (response) => {
+        if (!response.ok && [400, 422].includes(response.status)) {
+          response = await postRefreshToken(refresh, {
+            refresh_token: refresh,
+          });
+        }
+
         if (!response.ok) {
           throw await createApiError(response, "Сессия истекла.");
         }
+
         const data = await response.json();
-        saveTokensFromResponse(data);
-        return data.access_token;
+        const session = saveTokensFromResponse(data);
+        return session.accessToken;
       })
       .finally(() => {
         refreshPromise = null;
@@ -291,9 +359,13 @@ async function refreshAccessToken() {
 async function requestJson(
   path,
   options = {},
-  { auth = true, retry = true } = {},
+  { auth = true, retry = true, clearOnUnauthorized = true } = {},
 ) {
-  const response = await apiFetch(path, options, { auth, retry });
+  const response = await apiFetch(path, options, {
+    auth,
+    retry,
+    clearOnUnauthorized,
+  });
   if (!response.ok) {
     throw await createApiError(
       response,
@@ -301,7 +373,15 @@ async function requestJson(
     );
   }
   if (response.status === 204) return null;
-  return response.json();
+
+  const text = await response.text();
+  if (!text.trim()) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
 
 export async function login(credentialsOrEmail, maybePassword) {
@@ -351,14 +431,16 @@ export async function logout(tokens) {
 export async function apiFetch(
   path,
   options = {},
-  { auth = true, retry = true } = {},
+  { auth = true, retry = true, clearOnUnauthorized = true } = {},
 ) {
   const url = `${API_BASE}${path}`;
   const headers = { ...options.headers };
   let { access, expiresAt } = getTokens();
 
   if (auth && !access) {
-    handleUnauthorized();
+    if (clearOnUnauthorized) {
+      handleUnauthorized();
+    }
     return new Response(null, { status: 401 });
   }
 
@@ -392,7 +474,7 @@ export async function apiFetch(
     }
   }
 
-  if (auth && response.status === 401) {
+  if (auth && response.status === 401 && clearOnUnauthorized) {
     handleUnauthorized();
   }
 
@@ -565,7 +647,7 @@ export async function deleteModel(modelUid) {
 }
 
 export async function fetchCurrentUser() {
-  return requestJson("/users/me");
+  return requestJson("/users/me", {}, { clearOnUnauthorized: false });
 }
 
 export async function updateCurrentUser(changes) {
@@ -574,22 +656,6 @@ export async function updateCurrentUser(changes) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(changes),
   });
-}
-
-export async function uploadCurrentUserAvatar(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await apiFetch("/users/me/avatar", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw await createApiError(response, "Не удалось загрузить аватар.");
-  }
-
-  return response.json();
 }
 
 export async function fetchUsers(params = {}) {
@@ -725,7 +791,7 @@ function contentBlockToMarkdown(block) {
       .join("\n\n");
   }
   if (block.content_type === "image")
-    return block.image_url ? `![](${block.image_url})` : "";
+    return block.image_id ? `Изображение: ${block.image_id}` : "";
   if (block.content_type === "program_code") {
     return [
       `\`\`\`${block.language || "text"}\n${block.code || ""}\n\`\`\``,
@@ -816,7 +882,16 @@ function sanitizeContentBlock(block) {
       source.content ??
       "";
   } else if (contentType === "image") {
-    payload.image_url = source.image_url ?? source.imageUrl ?? source.url ?? "";
+    payload.image_id = getMediaId(
+      source.image_id ??
+        source.imageId ??
+        source.image_url ??
+        source.imageUrl ??
+        source.url ??
+        "",
+    );
+    delete payload.image_url;
+    delete payload.imageUrl;
   } else if (contentType === "video") {
     payload.url = source.url ?? "";
     payload.description = source.description ?? "";
@@ -1011,8 +1086,14 @@ function normalizeContentBlock(block) {
         "",
     );
   } else if (contentType === "image") {
-    normalized.image_url = String(
-      source.image_url ?? source.imageUrl ?? source.url ?? source.src ?? "",
+    normalized.image_id = getMediaId(
+      source.image_id ??
+        source.imageId ??
+        source.image_url ??
+        source.imageUrl ??
+        source.url ??
+        source.src ??
+        "",
     );
   } else if (contentType === "program_code") {
     normalized.language = String(source.language ?? source.lang ?? "text");
@@ -1465,6 +1546,7 @@ export async function createCourse(data, options = {}) {
       title: data.title || "Новый курс",
       description: data.description || "",
       difficulty: data.difficulty || "beginner",
+      status: data.status || "draft",
       tags: Array.isArray(data.tags) ? data.tags : [],
     },
     options,
@@ -1604,7 +1686,18 @@ export async function createLesson(data, options = {}) {
     },
     options,
   );
-  return lessonBasicToLearningLesson(response);
+  return lessonBasicToLearningLesson(
+    normalizeLessonRef(response?.lesson || response),
+    {
+      title: data.title || "Новый урок",
+      description: data.description || "",
+      order: Number.isFinite(data.order) ? data.order : 1,
+      learningObjectives:
+        data.learning_objectives || data.learningObjectives || [],
+      learning_objectives:
+        data.learning_objectives || data.learningObjectives || [],
+    },
+  );
 }
 
 export async function assignLessonToModule(lessonId, moduleId, options = {}) {
@@ -1836,21 +1929,80 @@ export async function askMentorAgent(payload, options = {}) {
   );
 }
 
+function normalizeSupportedContentType(value) {
+  const contentType = normalizeContentType({ content_type: value || "text" });
+  return SUPPORTED_CONTENT_TYPES.has(contentType) ? contentType : "text";
+}
+
+function normalizeEditorContentBlock(
+  contentBlock,
+  fallbackContentType = "text",
+) {
+  if (!contentBlock) return contentBlock;
+
+  if (typeof contentBlock === "string") {
+    try {
+      const parsed = JSON.parse(contentBlock);
+      return JSON.stringify({
+        ...parsed,
+        content_type: normalizeSupportedContentType(
+          parsed?.content_type || fallbackContentType || "text",
+        ),
+        ai_generated:
+          typeof parsed?.ai_generated === "boolean"
+            ? parsed.ai_generated
+            : false,
+      });
+    } catch {
+      return JSON.stringify({
+        content_type: normalizeSupportedContentType(fallbackContentType),
+        ai_generated: false,
+        md_content: contentBlock,
+      });
+    }
+  }
+
+  if (typeof contentBlock === "object") {
+    return {
+      ...contentBlock,
+      content_type: normalizeSupportedContentType(
+        contentBlock.content_type || fallbackContentType || "text",
+      ),
+      ai_generated:
+        typeof contentBlock.ai_generated === "boolean"
+          ? contentBlock.ai_generated
+          : false,
+    };
+  }
+
+  return contentBlock;
+}
+
 export async function askEditorAgent(payload = {}, options = {}) {
+  const images = Array.isArray(payload.images)
+    ? payload.images.filter(Boolean).slice(0, 3)
+    : [];
+  const contentType = normalizeSupportedContentType(payload.content_type);
+  const requestPayload = withoutEmptyValues({
+    ...toAgentChatPayload(payload),
+    content_type: contentType,
+    content_block: normalizeEditorContentBlock(
+      payload.content_block,
+      contentType,
+    ),
+    content_blocks: Array.isArray(payload.content_blocks)
+      ? payload.content_blocks.map(sanitizeContentBlock)
+      : [],
+    images: images.length > 0 ? images : undefined,
+  });
   const data = await jsonRequest(
     "/agent/editor",
     "POST",
-    {
-      ...toAgentChatPayload(payload),
-      content_type: payload.content_type,
-      content_block: payload.content_block,
-      content_blocks: Array.isArray(payload.content_blocks)
-        ? payload.content_blocks
-        : [],
-      images: Array.isArray(payload.images) ? payload.images.slice(0, 5) : [],
-    },
+    requestPayload,
     options,
   );
+  console.log("[/agent/editor] response", data);
+
   const content = data?.content;
   let parsedContent = null;
   if (typeof content === "string" && content.trim()) {

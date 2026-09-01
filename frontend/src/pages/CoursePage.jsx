@@ -1,13 +1,13 @@
 // Страница деталей выбранного курса с описанием, блоками и лидербордом
 import { Fragment, useState } from "react";
 import SectionTop from "../components/SectionTop";
+import { useGoBack } from "../hooks/useGoBack";
 
 export default function CoursePage({
   selectedCourse,
   selectedCourseLeaderboard,
   completedLessons,
   completedPractices,
-  openCourses,
   openBlock,
   isCourseEditMode,
   setIsCourseEditMode,
@@ -24,6 +24,7 @@ export default function CoursePage({
 }) {
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [statusAction, setStatusAction] = useState("");
+  const goBack = useGoBack({ fallbackPath: "/courses" });
 
   if (!canReadCourse) {
     return (
@@ -34,11 +35,7 @@ export default function CoursePage({
             Курс недоступен для вашего аккаунта. Обратитесь к администратору
             организации, чтобы получить доступ.
           </p>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={openCourses}
-          >
+          <button type="button" className="btn btn-outline" onClick={goBack}>
             Вернуться к каталогу
           </button>
         </article>
@@ -71,9 +68,11 @@ export default function CoursePage({
     });
   };
 
-  const insertBlock = (index) => {
-    const blockId = insertCourseBlock(index);
-    setActiveBlockId(blockId);
+  const insertBlock = async (index) => {
+    const blockId = await insertCourseBlock(index);
+    if (blockId) {
+      setActiveBlockId(blockId);
+    }
   };
 
   const changeStatus = async (action) => {
@@ -101,29 +100,20 @@ export default function CoursePage({
       <button
         type="button"
         className="btn btn-outline back-btn"
-        onClick={openCourses}
+        onClick={goBack}
         aria-label="Назад к каталогу"
         title="Назад к каталогу"
       >
         &lt;
       </button>
       <div className="course-page-actions">
-        {canUpdateCourse && (
+        {canUpdateCourse && !isCourseEditMode && (
           <button
             type="button"
-            className={`btn ${isCourseEditMode ? "btn-solid" : "btn-outline"} course-edit-toggle`}
-            onClick={() =>
-              setIsCourseEditMode((prev) => {
-                if (prev) {
-                  setActiveBlockId(null);
-                }
-                return !prev;
-              })
-            }
+            className="btn btn-outline course-edit-toggle"
+            onClick={() => setIsCourseEditMode(true)}
           >
-            {isCourseEditMode
-              ? "Выйти из редактирования"
-              : "Редактировать курс"}
+            Редактировать курс
           </button>
         )}
         {isCourseEditMode &&

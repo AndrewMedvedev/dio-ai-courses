@@ -1,9 +1,10 @@
-import { useId, useState } from "react";
+import { forwardRef, useId, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ContentPreviewModal from "../ContentPreviewModal";
 import MermaidDiagram from "../MermaidDiagram";
 import SyntaxHighlightedCode from "../SyntaxHighlightedCode";
+import { getMediaUrl, MEDIA_FOLDERS } from "../../utils/media";
 
 const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;
@@ -216,16 +217,19 @@ function VideoBlock({ block, index }) {
   );
 }
 
-function ImageBlock({ block, index }) {
+function ImageBlock({ block, index, ownerUserId }) {
+  const imageUrl = block.image_id
+    ? getMediaUrl(ownerUserId, MEDIA_FOLDERS.COURSE_IMAGES, block.image_id)
+    : block.image_url;
   return (
     <article className="content-block-card">
       <div className="course-viewer-eyebrow">
         Блок {index + 1} · изображение
       </div>
-      {block.image_url ? (
+      {imageUrl ? (
         <img
           className="content-block-image"
-          src={safeMarkdownUrl(block.image_url)}
+          src={safeMarkdownUrl(imageUrl)}
           alt=""
         />
       ) : (
@@ -340,7 +344,7 @@ function getBlockContentType(block) {
   return aliases[rawType] || rawType;
 }
 
-function renderContentBlock(block, index, onPreview) {
+function renderContentBlock(block, index, onPreview, ownerUserId) {
   const normalizedBlock = {
     ...block,
     content_type: getBlockContentType(block),
@@ -370,6 +374,7 @@ function renderContentBlock(block, index, onPreview) {
           key={`content-${index}`}
           block={normalizedBlock}
           index={index}
+          ownerUserId={ownerUserId}
         />
       );
     case "quiz":
@@ -435,12 +440,15 @@ function renderContentBlock(block, index, onPreview) {
   }
 }
 
-export default function ContentBlocks({ blocks }) {
+const ContentBlocks = forwardRef(function ContentBlocks(
+  { blocks, ownerUserId },
+  ref,
+) {
   const [preview, setPreview] = useState(null);
 
   if (!Array.isArray(blocks) || blocks.length === 0) {
     return (
-      <article className="course-viewer-card theory-section">
+      <article ref={ref} className="course-viewer-card theory-section">
         <h2>Теория урока</h2>
         <p className="course-viewer-muted">
           В уроке пока нет теоретических блоков.
@@ -455,12 +463,14 @@ export default function ContentBlocks({ blocks }) {
       aria-labelledby="theory-title"
     >
       <h2 id="theory-title">Теория урока</h2>
-      <div className="content-blocks-list">
+      <div ref={ref} className="content-blocks-list">
         {blocks.map((block, index) =>
-          renderContentBlock(block, index, setPreview),
+          renderContentBlock(block, index, setPreview, ownerUserId),
         )}
       </div>
       <ContentPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </section>
   );
-}
+});
+
+export default ContentBlocks;

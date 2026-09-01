@@ -644,6 +644,23 @@
     width: 100%;
 }
 
+.profile-learner-courses-card {
+    padding: 22px;
+}
+
+.profile-learner-courses-card h3 {
+    font-family: "Unbounded", sans-serif;
+    font-size: 1rem;
+}
+
+.profile-learner-courses-card .profile-my-courses-head {
+    margin-bottom: 14px;
+}
+
+.profile-learner-courses-card .teacher-authored-course-list {
+    margin-top: 0;
+}
+
 .profile-my-course-list {
     gap: 12px;
 }

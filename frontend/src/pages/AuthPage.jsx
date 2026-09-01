@@ -59,9 +59,8 @@ export default function AuthPage({ mode = "login" }) {
   useEffect(() => {
     const hasActiveSession = Boolean(
       accessToken &&
-      refreshToken &&
       expiresAt &&
-      !isTokenExpired(expiresAt) &&
+      (!isTokenExpired(expiresAt) || refreshToken) &&
       (membershipId || organizationId),
     );
     if (hasActiveSession) {
@@ -111,7 +110,6 @@ export default function AuthPage({ mode = "login" }) {
 
     try {
       await selectMembership(selectedMembershipId);
-      navigate(redirectPath, { replace: true });
     } catch {
       // Ошибка выбора организации отображается ниже.
     }

@@ -22,9 +22,25 @@ export const AI_MODEL_PERMISSIONS = {
   DELETE: "ai_model:delete",
 };
 
+function normalizePermissionString(value) {
+  const permission = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!permission) return "";
+
+  const withoutScope = permission.split(":")[0];
+  const [resource, action] = withoutScope.includes(".")
+    ? withoutScope.split(".", 2)
+    : permission.split(":", 2);
+
+  if (!resource || !action) return permission.replace(".", ":");
+
+  return `${resource}:${action}`;
+}
+
 function normalizePermissionCode(permission) {
   if (typeof permission === "string") {
-    return permission.trim().replace(".", ":");
+    return normalizePermissionString(permission);
   }
 
   if (!permission || typeof permission !== "object") {
@@ -33,11 +49,13 @@ function normalizePermissionCode(permission) {
 
   const rawCode = permission.code || permission.name || permission.permission;
   if (typeof rawCode === "string" && rawCode.trim()) {
-    return rawCode.trim().replace(".", ":");
+    return normalizePermissionString(rawCode);
   }
 
   if (permission.resource && permission.action) {
-    return `${permission.resource}:${permission.action}`;
+    return normalizePermissionString(
+      `${permission.resource}:${permission.action}`,
+    );
   }
 
   return "";

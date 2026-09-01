@@ -15,6 +15,7 @@ import {
   createModule as createModuleApi,
   deleteLesson as deleteLessonApi,
   deleteModule as deleteModuleApi,
+  updateCourse as updateCourseApi,
   updateLesson as updateLessonApi,
   updateModule as updateModuleApi,
   updateLessonContentBlocks,
@@ -53,14 +54,6 @@ const EMPTY_COURSE_DRAFT = {
   difficulty: "beginner",
   tags: "",
 };
-
-const AI_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/gif",
-]);
-const AI_IMAGE_MAX_SIZE = 50 * 1024 * 1024;
 
 function createBlockDraft(file, index) {
   return {
@@ -160,6 +153,7 @@ function loadManualBuilderDraft() {
       lessonContentDraft: parsed.lessonContentDraft || "",
       courseDraft: parsed.courseDraft || EMPTY_COURSE_DRAFT,
       createdCourse: parsed.createdCourse || null,
+      isCourseFormOpen: parsed.isCourseFormOpen ?? !parsed.createdCourse?.id,
       editingBlockId: parsed.editingBlockId || null,
       chatBlockId: parsed.chatBlockId || null,
       isModuleFormOpen: Boolean(parsed.isModuleFormOpen),
@@ -282,6 +276,9 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
   const [createdCourse, setCreatedCourse] = useState(
     restoredDraft.createdCourse || null,
   );
+  const [isCourseFormOpen, setIsCourseFormOpen] = useState(
+    restoredDraft.isCourseFormOpen ?? !restoredDraft.createdCourse?.id,
+  );
   const [courseCreateError, setCourseCreateError] = useState("");
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [finishError, setFinishError] = useState("");
@@ -295,9 +292,7 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
   );
 
   const [aiInput, setAiInput] = useState("");
-  const [aiImage, setAiImage] = useState(null);
   const [proposalError, setProposalError] = useState("");
-  const aiImageInputRef = useRef(null);
   const aiMessagesRef = useRef(null);
 
   const availableBlocks = blocks.filter((block) => !block.lessonId);
@@ -403,6 +398,7 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
       lessonContentDraft,
       courseDraft,
       createdCourse,
+      isCourseFormOpen,
       editingBlockId,
       chatBlockId,
       isModuleFormOpen,
@@ -416,6 +412,7 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
     courseDraft,
     createdCourse,
     editingBlockId,
+    isCourseFormOpen,
     editingStructure,
     isModuleFormOpen,
     lessonContentDraft,
@@ -860,58 +857,31 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
   const toggleBlockChat = (blockId) => {
     setChatBlockId((current) => (current === blockId ? null : blockId));
     setAiInput("");
-    setAiImage(null);
     setProposalError("");
   };
 
   const closeBlockAiEditor = () => {
     setChatBlockId(null);
     setAiInput("");
-    setAiImage(null);
     setProposalError("");
-  };
-
-  const attachAiImage = (event) => {
-    const [file] = Array.from(event.target.files || []);
-    event.target.value = "";
-
-    if (
-      !file ||
-      !AI_IMAGE_TYPES.has(file.type) ||
-      file.size > AI_IMAGE_MAX_SIZE
-    ) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAiImage({ name: file.name, src: String(reader.result) });
-    };
-    reader.readAsDataURL(file);
   };
 
   const askBlockAi = async () => {
     const prompt = aiInput.trim();
-    if (
-      (!prompt && !aiImage) ||
-      !activeChatBlock ||
-      !createdCourse?.id ||
-      isAiSending
-    ) {
+    if (!prompt || !activeChatBlock || !createdCourse?.id || isAiSending) {
       return;
     }
 
     const currentMarkdown = activeChatBlock.markdown || "";
     setProposalError("");
     setAiInput("");
-    setAiImage(null);
 
     try {
       const response = await sendAgentMessage({
         key: aiConversationKey,
         agent: "editor",
         courseId: createdCourse?.id,
-        content: prompt || "Измени блок с учётом прикреплённого изображения.",
+        content: prompt,
         contentBlocks: blocksToTextContentBlocks(
           availableBlocks.filter((block) => block.id !== activeChatBlock.id),
         ),
@@ -922,7 +892,7 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
             ai_generated: false,
             md_content: currentMarkdown,
           }),
-          images: aiImage ? [aiImage.src] : [],
+          images: undefined,
         },
         emptyResponseMessage: "",
         responseDisplayMessage: (agentResponse) =>
@@ -1583,6 +1553,26 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
     setCourseCreateError("");
 
     try {
+      if (hasCreatedCourse) {
+        const updatedCourse = await updateCourseApi(createdCourse.id, {
+          title,
+          description,
+          difficulty: courseDraft.difficulty,
+          tags,
+        });
+        setCreatedCourse((current) => ({
+          ...current,
+          ...(updatedCourse || {}),
+          id: current.id,
+          title,
+          description,
+          difficulty: courseDraft.difficulty,
+          tags,
+        }));
+        setIsCourseFormOpen(false);
+        return;
+      }
+
       const course = await createCourseApi({
         title,
         description,
@@ -1590,9 +1580,15 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
         tags,
       });
       setCreatedCourse(course);
+      setIsCourseFormOpen(false);
     } catch (error) {
       setCourseCreateError(
-        getApiErrorMessage(error, "Не удалось создать курс."),
+        getApiErrorMessage(
+          error,
+          hasCreatedCourse
+            ? "Не удалось обновить курс."
+            : "Не удалось создать курс.",
+        ),
       );
     } finally {
       setIsCreatingCourse(false);
@@ -1718,39 +1714,9 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
         )}
       </div>
 
-      {aiImage && (
-        <div className="lesson-ai-attachment">
-          <img src={aiImage.src} alt="Прикрепленное изображение" />
-          <span>{aiImage.name}</span>
-          <button
-            type="button"
-            onClick={() => setAiImage(null)}
-            aria-label="Удалить изображение"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
       {aiError && <p className="lesson-ai-error">{aiError}</p>}
 
-      <div className="lesson-ai-composer">
-        <input
-          ref={aiImageInputRef}
-          className="lesson-ai-image-input"
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          onChange={attachAiImage}
-        />
-        <button
-          type="button"
-          className="lesson-ai-attach"
-          onClick={() => aiImageInputRef.current?.click()}
-          aria-label="Прикрепить изображение до 50 МБ"
-          title="Прикрепить изображение до 50 МБ"
-        >
-          +
-        </button>
+      <div className="lesson-ai-composer manual-ai-composer">
         <textarea
           value={aiInput}
           onChange={(event) => setAiInput(event.target.value)}
@@ -1775,9 +1741,7 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
           type="button"
           className="lesson-ai-send"
           onClick={askBlockAi}
-          disabled={
-            isAiSending || !createdCourse?.id || (!aiInput.trim() && !aiImage)
-          }
+          disabled={isAiSending || !createdCourse?.id || !aiInput.trim()}
           aria-label="Отправить сообщение"
           title="Отправить"
         >
@@ -1795,9 +1759,9 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
         label="Конструктор"
         title="Создать курс самостоятельно"
         text={
-          hasCreatedCourse
+          hasCreatedCourse && !isCourseFormOpen
             ? "Курс создан. Теперь загрузите материалы и соберите модули с уроками."
-            : "Сначала заполните карточку курса. После создания станет доступна загрузка файлов."
+            : "Заполните или проверьте карточку курса. После сохранения станет доступна загрузка файлов."
         }
       />
 
@@ -1824,14 +1788,33 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
           </div>
         </article>
 
-        {!hasCreatedCourse && (
+        {(!hasCreatedCourse || isCourseFormOpen) && (
           <article className="glass-card manual-section-card manual-course-create-card">
             <div className="manual-card-head">
               <div>
                 <span>Шаг 1</span>
                 <h3>Карточка курса</h3>
               </div>
-              <strong>POST /course/create</strong>
+              <div className="manual-card-head-actions">
+                <strong>
+                  {hasCreatedCourse
+                    ? "PUT /course/edit"
+                    : "POST /course/create"}
+                </strong>
+                {hasCreatedCourse && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => {
+                      setCourseCreateError("");
+                      setIsCourseFormOpen(false);
+                    }}
+                    disabled={isCreatingCourse}
+                  >
+                    Вернуться к материалам
+                  </button>
+                )}
+              </div>
             </div>
 
             <form
@@ -1902,14 +1885,36 @@ export default function ManualCourseBuilderPage({ onCreateCourse }) {
                 className="btn btn-solid manual-course-create-submit"
                 disabled={isCreatingCourse}
               >
-                {isCreatingCourse ? "Создаём курс..." : "Создать курс"}
+                {isCreatingCourse
+                  ? hasCreatedCourse
+                    ? "Сохраняем курс..."
+                    : "Создаём курс..."
+                  : hasCreatedCourse
+                    ? "Сохранить и вернуться к материалам"
+                    : "Создать курс"}
               </button>
             </form>
           </article>
         )}
 
-        {hasCreatedCourse && (
+        {hasCreatedCourse && !isCourseFormOpen && (
           <div className="manual-builder-shell">
+            <div className="manual-builder-course-toolbar glass-card">
+              <div>
+                <span>Карточка курса</span>
+                <strong>{createdCourse.title}</strong>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  setCourseCreateError("");
+                  setIsCourseFormOpen(true);
+                }}
+              >
+                Вернуться к данным курса
+              </button>
+            </div>
             <div
               className={`manual-builder-layout ${hasBlocks ? "has-sidebar" : ""}`}
             >

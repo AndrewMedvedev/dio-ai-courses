@@ -675,6 +675,80 @@
     font-size: 0.86rem;
 }
 
+.lesson-image-block-editor {
+    gap: 10px;
+}
+
+.lesson-image-block-dropzone {
+    display: grid;
+    min-height: 220px;
+    place-items: center;
+    border: 1px dashed rgba(var(--accent-rgb), 0.42);
+    border-radius: 16px;
+    background: rgba(var(--accent-rgb), 0.07);
+    padding: 14px;
+    cursor: pointer;
+    transition:
+        border-color 160ms ease,
+        background 160ms ease;
+}
+
+.lesson-image-block-dropzone:hover {
+    border-color: rgba(var(--accent-rgb), 0.7);
+    background: rgba(var(--accent-rgb), 0.1);
+}
+
+.lesson-image-block-dropzone.is-disabled {
+    cursor: default;
+}
+
+.lesson-image-block-dropzone.is-disabled:hover {
+    border-color: rgba(var(--accent-rgb), 0.42);
+    background: rgba(var(--accent-rgb), 0.07);
+}
+
+.lesson-image-block-dropzone input {
+    display: none;
+}
+
+.lesson-image-block-preview {
+    display: grid;
+    gap: 6px;
+    width: min(100%, 640px);
+}
+
+.lesson-image-block-preview img,
+.lesson-image-block-preview-img {
+    display: block;
+    max-width: 100%;
+    max-height: 360px;
+    border-radius: 14px;
+    object-fit: contain;
+    background: rgba(var(--accent-rgb), 0.06);
+}
+
+.lesson-image-block-empty {
+    display: grid;
+    gap: 6px;
+    color: var(--text);
+    text-align: center;
+}
+
+.lesson-image-block-empty small,
+.lesson-image-block-preview small,
+.lesson-image-block-editor small {
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.lesson-image-block-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 .lesson-quiz-editor,
 .lesson-quiz-question {
     display: grid;
@@ -1028,7 +1102,7 @@
 
 .lesson-ai-composer {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    grid-template-columns: minmax(0, 1fr) 34px;
     align-items: end;
     gap: 7px;
     margin-top: auto;
@@ -1036,6 +1110,10 @@
     border: 1px solid rgba(255, 255, 255, 0.58);
     border-radius: 13px;
     background: rgba(255, 255, 255, 0.3);
+}
+
+.lesson-ai-composer.has-attach {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
 }
 
 .lesson-ai-image-input {
@@ -1114,6 +1192,42 @@
     background: transparent;
     color: var(--ink-accent);
     font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.lesson-ai-reference-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 72px));
+    gap: 8px;
+}
+
+.lesson-ai-reference-preview {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid rgba(var(--accent-rgb), 0.24);
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.lesson-ai-reference-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lesson-ai-reference-preview button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.58);
+    color: #fff;
+    font-size: 1rem;
     line-height: 1;
     cursor: pointer;
 }

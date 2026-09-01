@@ -261,10 +261,46 @@
     grid-column: 1 / -1;
 }
 
+.block-lessons-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.block-lessons-head h3 {
+    margin: 0;
+}
+
+.block-lessons-head .btn {
+    flex: 0 0 auto;
+}
+
 .block-lessons-card h3,
 .block-practice-card h3 {
     font-family: "Unbounded", sans-serif;
     font-size: 0.98rem;
+}
+
+.block-empty-lessons {
+    margin-top: 12px;
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+}
+
+.block-empty-lessons h4 {
+    margin: 0;
+    color: var(--heading);
+    font-family: "Unbounded", sans-serif;
+    font-size: 0.95rem;
+}
+
+.block-empty-lessons p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.45;
 }
 
 .block-lessons-card ol {
@@ -1922,6 +1958,16 @@ body.is-resizing-lesson-chat * {
     margin: 0 auto;
 }
 
+.mermaid-diagram-render-host {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .content-block-card .mermaid-diagram {
     overflow: auto;
 }
@@ -1989,20 +2035,40 @@ body.is-resizing-lesson-chat * {
     background: rgba(var(--accent-rgb), 0.08);
 }
 
-.mermaid-diagram-placeholder strong {
+.mermaid-diagram-placeholder strong,
+.mermaid-diagram-error strong {
     color: var(--ink);
     font-weight: 800;
 }
 
-.mermaid-diagram-placeholder span {
+.mermaid-diagram-placeholder span,
+.mermaid-diagram-error span {
     max-width: 420px;
     font-size: 0.86rem;
     line-height: 1.45;
 }
 
+.mermaid-diagram-error {
+    min-width: 280px;
+    min-height: 120px;
+    display: grid;
+    place-content: center;
+    gap: 8px;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed rgba(196, 89, 89, 0.42);
+    border-radius: 10px;
+    background: rgba(196, 89, 89, 0.08);
+}
+
 .page[data-theme="dark"] .mermaid-diagram-placeholder {
     background: rgba(155, 182, 209, 0.08);
     border-color: rgba(155, 182, 209, 0.34);
+}
+
+.page[data-theme="dark"] .mermaid-diagram-error {
+    background: rgba(255, 135, 135, 0.08);
+    border-color: rgba(255, 135, 135, 0.34);
 }
 
 .lesson-controls {

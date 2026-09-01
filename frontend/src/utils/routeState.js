@@ -26,8 +26,10 @@ export function getRouteState(pathname, courseList = []) {
     selectedPractice = selectedBlock.practice?.[0] ?? null;
 
     if (course) {
-      const contentTypeIndex = segments[2] === "edit" ? 3 : 2;
-      const contentIdIndex = segments[2] === "edit" ? 4 : 3;
+      const routeModeOffset =
+        segments[2] === "edit" || segments[2] === "metrics" ? 1 : 0;
+      const contentTypeIndex = 2 + routeModeOffset;
+      const contentIdIndex = 3 + routeModeOffset;
 
       if (segments[contentTypeIndex] === "block" && segments[contentIdIndex]) {
         const blockId = segments[contentIdIndex];
@@ -42,7 +44,11 @@ export function getRouteState(pathname, courseList = []) {
         selectedPractice = selectedBlock.practice?.[0] ?? null;
       }
 
-      if (segments[contentTypeIndex] === "lesson" && segments[contentIdIndex]) {
+      if (
+        (segments[contentTypeIndex] === "lesson" ||
+          segments[contentTypeIndex] === "lessons") &&
+        segments[contentIdIndex]
+      ) {
         const lessonId = segments[contentIdIndex];
         const block = course.blocks.find((item) =>
           item.lessons.some((lesson) => lesson.id === lessonId),

@@ -12,6 +12,7 @@ import {
 import MermaidDiagram from "../components/MermaidDiagram";
 import SectionTop from "../components/SectionTop";
 import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
+import { useGoBack } from "../hooks/useGoBack";
 
 const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;
@@ -38,13 +39,17 @@ export default function PracticePage({
   completedPractices,
   togglePracticeComplete,
   openBlock,
-  openBlockPage,
   openLesson,
   openPractice,
   isCourseEditMode,
 }) {
   const [preview, setPreview] = useState(null);
   const [activeTab, setActiveTab] = useState("practice");
+  const goBack = useGoBack({
+    fallbackPath: isCourseEditMode
+      ? `/course/${selectedCourse.id}/edit/block/${selectedBlock.id}`
+      : `/course/${selectedCourse.id}/block/${selectedBlock.id}`,
+  });
 
   const markdownComponents = {
     code({ className, children, ...props }) {
@@ -110,7 +115,7 @@ export default function PracticePage({
       <button
         type="button"
         className="btn btn-outline back-btn"
-        onClick={() => openBlockPage(selectedBlock.id)}
+        onClick={goBack}
         aria-label="Назад к блоку"
         title="Назад к блоку"
       >

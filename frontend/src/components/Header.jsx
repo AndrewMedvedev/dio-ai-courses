@@ -1,7 +1,18 @@
 // Шапка приложения и навигация по маршрутам
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useAuthenticatedImage } from "../hooks/useAuthenticatedImage";
 import { useSessionStore } from "../stores/sessionStore";
+import { useUiLayoutStore } from "../stores/uiLayoutStore";
+import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
+
+function getDisplayText(value) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (!value || typeof value !== "object") return "";
+
+  return getDisplayText(
+    value.value || value.label || value.name || value.email || value.username,
+  );
+}
 
 export default function Header({
   theme,
@@ -14,14 +25,20 @@ export default function Header({
   const location = useLocation();
   const navigate = useNavigate();
   const accessToken = useSessionStore((state) => state.accessToken);
-  const refreshToken = useSessionStore((state) => state.refreshToken);
+
   const identity = useSessionStore((state) => state.identity);
   const user = useSessionStore((state) => state.user);
   const logout = useSessionStore((state) => state.logout);
-  const isAuthenticated = Boolean(accessToken && refreshToken);
-  const { imageUrl: avatarImageUrl } = useAuthenticatedImage(user?.avatar_url, {
-    enabled: isAuthenticated,
-  });
+  const resetRouteHistory = useUiLayoutStore(
+    (state) => state.resetRouteHistory,
+  );
+  const isAuthenticated = Boolean(accessToken);
+  const currentUserId = user?.id || user?.user_id || user?.userId;
+  const avatarImageUrl = getMediaUrl(
+    currentUserId,
+    MEDIA_FOLDERS.AVATAR,
+    user?.avatar_url,
+  );
   const isCoursePath =
     location.pathname.startsWith("/course") || location.pathname === "/courses";
   const isOrganizationsPath = location.pathname.startsWith("/organizations");
@@ -29,9 +46,15 @@ export default function Header({
 
   const handleLogout = async () => {
     await logout();
+    resetRouteHistory("/");
     navigate("/", { replace: true });
   };
-  const displayName = user?.username || identity?.email || "Профиль";
+  const displayName =
+    getDisplayText(user?.username) ||
+    getDisplayText(user?.name) ||
+    getDisplayText(identity?.email) ||
+    getDisplayText(identity?.username) ||
+    "Профиль";
 
   return (
     <header className="container header">

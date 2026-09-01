@@ -16,6 +16,18 @@ const enqueueRender = (task) => {
   return result;
 };
 
+const formatMermaidError = (error) => {
+  const rawMessage =
+    error?.str || error?.message || error?.hash?.text || String(error ?? "");
+  const message = String(rawMessage).replace(/\s+/g, " ").trim();
+
+  if (!message) {
+    return "Mermaid не смог обработать код диаграммы.";
+  }
+
+  return message.length > 280 ? `${message.slice(0, 277)}...` : message;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Theme */
 /* -------------------------------------------------------------------------- */
@@ -129,19 +141,28 @@ const hasDiagramType = (source) =>
   DIAGRAM_TYPE_PATTERN.test(String(source ?? "").trim());
 
 const quoteUnsafeSquareLabels = (source) =>
-  String(source ?? "").replace(/\[([^\]\n]+)\]/g, (match, label) => {
-    const trimmed = label.trim();
+  String(source ?? "")
+    .split("\n")
+    .map((line) => {
+      if (/^\s*subgraph\s+[A-Za-z_][\w-]*\s+\[[^\]]+\]\s*$/i.test(line)) {
+        return line;
+      }
 
-    if (!trimmed || /^["'`]/.test(trimmed)) {
-      return match;
-    }
+      return line.replace(/\[([^\]\n]+)\]/g, (match, label) => {
+        const trimmed = label.trim();
 
-    if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) {
-      return match;
-    }
+        if (!trimmed || /^["'`]/.test(trimmed)) {
+          return match;
+        }
 
-    return `["${trimmed.replace(/"/g, "#quot;")}"]`;
-  });
+        if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) {
+          return match;
+        }
+
+        return `["${trimmed.replace(/"/g, "#quot;")}"]`;
+      });
+    })
+    .join("\n");
 
 const stripInlineComments = (source) =>
   String(source ?? "")
@@ -167,6 +188,12 @@ const splitStuckFlowchartStatements = (source) =>
     )
     // A[Текст]B[Другой текст] / A["Текст"]B["Другой текст"]
     .replace(/(\])([A-Za-z_][\w-]*\s*(?=[\[({]))/g, "$1\n$2")
+    // A[Текст]end / A["Текст"]"end -> A[Текст]\nend
+    .replace(/([\]\)])\s*["']?\s*(?=end\b)/gi, "$1\n")
+    // endA[Текст] -> end\nA[Текст]
+    .replace(/\bend(?=[A-Za-z_][\w-]*\s*[\[({])/gi, "end\n")
+    // subgraph Id[Название] -> subgraph Id [Название]
+    .replace(/((?:^|\n)\s*subgraph\s+[A-Za-z_][\w-]*)(?=\s*\[)/g, "$1 ")
     // subgraph "Название"direction TB / subgraph "Название"node[Текст]
     .replace(
       /((?:^|\n)\s*subgraph\s+["'][^"'\n]+["'])(\s*(?:direction\b|[A-Za-z_][\w-]*\s*(?=[\[({])))/g,
@@ -199,11 +226,11 @@ const repairCommonErrors = (source) => {
   result = splitStuckFlowchartStatements(result);
   result = result.replace(/([\]\)])([A-Za-z_])/g, "$1 $2");
 
-  // 7. Оборачиваем subgraph в кавычки, если их нет (используем двойные)
+  // 7. Оборачиваем простой текстовый subgraph в кавычки, не трогая форму `subgraph id [label]`.
   result = result.replace(
     /subgraph\s+([^\s"'\n][^\n]*?)(\s*\n)/g,
     (match, title, rest) => {
-      if (/^["']/.test(title)) return match;
+      if (/^["']/.test(title) || /\[[^\]]+\]\s*$/.test(title)) return match;
       return `subgraph "${title}"${rest}`;
     },
   );
@@ -295,8 +322,7 @@ const normalizeRenderedSvg = (svg) => {
     );
 
     return new XMLSerializer().serializeToString(svgElement);
-  } catch (error) {
-    console.warn("[MermaidDiagram] SVG normalization failed", error);
+  } catch {
     return svg;
   }
 };
@@ -330,8 +356,7 @@ const isErrorSvg = (svg) => {
       /\berror\b/i.test(roleDescription) ||
       /\b(?:syntax|parse|lexical) error\b/i.test(visibleText)
     );
-  } catch (error) {
-    console.warn("[MermaidDiagram] SVG error detection failed", error);
+  } catch {
     return false;
   }
 };
@@ -364,26 +389,32 @@ const cleanupMermaidDom = (id) => {
 /* -------------------------------------------------------------------------- */
 /* Render single candidate */
 /* -------------------------------------------------------------------------- */
+const validateCandidate = async (mermaid, source) => {
+  if (typeof mermaid.parse !== "function") return;
+
+  await mermaid.parse(source, { suppressErrors: false });
+};
+
 const renderCandidate = async (mermaid, source, id) => {
   try {
+    await validateCandidate(mermaid, source);
+
     const result = await mermaid.render(id, source);
     if (!result?.svg) {
-      console.warn("[MermaidDiagram] render returned no SVG", { source });
-      return null;
+      return {
+        svg: null,
+        error: "Mermaid вернул пустой SVG для этой диаграммы.",
+      };
     }
     if (isErrorSvg(result.svg)) {
-      console.warn("[MermaidDiagram] rendered SVG contains error", {
-        source,
-        svg: result.svg.substring(0, 300),
-      });
-      return null;
+      return {
+        svg: null,
+        error: "Mermaid вернул SVG с ошибкой парсинга диаграммы.",
+      };
     }
-    return normalizeRenderedSvg(result.svg);
+    return { svg: normalizeRenderedSvg(result.svg), error: null };
   } catch (error) {
-    console.warn("[MermaidDiagram] renderCandidate error:", error.message, {
-      source,
-    });
-    return null;
+    return { svg: null, error: formatMermaidError(error) };
   } finally {
     cleanupMermaidDom(id);
   }
@@ -393,32 +424,48 @@ const renderCandidate = async (mermaid, source, id) => {
 /* Complete Mermaid render — если не удалось, возвращаем ultimate fallback */
 /* -------------------------------------------------------------------------- */
 const renderMermaid = async ({ chart, componentId }) => {
+  let lastError = "Не удалось отрисовать Mermaid-диаграмму.";
+
   try {
     const mermaid = await getMermaid();
     const candidates = createRenderCandidates(chart);
+
+    if (!candidates.length) {
+      return {
+        svg: ULTIMATE_FALLBACK_SVG,
+        error: null,
+        recovered: true,
+        fallback: true,
+      };
+    }
 
     for (let index = 0; index < candidates.length; index += 1) {
       const source = candidates[index];
       const id = `m-${componentId}-${Date.now()}-${globalRenderCounter++}-${index}`;
       const safeId = id.replace(/^[^a-zA-Z]+/, "m");
 
-      const svg = await renderCandidate(mermaid, source, safeId);
-      if (svg) {
+      const result = await renderCandidate(mermaid, source, safeId);
+      if (result.svg) {
         return {
-          svg,
+          svg: result.svg,
+          error: null,
           recovered: index > 0,
           fallback: false,
         };
       }
+      if (result.error) {
+        lastError = result.error;
+      }
     }
   } catch (error) {
-    console.warn("[MermaidDiagram] renderMermaid failed:", error);
+    lastError = formatMermaidError(error);
   }
 
   return {
-    svg: ULTIMATE_FALLBACK_SVG,
-    recovered: true,
-    fallback: true,
+    svg: "",
+    error: lastError,
+    recovered: false,
+    fallback: false,
   };
 };
 
@@ -427,10 +474,10 @@ const renderMermaid = async ({ chart, componentId }) => {
 /* -------------------------------------------------------------------------- */
 export default function MermaidDiagram({ chart }) {
   const reactId = useId();
-  const containerRef = useRef(null);
   const renderVersionRef = useRef(0);
   const [svg, setSvg] = useState("");
   const [status, setStatus] = useState("loading");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const normalizedChart = useMemo(() => normalizeMermaidSource(chart), [chart]);
 
@@ -450,6 +497,7 @@ export default function MermaidDiagram({ chart }) {
 
     setStatus("loading");
     setSvg("");
+    setErrorMessage("");
 
     const execute = async () => {
       const result = await enqueueRender(() =>
@@ -462,7 +510,10 @@ export default function MermaidDiagram({ chart }) {
       if (cancelled || currentVersion !== renderVersionRef.current) return;
 
       setSvg(result.svg);
-      if (result.fallback) {
+      setErrorMessage(result.error || "");
+      if (result.error) {
+        setStatus("error");
+      } else if (result.fallback) {
         setStatus("fallback");
       } else if (result.recovered) {
         setStatus("recovered");
@@ -472,10 +523,10 @@ export default function MermaidDiagram({ chart }) {
     };
 
     execute().catch((error) => {
-      console.warn("[MermaidDiagram] unexpected error", error);
       if (cancelled || currentVersion !== renderVersionRef.current) return;
-      setSvg(ULTIMATE_FALLBACK_SVG);
-      setStatus("fallback");
+      setSvg("");
+      setErrorMessage(formatMermaidError(error));
+      setStatus("error");
     });
 
     return () => {
@@ -485,15 +536,17 @@ export default function MermaidDiagram({ chart }) {
   }, [normalizedChart, componentId]);
 
   return (
-    <div
-      ref={containerRef}
-      className={["mermaid-diagram", `is-${status}`].join(" ")}
-    >
+    <div className={["mermaid-diagram", `is-${status}`].join(" ")}>
       {svg ? (
         <div
           className="mermaid-diagram-svg"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
+      ) : status === "error" ? (
+        <div className="mermaid-diagram-error" role="alert">
+          <strong>Не удалось отрисовать Mermaid-диаграмму</strong>
+          <span>{errorMessage}</span>
+        </div>
       ) : (
         <div
           className="mermaid-diagram-placeholder"

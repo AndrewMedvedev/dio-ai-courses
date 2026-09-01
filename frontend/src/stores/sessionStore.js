@@ -5,7 +5,6 @@ import {
   fetchIdentity,
   fetchCurrentUser,
   updateCurrentUser,
-  uploadCurrentUserAvatar,
   login as loginApi,
   logout as logoutApi,
   readStoredSession,
@@ -14,6 +13,8 @@ import {
   setUnauthorizedHandler,
   isTokenExpired,
 } from "../utils/api";
+import { attachmentsApi } from "../utils/attachments";
+import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 
 const initialStoredSession = readStoredSession();
 const SESSION_CACHE_STORAGE_KEY = "aicolab-session-cache";
@@ -38,13 +39,115 @@ const initialState = {
   hasHydrated: false,
 };
 
+function getSessionUserId(user) {
+  return user?.id || user?.user_id || user?.userId || "";
+}
+
+function normalizeSessionUser(user) {
+  if (!user || typeof user !== "object") return user;
+  const userId = getSessionUserId(user);
+  const avatarId = getMediaId(user.avatar_url || user.avatarUrl);
+  return {
+    ...user,
+    avatar_url: avatarId || user.avatar_url || "",
+    avatarUrl: getMediaUrl(userId, MEDIA_FOLDERS.AVATAR, avatarId),
+  };
+}
+
 function getOrganizationIdFromMembership(membership) {
   return (
     membership?.organization_id ||
+    membership?.organizationId ||
     membership?.organization?.id ||
     membership?.organization?.organization_id ||
+    membership?.organization?.organizationId ||
     null
   );
+}
+
+function getMembershipIdFromIdentity(identity) {
+  return (
+    identity?.membership_id ||
+    identity?.membershipId ||
+    identity?.membership?.id ||
+    identity?.current_membership?.id ||
+    identity?.currentMembership?.id ||
+    null
+  );
+}
+
+function getOrganizationIdFromIdentity(identity) {
+  return (
+    identity?.organization_id ||
+    identity?.organizationId ||
+    identity?.organization?.id ||
+    identity?.organization?.organization_id ||
+    identity?.organization?.organizationId ||
+    identity?.membership?.organization_id ||
+    identity?.membership?.organizationId ||
+    identity?.membership?.organization?.id ||
+    identity?.current_membership?.organization_id ||
+    identity?.current_membership?.organization?.id ||
+    identity?.currentMembership?.organizationId ||
+    identity?.currentMembership?.organization?.id ||
+    null
+  );
+}
+
+function decodeJwtExp(token) {
+  if (!token || typeof token !== "string") return null;
+
+  try {
+    const encodedPayload = token.split(".")[1] || "";
+    const base64Payload = encodedPayload
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(base64Payload));
+    return Number(payload?.exp) || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeExpiresAt(value, accessToken) {
+  if (value === null || value === undefined || value === "") {
+    return decodeJwtExp(accessToken);
+  }
+
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue > 0) {
+    return numericValue > 9999999999
+      ? Math.floor(numericValue / 1000)
+      : numericValue;
+  }
+
+  const parsedDate = Date.parse(value);
+  if (Number.isFinite(parsedDate)) {
+    return Math.floor(parsedDate / 1000);
+  }
+
+  return decodeJwtExp(accessToken);
+}
+
+function normalizeTokens(tokens) {
+  const source = tokens?.tokens || tokens?.data || tokens || {};
+  const accessToken =
+    source.access_token || source.accessToken || source.access;
+  const refreshToken =
+    source.refresh_token || source.refreshToken || source.refresh;
+  const expiresAt =
+    source.expires_at ||
+    source.expiresAt ||
+    source.exp ||
+    source.access_expires_at ||
+    source.accessTokenExpiresAt;
+
+  return {
+    accessToken,
+    refreshToken,
+    expiresAt: normalizeExpiresAt(expiresAt, accessToken),
+  };
 }
 
 export const useSessionStore = create(
@@ -59,17 +162,17 @@ export const useSessionStore = create(
         const state = get();
         return Boolean(
           state.accessToken &&
-          state.refreshToken &&
           state.expiresAt &&
-          !isTokenExpired(state.expiresAt),
+          (!isTokenExpired(state.expiresAt) || state.refreshToken),
         );
       },
 
       setTokens: (tokens, context = {}) => {
+        const normalizedTokens = normalizeTokens(tokens);
         const nextSession = {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiresAt: tokens.expires_at,
+          accessToken: normalizedTokens.accessToken || get().accessToken,
+          refreshToken: normalizedTokens.refreshToken || get().refreshToken,
+          expiresAt: normalizedTokens.expiresAt || get().expiresAt,
           membershipId: context.membershipId || get().membershipId,
           organizationId: context.organizationId || get().organizationId,
         };
@@ -148,7 +251,16 @@ export const useSessionStore = create(
             memberships: [],
             loginStep: "credentials",
           });
-          await Promise.all([loadIdentity(), get().loadCurrentUser()]);
+          const identity = await loadIdentity();
+          if (!identity) {
+            const error = new Error(
+              "Не удалось подтвердить сессию выбранной организации.",
+            );
+            set({ isLoading: false, error: error.message });
+            throw error;
+          }
+
+          get().loadCurrentUser();
           set({ isLoading: false });
           return tokens;
         } catch (error) {
@@ -179,8 +291,10 @@ export const useSessionStore = create(
           .then((identity) => {
             set({
               identity,
-              membershipId: identity?.membership_id || get().membershipId,
-              organizationId: identity?.organization_id || get().organizationId,
+              membershipId:
+                getMembershipIdFromIdentity(identity) || get().membershipId,
+              organizationId:
+                getOrganizationIdFromIdentity(identity) || get().organizationId,
             });
             return identity;
           })
@@ -212,21 +326,19 @@ export const useSessionStore = create(
 
         currentUserRequestPromise = fetchCurrentUser()
           .then((user) => {
-            set({ user });
-            return user;
+            const normalizedUser = normalizeSessionUser(user);
+            set({ user: normalizedUser });
+            return normalizedUser;
           })
           .catch((error) => {
-            if (error.status === 401) {
-              get().clearSession();
-              return null;
-            }
-
             set({
               user: null,
               error:
-                error.userMessage ||
-                error.message ||
-                "Не удалось загрузить профиль пользователя.",
+                error.status === 401
+                  ? null
+                  : error.userMessage ||
+                    error.message ||
+                    "Не удалось загрузить профиль пользователя.",
             });
             return null;
           })
@@ -250,7 +362,7 @@ export const useSessionStore = create(
         set({ isLoading: true, error: null, validationErrors: {} });
 
         try {
-          const user = await updateCurrentUser(changes);
+          const user = normalizeSessionUser(await updateCurrentUser(changes));
           set({ user, isLoading: false, error: null, validationErrors: {} });
           return user;
         } catch (error) {
@@ -270,9 +382,44 @@ export const useSessionStore = create(
         set({ isLoading: true, error: null, validationErrors: {} });
 
         try {
-          const user = await uploadCurrentUserAvatar(file);
-          set({ user, isLoading: false, error: null, validationErrors: {} });
-          return user;
+          const currentUser = get().user || (await get().loadCurrentUser());
+          const ownerId = getSessionUserId(currentUser);
+          const attachment = await attachmentsApi.uploadAttachment(
+            file,
+            MEDIA_FOLDERS.AVATAR,
+            ownerId,
+            { folder: MEDIA_FOLDERS.AVATAR },
+          );
+          const avatarId = getMediaId(
+            attachment?.storage_key ||
+              attachment?.storageKey ||
+              attachment?.file_id ||
+              attachment?.fileId ||
+              attachment?.image_id ||
+              attachment?.imageId ||
+              attachment?.id ||
+              attachment?.attachment_id,
+          );
+          const avatarUrl = getMediaUrl(
+            ownerId,
+            MEDIA_FOLDERS.AVATAR,
+            avatarId,
+          );
+          const user = normalizeSessionUser(
+            await updateCurrentUser({ avatarUrl }),
+          );
+          const userWithAvatarUrl = {
+            ...user,
+            avatar_url: avatarId,
+            avatarUrl,
+          };
+          set({
+            user: userWithAvatarUrl,
+            isLoading: false,
+            error: null,
+            validationErrors: {},
+          });
+          return userWithAvatarUrl;
         } catch (error) {
           set({
             isLoading: false,

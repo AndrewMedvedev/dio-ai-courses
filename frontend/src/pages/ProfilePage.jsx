@@ -1,20 +1,34 @@
 // Личный кабинет с карточками прогресса, навигацией по вкладкам и управлением потоками преподавателя
 import { useEffect, useMemo, useState } from "react";
 import SectionTop from "../components/SectionTop";
-import { useAuthenticatedImage } from "../hooks/useAuthenticatedImage";
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
 } from "../stores/permissionStore";
 import { useSessionStore } from "../stores/sessionStore";
+import { useStudentStore } from "../stores/studentStore";
 import { fetchMyCoursesPage } from "../utils/api";
+import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const AVATAR_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const AVATAR_MAX_SIZE_BYTES = 15 * 1024 * 1024;
+
+function getDisplayText(value) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (!value || typeof value !== "object") return "";
+
+  return getDisplayText(
+    value.value || value.label || value.name || value.email || value.username,
+  );
+}
 
 function getDisplayName(user) {
   return (
-    user?.full_name || user?.username || user?.email || "Загружаем профиль..."
+    getDisplayText(user?.full_name) ||
+    getDisplayText(user?.username) ||
+    getDisplayText(user?.email) ||
+    "Загружаем профиль..."
   );
 }
 
@@ -100,7 +114,7 @@ function validateAvatarFile(file) {
     throw new Error("Выберите изображение PNG, JPEG или WebP.");
   }
   if (file.size > AVATAR_MAX_SIZE_BYTES) {
-    throw new Error("Максимальный размер аватара — 5 МБ.");
+    throw new Error("Максимальный размер аватара — 15 МБ.");
   }
 }
 
@@ -146,14 +160,18 @@ export default function ProfilePage({
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const [profileNotice, setProfileNotice] = useState("");
-  const { imageUrl: savedAvatarUrl } = useAuthenticatedImage(user?.avatar_url, {
-    enabled: Boolean(user?.avatar_url),
-  });
+  const currentUserId = user?.id || user?.user_id || user?.userId;
+  const savedAvatarUrl = getMediaUrl(
+    currentUserId,
+    MEDIA_FOLDERS.AVATAR,
+    user?.avatar_url,
+  );
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [myCourses, setMyCourses] = useState([]);
   const [myCoursesPage, setMyCoursesPage] = useState(1);
-  const [myCoursesMeta, setMyCoursesMeta] = useState({
+  const [authoredCoursesPage, setAuthoredCoursesPage] = useState(1);
+  const [authoredCourses, setAuthoredCourses] = useState([]);
+  const [authoredCoursesMeta, setAuthoredCoursesMeta] = useState({
     page: 1,
     size: 6,
     total: 0,
@@ -161,8 +179,16 @@ export default function ProfilePage({
     has_next: false,
     has_prev: false,
   });
-  const [isMyCoursesLoading, setIsMyCoursesLoading] = useState(false);
-  const [myCoursesError, setMyCoursesError] = useState("");
+  const [isAuthoredCoursesLoading, setIsAuthoredCoursesLoading] =
+    useState(false);
+  const [authoredCoursesError, setAuthoredCoursesError] = useState("");
+  const myCourses = useStudentStore((state) => state.myCourses);
+  const myCoursesMeta = useStudentStore((state) => state.myCoursesMeta);
+  const isMyCoursesLoading = useStudentStore(
+    (state) => state.isMyCoursesLoading,
+  );
+  const myCoursesError = useStudentStore((state) => state.myCoursesError);
+  const loadMyCourses = useStudentStore((state) => state.loadMyCourses);
 
   const canUpdateOwnCourses =
     canUpdateCourse || hasPermission(COURSE_PERMISSIONS.UPDATE);
@@ -174,9 +200,8 @@ export default function ProfilePage({
   const visibleTabs = profileTabItems.filter((tab) =>
     isAuthorMode ? tab.id === "teacher" : tab.id !== "teacher",
   );
-  const authoredCourses = myCourses;
   const displayName = useMemo(() => getDisplayName(user), [user]);
-  const profileEmail = user?.email || "Email загружается...";
+  const profileEmail = getDisplayText(user?.email) || "Email загружается...";
   const initials = getInitials(displayName);
   const mergedErrors = { ...formErrors, ...apiValidationErrors };
 
@@ -189,8 +214,8 @@ export default function ProfilePage({
 
   useEffect(() => {
     setProfileForm({
-      username: user?.username || "",
-      full_name: user?.full_name || "",
+      username: getDisplayText(user?.username),
+      full_name: getDisplayText(user?.full_name),
     });
   }, [user]);
 
@@ -201,23 +226,41 @@ export default function ProfilePage({
   }, [activeProfileTab, canManageCourses, setActiveProfileTab]);
 
   useEffect(() => {
+    if (activeProfileTab !== "overview") {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    loadMyCourses(
+      { page: myCoursesPage, size: myCoursesMeta.size || 10 },
+      { signal: controller.signal },
+    ).catch((error) => {
+      if (!controller.signal.aborted) {
+        getApiErrorMessage(error, "Не удалось загрузить ваши курсы.");
+      }
+    });
+
+    return () => controller.abort();
+  }, [activeProfileTab, loadMyCourses, myCoursesPage, myCoursesMeta.size]);
+
+  useEffect(() => {
     if (!canManageCourses || activeProfileTab !== "teacher") {
       return undefined;
     }
 
     const controller = new AbortController();
-    setIsMyCoursesLoading(true);
-    setMyCoursesError("");
+    setIsAuthoredCoursesLoading(true);
+    setAuthoredCoursesError("");
 
     fetchMyCoursesPage(
-      { page: myCoursesPage, size: myCoursesMeta.size },
+      { page: authoredCoursesPage, size: authoredCoursesMeta.size },
       { signal: controller.signal },
     )
       .then((response) => {
-        setMyCourses(response.items);
-        setMyCoursesMeta({
-          page: response.page || myCoursesPage,
-          size: response.size || myCoursesMeta.size,
+        setAuthoredCourses(response.items);
+        setAuthoredCoursesMeta({
+          page: response.page || authoredCoursesPage,
+          size: response.size || authoredCoursesMeta.size,
           total: response.total || 0,
           pages: response.pages || response.total_pages || 1,
           has_next: Boolean(response.has_next),
@@ -226,19 +269,24 @@ export default function ProfilePage({
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
-        setMyCourses([]);
-        setMyCoursesError(
-          getApiErrorMessage(error, "Не удалось загрузить ваши курсы."),
+        setAuthoredCourses([]);
+        setAuthoredCoursesError(
+          getApiErrorMessage(error, "Не удалось загрузить созданные курсы."),
         );
       })
       .finally(() => {
         if (!controller.signal.aborted) {
-          setIsMyCoursesLoading(false);
+          setIsAuthoredCoursesLoading(false);
         }
       });
 
     return () => controller.abort();
-  }, [activeProfileTab, canManageCourses, myCoursesPage, myCoursesMeta.size]);
+  }, [
+    activeProfileTab,
+    authoredCoursesPage,
+    authoredCoursesMeta.size,
+    canManageCourses,
+  ]);
 
   useEffect(() => {
     if (!avatarFile) {
@@ -259,8 +307,8 @@ export default function ProfilePage({
 
   const resetProfileEdit = () => {
     setProfileForm({
-      username: user?.username || "",
-      full_name: user?.full_name || "",
+      username: getDisplayText(user?.username),
+      full_name: getDisplayText(user?.full_name),
     });
     setAvatarFile(null);
     setFormErrors({});
@@ -317,10 +365,10 @@ export default function ProfilePage({
     }
 
     const changes = {};
-    if ((user?.username || "") !== normalized.username) {
+    if (getDisplayText(user?.username) !== normalized.username) {
       changes.username = normalized.username || null;
     }
-    if ((user?.full_name || "") !== normalized.full_name) {
+    if (getDisplayText(user?.full_name) !== normalized.full_name) {
       changes.full_name = normalized.full_name || null;
     }
 
@@ -376,8 +424,8 @@ export default function ProfilePage({
             <h3>{displayName}</h3>
             <p>{profileEmail}</p>
             <small className="profile-user-meta">
-              {user?.username
-                ? `@${user.username}`
+              {getDisplayText(user?.username)
+                ? `@${getDisplayText(user?.username)}`
                 : "Данные аккаунта загружаются..."}
             </small>
           </article>
@@ -488,15 +536,21 @@ export default function ProfilePage({
                   <div className="profile-summary-grid">
                     <div>
                       <span>Email</span>
-                      <strong>{user?.email || "Загружается..."}</strong>
+                      <strong>
+                        {getDisplayText(user?.email) || "Загружается..."}
+                      </strong>
                     </div>
                     <div>
                       <span>Никнейм</span>
-                      <strong>{user?.username || "Не указан"}</strong>
+                      <strong>
+                        {getDisplayText(user?.username) || "Не указан"}
+                      </strong>
                     </div>
                     <div>
                       <span>ФИО</span>
-                      <strong>{user?.full_name || "Не указано"}</strong>
+                      <strong>
+                        {getDisplayText(user?.full_name) || "Не указано"}
+                      </strong>
                     </div>
                     <div>
                       <span>Аватар</span>
@@ -532,7 +586,7 @@ export default function ProfilePage({
                           onChange={handleAvatarFileChange}
                         />
                         <small>
-                          PNG, JPEG или WebP до 5 МБ. Файл будет загружен в
+                          PNG, JPEG или WebP до 15 МБ. Файл будет загружен в
                           хранилище.
                         </small>
                       </label>
@@ -544,7 +598,11 @@ export default function ProfilePage({
                     </div>
                     <label>
                       <span>Email</span>
-                      <input type="email" value={user?.email || ""} disabled />
+                      <input
+                        type="email"
+                        value={getDisplayText(user?.email)}
+                        disabled
+                      />
                     </label>
                     <label>
                       <span>Никнейм</span>
@@ -622,6 +680,117 @@ export default function ProfilePage({
                   <p>элементов из {totalContentCount}</p>
                 </article>
               </div>
+
+              <article className="glass-card profile-my-courses-card profile-learner-courses-card">
+                <div className="profile-my-courses-head">
+                  <div>
+                    <h3>Мои курсы</h3>
+                    <p className="teacher-card-description">
+                      Курсы, на которые вы записаны.
+                    </p>
+                  </div>
+                </div>
+                {isMyCoursesLoading && (
+                  <p className="profile-progress-note" role="status">
+                    <span className="profile-spinner" aria-hidden="true" />
+                    Загружаем ваши курсы...
+                  </p>
+                )}
+                {myCoursesError && (
+                  <p className="auth-field-error" role="alert">
+                    {myCoursesError}
+                  </p>
+                )}
+                {!isMyCoursesLoading &&
+                  !myCoursesError &&
+                  myCourses.length === 0 && (
+                    <p className="teacher-empty">
+                      Вы пока не записаны ни на один курс.
+                    </p>
+                  )}
+                {!isMyCoursesLoading &&
+                  !myCoursesError &&
+                  myCourses.length > 0 && (
+                    <ul className="teacher-authored-course-list profile-my-course-list">
+                      {myCourses.map((course) => (
+                        <li key={course.id} className="profile-my-course-item">
+                          <div className="profile-my-course-summary">
+                            <div
+                              className="teacher-authored-course-btn profile-my-course-card"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => openCourse(course.id)}
+                              onKeyDown={(event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  openCourse(course.id);
+                                }
+                              }}
+                            >
+                              <span className="teacher-authored-course-main">
+                                <strong title={course.title}>
+                                  {course.title}
+                                </strong>
+                                <small>
+                                  {course.category ||
+                                    course.difficulty ||
+                                    "Курс"}
+                                </small>
+                              </span>
+                              <span className="teacher-authored-course-meta">
+                                <span>
+                                  {getCourseStatusLabel(course.status)}
+                                </span>
+                                <span>
+                                  {course.blocks?.length || 0} модулей
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                {myCoursesMeta.pages > 1 && (
+                  <nav
+                    className="courses-pagination"
+                    aria-label="Пагинация моих курсов"
+                  >
+                    <span>
+                      Всего: {myCoursesMeta.total}. Страница{" "}
+                      {myCoursesMeta.page} из {myCoursesMeta.pages}
+                    </span>
+                    <div className="courses-pagination-actions">
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() =>
+                          setMyCoursesPage((page) => Math.max(1, page - 1))
+                        }
+                        disabled={!myCoursesMeta.has_prev || isMyCoursesLoading}
+                      >
+                        Назад
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() =>
+                          setMyCoursesPage((page) =>
+                            Math.min(myCoursesMeta.pages, page + 1),
+                          )
+                        }
+                        disabled={!myCoursesMeta.has_next || isMyCoursesLoading}
+                      >
+                        Вперёд
+                      </button>
+                    </div>
+                  </nav>
+                )}
+              </article>
+
               {canCreateCourse && (
                 <article className="glass-card profile-learner-create">
                   <div>
@@ -737,19 +906,21 @@ export default function ProfilePage({
                       )}
                     </div>
 
-                    {isMyCoursesLoading && (
+                    {isAuthoredCoursesLoading && (
                       <p className="profile-progress-note" role="status">
                         <span className="profile-spinner" aria-hidden="true" />
-                        Загружаем ваши курсы...
+                        Загружаем созданные курсы...
                       </p>
                     )}
-                    {myCoursesError && (
-                      <p className="auth-field-error">{myCoursesError}</p>
+                    {authoredCoursesError && (
+                      <p className="auth-field-error">{authoredCoursesError}</p>
                     )}
-                    {!isMyCoursesLoading &&
-                      !myCoursesError &&
+                    {!isAuthoredCoursesLoading &&
+                      !authoredCoursesError &&
                       authoredCourses.length === 0 && (
-                        <p className="teacher-empty">У вас пока нет курсов.</p>
+                        <p className="teacher-empty">
+                          У вас пока нет созданных курсов.
+                        </p>
                       )}
                     <ul className="teacher-authored-course-list profile-my-course-list">
                       {authoredCourses.map((course) => {
@@ -804,24 +975,28 @@ export default function ProfilePage({
                       })}
                     </ul>
 
-                    {myCoursesMeta.pages > 1 && (
+                    {authoredCoursesMeta.pages > 1 && (
                       <nav
                         className="courses-pagination"
-                        aria-label="Пагинация моих курсов"
+                        aria-label="Пагинация созданных курсов"
                       >
                         <span>
-                          Всего: {myCoursesMeta.total}. Страница{" "}
-                          {myCoursesMeta.page} из {myCoursesMeta.pages}
+                          Всего: {authoredCoursesMeta.total}. Страница{" "}
+                          {authoredCoursesMeta.page} из{" "}
+                          {authoredCoursesMeta.pages}
                         </span>
                         <div className="courses-pagination-actions">
                           <button
                             type="button"
                             className="btn btn-outline"
                             onClick={() =>
-                              setMyCoursesPage((page) => Math.max(1, page - 1))
+                              setAuthoredCoursesPage((page) =>
+                                Math.max(1, page - 1),
+                              )
                             }
                             disabled={
-                              !myCoursesMeta.has_prev || isMyCoursesLoading
+                              !authoredCoursesMeta.has_prev ||
+                              isAuthoredCoursesLoading
                             }
                           >
                             Назад
@@ -830,12 +1005,13 @@ export default function ProfilePage({
                             type="button"
                             className="btn btn-outline"
                             onClick={() =>
-                              setMyCoursesPage((page) =>
-                                Math.min(myCoursesMeta.pages, page + 1),
+                              setAuthoredCoursesPage((page) =>
+                                Math.min(authoredCoursesMeta.pages, page + 1),
                               )
                             }
                             disabled={
-                              !myCoursesMeta.has_next || isMyCoursesLoading
+                              !authoredCoursesMeta.has_next ||
+                              isAuthoredCoursesLoading
                             }
                           >
                             Вперёд

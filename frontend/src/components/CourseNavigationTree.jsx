@@ -11,6 +11,7 @@ export default function CourseNavigationTree({
   mode = "theory",
 }) {
   const isPracticeMode = mode === "practice";
+  const isMetricsMode = mode === "metrics";
   const completedItems = selectedCourse.blocks.reduce(
     (total, block) =>
       total +
@@ -25,7 +26,11 @@ export default function CourseNavigationTree({
       total + (isPracticeMode ? block.practice.length : block.lessons.length),
     0,
   );
-  const progressLabel = isPracticeMode ? "Практика" : "Теория";
+  const progressLabel = isMetricsMode
+    ? "Метрики"
+    : isPracticeMode
+      ? "Практика"
+      : "Теория";
 
   const openBlockInCurrentMode = (block) => {
     if (isPracticeMode && block.practice[0]) {
@@ -41,7 +46,9 @@ export default function CourseNavigationTree({
       <div className="course-nav-tree-head">
         <strong>{selectedCourse.title}</strong>
         <span>
-          {progressLabel}: {completedItems}/{totalItems}
+          {isMetricsMode
+            ? "Выбор урока"
+            : `${progressLabel}: ${completedItems}/${totalItems}`}
         </span>
       </div>
       <ul className="course-nav-block-list">
@@ -70,7 +77,9 @@ export default function CourseNavigationTree({
                         <span className="course-nav-item-number">
                           P{blockIndex + 1}.{practiceIndex + 1}
                         </span>
-                        <span className="course-nav-item-title">{practice.title}</span>
+                        <span className="course-nav-item-title">
+                          {practice.title}
+                        </span>
                         <span
                           className={`course-nav-item-status ${completedPractices[practice.id] ? "is-done" : ""}`}
                         />
@@ -87,10 +96,14 @@ export default function CourseNavigationTree({
                         <span className="course-nav-item-number">
                           {blockIndex + 1}.{lessonIndex + 1}
                         </span>
-                        <span className="course-nav-item-title">{lesson.title}</span>
-                        <span
-                          className={`course-nav-item-status ${completedLessons[lesson.id] ? "is-done" : ""}`}
-                        />
+                        <span className="course-nav-item-title">
+                          {lesson.title}
+                        </span>
+                        {!isMetricsMode && (
+                          <span
+                            className={`course-nav-item-status ${completedLessons[lesson.id] ? "is-done" : ""}`}
+                          />
+                        )}
                       </button>
                     </li>
                   ))}

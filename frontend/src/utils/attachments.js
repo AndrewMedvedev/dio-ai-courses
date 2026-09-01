@@ -225,9 +225,19 @@ function rewriteStorageUrl(url) {
     const publicUrl = publicHost.includes("://")
       ? new URL(publicHost)
       : new URL(`${rewritten.protocol}//${publicHost}`);
+    const publicPath = publicUrl.pathname.replace(/\/+$/, "");
 
     rewritten.protocol = publicUrl.protocol;
     rewritten.host = publicUrl.host;
+
+    if (
+      publicPath &&
+      publicPath !== "/" &&
+      !rewritten.pathname.startsWith(`${publicPath}/`)
+    ) {
+      rewritten.pathname = `${publicPath}${rewritten.pathname.startsWith("/") ? "" : "/"}${rewritten.pathname}`;
+    }
+
     return rewritten.toString();
   } catch {
     return url;
@@ -360,15 +370,15 @@ export async function runWithConcurrency(
 export const attachmentsApi = {
   validateAttachmentFile,
 
-  async getPresignedUploadUrl({ filename, content_type, owner_id }) {
+  async getPresignedUploadUrl({ filename, folder, content_type, owner_id }) {
     return requestJson(
       "/attachments/presigned-upload",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename, content_type, owner_id }),
+        body: JSON.stringify({ filename, folder, content_type, owner_id }),
       },
-      { auth: false, step: "presigned-upload", fileName: filename },
+      { auth: true, step: "presigned-upload", fileName: filename },
     );
   },
 
@@ -406,12 +416,13 @@ export const attachmentsApi = {
    * содержит owner_type.
    */
   async uploadAttachment(file, ownerType, ownerId, options = {}) {
-    void ownerType;
+    const folder = options.folder || ownerType;
     validateOwnerId(ownerId);
     const { filename, contentType } = validateAttachmentFile(file, options);
 
     const presignedData = await this.getPresignedUploadUrl({
       filename,
+      folder,
       content_type: contentType,
       owner_id: ownerId,
     });

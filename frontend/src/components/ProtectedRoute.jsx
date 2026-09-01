@@ -42,7 +42,7 @@ export default function ProtectedRoute({
     (state) => state.hasAllPermissions,
   );
   const isAuthenticated = Boolean(
-    accessToken && refreshToken && expiresAt && !isTokenExpired(expiresAt),
+    accessToken && expiresAt && (!isTokenExpired(expiresAt) || refreshToken),
   );
   const requiredPermissions = permissions || (permission ? [permission] : []);
 

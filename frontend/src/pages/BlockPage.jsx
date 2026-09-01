@@ -1,16 +1,18 @@
 // Страница выбранного блока курса с уроками и практикой
+import { useState } from "react";
 import SectionTop from "../components/SectionTop";
+import { useGoBack } from "../hooks/useGoBack";
 
 export default function BlockPage({
   selectedCourse,
   selectedBlock,
   completedLessons,
   completedPractices,
-  openCourse,
   openLesson,
   openPractice,
   isCourseEditMode,
   updateCourseBlock,
+  addLessonToBlock,
   updateLesson,
   moveLesson,
   deleteLesson,
@@ -28,6 +30,26 @@ export default function BlockPage({
     ? Math.round((completedInBlock / totalItemsInBlock) * 100)
     : 0;
   const blockLearningObjectives = selectedBlock.learningObjectives || [];
+  const [isAddingLesson, setIsAddingLesson] = useState(false);
+  const goBack = useGoBack({
+    fallbackPath: isCourseEditMode
+      ? `/course/${selectedCourse.id}/edit`
+      : `/course/${selectedCourse.id}`,
+  });
+
+  const addLesson = async () => {
+    if (!addLessonToBlock || isAddingLesson) return;
+
+    setIsAddingLesson(true);
+    try {
+      const lessonId = await addLessonToBlock(selectedBlock.id);
+      if (lessonId) {
+        openLesson(lessonId);
+      }
+    } finally {
+      setIsAddingLesson(false);
+    }
+  };
 
   const updateBlockObjective = (index, value) => {
     const nextObjectives = [...blockLearningObjectives];
@@ -57,7 +79,7 @@ export default function BlockPage({
       <button
         type="button"
         className="btn btn-outline back-btn"
-        onClick={openCourse}
+        onClick={goBack}
         aria-label="Назад к курсу"
         title="Назад к курсу"
       >
@@ -194,7 +216,38 @@ export default function BlockPage({
         </article>
 
         <article className="glass-card block-lessons-card">
-          <h3>Уроки</h3>
+          <div className="block-lessons-head">
+            <h3>Уроки</h3>
+            {isCourseEditMode && (
+              <button
+                type="button"
+                className="btn btn-solid"
+                onClick={addLesson}
+                disabled={isAddingLesson}
+              >
+                {isAddingLesson ? "Создаём урок..." : "Добавить урок"}
+              </button>
+            )}
+          </div>
+          {selectedBlock.lessons.length === 0 && (
+            <div className="course-editor-panel block-empty-lessons">
+              <h4>В этом модуле пока нет уроков</h4>
+              <p>
+                Создайте первый урок, чтобы наполнить модуль теорией и
+                материалами.
+              </p>
+              {isCourseEditMode && (
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={addLesson}
+                  disabled={isAddingLesson}
+                >
+                  {isAddingLesson ? "Создаём урок..." : "Создать первый урок"}
+                </button>
+              )}
+            </div>
+          )}
           <ul className="lessons-progress-list">
             {selectedBlock.lessons.map((lesson, index) => (
               <li key={lesson.id}>

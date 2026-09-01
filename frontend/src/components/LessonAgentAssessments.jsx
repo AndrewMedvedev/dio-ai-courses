@@ -119,6 +119,7 @@ export function LessonTestAgent({ moduleId, lessonId }) {
 
   const questions = Array.isArray(test?.questions) ? test.questions : [];
   const isSubmitted = Boolean(result);
+  const isPassed = Number(result?.score) >= PASSING_SCORE;
   const canSubmit =
     questions.length > 0 &&
     questions.every((_, index) => {
@@ -267,7 +268,9 @@ export function LessonTestAgent({ moduleId, lessonId }) {
           {isChecking
             ? "Проверяем..."
             : isSubmitted
-              ? "Тест сдан"
+              ? isPassed
+                ? "Тест сдан"
+                : "Тест не сдан"
               : "Завершить тест"}
         </button>
       </div>
