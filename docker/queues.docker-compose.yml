@@ -35,7 +35,7 @@ services:
       qdrant:
         condition: service_started
     env_file:
-      - ../backend/.env
+      - ../.env.prod
 
 
 volumes:
