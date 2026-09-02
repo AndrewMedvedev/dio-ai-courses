@@ -27,7 +27,7 @@ services:
     networks:
       - default
 
-  grafana:
+  grafana-ai:
     image: grafana/grafana:latest
     restart: unless-stopped
     container_name: grafana-ai
@@ -57,7 +57,7 @@ services:
   # Логирование и трассировка
   # ============================================================================
 
-  loki:
+  loki-ai:
     image: grafana/loki:latest
     restart: unless-stopped
     container_name: loki-ai
