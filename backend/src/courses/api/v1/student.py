@@ -14,11 +14,12 @@ from ...domain.permissions.courses import UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/student", tags=["Student"])
+router = APIRouter(prefix="/students", tags=["Enrollments"])
 
 
 @router.post(
-    "/{course_id}/sign",
+    "/{course_id}/enroll",
+    summary="Записаться на курс",
     status_code=status.HTTP_201_CREATED,
 )
 async def sign_up(
@@ -29,8 +30,9 @@ async def sign_up(
     return await service.sign_course(user_id=identity.id, course_id=course_id)
 
 
-@router.post(
-    "/",
+@router.get(
+    "",
+    summary="Получить мои курсы",
     status_code=status.HTTP_200_OK,
 )
 async def get_courses(
@@ -41,8 +43,9 @@ async def get_courses(
     return await service.get_my_courses(identity.id, pagination)
 
 
-@router.post(
+@router.get(
     "/{course_id}",
+    summary="Получить список студентов курса",
     dependencies=[Depends(require_permissions(UPDATE.code))],
     status_code=status.HTTP_200_OK,
 )

@@ -16,11 +16,12 @@ from ...domain.vo import CourseStatus
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/course", tags=["Courses"])
+router = APIRouter(prefix="/courses", tags=["Courses"])
 
 
 @router.post(
-    "/create",
+    "",
+    summary="Создать курс",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -33,7 +34,8 @@ async def create_course(
 
 
 @router.post(
-    "/",
+    "/search",
+    summary="Получить список курсов",
     status_code=status.HTTP_200_OK,
 )
 async def get_course_with_pagination(
@@ -45,6 +47,7 @@ async def get_course_with_pagination(
 
 @router.post(
     "/my-courses",
+    summary="Получить мои курсы",
     status_code=status.HTTP_200_OK,
 )
 async def get_user_courses(
@@ -57,6 +60,7 @@ async def get_user_courses(
 
 @router.get(
     "/{course_id}/status",
+    summary="Получить статус курса",
     status_code=status.HTTP_200_OK,
 )
 async def get_status(
@@ -71,7 +75,8 @@ async def get_status(
 
 
 @router.get(
-    "/basic/info/{course_id}",
+    "/{course_id}",
+    summary="Получить информацию о курсе",
     status_code=status.HTTP_200_OK,
 )
 async def get_course_basic_info(
@@ -82,7 +87,8 @@ async def get_course_basic_info(
 
 
 @router.put(
-    "/edit/{course_id}",
+    "/{course_id}",
+    summary="Обновить курс",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -94,8 +100,9 @@ async def edit_course(
     return await service.edit(course_id, schema)
 
 
-@router.post(
-    "/publish/{course_id}",
+@router.patch(
+    "/{course_id}/status",
+    summary="Опубликовать курс",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -107,8 +114,9 @@ async def publish_course(
 
 
 @router.delete(
-    "/delete/{course_id}",
-    status_code=status.HTTP_200_OK,
+    "/{course_id}",
+    summary="Архивировать курс",
+    status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )
 async def delete_course(
@@ -116,15 +124,3 @@ async def delete_course(
     course_id: UUID,
 ) -> None:
     await service.change_status(course_id=course_id, status=CourseStatus.ARCHIVED)
-
-
-@router.post(
-    "/{course_id}/invite-only",
-    status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
-)
-async def invite_only_course(
-    service: CourseServiceDep,
-    course_id: UUID,
-) -> None:
-    await service.change_status(course_id=course_id, status=CourseStatus.INVITE_ONLY)

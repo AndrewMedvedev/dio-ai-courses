@@ -12,11 +12,12 @@ from ...domain.permissions.courses import COURSE_READ, CREATE, DELETE, UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/lesson", tags=["Lesson"])
+router = APIRouter(prefix="/lessons", tags=["Lessons"])
 
 
 @router.post(
-    "/create",
+    "",
+    summary="Создать урок",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -29,7 +30,8 @@ async def create(
 
 
 @router.post(
-    "/assign/{lesson_id}/{module_id}",
+    "/{lesson_id}/modules/{module_id}",
+    summary="Привязать урок к модулю",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -42,7 +44,8 @@ async def assign(
 
 
 @router.get(
-    "/basic/info/{lesson_id}",
+    "/{lesson_id}",
+    summary="Получить информацию об уроке",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -54,7 +57,8 @@ async def get_lesson_basic_info(
 
 
 @router.get(
-    "/theory/{lesson_id}",
+    "/{lesson_id}/theory",
+    summary="Получить теоретический материал урока",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -66,7 +70,8 @@ async def get_theory(
 
 
 @router.put(
-    "/edit/{lesson_id}",
+    "/{lesson_id}",
+    summary="Обновить урок",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -79,7 +84,8 @@ async def edit_lesson(
 
 
 @router.put(
-    "/update/{lesson_id}",
+    "/{lesson_id}/content-blocks",
+    summary="Обновить блоки содержимого урока",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -93,6 +99,7 @@ async def update_lesson_content_blocks(
 
 @router.delete(
     "/{lesson_id}",
+    summary="Удалить урок",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

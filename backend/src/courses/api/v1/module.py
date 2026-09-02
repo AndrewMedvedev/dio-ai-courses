@@ -12,11 +12,12 @@ from ...domain.permissions.courses import CREATE, DELETE, UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/module", tags=["Module"])
+router = APIRouter(prefix="/modules", tags=["Modules"])
 
 
 @router.post(
-    "/create",
+    "",
+    summary="Создать модуль",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -29,7 +30,8 @@ async def create(
 
 
 @router.post(
-    "/assign/{module_id}/{course_id}",
+    "/{module_id}/courses/{course_id}",
+    summary="Привязать модуль к курсу",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -42,7 +44,8 @@ async def assign(
 
 
 @router.get(
-    "/basic/info/{module_id}",
+    "/{module_id}",
+    summary="Получить информацию о модуле",
     status_code=status.HTTP_200_OK,
 )
 async def get_module_basic_info(service: ModuleServiceDep, module_id: UUID):
@@ -50,7 +53,8 @@ async def get_module_basic_info(service: ModuleServiceDep, module_id: UUID):
 
 
 @router.put(
-    "/edit/{module_id}",
+    "/{module_id}",
+    summary="Обновить модуль",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -64,6 +68,7 @@ async def edit_module(
 
 @router.delete(
     "/{module_id}",
+    summary="Удалить модуль",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

@@ -32,6 +32,7 @@ router = APIRouter(prefix="/agent", tags=["Agents"])
 
 @router.post(
     "/interviewer",
+    summary="Написать AI-интервьюеру",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -60,6 +61,7 @@ async def chat_with_interviewer(
 
 @router.post(
     "/editor",
+    summary="Написать AI-редактору",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -88,6 +90,7 @@ async def chat_with_editor(
 
 @router.post(
     "/mentor",
+    summary="Написать AI-наставнику",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -114,7 +117,8 @@ async def chat_with_mentor(
 
 
 @router.post(
-    "/test/{module_id}/{lesson_id}",
+    "/tests/{module_id}/{lesson_id}",
+    summary="Сгенерировать тест для урока",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -133,7 +137,8 @@ async def create_test(
 
 
 @router.post(
-    "/check/test/{practice_id}",
+    "/check/tests/{practice_id}",
+    summary="Проверить ответы на тест",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -153,7 +158,8 @@ async def check_test(
 
 
 @router.post(
-    "/practice/{module_id}/{lesson_id}",
+    "/practices/{module_id}/{lesson_id}",
+    summary="Сгенерировать практическое задание",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -172,7 +178,8 @@ async def create_practice(
 
 
 @router.post(
-    "/check/practice/{practice_id}",
+    "/check/practices/{practice_id}",
+    summary="Проверить практическое задание",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
