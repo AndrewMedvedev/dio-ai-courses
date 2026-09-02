@@ -65,7 +65,7 @@ services:
 
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
-      - "${REDIS_INSIGHT_PORT}:${REDIS_INSIGHT_PORT}:"
+      - "${REDIS_INSIGHT_PORT}:${REDIS_INSIGHT_PORT}"
 
     volumes:
       - redis_data:/data
