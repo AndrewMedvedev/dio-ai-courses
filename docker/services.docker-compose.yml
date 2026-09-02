@@ -8,6 +8,12 @@ services:
       - "${BACKEND_PORT}:8000"
     env_file:
       ../.env.prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
