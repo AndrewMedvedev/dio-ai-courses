@@ -34,7 +34,7 @@ services:
 
   backup-ai:
     image: alpine:3.20
-    container_name: backup
+    container_name: backup-ai
     restart: unless-stopped
     volumes:
       - ../backups:/backups
