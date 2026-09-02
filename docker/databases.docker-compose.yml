@@ -13,7 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT}:5433"
 
     healthcheck:
       test:
@@ -64,7 +64,7 @@ services:
 
     ports:
       - "${REDIS_PORT}:6379"
-      - "${REDIS_INSIGHT_PORT}:8001"
+      - "${REDIS_INSIGHT_PORT}:8002"
 
     volumes:
       - redis_data:/data

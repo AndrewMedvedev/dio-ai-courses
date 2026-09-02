@@ -3,14 +3,14 @@ services:
   # Мониторинг
   # ============================================================================
 
-  prometheus:
+  prometheus-ai:
     image: prom/prometheus:latest
-    container_name: prometheus
     restart: unless-stopped
+    container_name: prometheus-ai
 
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - prometheus-ai_data:/prometheus
 
     secrets:
       - qdrant_api_key
@@ -22,18 +22,18 @@ services:
       - "--web.enable-lifecycle"
 
     ports:
-      - "${PROMETHEUS_PORT}:9090"
+      - "${PROMETHEUS_PORT}:9092"
 
     networks:
       - default
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
     restart: unless-stopped
+    container_name: grafana-ai
 
     volumes:
-      - grafana_data:/var/lib/grafana
+      - grafana-ai_data:/var/lib/grafana
       - ../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -44,14 +44,14 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
 
     ports:
-      - "${GRAFANA_PORT}:3000"
+      - "${GRAFANA_PORT}:3006"
 
     networks:
       - default
 
     depends_on:
-      - prometheus
-      - loki
+      - prometheus-ai
+      - loki-ai
 
   # ============================================================================
   # Логирование и трассировка
@@ -60,13 +60,14 @@ services:
   loki:
     image: grafana/loki:latest
     restart: unless-stopped
+    container_name: loki-ai
 
     ports:
-      - "${LOKI_PORT}:3100"
+      - "${LOKI_PORT}:3101"
 
     volumes:
       - ../monitoring/loki/config.yml:/etc/loki/config.yml:ro
-      - loki_data:/loki
+      - loki-ai_data:/loki
 
     command:
       - "-config.file=/etc/loki/config.yml"
@@ -98,7 +99,7 @@ services:
       - /etc/alloy/config.alloy
 
     depends_on:
-      - loki
+      - loki-ai
 
 
 secrets:
@@ -107,6 +108,6 @@ secrets:
 
 
 volumes:
-  prometheus_data:
-  grafana_data:
-  loki_data:
+  prometheus-ai_data:
+  grafana-ai_data:
+  loki-ai_data:
