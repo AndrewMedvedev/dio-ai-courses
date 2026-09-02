@@ -27,6 +27,8 @@ services:
     restart: unless-stopped
     environment:
       VITE_API_URL: ${VITE_API_URL}
+      VITE_MEDIA_BASE_URL: ${VITE_MEDIA_BASE_URL}
+      VITE_STORAGE_PUBLIC_HOST: ${VITE_STORAGE_PUBLIC_HOST}
     depends_on:
       - backend
 
