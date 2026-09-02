@@ -5,8 +5,8 @@ services:
     container_name: maildev
     environment:
       - TZ=Asia/Yekaterinburg
-      - MAILDEV_WEB_PORT=1080
-      - MAILDEV_SMTP_PORT=1025
+      - MAILDEV_WEB_PORT=${MALIDEV_PORT}
+      - MAILDEV_SMTP_PORT=${MALIDEV_CONSOLE_PORT}
     ports:
       - "${MALIDEV_PORT}:1080"
       - "${MALIDEV_CONSOLE_PORT}:1025"
