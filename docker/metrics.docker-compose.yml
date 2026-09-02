@@ -22,7 +22,7 @@ services:
       - "--web.enable-lifecycle"
 
     ports:
-      - "${PROMETHEUS_PORT}:9092"
+      - "${PROMETHEUS_PORT}:9090"
 
     networks:
       - default
@@ -44,7 +44,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
 
     ports:
-      - "${GRAFANA_PORT}:3006"
+      - "${GRAFANA_PORT}:3000"
 
     networks:
       - default
