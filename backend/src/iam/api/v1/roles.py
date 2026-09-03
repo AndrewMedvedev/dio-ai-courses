@@ -14,6 +14,7 @@ router = APIRouter(prefix="/roles", tags=["Роли | Roles"])
     path="",
     status_code=status.HTTP_201_CREATED,
     summary="Создать новую роль",
+    description="Создаёт новую роль с указанными названием, кодом и набором прав.",
 )
 async def create_role(
         identity: CurrentIdentity, dto: CreateRoleDTO, crud: RoleCrudDep,
@@ -26,6 +27,7 @@ async def create_role(
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(...))],
     summary="Обновить роль",
+    description="Обновляет переданные данные указанной роли.",
 )
 async def update_role(role_id: UUID, dto: UpdateRoleDTO, crud: RoleCrudDep) -> RoleResponse:
     return await crud.update(role_id, dto)
@@ -36,6 +38,7 @@ async def update_role(role_id: UUID, dto: UpdateRoleDTO, crud: RoleCrudDep) -> R
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(...))],
     summary="Найти роли",
+    description="Возвращает список ролей, доступных в текущем контексте.",
 )
 async def get_roles() -> Page[RoleResponse]: ...
 
@@ -45,6 +48,7 @@ async def get_roles() -> Page[RoleResponse]: ...
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(...))],
     summary="Получить роль",
+    description="Возвращает данные роли по её идентификатору.",
 )
 async def get_role(role_id: UUID, crud: RoleCrudDep) -> RoleResponse:
     return await crud.read(role_id)
@@ -55,6 +59,7 @@ async def get_role(role_id: UUID, crud: RoleCrudDep) -> RoleResponse:
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(...))],
     summary="Удалить роль",
+    description="Удаляет указанную роль.",
 )
 async def delete_role(role_id: UUID, crud: RoleCrudDep) -> None:
     await crud.delete(role_id)
@@ -64,6 +69,7 @@ async def delete_role(role_id: UUID, crud: RoleCrudDep) -> None:
     path="/{role_id}/permissions",
     status_code=status.HTTP_200_OK,
     summary="Назначить разрешение роли",
+    description="Добавляет разрешение к указанной роли. Ручка пока не реализована.",
 )
 async def grant_permission() -> RoleResponse: ...
 
@@ -72,5 +78,6 @@ async def grant_permission() -> RoleResponse: ...
     path="/{role_id}/permissions/{permission}",
     status_code=status.HTTP_200_OK,
     summary="Отозвать разрешение",
+    description="Удаляет разрешение из указанной роли. Ручка пока не реализована.",
 )
 async def revoke_permission() -> RoleResponse: ...

@@ -41,6 +41,7 @@ async def create_presigned_upload_url(
     path="/confirm-upload",
     status_code=status.HTTP_201_CREATED,
     response_model=AttachmentResponse,
+    description="Подтверждает успешную загрузку файла в хранилище и создаёт запись о вложении.",
     summary="Подтвердить загрузку и создать вложение",
 )
 async def confirm_upload(
@@ -56,6 +57,7 @@ async def confirm_upload(
     path="/{attachment_id}/presigned-download",
     status_code=status.HTTP_200_OK,
     response_model=PresignedDownloadResponse,
+    description="Создаёт временную подписанную ссылку для скачивания указанного вложения.",
     summary="Получить presigned URL для скачивания",
 )
 async def get_presigned_download_url(
@@ -71,6 +73,7 @@ async def get_presigned_download_url(
     path="/{attachment_id}",
     status_code=status.HTTP_200_OK,
     response_model=AttachmentResponse,
+    description="Возвращает метаданные указанного вложения без загрузки самого файла.",
     summary="Получение информации и файле",
 )
 async def get_attachment(

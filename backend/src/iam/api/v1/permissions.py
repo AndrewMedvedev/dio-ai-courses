@@ -14,6 +14,7 @@ router = APIRouter(prefix="/permissions", tags=["Разрешения | Permissi
     response_model=PermissionResponse,
     dependencies=[Depends(require_permissions(acl.READ.code))],
     summary="Получить список прав",
+    description="Возвращает список прав, доступных для назначения ролям.",
 )
 async def get_permissions(
         permissions: Page[PermissionResponse] = Depends(get_permission_list),

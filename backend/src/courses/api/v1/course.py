@@ -22,6 +22,7 @@ router = APIRouter(prefix="/courses", tags=["Courses"])
 @router.post(
     "",
     summary="Создать курс",
+    description="Создаёт новый курс с указанными названием, описанием, уровнем сложности и тегами. Создатель курса становится его автором.",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -36,6 +37,7 @@ async def create_course(
 @router.post(
     "/search",
     summary="Получить список курсов",
+    description="Возвращает постраничный список курсов. Параметры пагинации передаются в теле запроса.",
     status_code=status.HTTP_200_OK,
 )
 async def get_course_with_pagination(
@@ -48,6 +50,7 @@ async def get_course_with_pagination(
 @router.post(
     "/my-courses",
     summary="Получить мои курсы",
+    description="Возвращает постраничный список курсов, в которых текущий пользователь является автором или участником.",
     status_code=status.HTTP_200_OK,
 )
 async def get_user_courses(
@@ -61,6 +64,7 @@ async def get_user_courses(
 @router.get(
     "/{course_id}/status",
     summary="Получить статус курса",
+    description="Возвращает текущий статус указанного курса для авторизованного пользователя.",
     status_code=status.HTTP_200_OK,
 )
 async def get_status(
@@ -77,6 +81,7 @@ async def get_status(
 @router.get(
     "/{course_id}",
     summary="Получить информацию о курсе",
+    description="Возвращает основную информацию о курсе, его модулях и уроках.",
     status_code=status.HTTP_200_OK,
 )
 async def get_course_basic_info(
@@ -89,6 +94,7 @@ async def get_course_basic_info(
 @router.put(
     "/{course_id}",
     summary="Обновить курс",
+    description="Обновляет переданные поля курса. Неуказанные поля остаются без изменений.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -103,6 +109,7 @@ async def edit_course(
 @router.patch(
     "/{course_id}/status",
     summary="Опубликовать курс",
+    description="Меняет статус курса на опубликованный, после чего курс становится доступен для прохождения.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -116,6 +123,7 @@ async def publish_course(
 @router.delete(
     "/{course_id}",
     summary="Архивировать курс",
+    description="Переводит курс в архивный статус. Данные курса при этом сохраняются.",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

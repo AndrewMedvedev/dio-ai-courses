@@ -12,6 +12,7 @@ router = APIRouter(prefix="/invitations", tags=["Приглашения | Invita
     path="",
     status_code=status.HTTP_201_CREATED,
     summary="Пригласить пользователя",
+    description="Создаёт приглашение для нового пользователя. Ручка пока не реализована.",
 )
 async def create_invitations(): ...
 
@@ -20,7 +21,7 @@ async def create_invitations(): ...
     path="/accept",
     status_code=status.HTTP_201_CREATED,
     summary="Принять приглашение",
-    description="Один из способов регистрации."
+    description="Регистрирует пользователя по токену из приглашения и возвращает токены авторизации.",
 )
 async def accept_invitation(
         token: Annotated[str, Query(description="Токен из пригласительного письма")],
