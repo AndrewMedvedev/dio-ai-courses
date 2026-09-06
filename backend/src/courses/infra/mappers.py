@@ -10,22 +10,28 @@ from ..domain.entities import (
     Chat,
     Course,
     CourseBasicInfo,
+    CourseProgress,
     Document,
     Lesson,
     LessonBasicInfo,
+    LessonProgress,
     LessonTheorySession,
     Module,
     ModuleBasicInfo,
+    ModuleProgress,
     Practice,
     Student,
 )
 from .models import (
     ChatOrm,
     CourseOrm,
+    CourseProgressOrm,
     DocumentOrm,
     LessonOrm,
+    LessonProgressOrm,
     LessonTheorySessionOrm,
     ModuleOrm,
+    ModuleProgressOrm,
     PracticeOrm,
     StudentOrm,
 )
@@ -215,6 +221,82 @@ class LessonTheorySessionMapper(ModelMapper[LessonTheorySession, LessonTheorySes
             completed_at=entity.completed_at,
             active_time_seconds=entity.active_time_seconds,
             max_scroll_depth_percent=entity.max_scroll_depth_percent,
+        )
+
+
+class LessonProgressMapper(ModelMapper[LessonProgress, LessonProgressOrm]):
+    @staticmethod
+    def from_model(model: LessonProgressOrm) -> LessonProgress:
+        return LessonProgress(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            module_progress_id=model.module_progress_id,
+            lesson_id=model.lesson_id,
+            theory_completed_at=model.theory_completed_at,
+            practice_completed_at=model.practice_completed_at,
+            test_completed_at=model.test_completed_at,
+        )
+
+    @staticmethod
+    def to_model(entity: LessonProgress) -> LessonProgressOrm:
+        return LessonProgressOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            module_progress_id=entity.module_progress_id,
+            lesson_id=entity.lesson_id,
+            theory_completed_at=entity.theory_completed_at,
+            practice_completed_at=entity.practice_completed_at,
+            test_completed_at=entity.test_completed_at,
+        )
+
+
+class ModuleProgressMapper(ModelMapper[ModuleProgress, ModuleProgressOrm]):
+    @staticmethod
+    def from_model(model: ModuleProgressOrm) -> ModuleProgress:
+        return ModuleProgress(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            course_progress_id=model.course_progress_id,
+            module_id=model.module_id,
+            completed_at=model.completed_at,
+        )
+
+    @staticmethod
+    def to_model(entity: ModuleProgress) -> ModuleProgressOrm:
+        return ModuleProgressOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            course_progress_id=entity.course_progress_id,
+            module_id=entity.module_id,
+            completed_at=entity.completed_at,
+        )
+
+
+class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
+    @staticmethod
+    def from_model(model: CourseProgressOrm) -> CourseProgress:
+        return CourseProgress(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            user_id=model.user_id,
+            course_id=model.course_id,
+            completed_at=model.completed_at,
+        )
+
+    @staticmethod
+    def to_model(entity: CourseProgress) -> CourseProgressOrm:
+        return CourseProgressOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            user_id=entity.user_id,
+            course_id=entity.course_id,
+            completed_at=entity.completed_at,
         )
 
 

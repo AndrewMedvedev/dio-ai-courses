@@ -32,12 +32,15 @@ from ..domain.entities import (
     Chat,
     Course,
     CourseBasicInfo,
+    CourseProgress,
     Document,
     Entity,
     Lesson,
     LessonBasicInfo,
+    LessonProgress,
     Module,
     ModuleBasicInfo,
+    ModuleProgress,
     Practice,
     Student,
 )
@@ -218,6 +221,57 @@ class PracticeRepository(Repository[Practice]):
     async def read_by_module(self, user_id: UUID, module_id: UUID) -> list[dict[str, Any]]:
         """Получает практики пользователя внутри модуля без служебных полей."""
         ...
+
+
+class LessonProgressRepository(Repository[LessonProgress]):
+    async def read(self, module_progress_id: UUID, lesson_id: UUID) -> LessonProgress | None: ...
+
+    async def create(
+        self,
+        module_progress_id: UUID,
+        lesson_id: UUID,
+    ) -> LessonProgress: ...
+
+    async def mark_theory_completed(
+        self,
+        module_progress_id: UUID,
+        lesson_id: UUID,
+    ) -> LessonProgress | None: ...
+
+    async def mark_practice_completed(
+        self,
+        module_progress_id: UUID,
+        lesson_id: UUID,
+    ) -> LessonProgress | None: ...
+
+    async def mark_test_completed(
+        self,
+        module_progress_id: UUID,
+        lesson_id: UUID,
+    ) -> LessonProgress | None: ...
+
+class ModuleProgressRepository(Repository[ModuleProgress]):
+    async def read(
+        self,
+        course_progress_id: UUID,
+        module_id: UUID,
+    ) -> ModuleProgress | None: ...
+
+    async def create(
+        self,
+        course_progress_id: UUID,
+        module_id: UUID,
+    ) -> ModuleProgress: ...
+
+    async def mark_completed(self, progress_id: UUID) -> ModuleProgress | None: ...
+
+
+class CourseProgressRepository(Repository[CourseProgress]):
+    async def read(self, user_id: UUID, course_id: UUID) -> CourseProgress | None: ...
+
+    async def create(self, user_id: UUID, course_id: UUID) -> CourseProgress: ...
+
+    async def mark_completed(self, progress_id: UUID) -> CourseProgress | None: ...
 
 
 class StudentRepository(Repository[Student]):

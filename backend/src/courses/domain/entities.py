@@ -350,9 +350,6 @@ class Module(Entity):
         description: Описание модуля.
         order: Порядковый номер модуля в курсе.
         learning_objectives: Список целей модуля.
-        content_blocks: Блоки контента модуля (общие для всех уроков).
-        assignment: Задание модуля (может быть Assignment или сырой dict).
-        lesson_basic_info: Список {"order": int, "title": str}.
         lessons: Список уроков модуля.
 
 
@@ -413,6 +410,35 @@ class LessonTheorySession(AggregateRoot):
     completed_at: datetime | None = None
     active_time_seconds: int = 0
     max_scroll_depth_percent: int = 0
+
+
+@dataclass(kw_only=True, slots=True)
+class CourseProgress(Entity):
+    """Хранит факт и момент завершения курса конкретным пользователем."""
+
+    user_id: UUID
+    course_id: UUID
+    completed_at: datetime | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class LessonProgress(Entity):
+    """Хранит время завершения частей урока конкретным пользователем."""
+
+    module_progress_id: UUID
+    lesson_id: UUID
+    theory_completed_at: datetime | None = None
+    practice_completed_at: datetime | None = None
+    test_completed_at: datetime | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class ModuleProgress(Entity):
+    """Хранит время завершения модуля конкретным пользователем."""
+
+    course_progress_id: UUID
+    module_id: UUID
+    completed_at: datetime | None = None
 
 
 @dataclass(kw_only=True, slots=True)
