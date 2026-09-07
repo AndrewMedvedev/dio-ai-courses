@@ -11,11 +11,13 @@ from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService
+from src.shared.domain.events import EventPublisher
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
 
-from ...application.repos import LessonRepository, PracticeRepository
+from ...application.repos import LessonRepository, ModuleRepository, PracticeRepository
 from ...domain.entities import FileUploadAssignment, Practice
+from ...domain.events import PracticePassed
 from ...domain.vo import PracticeStatus
 from ..course_generator.subagents.prompts import FILE_UPLOAD_PROMPT
 from ..prompts import ASSIGNMENT_PROMPT, PRACTICE_FILE_CHECKER_PROMPT
@@ -28,6 +30,8 @@ class PracticerAgent:
         session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
+        module_repo: ModuleRepository,
+        event_publisher: EventPublisher,
         client: SrvBaseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
@@ -35,6 +39,8 @@ class PracticerAgent:
         self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
+        self.module_repo = module_repo
+        self.event_publisher = event_publisher
 
     async def call_agent_creator(
         self,
@@ -106,4 +112,19 @@ class PracticerAgent:
                 practice={"practice": practice, **response.model_dump()},
             )
         await self.session.commit()
+        if response.is_passed:
+            practice_record = await self.practice_repo.get_by_id(practice_id)
+            if practice_record is None:
+                raise NotFoundError(message="Практическое задание не найдено")
+            module = await self.module_repo.read(practice_record.module_id)
+            if module is None or module.course_id is None:
+                raise NotFoundError(message="Модуль практического задания не найден")
+            await self.event_publisher.publish(
+                PracticePassed(
+                    user_id=practice_record.user_id,
+                    course_id=module.course_id,
+                    module_id=practice_record.module_id,
+                    lesson_id=practice_record.lesson_id,
+                )
+            )
         return response

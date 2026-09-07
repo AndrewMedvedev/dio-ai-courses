@@ -21,6 +21,7 @@ from ...application.repos import (
     StudentRepository,
 )
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
+from ...domain.events import PracticePassed, TestPassed
 
 
 class LearningProgressService:
@@ -53,7 +54,7 @@ class LearningProgressService:
         lesson_id: UUID,
         schema: LessonProgressUpdateSchema,
     ) -> LessonProgress:
-        """Сохраняет статусы частей урока, рассчитанные фронтендом."""
+        """Сохраняет прохождение теории; практику и тест обновляют события."""
         progress, module_progress, course_progress = await self._get_or_create(
             user_id,
             course_id,
@@ -63,20 +64,42 @@ class LearningProgressService:
             progress = self._require_progress(
                 await self._progress_repo.mark_theory_completed(module_progress.id, lesson_id)
             )
-        if schema.practice_completed and progress.practice_completed_at is None:
-            progress = self._require_progress(
-                await self._progress_repo.mark_practice_completed(module_progress.id, lesson_id)
+        if self._all_lesson_parts_completed(progress):
+            await self._complete_module_if_ready(module_progress)
+            await self._complete_course_if_ready(course_progress)
+        await self._uow.commit()
+        return progress
+
+    async def mark_assessment_completed(self, event: PracticePassed | TestPassed) -> None:
+        """Обновляет прогресс после подтверждённой проверки задания."""
+        progress, module_progress, course_progress = await self._get_or_create(
+            event.user_id,
+            event.course_id,
+            event.lesson_id,
+        )
+        if module_progress.module_id != event.module_id:
+            raise NotFoundError(
+                f"Lesson with id {event.lesson_id} does not belong to module {event.module_id}"
             )
-        if schema.test_completed and progress.test_completed_at is None:
+        if isinstance(event, PracticePassed):
             progress = self._require_progress(
-                await self._progress_repo.mark_test_completed(module_progress.id, lesson_id)
+                await self._progress_repo.mark_practice_completed(
+                    module_progress.id,
+                    event.lesson_id,
+                )
+            )
+        else:
+            progress = self._require_progress(
+                await self._progress_repo.mark_test_completed(
+                    module_progress.id,
+                    event.lesson_id,
+                )
             )
 
         if self._all_lesson_parts_completed(progress):
             await self._complete_module_if_ready(module_progress)
             await self._complete_course_if_ready(course_progress)
         await self._uow.commit()
-        return progress
 
     async def get_course_progress(
         self,

@@ -22,6 +22,10 @@ class SqlPracticeRepository(SqlAlchemyRepository[Practice, PracticeOrm]):
     model = PracticeOrm
     model_mapper = PracticeMapper  # pyright: ignore[reportAssignmentType]
 
+    async def get_by_id(self, uid: UUID) -> Practice | None:
+        model = await self._session.get(self.model, uid)
+        return None if model is None else self.model_mapper.from_model(model)
+
     async def read(self, user_id: UUID, module_id: UUID, lesson_id: UUID) -> Practice | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
         stmt = select(self.model).where(

@@ -47,11 +47,9 @@ class LessonTheorySessionEditSchema(BaseModel):
 
 
 class LessonProgressUpdateSchema(BaseModel):
-    """Итоговые статусы урока, рассчитанные фронтендом."""
+    """Клиент обновляет только прохождение теории."""
 
     theory_completed: bool = False
-    practice_completed: bool = False
-    test_completed: bool = False
 
 
 class CourseSchema(BaseModel):

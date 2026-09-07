@@ -15,7 +15,9 @@ from src.core.others import thread_executor
 from src.core.qdrant import qdrant_client
 from src.core.redis import checkpointer
 from src.core.settings import settings
+from src.core.broker import rabbit_router
 from src.courses.api.v1 import router as courses_router
+from src.courses.infra.messaging import progress as progress_events  # noqa: F401
 from src.iam.api.v1 import router as iam_router
 from src.llm_router.api.v1 import router as llm_router
 from src.media.router import router as media_router
@@ -79,6 +81,7 @@ router.include_router(media_router)
 router.include_router(courses_router)
 router.include_router(llm_router)
 app.include_router(router)
+app.include_router(rabbit_router)
 
 app.add_middleware(
     CORSMiddleware,
