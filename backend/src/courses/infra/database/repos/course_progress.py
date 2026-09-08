@@ -26,6 +26,11 @@ class SqlCourseProgressRepository(
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
 
+    async def find_by_course(self, course_id: UUID) -> list[CourseProgress]:
+        stmt = select(self.model).where(self.model.course_id == course_id)
+        result = await self._session.execute(stmt)
+        return [self.model_mapper.from_model(model) for model in result.scalars().all()]
+
     async def create(self, user_id: UUID, course_id: UUID) -> CourseProgress:
         stmt = (
             insert(self.model)

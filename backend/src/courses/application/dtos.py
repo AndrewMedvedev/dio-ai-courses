@@ -101,35 +101,3 @@ class EditLessonSchema(BaseModel):
 class LessonTheorySessionFilters(BaseQueryParamFilters):
     created_from: datetime | None = None
     created_to: datetime | None = None
-
-
-class LessonProgressResponse(BaseModel):
-    lesson_id: UUID
-    theory_completed_at: datetime | None = None
-    practice_completed_at: datetime | None = None
-    test_completed_at: datetime | None = None
-    is_completed: bool
-
-
-class ModuleProgressResponse(BaseModel):
-    module_id: UUID
-    completed_at: datetime | None = None
-    is_completed: bool
-    lessons: list[LessonProgressResponse] = Field(default_factory=list)
-
-
-class CourseProgressResponse(BaseModel):
-    course_id: UUID
-    total_lessons: int
-    completed_lessons: int
-    progress_percent: int
-    is_completed: bool
-    modules: list[ModuleProgressResponse] = Field(default_factory=list)
-
-
-class StudentCourseProgressResponse(BaseModel):
-    user_id: UUID
-    course_id: UUID
-    total_lessons: int
-    completed_lessons: int
-    progress_percent: int
