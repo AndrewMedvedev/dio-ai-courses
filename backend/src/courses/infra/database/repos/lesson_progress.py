@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from sqlalchemy import select, update
-from sqlalchemy.dialects.postgresql import insert
 
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 from src.shared.utils.time import current_datetime
@@ -16,12 +15,11 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
     model = LessonProgressOrm
     model_mapper = LessonProgressMapper
 
-    async def read(
+    async def get_by_module_progress_and_lesson(
         self,
         module_progress_id: UUID,
         lesson_id: UUID,
     ) -> LessonProgress | None:
-        """Возвращает прогресс указанного урока."""
         stmt = select(self.model).where(
             self.model.module_progress_id == module_progress_id,
             self.model.lesson_id == lesson_id,
@@ -30,37 +28,11 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
 
-    async def create(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress:
-        """Создаёт начальную запись прогресса урока."""
-        stmt = (
-            insert(self.model)
-            .values(
-                module_progress_id=module_progress_id,
-                lesson_id=lesson_id,
-            )
-            .on_conflict_do_nothing(constraint="uq_lesson_progress_module_lesson")
-            .returning(self.model)
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        if model is not None:
-            return self.model_mapper.from_model(model)
-
-        progress = await self.read(module_progress_id, lesson_id)
-        if progress is None:
-            raise RuntimeError("Lesson progress was not found after creation")
-        return progress
-
     async def mark_theory_completed(
         self,
         module_progress_id: UUID,
         lesson_id: UUID,
     ) -> LessonProgress | None:
-        """Отмечает теорию как пройденную, не меняя первое время завершения."""
         stmt = (
             update(self.model)
             .where(
@@ -75,7 +47,7 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         model = result.scalar_one_or_none()
         if model is not None:
             return self.model_mapper.from_model(model)
-        return await self.read(module_progress_id, lesson_id)
+        return await self.get_by_module_progress_and_lesson(module_progress_id, lesson_id)
 
     async def mark_assessments_completed(
         self,
@@ -83,7 +55,6 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         lesson_id: UUID,
         schema: LessonProgressUpdateSchema,
     ) -> None:
-        """Отмечает завершённые практику и тест из серверного события."""
         completed_fields = (
             (schema.practice_completed, "practice_completed_at"),
             (schema.test_completed, "test_completed_at"),

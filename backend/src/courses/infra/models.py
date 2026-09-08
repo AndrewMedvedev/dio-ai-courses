@@ -77,6 +77,10 @@ class ModuleOrm(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    progress_records: Mapped[list[ModuleProgressOrm]] = relationship(
+        back_populates="module",
+        passive_deletes=True,
+    )
 
     __table_args__ = (Index("ix_modules_course_id", "course_id"),)
 
@@ -98,6 +102,10 @@ class LessonOrm(Base):
     )
 
     module: Mapped[ModuleOrm | None] = relationship(back_populates="lessons")
+    progress_records: Mapped[list[LessonProgressOrm]] = relationship(
+        back_populates="lesson",
+        passive_deletes=True,
+    )
 
     __table_args__ = (Index("ix_lessons_module_id", "module_id"),)
 
@@ -134,10 +142,6 @@ class CourseProgressOrm(Base):
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
     )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
-
     course: Mapped[CourseOrm] = relationship(back_populates="progress_records")
     module_progresses: Mapped[list[ModuleProgressOrm]] = relationship(
         back_populates="course_progress",
@@ -161,10 +165,14 @@ class ModuleProgressOrm(Base):
         ForeignKey("modules.id", ondelete="CASCADE"),
         nullable=False,
     )
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-
     course_progress: Mapped[CourseProgressOrm] = relationship(
         back_populates="module_progresses"
+    )
+    module: Mapped[ModuleOrm] = relationship(back_populates="progress_records")
+    lesson_progresses: Mapped[list[LessonProgressOrm]] = relationship(
+        back_populates="module_progress",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     __table_args__ = (
@@ -197,6 +205,10 @@ class LessonProgressOrm(Base):
     test_completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
     )
+    module_progress: Mapped[ModuleProgressOrm] = relationship(
+        back_populates="lesson_progresses"
+    )
+    lesson: Mapped[LessonOrm] = relationship(back_populates="progress_records")
 
     __table_args__ = (
         UniqueConstraint(

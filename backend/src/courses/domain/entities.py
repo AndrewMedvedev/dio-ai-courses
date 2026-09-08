@@ -418,7 +418,6 @@ class CourseProgress(Entity):
 
     user_id: UUID
     course_id: UUID
-    completed_at: datetime | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -438,7 +437,7 @@ class ModuleProgress(Entity):
 
     course_progress_id: UUID
     module_id: UUID
-    completed_at: datetime | None = None
+
 
 
 @dataclass(kw_only=True, slots=True)

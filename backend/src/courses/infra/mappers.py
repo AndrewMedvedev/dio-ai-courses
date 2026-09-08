@@ -261,7 +261,6 @@ class ModuleProgressMapper(ModelMapper[ModuleProgress, ModuleProgressOrm]):
             updated_at=model.updated_at,
             course_progress_id=model.course_progress_id,
             module_id=model.module_id,
-            completed_at=model.completed_at,
         )
 
     @staticmethod
@@ -272,7 +271,6 @@ class ModuleProgressMapper(ModelMapper[ModuleProgress, ModuleProgressOrm]):
             updated_at=entity.updated_at,
             course_progress_id=entity.course_progress_id,
             module_id=entity.module_id,
-            completed_at=entity.completed_at,
         )
 
 
@@ -285,7 +283,6 @@ class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
             updated_at=model.updated_at,
             user_id=model.user_id,
             course_id=model.course_id,
-            completed_at=model.completed_at,
         )
 
     @staticmethod
@@ -296,7 +293,6 @@ class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
             updated_at=entity.updated_at,
             user_id=entity.user_id,
             course_id=entity.course_id,
-            completed_at=entity.completed_at,
         )
 
 

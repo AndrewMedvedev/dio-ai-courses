@@ -224,13 +224,11 @@ class PracticeRepository(Repository[Practice]):
 
 
 class LessonProgressRepository(Repository[LessonProgress]):
-    async def read(self, module_progress_id: UUID, lesson_id: UUID) -> LessonProgress | None: ...
-
-    async def create(
+    async def get_by_module_progress_and_lesson(
         self,
         module_progress_id: UUID,
         lesson_id: UUID,
-    ) -> LessonProgress: ...
+    ) -> LessonProgress | None: ...
 
     async def mark_theory_completed(
         self,
@@ -239,29 +237,21 @@ class LessonProgressRepository(Repository[LessonProgress]):
     ) -> LessonProgress | None: ...
 
 class ModuleProgressRepository(Repository[ModuleProgress]):
-    async def read(
+    async def get_by_course_progress_and_module(
         self,
         course_progress_id: UUID,
         module_id: UUID,
     ) -> ModuleProgress | None: ...
 
-    async def create(
-        self,
-        course_progress_id: UUID,
-        module_id: UUID,
-    ) -> ModuleProgress: ...
-
-    async def mark_completed(self, progress_id: UUID) -> ModuleProgress | None: ...
-
 
 class CourseProgressRepository(Repository[CourseProgress]):
-    async def read(self, user_id: UUID, course_id: UUID) -> CourseProgress | None: ...
+    async def get_by_user_and_course(
+        self,
+        user_id: UUID,
+        course_id: UUID,
+    ) -> CourseProgress | None: ...
 
     async def find_by_course(self, course_id: UUID) -> list[CourseProgress]: ...
-
-    async def create(self, user_id: UUID, course_id: UUID) -> CourseProgress: ...
-
-    async def mark_completed(self, progress_id: UUID) -> CourseProgress | None: ...
 
 
 class StudentRepository(Repository[Student]):
