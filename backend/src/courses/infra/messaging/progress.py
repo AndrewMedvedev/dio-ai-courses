@@ -15,17 +15,13 @@ progress_queue = RabbitQueue(
 )
 
 
-async def update_progress(event: LessonProgressUpdated) -> None:
-    async with session_factory() as session:
-        progress_repo = SqlLessonProgressRepository(session)
-        await progress_repo.mark_completed_for_user(
-            event.user_id,
-            event.lesson_id,
-            event.progress,
-        )
-        await session.commit()
-
-
 @rabbit_router.subscriber(progress_queue, exchange)
 async def on_lesson_progress_updated(event: LessonProgressUpdated) -> None:
-    await update_progress(event)
+    async with session_factory() as session:
+        progress_repo = SqlLessonProgressRepository(session)
+        await progress_repo.mark_assessments_completed(
+            user_id=event.user_id,
+            lesson_id=event.lesson_id,
+            schema=event.progress,
+        )
+        await session.commit()

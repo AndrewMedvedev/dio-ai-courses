@@ -60,63 +60,15 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         module_progress_id: UUID,
         lesson_id: UUID,
     ) -> LessonProgress | None:
-        """Отмечает теорию как пройденную."""
-        return await self._mark_completed(
-            module_progress_id,
-            lesson_id,
-            "theory_completed_at",
-        )
-
-    async def mark_practice_completed(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress | None:
-        """Отмечает практику как пройденную."""
-        return await self._mark_completed(
-            module_progress_id,
-            lesson_id,
-            "practice_completed_at",
-        )
-
-    async def mark_test_completed(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress | None:
-        """Отмечает тест по уроку как пройденный."""
-        return await self._mark_completed(module_progress_id, lesson_id, "test_completed_at")
-
-    async def mark_completed_for_user(
-        self,
-        user_id: UUID,
-        lesson_id: UUID,
-        schema: LessonProgressUpdateSchema,
-    ) -> None:
-        """Отмечает части урока по пользователю и уроку из события."""
-        completed_fields = (
-            (schema.theory_completed, "theory_completed_at"),
-            (schema.practice_completed, "practice_completed_at"),
-            (schema.test_completed, "test_completed_at"),
-        )
-        for is_completed, field_name in completed_fields:
-            if is_completed:
-                await self._mark_completed_for_user(user_id, lesson_id, field_name)
-
-    async def _mark_completed(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-        field_name: str,
-    ) -> LessonProgress | None:
+        """Отмечает теорию как пройденную, не меняя первое время завершения."""
         stmt = (
             update(self.model)
             .where(
                 self.model.module_progress_id == module_progress_id,
                 self.model.lesson_id == lesson_id,
+                self.model.theory_completed_at.is_(None),
             )
-            .where(getattr(self.model, field_name).is_(None))
-            .values(**{field_name: current_datetime()})
+            .values(theory_completed_at=current_datetime())
             .returning(self.model)
         )
         result = await self._session.execute(stmt)
@@ -125,12 +77,17 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
             return self.model_mapper.from_model(model)
         return await self.read(module_progress_id, lesson_id)
 
-    async def _mark_completed_for_user(
+    async def mark_assessments_completed(
         self,
         user_id: UUID,
         lesson_id: UUID,
-        field_name: str,
+        schema: LessonProgressUpdateSchema,
     ) -> None:
+        """Отмечает завершённые практику и тест из серверного события."""
+        completed_fields = (
+            (schema.practice_completed, "practice_completed_at"),
+            (schema.test_completed, "test_completed_at"),
+        )
         module_progress_ids = (
             select(ModuleProgressOrm.id)
             .join(
@@ -139,13 +96,14 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
             )
             .where(CourseProgressOrm.user_id == user_id)
         )
-        stmt = (
-            update(self.model)
-            .where(
-                self.model.lesson_id == lesson_id,
-                self.model.module_progress_id.in_(module_progress_ids),
-                getattr(self.model, field_name).is_(None),
-            )
-            .values(**{field_name: current_datetime()})
-        )
-        await self._session.execute(stmt)
+        for is_completed, field_name in completed_fields:
+            if is_completed:
+                await self._session.execute(
+                    update(self.model)
+                    .where(
+                        self.model.lesson_id == lesson_id,
+                        self.model.module_progress_id.in_(module_progress_ids),
+                        getattr(self.model, field_name).is_(None),
+                    )
+                    .values(**{field_name: current_datetime()})
+                )

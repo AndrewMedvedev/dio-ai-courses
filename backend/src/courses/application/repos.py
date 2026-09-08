@@ -238,18 +238,6 @@ class LessonProgressRepository(Repository[LessonProgress]):
         lesson_id: UUID,
     ) -> LessonProgress | None: ...
 
-    async def mark_practice_completed(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress | None: ...
-
-    async def mark_test_completed(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress | None: ...
-
 class ModuleProgressRepository(Repository[ModuleProgress]):
     async def read(
         self,
