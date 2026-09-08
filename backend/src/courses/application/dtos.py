@@ -47,9 +47,11 @@ class LessonTheorySessionEditSchema(BaseModel):
 
 
 class LessonProgressUpdateSchema(BaseModel):
-    """Клиент обновляет только прохождение теории."""
+    """Статусы частей урока для HTTP-запроса и событий прогресса."""
 
     theory_completed: bool = False
+    practice_completed: bool = False
+    test_completed: bool = False
 
 
 class CourseSchema(BaseModel):

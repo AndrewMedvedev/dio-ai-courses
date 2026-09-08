@@ -6,9 +6,10 @@ from sqlalchemy.dialects.postgresql import insert
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 from src.shared.utils.time import current_datetime
 
+from ....application.dtos import LessonProgressUpdateSchema
 from ....domain.entities import LessonProgress
 from ...mappers import LessonProgressMapper
-from ...models import LessonProgressOrm
+from ...models import CourseProgressOrm, LessonProgressOrm, ModuleProgressOrm
 
 
 class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonProgressOrm]):
@@ -86,6 +87,22 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         """Отмечает тест по уроку как пройденный."""
         return await self._mark_completed(module_progress_id, lesson_id, "test_completed_at")
 
+    async def mark_completed_for_user(
+        self,
+        user_id: UUID,
+        lesson_id: UUID,
+        schema: LessonProgressUpdateSchema,
+    ) -> None:
+        """Отмечает части урока по пользователю и уроку из события."""
+        completed_fields = (
+            (schema.theory_completed, "theory_completed_at"),
+            (schema.practice_completed, "practice_completed_at"),
+            (schema.test_completed, "test_completed_at"),
+        )
+        for is_completed, field_name in completed_fields:
+            if is_completed:
+                await self._mark_completed_for_user(user_id, lesson_id, field_name)
+
     async def _mark_completed(
         self,
         module_progress_id: UUID,
@@ -107,3 +124,28 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         if model is not None:
             return self.model_mapper.from_model(model)
         return await self.read(module_progress_id, lesson_id)
+
+    async def _mark_completed_for_user(
+        self,
+        user_id: UUID,
+        lesson_id: UUID,
+        field_name: str,
+    ) -> None:
+        module_progress_ids = (
+            select(ModuleProgressOrm.id)
+            .join(
+                CourseProgressOrm,
+                ModuleProgressOrm.course_progress_id == CourseProgressOrm.id,
+            )
+            .where(CourseProgressOrm.user_id == user_id)
+        )
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.lesson_id == lesson_id,
+                self.model.module_progress_id.in_(module_progress_ids),
+                getattr(self.model, field_name).is_(None),
+            )
+            .values(**{field_name: current_datetime()})
+        )
+        await self._session.execute(stmt)

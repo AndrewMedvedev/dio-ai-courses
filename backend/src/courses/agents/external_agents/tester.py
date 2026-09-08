@@ -15,9 +15,10 @@ from src.shared.domain.events import EventPublisher
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
 
-from ...application.repos import LessonRepository, ModuleRepository, PracticeRepository
+from ...application.dtos import LessonProgressUpdateSchema
+from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
-from ...domain.events import TestPassed
+from ...domain.events import LessonProgressUpdated
 from ...domain.vo import PracticeStatus, TestType
 from ..prompts import ASSIGNMENT_PROMPT, KNOWLEDGE_CONFIG, TEST_CHECKER_PROMPT
 from ..schemas import AnyKnowledgeTest, PracticeResult
@@ -29,7 +30,6 @@ class TesterAgent:
         session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
-        module_repo: ModuleRepository,
         event_publisher: EventPublisher,
         client: SrvBaseClient,
     ) -> None:
@@ -38,7 +38,6 @@ class TesterAgent:
         self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
-        self.module_repo = module_repo
         self.event_publisher = event_publisher
 
     async def call_agent_creator(
@@ -108,31 +107,24 @@ class TesterAgent:
         )
         response = PracticeResult.model_validate(result.output)
         if response.is_passed:
-            await self.practice_repo.update(
+            updated_practice = await self.practice_repo.update(
                 uid=practice_id,
                 status=PracticeStatus.COMPLETED,
                 practice={"practice": practice, **response.model_dump()},
             )
         else:
-            await self.practice_repo.update(
+            updated_practice = await self.practice_repo.update(
                 uid=practice_id,
                 status=PracticeStatus.FAILED,
                 practice={"practice": practice, **response.model_dump()},
             )
         await self.session.commit()
         if response.is_passed:
-            practice_record = await self.practice_repo.get_by_id(practice_id)
-            if practice_record is None:
-                raise NotFoundError(message="Тест не найден")
-            module = await self.module_repo.read(practice_record.module_id)
-            if module is None or module.course_id is None:
-                raise NotFoundError(message="Модуль теста не найден")
             await self.event_publisher.publish(
-                TestPassed(
-                    user_id=practice_record.user_id,
-                    course_id=module.course_id,
-                    module_id=practice_record.module_id,
-                    lesson_id=practice_record.lesson_id,
+                LessonProgressUpdated(
+                    user_id=updated_practice.user_id,
+                    lesson_id=updated_practice.lesson_id,
+                    progress=LessonProgressUpdateSchema(test_completed=True),
                 )
             )
         return response

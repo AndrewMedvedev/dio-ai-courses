@@ -215,8 +215,6 @@ class PracticeRepository(Repository[Practice]):
     `ChatRepositoryProtocol`, ситуация полностью аналогична.
     """
 
-    async def get_by_id(self, uid: UUID) -> Practice | None: ...
-
     async def read(self, user_id: UUID, module_id: UUID, lesson_id: UUID) -> Practice | None:
         """Получает практику по составному ключу пользователя, модуля и урока."""
 
