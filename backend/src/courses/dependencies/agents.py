@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from src.shared.dependencies.database import DBSession
+from src.shared.dependencies.events import EventPublisherDep
 
 from ..agents.external_agents import editor, interviewer, mentor, practicer, tester
 from ..infra.services import course_client
@@ -30,12 +31,14 @@ def get_practicer_agent(
     session: DBSession,
     practice_repo: PracticeRepoDep,
     lesson_repo: LessonRepoDep,
+    event_publisher: EventPublisherDep,
 ) -> practicer.PracticerAgent:
     """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
     return practicer.PracticerAgent(
         practice_repo=practice_repo,
         session=session,
         lesson_repo=lesson_repo,
+        event_publisher=event_publisher,
         client=course_client,
     )
 
@@ -44,12 +47,14 @@ def get_tester_agent(
     session: DBSession,
     practice_repo: PracticeRepoDep,
     lesson_repo: LessonRepoDep,
+    event_publisher: EventPublisherDep,
 ) -> tester.TesterAgent:
     """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
     return tester.TesterAgent(
         practice_repo=practice_repo,
         session=session,
         lesson_repo=lesson_repo,
+        event_publisher=event_publisher,
         client=course_client,
     )
 

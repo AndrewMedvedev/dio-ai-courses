@@ -1,7 +1,8 @@
 import logging
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
@@ -14,7 +15,7 @@ from ...domain.permissions.courses import UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/students", tags=["Enrollments"])
+router = APIRouter(prefix="/students", tags=["Students"])
 
 
 @router.post(
@@ -40,7 +41,7 @@ async def sign_up(
 async def get_courses(
     service: StudentServiceDep,
     identity: CurrentIdentity,
-    pagination: Pagination,
+    pagination: Annotated[Pagination, Query()],
 ) -> Page[Course]:
     return await service.get_my_courses(identity.id, pagination)
 
@@ -55,6 +56,6 @@ async def get_courses(
 async def get_course_students(
     course_id: UUID,
     repo: StudentRepoDep,
-    pagination: Pagination,
+    pagination: Annotated[Pagination, Query()],
 ) -> Page[Student]:
     return await repo.find_by_course(course_id, pagination)

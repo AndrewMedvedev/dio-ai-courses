@@ -9,12 +9,16 @@ from ..application.services.course import CourseService
 from ..application.services.document import DocumentService
 from ..application.services.lesson import LessonService
 from ..application.services.module import ModuleService
+from ..application.services.progress import LearningProgressService
 from ..application.services.student import StudentService
 from .base import (
     CourseRepoDep,
+    CourseProgressRepoDep,
     DocumentRepoDep,
     LessonRepoDep,
+    LessonProgressRepoDep,
     ModuleRepoDep,
+    ModuleProgressRepoDep,
     StudentRepoDep,
 )
 
@@ -56,8 +60,34 @@ def get_student_service(
     return StudentService(student_repo=student_repo, session=session, course_repo=course_repo)
 
 
+def get_learning_progress_service(
+    session: DBSession,
+    progress_repo: LessonProgressRepoDep,
+    course_progress_repo: CourseProgressRepoDep,
+    course_repo: CourseRepoDep,
+    module_repo: ModuleRepoDep,
+    module_progress_repo: ModuleProgressRepoDep,
+    lesson_repo: LessonRepoDep,
+    student_repo: StudentRepoDep,
+) -> LearningProgressService:
+    """Возвращает сервис для управления прогрессом по урокам."""
+    return LearningProgressService(
+        progress_repo=progress_repo,
+        course_progress_repo=course_progress_repo,
+        course_repo=course_repo,
+        module_repo=module_repo,
+        module_progress_repo=module_progress_repo,
+        lesson_repo=lesson_repo,
+        student_repo=student_repo,
+        uow=session,
+    )
+
+
 LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
 ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]
 CourseServiceDep = Annotated[CourseService, Depends(get_course_service)]
 DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
 StudentServiceDep = Annotated[StudentService, Depends(get_student_service)]
+LearningProgressServiceDep = Annotated[
+    LearningProgressService, Depends(get_learning_progress_service)
+]

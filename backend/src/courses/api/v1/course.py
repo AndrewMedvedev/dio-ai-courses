@@ -132,3 +132,15 @@ async def delete_course(
     course_id: UUID,
 ) -> None:
     await service.change_status(course_id=course_id, status=CourseStatus.ARCHIVED)
+
+
+@router.post(
+    "/{course_id}/invite-only",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(UPDATE.code))],
+)
+async def invite_only_course(
+    service: CourseServiceDep,
+    course_id: UUID,
+) -> None:
+    await service.change_status(course_id=course_id, status=CourseStatus.INVITE_ONLY)
