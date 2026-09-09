@@ -63,18 +63,18 @@ class VideoBlock(ContentBlock):
     description: str
 
 
-# @dataclass(kw_only=True, slots=True)
-# class ImageBlock(ContentBlock):
-#     """Блок с изображением.
+@dataclass(kw_only=True, slots=True)
+class ImageBlock(ContentBlock):
+    """Блок с изображением.
 
-#     Attributes:
-#         content_type: Тип контента (всегда IMAGE).
-#         ai_generated: Флаг AI-генерации.
-#         image_id: id изображения.
-#     """
+    Attributes:
+        content_type: Тип контента (всегда IMAGE).
+        ai_generated: Флаг AI-генерации.
+        image_id: id изображения.
+    """
 
-#     content_type: ContentType = ContentType.IMAGE
-#     image_id: str
+    content_type: ContentType = ContentType.IMAGE
+    image_id: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -198,7 +198,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 AnyContentBlock = (
     TextBlock
     | VideoBlock
-    # | ImageBlock
+    | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock

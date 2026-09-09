@@ -23,8 +23,9 @@ from ....infra.services import course_client
 from ....infra.vector_repo import VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import Context, RuntimeContext
+from ..few_shots import LESSON_STRUCTURE_FEW_SHOT
 from ..serializer import checkpointer
-from .prompts import ContentSpecification, LessonStructure
+from .prompts import LESSON_STRUCTURE_PROMPT, ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
 
 logger = logging.getLogger(__name__)
@@ -49,42 +50,76 @@ async def plan_lesson_structure(
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
         client=course_client,
-        system_prompt="""\
-    Ты опытный методист и разработчик образовательных курсов.
-    Твоя задача — спланировать детальную структуру одного урока: разбить материал
-    на логичные контент-блоки и составить для каждого исчерпывающий промпт,
-    по которому другой агент сможет самостоятельно сгенерировать качественный контент.
-
-    Принципы работы:
-    - Каждый промпт должен быть самодостаточным: агент-генератор не будет видеть
-      описание урока, только твой промпт.
-    - Выбирай тип контент-блока строго по смыслу: не используй musical_notation
-      для чего-либо кроме нотных записей; не используй mermaid для формул.
-    - Соблюдай дидактическую последовательность: от теории к практике,
-      от простого к сложному.
-
-    """,
+        system_prompt=LESSON_STRUCTURE_PROMPT,
     )
 
     prompt_template = f"""\
-        Спланируй структуру урока на основе следующих данных:
-        **Целевая аудитория:** {state["audience_description"]}
-        **Цели обучения курса:** {", ".join(state["learning_objectives"])}
-        **Порядковый номер урока в модуле:** {state["order"]}
-        **Описание урока:** {state["lesson_description"]}
-        Требования к результату:
-        1. Сформируй 4–5 контент-блоков, покрывающих тему урока от введения до закрепления.
-        2. Для каждого блока напиши подробный промпт (минимум 4–5 предложений),
-           учитывающий уровень аудитории и цели урока.
-        3. Выбери тип каждого блока исходя из содержания (text, program_code, mermaid, quiz, math_formula, chemical_formula, musical_notation).
-        """
+    Спроектируй подробную структуру текущего урока.
+
+    ## Контекст курса
+
+    Целевая аудитория:
+    {state["audience_description"]}
+
+    Конечные цели обучения курса:
+    {", ".join(state["learning_objectives"])}
+
+    ## Текущий урок
+
+    Положение урока внутри модуля:
+    {state["order"]}
+
+    ВАЖНО:
+    порядковый номер используется только для понимания места урока
+    в образовательной последовательности.
+
+    Не добавляй его в title.
+    Не используй названия вида "Урок {state["order"]}. ...".
+
+    Описание и требования к содержанию урока:
+    {state["lesson_description"]}
+
+    ## Задача
+
+    Спроектируй урок так, чтобы студент последовательно освоил тему
+    и достиг предусмотренных образовательных результатов.
+
+    Требования:
+
+    - сформируй конкретный title без нумерации;
+    - дай содержательное описание образовательной роли урока;
+    - сформулируй проверяемые learning_objectives;
+    - создай строго 4–5 логически связанных контент-блоков;
+    - для каждого блока выбери content_type по смыслу;
+    - для каждого блока составь подробный самодостаточный prompt;
+    - каждый prompt должен содержать минимум 4–6 содержательных предложений;
+    - не используй больше одного quiz;
+    - не используй material будущих уроков как уже известный;
+    - оцени реалистичное время прохождения урока.
+
+    Каждый prompt должен точно указывать:
+    - тему;
+    - образовательную цель;
+    - обязательное содержание;
+    - необходимую глубину;
+    - способ объяснения;
+    - подходящий пример;
+    - типичные ошибки, если они важны;
+    - ожидаемый результат для студента.
+
+    Верни результат строго по переданной JSON Schema.
+    """
     logger.info(
         "Planning %s - module structure by description: '%s ...'",
         state["order"],
         state["lesson_description"][:100],
     )
     result = await lesson_structure_planner.invoke(
-        schema=LessonStructure, messages=[{"role": "user", "content": prompt_template}]
+        schema=LessonStructure,
+        messages=[
+            *LESSON_STRUCTURE_FEW_SHOT,
+            {"role": "user", "content": prompt_template},
+        ],
     )
 
     lesson_structure = LessonStructure.model_validate(result.output)
@@ -136,7 +171,7 @@ async def build_content_block(
     )
     elapsed_time = time.monotonic() - start_time
     logger.info(
-        "Added `%s` content block in module, generation time - %s seconds",
+        "Added `%s` content block in lesson, generation time - %s seconds",
         content_type.value,
         round(elapsed_time, 2),
     )

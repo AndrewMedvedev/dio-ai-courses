@@ -1,5 +1,4 @@
 # pyright: reportOptionalMemberAccess=false, reportArgumentType=false, reportReturnType=false
-
 from typing import NotRequired, TypedDict
 
 import logging
@@ -15,16 +14,17 @@ from src.core.database import session_factory
 from src.llm_service import LLMTextService, Runtime
 
 from ...application.domain_dtos import CourseDict, CourseStructureDict, ModuleDict
-from ...application.mappers import course_to_dict, dict_to_course
+from ...application.mappers import course_to_dict, dict_to_course, model_to_typed_dict
 from ...domain.entities import Course
 from ...domain.vo import CourseStatus
 from ...infra.database.repos.course import SqlCourseRepository
 from ...infra.services import course_client
 from ..schemas import Context, RuntimeContext
+from .few_shots import COURSE_STRUCTURE_FEW_SHOT
 from .helper import invoke_or_resume
 from .serializer import checkpointer
 from .subagents.module_builder import module_builder_agent
-from .subagents.prompts import PLANNER_PROMPT, CourseStructure
+from .subagents.prompts import COURSE_STRUCTURE_PROMPT, CourseStructure
 from .subagents.reasoner import reasoner_agent
 
 logger = logging.getLogger(__name__)
@@ -65,10 +65,13 @@ async def plan_course_structure(state: AgentState) -> dict:
 
     agent = LLMTextService(
         client=course_client,
-        system_prompt=PLANNER_PROMPT,
+        system_prompt=COURSE_STRUCTURE_PROMPT,
     )
     result = await agent.invoke(
-        messages=[{"role": "user", "content": state.get("thinks", "")}],
+        messages=[
+            *COURSE_STRUCTURE_FEW_SHOT,
+            {"role": "user", "content": state.get("thinks", "")},
+        ],
         schema=CourseStructure,
     )
     course_structure = CourseStructure.model_validate(result.output)
@@ -84,7 +87,7 @@ async def plan_course_structure(state: AgentState) -> dict:
     )
     logger.info("Added `title`, `description` and `learning_objectives` in course")
     return {
-        "course_structure": course_structure.model_dump_json(),
+        "course_structure": model_to_typed_dict(course_structure),
         "course": course_to_dict(course),
     }
 

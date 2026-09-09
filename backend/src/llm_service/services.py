@@ -1,8 +1,8 @@
 # ruff: file-ignore[no-self-use, unused-method-argument]
 # pyright: reportOptionalSubscript=false, reportArgumentType=false, reportGeneralTypeIssues=false, reportOptionalIterable=false
-import asyncio
 from typing import Any, Literal
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
@@ -144,14 +144,14 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
             self.runtime.messages = list(messages)
         if schema is not None:
             request.format_schema(schema)
-        # return await self._send_request(
-        #     request=request,
-        #     path=f"/api/v1/responses/text{f'?model={self.model}' if self.model is not None else ''}",
-        # )
         return await self._send_request(
             request=request,
-            path="/api/v1/responses/text?model=gpt-5.4-mini",
+            path=f"/api/v1/responses/text{f'?model={self.model}' if self.model is not None else ''}",
         )
+        # return await self._send_request(
+        #     request=request,
+        #     path="/api/v1/responses/text?model=gpt-5-nano",
+        # )
 
     def _build_tool_call_handler(self) -> Callable[[ToolCallParsed], Awaitable[dict]]:
         async def base_handler(tool: ToolCallParsed) -> dict:
@@ -246,3 +246,7 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
             request=request,
             path=f"/api/v1/responses/image{f'?model={self.model}' if self.model is not None else ''}",
         )
+        # return await self._send_request(
+        #     request=request,
+        #     path="/api/v1/responses/image?model=gpt-image-2",
+        # )

@@ -7,7 +7,7 @@ include:
   - docker/queues.docker-compose.yml
   - docker/s3.docker-compose.yml
   - docker/others.docker-compose.yml
-  - docker/services.docker-compose.yml
+  # - docker/services.docker-compose.yml
 
 networks:
   default:

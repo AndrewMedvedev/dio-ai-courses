@@ -19,10 +19,11 @@ from ....domain.entities import Module
 from ....infra.database.repos.module import SqlModuleRepository
 from ....infra.services import course_client
 from ...schemas import Context, RuntimeContext
+from ..few_shots import MODULE_STRUCTURE_FEW_SHOT
 from ..helper import invoke_or_resume
 from ..serializer import checkpointer
 from .lesson_builder import lesson_builder_agent
-from .prompts import ModuleStructure
+from .prompts import MODULE_STRUCTURE_PROMPT, ModuleStructure
 
 logger = logging.getLogger(__name__)
 
@@ -46,18 +47,49 @@ async def plan_module_structure(
 
     module_structure_planner = LLMTextService(
         client=course_client,
-        system_prompt="""\
-    Ты полезный ассистент для планирования структуры образовательного модуля
-    по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
-    и заданиями.
-    """,
+        system_prompt=MODULE_STRUCTURE_PROMPT,
     )
     prompt_template = f"""\
-    Сгенерируй структуру модуля используя следующую информацию:
-     - **Целевая аудитория курса:** {state["audience_description"]}
-     - **Цели обучения курса:** {state["learning_objectives"]}
-     - **Порядковый номер модуля:** {state["order"]}
-     - **Описание модуля:** {state["module_description"]}
+    Спроектируй структуру текущего учебного модуля.
+
+    ## Контекст курса
+
+    Целевая аудитория:
+    {state["audience_description"]}
+
+    Конечные цели обучения курса:
+    {state["learning_objectives"]}
+
+    ## Текущий модуль
+
+    Положение модуля в последовательности курса:
+    {state["order"]}
+
+    ВАЖНО:
+    порядковый номер используется только для понимания места модуля
+    в образовательной траектории.
+
+    Не добавляй этот номер в title.
+    Не используй названия вида "Модуль {state["order"]}. ...".
+
+    Описание и требования к содержанию модуля:
+    {state["module_description"]}
+
+    ## Задача
+
+    Определи структуру модуля так, чтобы он:
+    - соответствовал уровню целевой аудитории;
+    - выполнял свою роль в общей программе;
+    - достигал заявленных образовательных результатов;
+    - состоял из последовательных уроков;
+    - не требовал знаний, которые появятся только позже;
+    - не дублировал материал соседних этапов;
+    - содержал минимально достаточное количество уроков.
+
+    Каждый урок должен представлять отдельный логический шаг
+    в освоении материала.
+
+    Верни результат строго по переданной JSON Schema.
     """
     logger.info(
         "Planning %s - module structure by description: '%s ...'",
@@ -65,7 +97,11 @@ async def plan_module_structure(
         state["module_description"][:100],
     )
     result = await module_structure_planner.invoke(
-        messages=[{"role": "user", "content": prompt_template}], schema=ModuleStructure
+        messages=[
+            *MODULE_STRUCTURE_FEW_SHOT,
+            {"role": "user", "content": prompt_template},
+        ],
+        schema=ModuleStructure,
     )
 
     module_structure = ModuleStructure.model_validate(result.output)

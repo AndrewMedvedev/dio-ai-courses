@@ -55,7 +55,8 @@ def is_retryable_error(exc: BaseException) -> bool:
 
     if isinstance(exc, openai.APIStatusError):
         return exc.status_code in RETRYABLE_STATUS_CODES
-
+    if isinstance(exc, StructuredOutputError):
+        return True
     return isinstance(exc, Exception)
 
 
@@ -136,6 +137,12 @@ def extract_json(text: str) -> dict[str, Any]:
     Возвращает только dict.
     JSON-массивы, строки, числа и другие JSON-типы считаются
     некорректным structured output.
+
+    Если модель вернула не JSON (например, свободный markdown-текст
+    вместо structured output), метод сразу бросает StructuredOutputError,
+    а не пытается "вытащить" JSON из произвольного места текста —
+    это защищает от ложного восстановления мусорного dict из фигурных
+    скобок LaTeX-формул, markdown-таблиц и т.п. внутри обычного текста.
     """
     if not text or not text.strip():
         raise StructuredOutputError("LLM returned empty structured output")
@@ -144,40 +151,33 @@ def extract_json(text: str) -> dict[str, Any]:
 
     # Снимаем внешний markdown-фенс, только если он оборачивает
     # ВЕСЬ ответ целиком (заякорено к началу/концу строки).
-    # Это не даёт зацепить фенсы, которые встречаются внутри
-    # значений полей (например, ```dockerfile ... ``` в поле "code"
-    # или ```mermaid ... ``` в поле "md_content").
     match = _JSON_FENCE_RE.match(text)
     if match:
         text = match.group(1).strip()
 
-    candidates: list[str] = [text]
+    # Если после снятия фенса текст даже не начинается с "{" — это
+    # не JSON-объект, а произвольный текст (модель проигнорировала
+    # structured output). Раньше здесь брался кандидат "между первой
+    # { и последней } во всём тексте", что на свободном markdown-тексте
+    # с LaTeX-формулами (\text{...}, \mathbf{...}) или таблицами
+    # захватывало случайные фрагменты и repair_json собирал из них
+    # мусорный, но валидный dict без нужных полей. Теперь просто
+    # честно бросаем ошибку.
+    if not text.startswith("{"):
+        raise StructuredOutputError(
+            "Model did not return a JSON object despite structured output "
+            f"request. Response starts with: {text[:200]!r}"
+        )
 
-    # Дополнительный кандидат:
-    # всё между первой открывающей и последней закрывающей фигурной скобкой.
-    start = text.find("{")
-    end = text.rfind("}")
+    try:
+        repaired = repair_json(text, return_objects=False)
+        parsed = orjson.loads(repaired)
 
-    if start != -1 and end > start:
-        object_candidate = text[start : end + 1]
+        if isinstance(parsed, dict):
+            return parsed
 
-        if object_candidate != text:
-            candidates.append(object_candidate)
-
-    for candidate in candidates:
-        try:
-            repaired = repair_json(
-                candidate,
-                return_objects=False,
-            )
-
-            parsed = orjson.loads(repaired)
-
-            if isinstance(parsed, dict):
-                return parsed
-
-        except Exception:  # ruff: ignore[blind-except, try-except-continue]
-            continue
+    except Exception:  # ruff: ignore[blind-except, try-except-pass]
+        pass
 
     raise StructuredOutputError(
         f"LLM response does not contain a valid JSON object. Response: {text[:500]!r}"
@@ -286,6 +286,11 @@ def parse_llm_response(  # ruff: ignore[complex-structure]
     """
     if response.error:
         raise ValueError(response.error)
+    if getattr(response, "status", None) == "incomplete":
+        reason = getattr(getattr(response, "incomplete_details", None), "reason", None)
+        raise StructuredOutputError(
+            f"LLM response incomplete (reason={reason}); cannot parse structured output"
+        )
 
     messages = _normalize_input_messages(input_messages)
 
@@ -438,11 +443,12 @@ async def cache_ai_models(
     return result
 
 
-def to_langsmith_llm_output(
-    result: LLMTextResponse,
-) -> dict[str, Any]:
-    """Преобразует ответ LLM в формат LangSmith."""
-
+def to_langsmith_llm_output(result: LLMTextResponse | None) -> dict[str, Any]:
+    if result is None:
+        return {
+            "output": None,
+            "usage_metadata": {"input_tokens": None, "output_tokens": None, "total_tokens": None},
+        }
     return {
         "output": result,
         "usage_metadata": {

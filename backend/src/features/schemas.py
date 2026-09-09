@@ -98,7 +98,7 @@ async def main():
     output_dir = Path("results")
     output_dir.mkdir(exist_ok=True)
 
-    output_file = output_dir / "gpt_oss_120b_course_result.json"
+    output_file = output_dir / "course_result.json"
 
     with output_file.open("w", encoding="utf-8") as f:
         json.dump(

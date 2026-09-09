@@ -13,7 +13,7 @@ from ...domain.dataclass import AIModel
 from ...domain.permissions.ai_models import CREATE, DELETE
 from ...schemas import AIModelSchema
 
-router = APIRouter(prefix="/ai/models", tags=["AI Models"])
+router = APIRouter(prefix="/ai-models", tags=["AI Models"])
 
 
 @router.post(

@@ -50,6 +50,14 @@ serializer = JsonPlusRedisSerializer(
             "prompts",
             "ContentSpecification",
         ),
+        (
+            "builtins",
+            "ExceptionGroup",
+        ),
+        (
+            "builtins",
+            "BaseExceptionGroup",
+        ),
     ],
     allowed_msgpack_modules=[
         (
@@ -67,6 +75,14 @@ serializer = JsonPlusRedisSerializer(
         (
             "src.courses.agents.course_generator.subagents.prompts",
             "LessonStructure",
+        ),
+        (
+            "builtins",
+            "ExceptionGroup",
+        ),
+        (
+            "builtins",
+            "BaseExceptionGroup",
         ),
     ],
 )

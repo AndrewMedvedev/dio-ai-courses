@@ -73,9 +73,6 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke(self, model: str, **kwargs) -> LLMTextResponse:
         result: Response = await self._client.responses.create(model=model, **kwargs)
-        print("*" * 400)
-        print(result)
-        print("*" * 400)
         return parse_llm_response(
             response=result,
             input_messages=kwargs["input"],
@@ -203,8 +200,10 @@ class LLMImageRouter(LLMRouter):
         self,
         ai_model_repos: SqlAIModelRepository,
         client: AsyncOpenAI,
+        image_client: AsyncOpenAI,
         wrapper: CacheAIModelsProtocol,
     ) -> None:
+        self._image_client = image_client
         super().__init__(ai_model_repos=ai_model_repos, client=client, wrapper=wrapper)
 
     @retry(**LLM_RETRY)
@@ -212,7 +211,7 @@ class LLMImageRouter(LLMRouter):
     async def _invoke_image(self, model: str, **kwargs) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
 
-        result: ImagesResponse = await self._client.images.generate(model=model, **kwargs)
+        result: ImagesResponse = await self._image_client.images.generate(model=model, **kwargs)
         return LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,
@@ -226,7 +225,7 @@ class LLMImageRouter(LLMRouter):
         """Отдельный метод для генерации изображения на основе изображения"""
         images = [base64.b64decode(image) for image in kwargs["image"]]
         kwargs.pop("image")
-        result: ImagesResponse = await self._client.images.edit(
+        result: ImagesResponse = await self._image_client.images.edit(
             model=model, image=images, **kwargs
         )
         return LLMImageResponse(

@@ -78,7 +78,7 @@ class RedisSettings(BaseSettings):
     @property
     def url(self) -> str:
         """redis://[:password@]host:port/db — пароль подставляется, только если он реально задан."""
-        return f"redis://{self.password}@{self.host}:{self.port}/{self.db}"
+        return f"redis://:{self.password}@{self.host}:{self.port}/{self.db}"
 
 
 class JWTSettings(BaseSettings):
@@ -183,7 +183,7 @@ class EmbeddingsSettings(BaseSettings):
 class RerankersSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="RERANKERS_")
 
-    base_url: str = "http://localhost:7998/"
+    base_url: str = "http://localhost:7998"
     model_name: str = "BAAI/bge-reranker-v2-m3"
 
 

@@ -3,14 +3,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "../creator/creator-chat.css";
 
-import {
-  createCreatorId,
-  formatWait,
-  generationStages,
-  intakeQuestions,
-} from "../creator/creatorChatConfig";
+import { intakeQuestions } from "../creator/creatorChatConfig";
 import {
   createAgentConversationKey,
+  createInitialGenerationState,
   useAgentStore,
 } from "../stores/agentStore";
 import {
@@ -25,10 +21,10 @@ import { getLocalStorage } from "../utils/storage";
 const MAX_FILES = 5;
 
 const ACTIVE_CREATOR_COURSE_KEY = "course-generation:active-course";
-const POLLING_INTERVAL_MS = 15_000;
+const COURSE_GENERATION_POLLING_INTERVAL_MS = 10_000;
+const COURSE_GENERATION_NOT_FOUND_GRACE_MS = 25 * 60 * 1000;
 const PROGRESS_TICK_MS = 500;
-const STATUS_ERROR_TIMEOUT_MS = 25 * 60 * 1000;
-const LONG_GENERATION_MS = 25 * 60 * 1000;
+const FAKE_PROGRESS_EASING_DURATION_MS = 30 * 60 * 1000;
 const NOT_FOUND_STATUS = 404;
 
 function createUuid() {
@@ -80,10 +76,10 @@ function clearGenerationState(courseId) {
 function estimateProgress(startedAt) {
   const started = Date.parse(startedAt || "");
   const elapsed = Number.isFinite(started) ? Date.now() - started : 0;
-  const ratio = Math.max(0, elapsed) / (25 * 60 * 1000);
+  const ratio = Math.max(0, elapsed) / FAKE_PROGRESS_EASING_DURATION_MS;
   return Math.min(
-    90,
-    Math.max(4, Math.round(90 * (1 - Math.exp(-ratio * 1.25)))),
+    95,
+    Math.max(4, Math.round(95 * (1 - Math.exp(-ratio * 1.1)))),
   );
 }
 
@@ -151,12 +147,38 @@ function safeMarkdownUrl(url) {
   return value.includes(":") ? "" : value;
 }
 
-function isFinalCourseStatus(status) {
-  return ["draft", "invite_only", "published", "archived"].includes(status);
+function normalizeCourseStatus(status) {
+  return String(status || "")
+    .trim()
+    .toLowerCase();
+}
+
+function isDraftCourseStatus(status) {
+  return normalizeCourseStatus(status) === "draft";
+}
+
+function isGenerationCourseStatus(status) {
+  return ["in_generation", "generating", "queued"].includes(
+    normalizeCourseStatus(status),
+  );
+}
+
+function getStatusErrorMessage(error) {
+  if (error?.status === 401) return "Сессия истекла. Войдите заново.";
+  if (error?.status === 403) {
+    return "Недостаточно прав для проверки статуса генерации курса.";
+  }
+  if (Number(error?.status) >= 400 && Number(error?.status) < 500) {
+    return "Не удалось проверить статус генерации курса.";
+  }
+  if (Number(error?.status) >= 500) {
+    return "Не удалось сгенерировать курс из-за ошибки сервера. Попробуйте позже.";
+  }
+  return "Не удалось проверить статус генерации курса. Проверьте соединение и попробуйте позже.";
 }
 
 export default function CreatorChatView() {
-  const [courseId] = useState(createCourseId);
+  const [courseId, setCourseId] = useState(createCourseId);
   const conversationKey = useMemo(
     () => createAgentConversationKey("interviewer", courseId),
     [courseId],
@@ -172,30 +194,33 @@ export default function CreatorChatView() {
   const clearConversation = useAgentStore((state) => state.clearConversation);
   const cancelRequest = useAgentStore((state) => state.cancelRequest);
   const setConversationChatId = useAgentStore((state) => state.setChatId);
+  const storeGeneration = useAgentStore(
+    (state) => state.generations[conversationKey],
+  );
+  const setGeneration = useAgentStore((state) => state.setGeneration);
+  const resetGeneration = useAgentStore((state) => state.resetGeneration);
+  const defaultGeneration = useMemo(createInitialGenerationState, []);
+  const generation = storeGeneration || defaultGeneration;
   const messages = conversation?.messages || [];
   const isThinking = conversation?.status === "loading";
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [inputValue, setInputValue] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [hasGenerationStarted, setHasGenerationStarted] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStatus, setGenerationStatus] = useState("Жду ответы в чате");
-  const [waitSeconds, setWaitSeconds] = useState(0);
-  const [taskId, setTaskId] = useState(null);
-  const [generationStartedAt, setGenerationStartedAt] = useState(null);
-  const [generatedBlocks, setGeneratedBlocks] = useState([]);
-  const [selectedBlockId, setSelectedBlockId] = useState(null);
+  const hasGenerationStarted = generation.hasStarted;
+  const isGenerating = generation.isGenerating;
+  const generationProgress = generation.progress;
+  const generationStatus = generation.status;
   const [fileUploadError, setFileUploadError] = useState("");
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const generationStageRef = useRef(0);
   const pollingTimerRef = useRef(null);
   const progressTimerRef = useRef(null);
-  const statusErrorStartedAtRef = useRef(null);
+  const statusRequestControllerRef = useRef(null);
+  const statusRequestInFlightRef = useRef(false);
+  const hasReceivedGenerationStatusRef = useRef(false);
 
   const requiredQuestionIds = [
     "title",
@@ -216,13 +241,23 @@ export default function CreatorChatView() {
   );
 
   const completionPercent = hasGenerationStarted
-    ? Math.max(briefingPercent, generationProgress)
+    ? generationProgress
     : briefingPercent;
-  const selectedBlock =
-    generatedBlocks.find((block) => block.id === selectedBlockId) ||
-    generatedBlocks[0] ||
-    null;
+  const isGenerationComplete =
+    hasGenerationStarted && !isGenerating && generationProgress >= 100;
   const currentQuestion = intakeQuestions[stepIndex] || null;
+
+  const updateGeneration = useCallback(
+    (patch) => setGeneration(conversationKey, patch),
+    [conversationKey, setGeneration],
+  );
+
+  const pushAssistantMessage = useCallback(
+    (text) => {
+      appendAgentMessage(conversationKey, "assistant", text);
+    },
+    [appendAgentMessage, conversationKey],
+  );
 
   useEffect(() => {
     initializeConversation({
@@ -245,57 +280,6 @@ export default function CreatorChatView() {
     });
   }, [messages, isThinking]);
 
-  useEffect(() => {
-    if (!isGenerating) {
-      return undefined;
-    }
-
-    const waitTimer = window.setInterval(() => {
-      setWaitSeconds((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => window.clearInterval(waitTimer);
-  }, [isGenerating]);
-
-  const pushAssistantMessage = (text) => {
-    appendAgentMessage(conversationKey, "assistant", text);
-  };
-
-  const applyGenerationStage = (stageIndex) => {
-    const stage = generationStages[stageIndex];
-    if (!stage) {
-      return;
-    }
-
-    setGenerationProgress(stage.progress);
-    setGenerationStatus(stage.status);
-    setWaitSeconds(stage.wait);
-
-    setGeneratedBlocks((prev) => {
-      if (prev.some((block) => block.stageIndex === stageIndex)) {
-        return prev;
-      }
-
-      const newBlock = {
-        id: createCreatorId("block"),
-        stageIndex,
-        title: stage.block.title,
-        description: stage.block.description,
-        readyPercent: stage.progress,
-      };
-      setSelectedBlockId((current) => current || newBlock.id);
-      return [...prev, newBlock];
-    });
-
-    pushAssistantMessage(
-      `Готово: ${stage.block.title}. Сейчас ${stage.status.toLowerCase()}.`,
-    );
-
-    if (stage.progress >= 100) {
-      setIsGenerating(false);
-    }
-  };
-
   const stopGenerationTimers = useCallback(() => {
     if (pollingTimerRef.current) {
       window.clearInterval(pollingTimerRef.current);
@@ -305,109 +289,154 @@ export default function CreatorChatView() {
       window.clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
     }
+    statusRequestControllerRef.current?.abort();
+    statusRequestControllerRef.current = null;
+    statusRequestInFlightRef.current = false;
   }, []);
 
   const finishGeneration = useCallback(
     (status = "draft") => {
       stopGenerationTimers();
       clearGenerationState(courseId);
-      setIsGenerating(false);
-      setHasGenerationStarted(true);
-      setGenerationProgress(100);
-      setWaitSeconds(0);
-      setGenerationStatus(
-        status === "draft"
-          ? "Курс сгенерирован! Смотрите его в своём профиле."
-          : "Курс получил финальный статус.",
-      );
+      updateGeneration({
+        isGenerating: false,
+        hasStarted: true,
+        courseStatus: normalizeCourseStatus(status),
+        progress: 100,
+        error: "",
+        status:
+          "Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».",
+      });
       pushAssistantMessage(
-        status === "draft"
-          ? "Курс сгенерирован! Смотрите его в своём профиле."
-          : "Курс больше не находится в генерации. Чат снова доступен.",
+        "Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».",
       );
     },
-    [courseId, stopGenerationTimers],
+    [courseId, pushAssistantMessage, stopGenerationTimers, updateGeneration],
   );
 
-  const startProgressSimulation = useCallback((startedAt) => {
-    if (progressTimerRef.current) {
-      window.clearInterval(progressTimerRef.current);
-    }
-    const tick = () => {
-      const nextProgress = estimateProgress(startedAt);
-      setGenerationProgress((current) => Math.max(current, nextProgress));
-      const started = Date.parse(startedAt || "");
-      if (
-        Number.isFinite(started) &&
-        Date.now() - started > LONG_GENERATION_MS
-      ) {
-        setGenerationStatus(
-          "Генерация занимает больше времени, чем обычно. Мы продолжаем проверять статус курса.",
-        );
+  const startProgressSimulation = useCallback(
+    (startedAt) => {
+      if (progressTimerRef.current) {
+        window.clearInterval(progressTimerRef.current);
       }
-    };
-    tick();
-    progressTimerRef.current = window.setInterval(tick, PROGRESS_TICK_MS);
-  }, []);
+      const tick = () => {
+        const nextProgress = estimateProgress(startedAt);
+        updateGeneration((current) => ({
+          progress: Math.max(current.progress, nextProgress),
+        }));
+      };
+      tick();
+      progressTimerRef.current = window.setInterval(tick, PROGRESS_TICK_MS);
+    },
+    [updateGeneration],
+  );
 
   const checkStatusOnce = useCallback(async () => {
+    if (statusRequestInFlightRef.current) return false;
+
+    const currentGeneration = useAgentStore
+      .getState()
+      .getGeneration(conversationKey);
+    const statusLookupId = currentGeneration.taskId || courseId;
+    if (!statusLookupId) return false;
+
+    statusRequestInFlightRef.current = true;
+    const controller = new AbortController();
+    statusRequestControllerRef.current = controller;
+
     try {
-      const { status } = await fetchCourseStatus(courseId);
-      statusErrorStartedAtRef.current = null;
-      if (status === "in_generation") {
-        setGenerationStatus(
-          "Курс генерируется. Проверяем готовность каждые 15 секунд.",
-        );
+      const { status } = await fetchCourseStatus(statusLookupId, {
+        signal: controller.signal,
+      });
+      const normalizedStatus = normalizeCourseStatus(status);
+
+      if (isGenerationCourseStatus(normalizedStatus)) {
+        hasReceivedGenerationStatusRef.current = true;
+        updateGeneration({
+          courseStatus: normalizedStatus,
+          error: "",
+          status: "Курс генерируется. Мы сообщим, когда он будет готов.",
+        });
         return false;
       }
-      if (isFinalCourseStatus(status)) {
-        finishGeneration(status);
+      if (isDraftCourseStatus(normalizedStatus)) {
+        hasReceivedGenerationStatusRef.current = true;
+        finishGeneration(normalizedStatus);
         return true;
       }
+      updateGeneration({
+        courseStatus: normalizedStatus,
+        status: "Курс генерируется. Мы сообщим, когда он будет готов.",
+      });
       return false;
     } catch (error) {
+      if (controller.signal.aborted) return true;
+
       if (error?.status === NOT_FOUND_STATUS) {
+        const started = Date.parse(currentGeneration.startedAt || "");
+        const elapsed = Number.isFinite(started) ? Date.now() - started : 0;
+        const shouldKeepPolling =
+          !hasReceivedGenerationStatusRef.current &&
+          elapsed < COURSE_GENERATION_NOT_FOUND_GRACE_MS;
+
+        if (shouldKeepPolling) {
+          updateGeneration({
+            courseStatus: "not_found",
+            error: "",
+            status:
+              "Задача генерации ещё подготавливается. Мы сообщим, когда курс будет готов.",
+          });
+          return false;
+        }
+
         stopGenerationTimers();
         clearGenerationState(courseId);
-        statusErrorStartedAtRef.current = null;
-        setIsGenerating(false);
-        setHasGenerationStarted(false);
-        setGenerationProgress(0);
-        setWaitSeconds(0);
-        setTaskId(null);
-        setGenerationStartedAt(null);
-        setGeneratedBlocks([]);
-        setSelectedBlockId(null);
-        setGenerationStatus(
-          "Предыдущая генерация больше не найдена. Можно начать новый диалог.",
-        );
+        updateGeneration({
+          isGenerating: false,
+          hasStarted: false,
+          taskId: null,
+          courseStatus: "not_found",
+          progress: 0,
+          startedAt: null,
+          error: "Не удалось сгенерировать курс.",
+          status: "Не удалось сгенерировать курс.",
+        });
+        pushAssistantMessage("Не удалось сгенерировать курс.");
         return true;
       }
 
       console.error("Не удалось получить статус генерации курса", error);
-      if (!statusErrorStartedAtRef.current) {
-        statusErrorStartedAtRef.current = Date.now();
-      }
+      const errorMessage = getStatusErrorMessage(error);
+      const shouldStopPolling = true;
 
-      const hasTimedOut =
-        Date.now() - statusErrorStartedAtRef.current >= STATUS_ERROR_TIMEOUT_MS;
+      updateGeneration({
+        isGenerating: !shouldStopPolling,
+        error: errorMessage,
+        status: errorMessage,
+      });
 
-      if (hasTimedOut) {
+      if (shouldStopPolling) {
         stopGenerationTimers();
         clearGenerationState(courseId);
-        setIsGenerating(false);
-        setGenerationStatus(
-          "Произошла ошибка при проверке статуса курса. Попробуйте обновить страницу позже.",
-        );
+        pushAssistantMessage(errorMessage);
         return true;
       }
 
-      setGenerationStatus(
-        "Курс генерируется. Продолжаем проверять готовность.",
-      );
       return false;
+    } finally {
+      if (statusRequestControllerRef.current === controller) {
+        statusRequestControllerRef.current = null;
+      }
+      statusRequestInFlightRef.current = false;
     }
-  }, [courseId, finishGeneration, stopGenerationTimers]);
+  }, [
+    conversationKey,
+    courseId,
+    finishGeneration,
+    pushAssistantMessage,
+    stopGenerationTimers,
+    updateGeneration,
+  ]);
 
   const startStatusPolling = useCallback(async () => {
     if (pollingTimerRef.current) {
@@ -418,7 +447,7 @@ export default function CreatorChatView() {
     if (finished) return;
     pollingTimerRef.current = window.setInterval(
       checkStatusOnce,
-      POLLING_INTERVAL_MS,
+      COURSE_GENERATION_POLLING_INTERVAL_MS,
     );
   }, [checkStatusOnce]);
 
@@ -428,20 +457,17 @@ export default function CreatorChatView() {
       chatId: nextChatId,
       startedAt = new Date().toISOString(),
     }) => {
-      setTaskId(nextTaskId || null);
-      setGenerationStartedAt(startedAt);
-      setHasGenerationStarted(true);
-      setIsGenerating(true);
-      setGenerationProgress(
-        Math.max(briefingPercent, estimateProgress(startedAt)),
-      );
-      setGenerationStatus(
-        "Курс генерируется. Это может занять несколько минут.",
-      );
-      setWaitSeconds(0);
-      setGeneratedBlocks([]);
-      setSelectedBlockId(null);
-      statusErrorStartedAtRef.current = null;
+      hasReceivedGenerationStatusRef.current = false;
+      updateGeneration({
+        taskId: nextTaskId || null,
+        startedAt,
+        hasStarted: true,
+        isGenerating: true,
+        courseStatus: "in_generation",
+        progress: estimateProgress(startedAt),
+        status: "Курс генерируется. Это может занять несколько минут.",
+        error: "",
+      });
       writeGenerationState({
         courseId,
         chatId: nextChatId || conversation?.chatId || null,
@@ -453,11 +479,11 @@ export default function CreatorChatView() {
       startStatusPolling();
     },
     [
-      briefingPercent,
       conversation?.chatId,
       courseId,
       startProgressSimulation,
       startStatusPolling,
+      updateGeneration,
     ],
   );
 
@@ -495,7 +521,7 @@ export default function CreatorChatView() {
 
     setIsUploadingFiles(true);
     setFileUploadError("");
-    setGenerationStatus("Загружаю материалы в базу знаний...");
+    updateGeneration({ status: "Загружаю материалы в базу знаний..." });
 
     const results = await Promise.allSettled(
       uploadedFiles.map((uploadedFile) => saveDocument(uploadedFile.file)),
@@ -536,16 +562,16 @@ export default function CreatorChatView() {
     if (!savedGeneration) return;
 
     setConversationChatId(conversationKey, savedGeneration.chatId || null);
-    setTaskId(savedGeneration.taskId || null);
-    setGenerationStartedAt(savedGeneration.generationStartedAt || null);
-    setHasGenerationStarted(true);
-    setIsGenerating(true);
-    setGenerationProgress(
-      estimateProgress(savedGeneration.generationStartedAt),
-    );
-    setGenerationStatus(
-      "Восстанавливаем генерацию курса и проверяем актуальный статус.",
-    );
+    updateGeneration({
+      taskId: savedGeneration.taskId || null,
+      startedAt: savedGeneration.generationStartedAt || null,
+      hasStarted: true,
+      isGenerating: true,
+      courseStatus: "in_generation",
+      progress: estimateProgress(savedGeneration.generationStartedAt),
+      status: "Генерация курса продолжается.",
+      error: "",
+    });
     startProgressSimulation(savedGeneration.generationStartedAt);
     startStatusPolling();
   }, [
@@ -554,7 +580,7 @@ export default function CreatorChatView() {
     setConversationChatId,
     startProgressSimulation,
     startStatusPolling,
-    stopGenerationTimers,
+    updateGeneration,
   ]);
 
   const submitMessage = async () => {
@@ -718,19 +744,25 @@ export default function CreatorChatView() {
     setAnswers({});
     setInputValue("");
     setUploadedFiles([]);
-    setHasGenerationStarted(false);
-    setIsGenerating(false);
-    setGenerationProgress(0);
-    setGenerationStatus("Жду ответы в чате");
-    setWaitSeconds(0);
-    setGeneratedBlocks([]);
-    setSelectedBlockId(null);
+    resetGeneration(conversationKey);
+    hasReceivedGenerationStatusRef.current = false;
     setFileUploadError("");
-    setTaskId(null);
-    setGenerationStartedAt(null);
     setIsUploadingFiles(false);
-    generationStageRef.current = 0;
-    statusErrorStartedAtRef.current = null;
+  };
+
+  const startNewChat = () => {
+    stopGenerationTimers();
+    clearGenerationState(courseId);
+    clearConversation(conversationKey);
+    setStepIndex(0);
+    setAnswers({});
+    setInputValue("");
+    setUploadedFiles([]);
+    resetGeneration(conversationKey);
+    hasReceivedGenerationStatusRef.current = false;
+    setFileUploadError("");
+    setIsUploadingFiles(false);
+    setCourseId(createUuid());
   };
 
   return (
@@ -758,50 +790,6 @@ export default function CreatorChatView() {
 
       {isGenerating && (
         <div className="creator-chat-layout is-generating">
-          <aside className="creator-chat-left">
-            <div className="glass-card creator-chat-left-card">
-              <div className="creator-chat-left-head">
-                <h4>Этапы генерации</h4>
-                <span>{completionPercent}%</span>
-              </div>
-
-              <div className="creator-chat-runtime">
-                <h5>Сейчас выполняется</h5>
-                <p>{generationStatus}</p>
-                <div className="creator-chat-runtime-bar">
-                  <div style={{ width: `${completionPercent}%` }} />
-                </div>
-                <small>
-                  {waitSeconds > 0
-                    ? `Ориентир до следующего этапа: ${formatWait(waitSeconds)}`
-                    : "Статус обновляется автоматически каждые 15 секунд."}
-                </small>
-              </div>
-
-              <ul className="creator-chat-checklist">
-                {generationStages.slice(0, -1).map((stage, index) => {
-                  const isDone = completionPercent >= stage.progress;
-                  const previousProgress =
-                    generationStages[index - 1]?.progress || 0;
-                  const isActive =
-                    !isDone && completionPercent >= previousProgress;
-
-                  return (
-                    <li
-                      key={stage.block.title}
-                      className={
-                        isDone ? "is-done" : isActive ? "is-active" : ""
-                      }
-                    >
-                      <span>{isDone ? "✓" : index + 1}</span>
-                      <p>{stage.block.title}</p>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </aside>
-
           <article className="glass-card creator-chat-main">
             <div className="creator-chat-main-head">
               <h4>Чат-конструктор</h4>
@@ -841,218 +829,250 @@ export default function CreatorChatView() {
                   <i />
                   <i />
                 </span>
-                <p>
-                  Курс отправлен на генерацию. Можно оставить страницу открытой
-                  — прогресс обновится автоматически.
-                </p>
+                <p>Курс генерируется. Можно оставить страницу открытой.</p>
               </div>
             </div>
 
             <div className="creator-chat-runtime">
-              <h5>Генерация запущена</h5>
+              <h5>Генерация курса</h5>
               <p>{generationStatus}</p>
               <div className="creator-chat-runtime-bar">
                 <div style={{ width: `${completionPercent}%` }} />
               </div>
-              <small>
-                {taskId
-                  ? `ID задачи: ${taskId}`
-                  : "Ожидаем подтверждение задачи от backend."}
-                {generationStartedAt
-                  ? ` • Запущено: ${new Date(
-                      generationStartedAt,
-                    ).toLocaleTimeString("ru-RU", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}`
-                  : ""}
-              </small>
             </div>
           </article>
         </div>
       )}
 
-      {!isGenerating &&
-        (!hasGenerationStarted || generationProgress >= 100) && (
-          <div className="creator-chat-layout is-briefing">
-            <article className="glass-card creator-chat-main">
-              <div className="creator-chat-main-head">
-                <h4>Чат-конструктор</h4>
-                <span>
-                  {isUploadingFiles
-                    ? "Загружаю файлы..."
-                    : isGenerating
-                      ? "ИИ работает..."
-                      : "Диалог активен"}
-                </span>
-              </div>
+      {isGenerationComplete && (
+        <div className="creator-chat-layout is-briefing">
+          <article className="glass-card creator-chat-main">
+            <div className="creator-chat-main-head">
+              <h4>Чат-конструктор</h4>
+              <span>Курс готов</span>
+            </div>
 
-              <div
-                className="creator-chat-messages"
-                ref={messagesContainerRef}
-                aria-live="polite"
-                aria-busy={isThinking}
-              >
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
-                  >
-                    {message.role === "assistant" ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        urlTransform={safeMarkdownUrl}
-                      >
-                        {message.text}
-                      </ReactMarkdown>
-                    ) : (
-                      <p>{message.text}</p>
-                    )}
-                    {message.role === "user" && (
-                      <span className="chat-message-status">✓ Отправлено</span>
-                    )}
-                  </div>
-                ))}
-
-                {isThinking && (
-                  <div className="creator-chat-msg is-assistant is-thinking">
-                    <span className="chat-thinking-dots" aria-hidden="true">
-                      <i />
-                      <i />
-                      <i />
-                    </span>
-                    <p>Сообщение получено — думаю над следующим уточнением…</p>
-                  </div>
-                )}
-                {conversation?.error && (
-                  <p className="lesson-ai-error" role="alert">
-                    {conversation.error}
-                  </p>
-                )}
-              </div>
-
-              <div className="creator-chat-composer-wrap">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="knowledge-file-input"
-                  multiple
-                  accept=".pdf,.docx,.pptx,.xlsx,.md,.html,.txt,.json"
-                  onChange={pickFiles}
-                  disabled={isGenerating || isUploadingFiles}
-                />
-                <div className="creator-chat-composer">
-                  <button
-                    type="button"
-                    className="creator-chat-plus"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isGenerating || isUploadingFiles}
-                    title="Загрузить файл"
-                    aria-label="Загрузить файл"
-                  >
-                    +
-                  </button>
-
-                  <textarea
-                    placeholder={
-                      currentQuestion?.placeholder ||
-                      "Напишите сообщение для ИИ"
-                    }
-                    value={inputValue}
-                    onChange={(event) => {
-                      setInputValue(event.target.value);
-                      if (fileUploadError && uploadedFiles.length === 0) {
-                        setFileUploadError("");
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.nativeEvent.isComposing) {
-                        return;
-                      }
-
-                      if (event.key === "Enter" && !event.shiftKey) {
-                        event.preventDefault();
-                        submitMessage();
-                      }
-                    }}
-                    maxLength={10_000}
-                    disabled={isGenerating || isUploadingFiles}
-                  />
-
-                  <button
-                    type="button"
-                    className="btn btn-solid creator-chat-send-btn"
-                    onClick={submitMessage}
-                    disabled={
-                      isGenerating ||
-                      isUploadingFiles ||
-                      isThinking ||
-                      (Boolean(fileUploadError) &&
-                        uploadedFiles.length === 0) ||
-                      (!inputValue.trim() && uploadedFiles.length === 0)
-                    }
-                  >
-                    {isUploadingFiles
-                      ? "Загружаю файлы..."
-                      : isThinking
-                        ? "Отправлено"
-                        : "Отправить"}
-                  </button>
-                </div>
-
-                {uploadedFiles.length > 0 && (
-                  <ul className="knowledge-files-list">
-                    {uploadedFiles.map((file) => (
-                      <li key={file.id}>
-                        {file.name} • {file.sizeKb} КБ
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {fileUploadError && (
-                <p
-                  className="lesson-ai-error creator-chat-file-error"
-                  role="alert"
+            <div
+              className="creator-chat-messages"
+              ref={messagesContainerRef}
+              aria-live="polite"
+            >
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
-                  {fileUploadError}
+                  {message.role === "assistant" ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      urlTransform={safeMarkdownUrl}
+                    >
+                      {message.text}
+                    </ReactMarkdown>
+                  ) : (
+                    <p>{message.text}</p>
+                  )}
+                  {message.role === "user" && (
+                    <span className="chat-message-status">✓ Отправлено</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="creator-chat-actions creator-chat-new-actions">
+              <span>
+                Можно начать новый диалог для создания следующего курса.
+              </span>
+              <button
+                type="button"
+                className="btn btn-solid"
+                onClick={startNewChat}
+              >
+                Новый чат
+              </button>
+            </div>
+          </article>
+        </div>
+      )}
+
+      {!isGenerating && !isGenerationComplete && (
+        <div className="creator-chat-layout is-briefing">
+          <article className="glass-card creator-chat-main">
+            <div className="creator-chat-main-head">
+              <h4>Чат-конструктор</h4>
+              <span>
+                {isUploadingFiles
+                  ? "Загружаю файлы..."
+                  : isGenerating
+                    ? "ИИ работает..."
+                    : "Диалог активен"}
+              </span>
+            </div>
+
+            <div
+              className="creator-chat-messages"
+              ref={messagesContainerRef}
+              aria-live="polite"
+              aria-busy={isThinking}
+            >
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                >
+                  {message.role === "assistant" ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      urlTransform={safeMarkdownUrl}
+                    >
+                      {message.text}
+                    </ReactMarkdown>
+                  ) : (
+                    <p>{message.text}</p>
+                  )}
+                  {message.role === "user" && (
+                    <span className="chat-message-status">✓ Отправлено</span>
+                  )}
+                </div>
+              ))}
+
+              {isThinking && (
+                <div className="creator-chat-msg is-assistant is-thinking">
+                  <span className="chat-thinking-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <p>Сообщение получено — думаю над следующим уточнением…</p>
+                </div>
+              )}
+              {conversation?.error && (
+                <p className="lesson-ai-error" role="alert">
+                  {conversation.error}
                 </p>
               )}
+            </div>
 
-              <div className="creator-chat-actions">
-                <span>
-                  Файлов прикреплено: {uploadedFiles.length} • Enter для
-                  отправки, Shift + Enter для новой строки
-                </span>
-                <div className="creator-chat-actions-buttons">
-                  {fileUploadError && (
-                    <button
-                      type="button"
-                      className="btn btn-solid"
-                      onClick={submitMessage}
-                      disabled={
-                        isUploadingFiles ||
-                        isThinking ||
-                        isGenerating ||
-                        uploadedFiles.length === 0
-                      }
-                    >
-                      {isUploadingFiles ? "Загружаю..." : "Повторить загрузку"}
-                    </button>
-                  )}
+            <div className="creator-chat-composer-wrap">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="knowledge-file-input"
+                multiple
+                accept=".pdf,.docx,.pptx,.xlsx,.md,.html,.txt,.json"
+                onChange={pickFiles}
+                disabled={isGenerating || isUploadingFiles}
+              />
+              <div className="creator-chat-composer">
+                <button
+                  type="button"
+                  className="creator-chat-plus"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isGenerating || isUploadingFiles}
+                  title="Загрузить файл"
+                  aria-label="Загрузить файл"
+                >
+                  +
+                </button>
+
+                <textarea
+                  placeholder={
+                    currentQuestion?.placeholder || "Напишите сообщение для ИИ"
+                  }
+                  value={inputValue}
+                  onChange={(event) => {
+                    setInputValue(event.target.value);
+                    if (fileUploadError && uploadedFiles.length === 0) {
+                      setFileUploadError("");
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing) {
+                      return;
+                    }
+
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      submitMessage();
+                    }
+                  }}
+                  maxLength={10_000}
+                  disabled={isGenerating || isUploadingFiles}
+                />
+
+                <button
+                  type="button"
+                  className="btn btn-solid creator-chat-send-btn"
+                  onClick={submitMessage}
+                  disabled={
+                    isGenerating ||
+                    isUploadingFiles ||
+                    isThinking ||
+                    (Boolean(fileUploadError) && uploadedFiles.length === 0) ||
+                    (!inputValue.trim() && uploadedFiles.length === 0)
+                  }
+                >
+                  {isUploadingFiles
+                    ? "Загружаю файлы..."
+                    : isThinking
+                      ? "Отправлено"
+                      : "Отправить"}
+                </button>
+              </div>
+
+              {uploadedFiles.length > 0 && (
+                <ul className="knowledge-files-list">
+                  {uploadedFiles.map((file) => (
+                    <li key={file.id}>
+                      {file.name} • {file.sizeKb} КБ
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {fileUploadError && (
+              <p
+                className="lesson-ai-error creator-chat-file-error"
+                role="alert"
+              >
+                {fileUploadError}
+              </p>
+            )}
+
+            <div className="creator-chat-actions">
+              <span>
+                Файлов прикреплено: {uploadedFiles.length} • Enter для отправки,
+                Shift + Enter для новой строки
+              </span>
+              <div className="creator-chat-actions-buttons">
+                {fileUploadError && (
                   <button
                     type="button"
-                    className="btn btn-outline"
-                    onClick={clearChat}
+                    className="btn btn-solid"
+                    onClick={submitMessage}
+                    disabled={
+                      isUploadingFiles ||
+                      isThinking ||
+                      isGenerating ||
+                      uploadedFiles.length === 0
+                    }
                   >
-                    Очистить чат
+                    {isUploadingFiles ? "Загружаю..." : "Повторить загрузку"}
                   </button>
-                </div>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={clearChat}
+                >
+                  Очистить чат
+                </button>
               </div>
-            </article>
-          </div>
-        )}
+            </div>
+          </article>
+        </div>
+      )}
     </section>
   );
 }

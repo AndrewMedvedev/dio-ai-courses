@@ -41,7 +41,7 @@ async def rerank(
     async with (
         ClientSession(base_url=settings.rerankers.base_url) as session,
         session.post(
-            "/v1/rerank",
+            "/rerank",
             json={
                 "model": settings.rerankers.model_name,
                 "query": query,
