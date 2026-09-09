@@ -6,8 +6,8 @@ from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.mappers import ModelMapper
 from src.shared.infra.database.repos import SqlAlchemyRepository
 
-from ..domain.dataclass import AIModel
-from .models import AIModelOrm
+from ..domain.dataclass import AIModel, LLMInvocation
+from .models import AIModelOrm, LLMInvocationOrm
 
 
 class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
@@ -78,3 +78,44 @@ class SqlAIModelRepository(SqlAlchemyRepository[AIModel, AIModelOrm]):
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)  # type: ignore  # ruff: ignore[blanket-type-ignore]
+
+
+class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
+    @staticmethod
+    def from_model(model: LLMInvocationOrm) -> LLMInvocation:
+        """Преобразует запись мониторинга в доменную сущность."""
+        return LLMInvocation(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
+            request_id=model.request_id,
+            model=model.model,
+            input_tokens=model.input_tokens,
+            output_tokens=model.output_tokens,
+            total_tokens=model.total_tokens,
+            response=model.response,
+        )
+
+    @staticmethod
+    def to_model(entity: LLMInvocation) -> LLMInvocationOrm:
+        """Преобразует доменную сущность мониторинга в ORM-модель."""
+        return LLMInvocationOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            deleted_at=entity.deleted_at,
+            request_id=entity.request_id,
+            model=entity.model,
+            input_tokens=entity.input_tokens,
+            output_tokens=entity.output_tokens,
+            total_tokens=entity.total_tokens,
+            response=entity.response,
+        )
+
+
+class SqlLLMInvocationRepository(
+    SqlAlchemyRepository[LLMInvocation, LLMInvocationOrm]
+):
+    model = LLMInvocationOrm
+    model_mapper = LLMInvocationMapper  # type: ignore  # ruff: ignore[blanket-type-ignore]

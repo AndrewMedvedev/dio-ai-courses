@@ -32,6 +32,8 @@ router = APIRouter(prefix="/agent", tags=["Agents"])
 
 @router.post(
     "/interviewer",
+    summary="Написать AI-интервьюеру",
+    description="Передаёт сообщение AI-интервьюеру, который помогает собрать вводные данные для создания курса.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -60,6 +62,8 @@ async def chat_with_interviewer(
 
 @router.post(
     "/editor",
+    summary="Написать AI-редактору",
+    description="Передаёт сообщение AI-редактору для редактирования материалов курса.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -88,6 +92,8 @@ async def chat_with_editor(
 
 @router.post(
     "/mentor",
+    summary="Написать AI-наставнику",
+    description="Передаёт сообщение AI-наставнику и возвращает его ответ по материалам курса.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -114,7 +120,9 @@ async def chat_with_mentor(
 
 
 @router.post(
-    "/test/{module_id}/{lesson_id}",
+    "/tests/{module_id}/{lesson_id}",
+    summary="Сгенерировать тест для урока",
+    description="Генерирует тест по указанному уроку с учётом контекста модуля и текущего пользователя.",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -133,7 +141,9 @@ async def create_test(
 
 
 @router.post(
-    "/check/test/{practice_id}",
+    "/check/tests/{practice_id}",
+    summary="Проверить ответы на тест",
+    description="Проверяет ответы пользователя на сгенерированный тест и возвращает результат проверки.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -153,7 +163,9 @@ async def check_test(
 
 
 @router.post(
-    "/practice/{module_id}/{lesson_id}",
+    "/practices/{module_id}/{lesson_id}",
+    summary="Сгенерировать практическое задание",
+    description="Генерирует практическое задание по указанному уроку с учётом контекста модуля.",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -172,7 +184,9 @@ async def create_practice(
 
 
 @router.post(
-    "/check/practice/{practice_id}",
+    "/check/practices/{practice_id}",
+    summary="Проверить практическое задание",
+    description="Принимает файл с выполненным заданием, проверяет его и возвращает результат.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )

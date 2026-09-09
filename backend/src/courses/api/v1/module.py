@@ -12,11 +12,13 @@ from ...domain.permissions.courses import CREATE, DELETE, UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/module", tags=["Module"])
+router = APIRouter(prefix="/modules", tags=["Modules"])
 
 
 @router.post(
-    "/create",
+    "",
+    summary="Создать модуль",
+    description="Создаёт модуль курса. При передаче идентификатора курса сразу связывает модуль с этим курсом.",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -29,7 +31,9 @@ async def create(
 
 
 @router.post(
-    "/assign/{module_id}/{course_id}",
+    "/{module_id}/courses/{course_id}",
+    summary="Привязать модуль к курсу",
+    description="Связывает существующий модуль с указанным курсом.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -42,7 +46,9 @@ async def assign(
 
 
 @router.get(
-    "/basic/info/{module_id}",
+    "/{module_id}",
+    summary="Получить информацию о модуле",
+    description="Возвращает основную информацию о модуле и входящих в него уроках.",
     status_code=status.HTTP_200_OK,
 )
 async def get_module_basic_info(service: ModuleServiceDep, module_id: UUID):
@@ -50,7 +56,9 @@ async def get_module_basic_info(service: ModuleServiceDep, module_id: UUID):
 
 
 @router.put(
-    "/edit/{module_id}",
+    "/{module_id}",
+    summary="Обновить модуль",
+    description="Обновляет переданные поля модуля. Неуказанные поля остаются без изменений.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -64,6 +72,8 @@ async def edit_module(
 
 @router.delete(
     "/{module_id}",
+    summary="Удалить модуль",
+    description="Удаляет модуль и его связь с курсом.",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

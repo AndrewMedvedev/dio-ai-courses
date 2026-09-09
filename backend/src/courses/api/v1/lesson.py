@@ -12,11 +12,13 @@ from ...domain.permissions.courses import COURSE_READ, CREATE, DELETE, UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/lesson", tags=["Lesson"])
+router = APIRouter(prefix="/lessons", tags=["Lessons"])
 
 
 @router.post(
-    "/create",
+    "",
+    summary="Создать урок",
+    description="Создаёт урок. При передаче идентификатора модуля сразу связывает урок с этим модулем.",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -29,7 +31,9 @@ async def create(
 
 
 @router.post(
-    "/assign/{lesson_id}/{module_id}",
+    "/{lesson_id}/modules/{module_id}",
+    summary="Привязать урок к модулю",
+    description="Связывает существующий урок с указанным модулем.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -42,7 +46,9 @@ async def assign(
 
 
 @router.get(
-    "/basic/info/{lesson_id}",
+    "/{lesson_id}",
+    summary="Получить информацию об уроке",
+    description="Возвращает основную информацию об уроке без содержимого теоретических блоков.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -54,7 +60,9 @@ async def get_lesson_basic_info(
 
 
 @router.get(
-    "/theory/{lesson_id}",
+    "/{lesson_id}/theory",
+    summary="Получить теоретический материал урока",
+    description="Возвращает блоки теоретического содержимого указанного урока.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
@@ -66,7 +74,9 @@ async def get_theory(
 
 
 @router.put(
-    "/edit/{lesson_id}",
+    "/{lesson_id}",
+    summary="Обновить урок",
+    description="Обновляет переданные поля урока. Неуказанные поля остаются без изменений.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -79,7 +89,9 @@ async def edit_lesson(
 
 
 @router.put(
-    "/update/{lesson_id}",
+    "/{lesson_id}/content-blocks",
+    summary="Обновить блоки содержимого урока",
+    description="Полностью заменяет набор блоков теоретического содержимого урока.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -93,6 +105,8 @@ async def update_lesson_content_blocks(
 
 @router.delete(
     "/{lesson_id}",
+    summary="Удалить урок",
+    description="Удаляет урок и связанные с ним данные.",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

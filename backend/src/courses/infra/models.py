@@ -52,6 +52,11 @@ class CourseOrm(Base):
         passive_deletes=True,
     )
     students: Mapped[list[StudentOrm]] = relationship(back_populates="course")
+    progress_records: Mapped[list[CourseProgressOrm]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class ModuleOrm(Base):
@@ -70,6 +75,10 @@ class ModuleOrm(Base):
         back_populates="module",
         order_by="LessonOrm.id",
         cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    progress_records: Mapped[list[ModuleProgressOrm]] = relationship(
+        back_populates="module",
         passive_deletes=True,
     )
 
@@ -93,6 +102,10 @@ class LessonOrm(Base):
     )
 
     module: Mapped[ModuleOrm | None] = relationship(back_populates="lessons")
+    progress_records: Mapped[list[LessonProgressOrm]] = relationship(
+        back_populates="lesson",
+        passive_deletes=True,
+    )
 
     __table_args__ = (Index("ix_lessons_module_id", "module_id"),)
 
@@ -119,6 +132,91 @@ class LessonTheorySessionOrm(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     active_time_seconds: Mapped[int] = mapped_column(default=0)
     max_scroll_depth_percent: Mapped[int] = mapped_column(default=0)
+
+
+class CourseProgressOrm(Base):
+    __tablename__ = "course_progress"
+
+    user_id: Mapped[UUID]
+    course_id: Mapped[UUID] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    course: Mapped[CourseOrm] = relationship(back_populates="progress_records")
+    module_progresses: Mapped[list[ModuleProgressOrm]] = relationship(
+        back_populates="course_progress",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_course_progress_user_course"),
+    )
+
+
+class ModuleProgressOrm(Base):
+    __tablename__ = "module_progress"
+
+    course_progress_id: Mapped[UUID] = mapped_column(
+        ForeignKey("course_progress.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    module_id: Mapped[UUID] = mapped_column(
+        ForeignKey("modules.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    course_progress: Mapped[CourseProgressOrm] = relationship(
+        back_populates="module_progresses"
+    )
+    module: Mapped[ModuleOrm] = relationship(back_populates="progress_records")
+    lesson_progresses: Mapped[list[LessonProgressOrm]] = relationship(
+        back_populates="module_progress",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "course_progress_id",
+            "module_id",
+            name="uq_module_progress_course_module",
+        ),
+        Index("ix_module_progress_course_progress_id", "course_progress_id"),
+    )
+
+
+class LessonProgressOrm(Base):
+    __tablename__ = "lesson_progress"
+
+    module_progress_id: Mapped[UUID] = mapped_column(
+        ForeignKey("module_progress.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lesson_id: Mapped[UUID] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    theory_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    practice_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    test_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    module_progress: Mapped[ModuleProgressOrm] = relationship(
+        back_populates="lesson_progresses"
+    )
+    lesson: Mapped[LessonOrm] = relationship(back_populates="progress_records")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "module_progress_id",
+            "lesson_id",
+            name="uq_lesson_progress_module_lesson",
+        ),
+    )
 
 
 class ChatOrm(Base):

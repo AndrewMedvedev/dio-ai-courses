@@ -15,11 +15,13 @@ from ...domain.permissions.theory_session import READ
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/theory/session", tags=["Theory Session"])
+router = APIRouter(prefix="/theory-sessions", tags=["Theory Sessions"])
 
 
 @router.post(
     "/{lesson_id}",
+    summary="Создать сессию изучения теории",
+    description="Создаёт сессию изучения теории для текущего пользователя и указанного урока.",
     status_code=status.HTTP_201_CREATED,
 )
 async def create(
@@ -35,6 +37,8 @@ async def create(
 
 @router.put(
     "/{theory_session_id}",
+    summary="Обновить сессию изучения теории",
+    description="Сохраняет переданные метрики сессии: активное время, глубину прокрутки и время завершения.",
     status_code=status.HTTP_200_OK,
 )
 async def update(
@@ -53,7 +57,9 @@ async def update(
 
 
 @router.get(
-    "/{lesson_id}/{user_id}",
+    "/{lesson_id}/users/{user_id}",
+    summary="Получить сессии изучения теории пользователя",
+    description="Возвращает историю сессий изучения указанного урока выбранным пользователем с учётом фильтров по дате.",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(READ.code))],
 )

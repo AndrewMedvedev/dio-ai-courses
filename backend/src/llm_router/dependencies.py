@@ -6,7 +6,7 @@ from openai import AsyncOpenAI
 from src.core.settings import settings
 from src.shared.dependencies.database import DBSession
 
-from .infra.repository import SqlAIModelRepository
+from .infra.repository import SqlAIModelRepository, SqlLLMInvocationRepository
 from .services import LLMImageRouter, LLMTextRouter
 from .utils import cache_ai_models
 
@@ -32,18 +32,45 @@ def get_ai_model_repo(session: DBSession) -> SqlAIModelRepository:
 AIModelsRepoDep = Annotated[SqlAIModelRepository, Depends(get_ai_model_repo)]
 
 
-def get_llm_image_router(repository: AIModelsRepoDep) -> LLMImageRouter:
+def get_llm_invocation_repo(session: DBSession) -> SqlLLMInvocationRepository:
+    """Создаёт репозиторий аудита вызовов LLM."""
+    return SqlLLMInvocationRepository(session)
+
+
+LLMInvocationRepoDep = Annotated[
+    SqlLLMInvocationRepository,
+    Depends(get_llm_invocation_repo),
+]
+
+
+def get_llm_image_router(
+    repository: AIModelsRepoDep,
+    invocation_repository: LLMInvocationRepoDep,
+    session: DBSession,
+) -> LLMImageRouter:
     """Получает llm image router, чтобы вызывающий код работал через единый интерфейс."""
     return LLMImageRouter(
         ai_model_repos=repository,
+        invocation_repos=invocation_repository,
+        session=session,
         client=client,
         wrapper=cache_ai_models,
     )
 
 
-def get_llm_text_router(repository: AIModelsRepoDep) -> LLMTextRouter:
+def get_llm_text_router(
+    repository: AIModelsRepoDep,
+    invocation_repository: LLMInvocationRepoDep,
+    session: DBSession,
+) -> LLMTextRouter:
     """Получает llm text router, чтобы вызывающий код работал через единый интерфейс."""
-    return LLMTextRouter(ai_model_repos=repository, client=client, wrapper=cache_ai_models)
+    return LLMTextRouter(
+        ai_model_repos=repository,
+        invocation_repos=invocation_repository,
+        session=session,
+        client=client,
+        wrapper=cache_ai_models,
+    )
 
 
 LLMTextRouterDep = Annotated[LLMTextRouter, Depends(get_llm_text_router)]

@@ -17,7 +17,9 @@ router = APIRouter(prefix="/ai/models", tags=["AI Models"])
 
 
 @router.post(
-    "/",
+    "",
+    summary="Добавить AI-модель",
+    description="Создаёт запись о доступной AI-модели с её названием, описанием и размером контекста.",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -35,9 +37,10 @@ async def add_model(
 
 
 @router.post(
-    "/get",
+    "",
     response_model=Page[AIModel],
-    summary="Список AI-моделей",
+    summary="Получить список AI-моделей",
+    description="Возвращает постраничный список доступных AI-моделей. Параметры пагинации передаются в теле запроса.",
     status_code=status.HTTP_200_OK,
 )
 async def get_models(
@@ -51,6 +54,8 @@ async def get_models(
 
 @router.delete(
     "/{uid}",
+    summary="Удалить AI-модель",
+    description="Удаляет указанную AI-модель из списка доступных моделей.",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )
