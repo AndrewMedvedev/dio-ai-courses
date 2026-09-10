@@ -94,17 +94,32 @@ function parseMaybeJson(value) {
   }
 }
 
-function normalizeGenerationResponse(response) {
-  const sources = [
+function getResponseSources(response) {
+  return [
     response,
     parseMaybeJson(response?.content),
     response?.response,
     response?.data,
     response?.result,
   ].filter((item) => item && typeof item === "object");
+}
+
+function extractCourseId(response) {
+  const sources = getResponseSources(response);
+  const source = sources.find(
+    (item) => item.course_id || item.courseId || item.course?.id,
+  );
+  return source?.course_id || source?.courseId || source?.course?.id || null;
+}
+
+function normalizeGenerationResponse(response) {
+  const sources = getResponseSources(response);
 
   const taskId = sources.find(
     (item) => item.task_id || item.taskId || item.task || item.id,
+  );
+  const courseId = sources.find(
+    (item) => item.course_id || item.courseId || item.course?.id,
   );
   const statusSource = sources.find(
     (item) =>
@@ -126,11 +141,14 @@ function normalizeGenerationResponse(response) {
   );
   const normalizedTaskId =
     taskId?.task_id || taskId?.taskId || taskId?.task || taskId?.id || null;
+  const normalizedCourseId =
+    courseId?.course_id || courseId?.courseId || courseId?.course?.id || null;
 
   if (!normalizedTaskId && !isGenerationStatus) return null;
 
   return {
     taskId: normalizedTaskId,
+    courseId: normalizedCourseId,
     startedAt:
       startedSource?.started_at ||
       startedSource?.startedAt ||
@@ -337,8 +355,18 @@ export default function CreatorChatView() {
     const currentGeneration = useAgentStore
       .getState()
       .getGeneration(conversationKey);
-    const statusLookupId = currentGeneration.taskId || courseId;
-    if (!statusLookupId) return false;
+    const statusLookupId = currentGeneration.generatedCourseId;
+    if (!statusLookupId) {
+      stopGenerationTimers();
+      clearGenerationState(courseId);
+      updateGeneration({
+        isGenerating: false,
+        error: "Не удалось проверить статус генерации курса.",
+        status: "Не удалось проверить статус генерации курса.",
+      });
+      pushAssistantMessage("Не удалось проверить статус генерации курса.");
+      return true;
+    }
 
     statusRequestInFlightRef.current = true;
     const controller = new AbortController();
@@ -395,6 +423,7 @@ export default function CreatorChatView() {
           isGenerating: false,
           hasStarted: false,
           taskId: null,
+          generatedCourseId: null,
           courseStatus: "not_found",
           progress: 0,
           startedAt: null,
@@ -454,12 +483,19 @@ export default function CreatorChatView() {
   const beginGeneration = useCallback(
     ({
       taskId: nextTaskId,
+      courseId: nextGeneratedCourseId,
       chatId: nextChatId,
       startedAt = new Date().toISOString(),
     }) => {
       hasReceivedGenerationStatusRef.current = false;
+      const savedGeneratedCourseId = useAgentStore
+        .getState()
+        .getGeneration(conversationKey).generatedCourseId;
+      const generationCourseId =
+        nextGeneratedCourseId || savedGeneratedCourseId;
       updateGeneration({
         taskId: nextTaskId || null,
+        generatedCourseId: generationCourseId || null,
         startedAt,
         hasStarted: true,
         isGenerating: true,
@@ -472,6 +508,7 @@ export default function CreatorChatView() {
         courseId,
         chatId: nextChatId || conversation?.chatId || null,
         taskId: nextTaskId || null,
+        generatedCourseId: generationCourseId || null,
         generationStartedAt: startedAt,
         status: "in_generation",
       });
@@ -480,6 +517,7 @@ export default function CreatorChatView() {
     },
     [
       conversation?.chatId,
+      conversationKey,
       courseId,
       startProgressSimulation,
       startStatusPolling,
@@ -564,6 +602,7 @@ export default function CreatorChatView() {
     setConversationChatId(conversationKey, savedGeneration.chatId || null);
     updateGeneration({
       taskId: savedGeneration.taskId || null,
+      generatedCourseId: savedGeneration.generatedCourseId || null,
       startedAt: savedGeneration.generationStartedAt || null,
       hasStarted: true,
       isGenerating: true,
@@ -635,16 +674,23 @@ export default function CreatorChatView() {
           Math.min(current + 1, intakeQuestions.length),
         );
       }
+      const responseCourseId = extractCourseId(response);
+      if (responseCourseId) {
+        updateGeneration({ generatedCourseId: responseCourseId });
+      }
+
       const generationResult = normalizeGenerationResponse(response);
       if (generationResult) {
         beginGeneration({
           taskId: generationResult.taskId,
+          courseId: generationResult.courseId,
           chatId: response.chatId || conversation?.chatId,
           startedAt: generationResult.startedAt,
         });
       } else if (!String(response.content ?? "").trim()) {
         beginGeneration({
           taskId: null,
+          courseId: null,
           chatId: response.chatId || conversation?.chatId,
         });
       }

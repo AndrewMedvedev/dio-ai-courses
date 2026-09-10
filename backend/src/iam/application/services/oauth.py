@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import timedelta
 
-from src.core.settings import settings
+from src.core.settings import jwt_config
 from src.iam.application.dtos import IdentityType, OAuthCredentials, OAuthTokenResponse
 from src.iam.application.repos import RoleRepository, ServiceAccountRepository
 from src.iam.domain.entities import Role, ServiceAccount
@@ -25,7 +25,7 @@ def _create_token_for_service_account(
     )
 
     access_token_expires_at = get_expiration_timestamp(
-        expires_in=timedelta(minutes=settings.jwt.access_token_expires_in_minutes),
+        expires_in=timedelta(minutes=jwt_config.access_token_expires_in_minutes),
     )
 
     return OAuthTokenResponse(access_token=access_token, expires_at=access_token_expires_at)

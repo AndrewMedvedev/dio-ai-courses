@@ -50,14 +50,6 @@ serializer = JsonPlusRedisSerializer(
             "prompts",
             "ContentSpecification",
         ),
-        (
-            "builtins",
-            "ExceptionGroup",
-        ),
-        (
-            "builtins",
-            "BaseExceptionGroup",
-        ),
     ],
     allowed_msgpack_modules=[
         (

@@ -131,6 +131,7 @@ async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> No
 
         await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
     except IntegrityError:
+        await runtime.context.db_session.rollback()  # pyright: ignore[reportOptionalMemberAccess]
         logger.info("Module %s alredy exsists", module.title)
 
 

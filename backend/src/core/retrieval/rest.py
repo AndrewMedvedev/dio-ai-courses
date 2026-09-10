@@ -3,9 +3,9 @@ import operator
 from aiohttp import ClientSession
 from openai import AsyncOpenAI
 
-from .settings import settings
+from .config import embeddings_config, rerankers_config
 
-embeddings = AsyncOpenAI(base_url=settings.embeddings.base_url, api_key="dummy")
+embeddings = AsyncOpenAI(base_url=embeddings_config.base_url, api_key="dummy")
 
 
 async def embed(
@@ -14,9 +14,9 @@ async def embed(
     """Создаёт векторное представление текста"""
 
     response = await embeddings.embeddings.create(
-        model=settings.embeddings.model_name,
+        model=embeddings_config.model_name,
         input=inputs,
-        dimensions=settings.embeddings.dimensions,
+        dimensions=embeddings_config.dimensions,
     )
 
     # Сохранение порядка как при передаче текста
@@ -39,11 +39,11 @@ async def rerank(
     """
 
     async with (
-        ClientSession(base_url=settings.rerankers.base_url) as session,
+        ClientSession(base_url=rerankers_config.base_url) as session,
         session.post(
             "/rerank",
             json={
-                "model": settings.rerankers.model_name,
+                "model": rerankers_config.model_name,
                 "query": query,
                 "documents": documents,
                 "top_n": top_n or len(documents),

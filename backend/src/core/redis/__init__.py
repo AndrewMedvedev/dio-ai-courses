@@ -1,17 +1,19 @@
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from redis.asyncio import Redis
 
-from .settings import settings
+from .config import redis_config
 
-redis_client = Redis(
-    host=settings.redis.host,  # из настроек
-    port=settings.redis.port,
-    db=settings.redis.db,
-    password=settings.redis.password,
-    decode_responses=False,  # ← обязательно False для RedisSaver
+__all__ = ["checkpointer", "redis_client"]
+
+redis_client = Redis(  # ruff: ignore[non-empty-init-module]
+    host=redis_config.host,
+    port=redis_config.port,
+    db=redis_config.db,
+    password=redis_config.password,
+    decode_responses=True,
 )
 
-checkpointer = AsyncRedisSaver(
+checkpointer = AsyncRedisSaver(  # ruff: ignore[non-empty-init-module]
     redis_client=redis_client,
     ttl={
         "default_ttl": 60 * 10,  # Истекают контрольные точки через 5 часов

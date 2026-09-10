@@ -12,7 +12,7 @@ import jwt
 import zxcvbn_rs_py
 from passlib.context import CryptContext
 
-from src.core.settings import settings
+from src.core.settings import jwt_config, settings
 from src.iam.application.dtos import IdentityType
 from src.iam.consts import CLIENT_ID_BYTES_LENGTH, CLIENT_SECRET_BYTES_LENGTH
 from src.iam.domain.exceptions import UnauthorizedError, WeakPasswordError
@@ -90,7 +90,7 @@ def create_authentication_token(user_id: UUID) -> str:
     """Выпускает очень короткоживущий токен для аутентификации."""
 
     now = current_datetime()
-    expires_at = now + timedelta(minutes=settings.jwt.authentication_token_expires_in_minutes)
+    expires_at = now + timedelta(minutes=jwt_config.authentication_token_expires_in_minutes)
 
     payload = {
         "sub": str(user_id),
@@ -100,7 +100,7 @@ def create_authentication_token(user_id: UUID) -> str:
         "iat": now.timestamp(),
     }
 
-    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
+    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=jwt_config.algorithm)
 
 
 def create_access_token(
@@ -115,7 +115,7 @@ def create_access_token(
 ) -> str:
 
     now = current_datetime()
-    expires_at = now + timedelta(minutes=settings.jwt.access_token_expires_in_minutes)
+    expires_at = now + timedelta(minutes=jwt_config.access_token_expires_in_minutes)
 
     payload = {
         # Базовые поля
@@ -138,14 +138,14 @@ def create_access_token(
     if membership_id is not None:
         payload["mid"] = str(membership_id)
 
-    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
+    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=jwt_config.algorithm)
 
 
 def create_refresh_token(user_id: UUID, membership_id: UUID) -> str:
     """Выпускает долгоживущий токен для получения новой пары access + refresh."""
 
     now = current_datetime()
-    expires_at = now + timedelta(days=settings.jwt.refresh_token_expires_in_days)
+    expires_at = now + timedelta(days=jwt_config.refresh_token_expires_in_days)
 
     payload = {
         # Базовые поля
@@ -158,7 +158,7 @@ def create_refresh_token(user_id: UUID, membership_id: UUID) -> str:
         "mid": str(membership_id),
     }
 
-    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
+    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=jwt_config.algorithm)
 
 
 def decode_token(token: str) -> dict[str, Any]:
@@ -168,7 +168,7 @@ def decode_token(token: str) -> dict[str, Any]:
         return jwt.decode(
             token,
             key=settings.secret_key,
-            algorithms=[settings.jwt.algorithm],
+            algorithms=[jwt_config.algorithm],
             options={"verify_aud": False},
         )
     except jwt.ExpiredSignatureError:

@@ -14,9 +14,7 @@ async def invoke_or_resume(
     context: RuntimeContext,
 ) -> dict[str, Any]:
     snapshot = await graph.aget_state(config)
-    print("THREAD:", config.get("configurable", {}).get("thread_id"))
-    print("NEXT:", snapshot.next)
-    print("VALUES:", snapshot.values)
+
     if snapshot.next:
         return await graph.ainvoke(
             None,

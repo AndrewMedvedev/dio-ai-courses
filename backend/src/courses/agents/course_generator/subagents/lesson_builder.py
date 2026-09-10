@@ -234,6 +234,7 @@ async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> No
         await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
         await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
     except IntegrityError:
+        await runtime.context.db_session.rollback()  # pyright: ignore[reportOptionalMemberAccess]
         logger.info("Lesson %s alredy exsists", lesson.title)
 
 
