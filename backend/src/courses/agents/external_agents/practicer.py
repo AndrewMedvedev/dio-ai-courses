@@ -14,8 +14,8 @@ from src.llm_service import LLMTextService
 from src.shared.domain.events import EventPublisher
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
+from src.shared.utils.time import current_datetime
 
-from ...application.dtos import LessonProgressUpdateSchema
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import FileUploadAssignment, Practice
 from ...domain.events import LessonProgressUpdated
@@ -83,6 +83,7 @@ class PracticerAgent:
         practice: dict[str, Any],
         file: bytes,
         practice_id: UUID,
+        lesson_progress_id: UUID,
     ) -> PracticeResult:
         """Оставляет точку расширения для будущей проверки практических заданий."""
         file_str = base64.b64encode(file).decode("utf-8")
@@ -114,9 +115,8 @@ class PracticerAgent:
         if response.is_passed:
             await self.event_publisher.publish(
                 LessonProgressUpdated(
-                    user_id=updated_practice.user_id,
-                    lesson_id=updated_practice.lesson_id,
-                    progress=LessonProgressUpdateSchema(practice_completed=True),
+                    lesson_progress_id=lesson_progress_id,
+                    practice_completed_at=current_datetime(),
                 )
             )
         return response

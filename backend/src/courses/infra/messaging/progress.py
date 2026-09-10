@@ -1,11 +1,11 @@
 from faststream.rabbit import RabbitExchange, RabbitQueue
 
 from src.core.broker import rabbit_router
-from src.core.database import session_factory
 from src.core.settings import settings
 
+from ...application.dtos import LessonProgressUpdatedSchema
+from ...dependencies.services import LearningProgressServiceDep
 from ...domain.events import LessonProgressUpdated
-from ..database.repos.lesson_progress import SqlLessonProgressRepository
 
 exchange = RabbitExchange(settings.rabbit.exchange, durable=True)
 progress_queue = RabbitQueue(
@@ -16,12 +16,12 @@ progress_queue = RabbitQueue(
 
 
 @rabbit_router.subscriber(progress_queue, exchange)
-async def on_lesson_progress_updated(event: LessonProgressUpdated) -> None:
-    async with session_factory() as session:
-        progress_repo = SqlLessonProgressRepository(session)
-        await progress_repo.mark_assessments_completed(
-            user_id=event.user_id,
-            lesson_id=event.lesson_id,
-            schema=event.progress,
-        )
-        await session.commit()
+async def on_lesson_progress_updated(
+    event: LessonProgressUpdatedSchema,
+    service: LearningProgressServiceDep,
+) -> None:
+    await service.mark_lesson_assessments_completed(
+        lesson_progress_id=event.lesson_progress_id,
+        practice_completed_at=event.practice_completed_at,
+        test_completed_at=event.test_completed_at,
+    )

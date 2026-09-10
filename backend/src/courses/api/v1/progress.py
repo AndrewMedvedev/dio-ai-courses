@@ -28,17 +28,16 @@ async def create_course_progress(
 
 
 @router.get(
-    "/courses/{course_id}",
+    "/courses/{course_progress_id}",
     summary="Получить прогресс курса",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному курсу.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_course_progress(
-    course_id: UUID,
-    identity: CurrentIdentity,
+    course_progress_id: UUID,
     service: LearningProgressServiceDep,
 ) -> CourseProgress:
-    return await service.read_course_progress(identity.id, course_id)
+    return await service.read_course_progress(course_progress_id)
 
 
 @router.get(
@@ -64,24 +63,23 @@ async def get_course_students_progress(
 )
 async def create_module_progress(
     module_id: UUID,
-    identity: CurrentIdentity,
+    course_progress_id: UUID,
     service: LearningProgressServiceDep,
 ) -> ModuleProgress:
-    return await service.create_module_progress(identity.id, module_id)
+    return await service.create_module_progress(course_progress_id, module_id)
 
 
 @router.get(
-    "/modules/{module_id}",
+    "/modules/{module_progress_id}",
     summary="Получить прогресс модуля",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному модулю.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_module_progress(
-    module_id: UUID,
-    identity: CurrentIdentity,
+    module_progress_id: UUID,
     service: LearningProgressServiceDep,
 ) -> ModuleProgress:
-    return await service.read_module_progress(identity.id, module_id)
+    return await service.read_module_progress(module_progress_id)
 
 
 @router.post(
@@ -93,35 +91,33 @@ async def read_module_progress(
 )
 async def create_lesson_progress(
     lesson_id: UUID,
-    identity: CurrentIdentity,
+    module_progress_id: UUID,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
-    return await service.create_lesson_progress(identity.id, lesson_id)
+    return await service.create_lesson_progress(module_progress_id, lesson_id)
 
 
 @router.get(
-    "/lessons/{lesson_id}",
+    "/lessons/{lesson_progress_id}",
     summary="Получить прогресс урока",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному уроку.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_lesson_progress(
-    lesson_id: UUID,
-    identity: CurrentIdentity,
+    lesson_progress_id: UUID,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
-    return await service.read_lesson_progress(identity.id, lesson_id)
+    return await service.read_lesson_progress(lesson_progress_id)
 
 
 @router.patch(
-    "/lessons/{lesson_id}",
+    "/lessons/{lesson_progress_id}",
     summary="Отметить теорию урока пройденной",
     description="Сохраняет время завершения теории. Практика и тест обновляются только после серверной проверки через событие.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def mark_lesson_theory_completed(
-    lesson_id: UUID,
-    identity: CurrentIdentity,
+    lesson_progress_id: UUID,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
-    return await service.mark_lesson_theory_completed(identity.id, lesson_id)
+    return await service.mark_lesson_theory_completed(lesson_progress_id)

@@ -1,7 +1,9 @@
+from datetime import datetime
 from uuid import UUID
 
 from src.shared.application.uow import UnitOfWork
 from src.shared.domain.exceptions import ForbiddenError, NotFoundError
+from src.shared.utils.time import current_datetime
 
 from ...application.repos import (
     CourseRepository,
@@ -44,20 +46,17 @@ class LearningProgressService:
         course_id: UUID,
     ) -> CourseProgress:
         await self._require_student(user_id, course_id)
-        progress = await self._course_progress_repo.get_by_user_and_course(user_id, course_id)
-        if progress is None:
-            progress = await self._course_progress_repo.create(
-                CourseProgress(user_id=user_id, course_id=course_id)
-            )
-            await self._uow.commit()
+        progress = await self._course_progress_repo.create(
+            CourseProgress(user_id=user_id, course_id=course_id)
+        )
+        await self._uow.commit()
         return progress
 
     async def read_course_progress(
         self,
-        user_id: UUID,
-        course_id: UUID,
+        course_progress_id: UUID,
     ) -> CourseProgress:
-        progress = await self._course_progress_repo.get_by_user_and_course(user_id, course_id)
+        progress = await self._course_progress_repo.read(course_progress_id)
         if progress is None:
             raise NotFoundError("Course progress was not found")
         return progress
@@ -76,99 +75,100 @@ class LearningProgressService:
 
     async def create_module_progress(
         self,
-        user_id: UUID,
+        course_progress_id: UUID,
         module_id: UUID,
     ) -> ModuleProgress:
+        course_progress = await self.read_course_progress(course_progress_id)
         module = await self._module_repo.read(module_id)
         if module is None:
             raise NotFoundError(f"Module with id {module_id} not found")
-        course_progress = await self.create_course_progress(user_id, module.course_id)
-        progress = await self._module_progress_repo.get_by_course_progress_and_module(
-            course_progress.id,
-            module_id,
-        )
-        if progress is None:
-            progress = await self._module_progress_repo.create(
-                ModuleProgress(
-                    course_progress_id=course_progress.id,
-                    module_id=module_id,
-                )
+        if module.course_id != course_progress.course_id:
+            raise ValueError("Module does not belong to the course progress")
+
+        progress = await self._module_progress_repo.create(
+            ModuleProgress(
+                course_progress_id=course_progress.id,
+                module_id=module_id,
             )
-            await self._uow.commit()
+        )
+        await self._uow.commit()
         return progress
 
     async def read_module_progress(
         self,
-        user_id: UUID,
-        module_id: UUID,
+        module_progress_id: UUID,
     ) -> ModuleProgress:
-        module = await self._module_repo.read(module_id)
-        if module is None:
-            raise NotFoundError(f"Module with id {module_id} not found")
-        course_progress = await self.read_course_progress(user_id, module.course_id)
-        progress = await self._module_progress_repo.get_by_course_progress_and_module(
-            course_progress.id,
-            module_id,
-        )
+        progress = await self._module_progress_repo.read(module_progress_id)
         if progress is None:
             raise NotFoundError("Module progress was not found")
         return progress
 
     async def create_lesson_progress(
         self,
-        user_id: UUID,
+        module_progress_id: UUID,
         lesson_id: UUID,
     ) -> LessonProgress:
+        module_progress = await self.read_module_progress(module_progress_id)
         lesson = await self._lesson_repo.read(lesson_id)
         if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
-        module_progress = await self.create_module_progress(user_id, lesson.module_id)
-        progress = await self._progress_repo.get_by_module_progress_and_lesson(
-            module_progress.id,
-            lesson_id,
-        )
-        if progress is None:
-            progress = await self._progress_repo.create(
-                LessonProgress(
-                    module_progress_id=module_progress.id,
-                    lesson_id=lesson_id,
-                )
+        if lesson.module_id != module_progress.module_id:
+            raise ValueError("Lesson does not belong to the module progress")
+
+        progress = await self._progress_repo.create(
+            LessonProgress(
+                module_progress_id=module_progress.id,
+                lesson_id=lesson_id,
             )
-            await self._uow.commit()
+        )
+        await self._uow.commit()
         return progress
 
     async def read_lesson_progress(
         self,
-        user_id: UUID,
-        lesson_id: UUID,
+        lesson_progress_id: UUID,
     ) -> LessonProgress:
-        lesson = await self._lesson_repo.read(lesson_id)
-        if lesson is None:
-            raise NotFoundError(f"Lesson with id {lesson_id} not found")
-        module_progress = await self.read_module_progress(user_id, lesson.module_id)
-        progress = await self._progress_repo.get_by_module_progress_and_lesson(
-            module_progress.id,
-            lesson_id,
-        )
+        progress = await self._progress_repo.read(lesson_progress_id)
         if progress is None:
             raise NotFoundError("Lesson progress was not found")
         return progress
 
     async def mark_lesson_theory_completed(
         self,
-        user_id: UUID,
-        lesson_id: UUID,
+        lesson_progress_id: UUID,
     ) -> LessonProgress:
-        progress = await self.create_lesson_progress(user_id, lesson_id)
+        progress = await self.read_lesson_progress(lesson_progress_id)
         if progress.theory_completed_at is None:
             progress = self._require_progress(
-                await self._progress_repo.mark_theory_completed(
-                    progress.module_progress_id,
-                    lesson_id,
+                await self._progress_repo.update(
+                    progress.id,
+                    theory_completed_at=current_datetime(),
                 )
             )
             await self._uow.commit()
         return progress
+
+    async def mark_lesson_assessments_completed(
+        self,
+        lesson_progress_id: UUID,
+        practice_completed_at: datetime | None = None,
+        test_completed_at: datetime | None = None,
+    ) -> None:
+        updates = {
+            field: completed_at
+            for field, completed_at in {
+                "practice_completed_at": practice_completed_at,
+                "test_completed_at": test_completed_at,
+            }.items()
+            if completed_at is not None
+        }
+        if not updates:
+            return
+
+        progress = await self._progress_repo.update(lesson_progress_id, **updates)
+        if progress is None:
+            raise NotFoundError("Lesson progress was not found")
+        await self._uow.commit()
 
     async def _require_student(self, user_id: UUID, course_id: UUID) -> None:
         if await self._student_repo.read(user_id, course_id) is None:

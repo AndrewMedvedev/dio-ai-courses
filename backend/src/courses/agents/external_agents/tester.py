@@ -14,8 +14,8 @@ from src.llm_service import LLMTextService
 from src.shared.domain.events import EventPublisher
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
+from src.shared.utils.time import current_datetime
 
-from ...application.dtos import LessonProgressUpdateSchema
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
 from ...domain.events import LessonProgressUpdated
@@ -85,6 +85,7 @@ class TesterAgent:
         practice: dict[str, Any],
         answers: dict[str, str],
         practice_id: UUID,
+        lesson_progress_id: UUID,
     ) -> PracticeResult:
         """Оставляет точку расширения для будущей проверки практических заданий."""
 
@@ -122,9 +123,8 @@ class TesterAgent:
         if response.is_passed:
             await self.event_publisher.publish(
                 LessonProgressUpdated(
-                    user_id=updated_practice.user_id,
-                    lesson_id=updated_practice.lesson_id,
-                    progress=LessonProgressUpdateSchema(test_completed=True),
+                    lesson_progress_id=lesson_progress_id,
+                    test_completed_at=current_datetime(),
                 )
             )
         return response

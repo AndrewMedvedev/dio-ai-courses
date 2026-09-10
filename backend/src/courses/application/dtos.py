@@ -46,14 +46,6 @@ class LessonTheorySessionEditSchema(BaseModel):
     max_scroll_depth_percent: int | None = None
 
 
-class LessonProgressUpdateSchema(BaseModel):
-    """Статусы частей урока для HTTP-запроса и событий прогресса."""
-
-    theory_completed: bool = False
-    practice_completed: bool = False
-    test_completed: bool = False
-
-
 class CourseSchema(BaseModel):
     title: str
     description: str
@@ -101,3 +93,8 @@ class EditLessonSchema(BaseModel):
 class LessonTheorySessionFilters(BaseQueryParamFilters):
     created_from: datetime | None = None
     created_to: datetime | None = None
+
+class LessonProgressUpdatedSchema(BaseModel):
+    lesson_progress_id: UUID
+    practice_completed_at: datetime | None = None
+    test_completed_at: datetime | None = None

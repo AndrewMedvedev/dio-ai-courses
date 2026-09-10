@@ -223,34 +223,13 @@ class PracticeRepository(Repository[Practice]):
         ...
 
 
-class LessonProgressRepository(Repository[LessonProgress]):
-    async def get_by_module_progress_and_lesson(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress | None: ...
+class LessonProgressRepository(Repository[LessonProgress]): ...
 
-    async def mark_theory_completed(
-        self,
-        module_progress_id: UUID,
-        lesson_id: UUID,
-    ) -> LessonProgress | None: ...
 
-class ModuleProgressRepository(Repository[ModuleProgress]):
-    async def get_by_course_progress_and_module(
-        self,
-        course_progress_id: UUID,
-        module_id: UUID,
-    ) -> ModuleProgress | None: ...
+class ModuleProgressRepository(Repository[ModuleProgress]): ...
 
 
 class CourseProgressRepository(Repository[CourseProgress]):
-    async def get_by_user_and_course(
-        self,
-        user_id: UUID,
-        course_id: UUID,
-    ) -> CourseProgress | None: ...
-
     async def find_by_course(self, course_id: UUID) -> list[CourseProgress]: ...
 
 
