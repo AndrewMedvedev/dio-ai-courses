@@ -152,14 +152,12 @@ async def check_test(
     answers: dict[str, str],
     practice_id: UUID,
     agent: TesterAgentDep,
-    identity: CurrentIdentity,
 ) -> PracticeResult:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     return await agent.call_agent_checker(
         practice=practice.model_dump(),
         answers=answers,
         practice_id=practice_id,
-        user_id=identity.id,
     )
 
 
@@ -194,7 +192,6 @@ async def create_practice(
 async def check_practice(
     practice_id: UUID,
     agent: PracticeAgentDep,
-    identity: CurrentIdentity,
     file: UploadFile = File(...),
     practice: str = Form(),
 ) -> PracticeResult:
@@ -205,5 +202,4 @@ async def check_practice(
         file=content,
         practice=asdict(practice_obj),
         practice_id=practice_id,
-        user_id=identity.id,
     )

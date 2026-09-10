@@ -13,11 +13,8 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
     model = LessonProgressOrm
     model_mapper = LessonProgressMapper
 
-    async def get_id_by_user_and_lesson(
-        self,
-        user_id: UUID,
-        lesson_id: UUID,
-    ) -> UUID | None:
+    async def get_id_by_user_and_lesson(self, user_id: UUID, lesson_id: UUID,) -> UUID | None:
+        """Находит идентификатор прогресса пользователя по уроку через цепочку прогресса."""
         stmt = (
             select(self.model.id)
             .join(

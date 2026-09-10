@@ -16,11 +16,8 @@ from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
 from src.shared.utils.time import current_datetime
 
-from ...application.repos import (
-    LessonProgressRepository,
-    LessonRepository,
-    PracticeRepository,
-)
+from ...application.dtos import LessonProgressUpdateSchema
+from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import FileUploadAssignment, Practice
 from ...domain.events import LessonProgressUpdated
 from ...domain.vo import PracticeStatus
@@ -35,7 +32,6 @@ class PracticerAgent:
         session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
-        lesson_progress_repo: LessonProgressRepository,
         event_publisher: EventPublisher,
         client: SrvBaseClient,
     ) -> None:
@@ -44,7 +40,6 @@ class PracticerAgent:
         self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
-        self.lesson_progress_repo = lesson_progress_repo
         self.event_publisher = event_publisher
 
     async def call_agent_creator(
@@ -89,9 +84,8 @@ class PracticerAgent:
         practice: dict[str, Any],
         file: bytes,
         practice_id: UUID,
-        user_id: UUID,
     ) -> PracticeResult:
-        """Оставляет точку расширения для будущей проверки практических заданий."""
+        """Проверяет практику, сохраняет результат и публикует событие при успешном прохождении."""
         file_str = base64.b64encode(file).decode("utf-8")
         agent = LLMTextService(
             client=self._client,
@@ -119,18 +113,13 @@ class PracticerAgent:
             )
         await self.session.commit()
         if response.is_passed:
-            if updated_practice is None:
-                raise NotFoundError("Practice was not found")
-            lesson_progress_id = await self.lesson_progress_repo.get_id_by_user_and_lesson(
-                user_id=user_id,
-                lesson_id=updated_practice.lesson_id,
-            )
-            if lesson_progress_id is None:
-                raise NotFoundError("Lesson progress was not found")
             await self.event_publisher.publish(
                 LessonProgressUpdated(
-                    lesson_progress_id=lesson_progress_id,
-                    practice_completed_at=current_datetime(),
+                    user_id=updated_practice.user_id,
+                    lesson_id=updated_practice.lesson_id,
+                    progress=LessonProgressUpdateSchema(
+                        practice_completed_at=current_datetime(),
+                    ),
                 )
             )
         return response

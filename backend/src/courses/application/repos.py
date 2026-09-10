@@ -224,11 +224,9 @@ class PracticeRepository(Repository[Practice]):
 
 
 class LessonProgressRepository(Repository[LessonProgress]):
-    async def get_id_by_user_and_lesson(
-        self,
-        user_id: UUID,
-        lesson_id: UUID,
-    ) -> UUID | None: ...
+    async def get_id_by_user_and_lesson(self, user_id: UUID, lesson_id: UUID) -> UUID | None:
+        """Возвращает идентификатор прогресса пользователя по указанному уроку."""
+        ...
 
 
 class ModuleProgressRepository(Repository[ModuleProgress]): ...
