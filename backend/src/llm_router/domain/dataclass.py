@@ -21,7 +21,9 @@ class LLMInvocation(Entity):
 
     request_id: UUID
     model: str
-    input_tokens: int = 0
-    output_tokens: int = 0
     total_tokens: int = 0
+    request: Any
     response: dict[str, Any]
+    duration_ms: int = 0
+    status: str = "completed"
+    error: str | None = None

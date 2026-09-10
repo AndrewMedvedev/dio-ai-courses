@@ -91,10 +91,12 @@ class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
             deleted_at=model.deleted_at,
             request_id=model.request_id,
             model=model.model,
-            input_tokens=model.input_tokens,
-            output_tokens=model.output_tokens,
             total_tokens=model.total_tokens,
+            request=model.request,
             response=model.response,
+            duration_ms=model.duration_ms,
+            status=model.status,
+            error=model.error,
         )
 
     @staticmethod
@@ -107,10 +109,12 @@ class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
             deleted_at=entity.deleted_at,
             request_id=entity.request_id,
             model=entity.model,
-            input_tokens=entity.input_tokens,
-            output_tokens=entity.output_tokens,
             total_tokens=entity.total_tokens,
+            request=entity.request,
             response=entity.response,
+            duration_ms=entity.duration_ms,
+            status=entity.status,
+            error=entity.error,
         )
 
 

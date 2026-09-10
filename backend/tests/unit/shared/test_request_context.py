@@ -1,17 +1,14 @@
-from typing import Any
-
 import asyncio
-from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI, Request, status
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
 
-from src.llm_service.services import BaseLLMService
 from src.shared.infra.middlewares import LoggingMiddleware
 from src.shared.infra.request_context import get_request_id, reset_request_id, set_request_id
+from src.shared.infra.services import SrvBaseClient
 
 
 def _create_app() -> FastAPI:
@@ -65,61 +62,15 @@ async def test_request_id_is_isolated_between_tasks() -> None:
     ) == [first_id, second_id]
 
 
-class _LLMRequest(BaseModel):
-    message: str
-
-
-class _LLMResponse(BaseModel):
-    answer: str
-
-
-class _Response:
-    @staticmethod
-    async def json() -> dict[str, str]:
-        return {"answer": "ok"}
-
-
-class _Session:
-    def __init__(self) -> None:
-        self.headers: dict[str, str] = {"Authorization": "Bearer token"}
-        self.request_headers: dict[str, str] | None = None
-
-    async def post(self, **kwargs: Any) -> _Response:
-        self.request_headers = kwargs["headers"]
-        return _Response()
-
-
-class _Client:
-    def __init__(self) -> None:
-        self.session = _Session()
-
-    @asynccontextmanager
-    async def _get_token_session(self):
-        yield self.session
-
-
-class _LLMService(BaseLLMService[_LLMRequest, _LLMResponse]):
-    response_model = _LLMResponse
-
-    async def send(self, request: _LLMRequest, path: str) -> _LLMResponse:
-        return await self._send_request(request, path)
-
-    async def _run_loop(self, request: _LLMRequest, path: str) -> _LLMResponse:
-        return await self.send(request, path)
-
-
 @pytest.mark.asyncio
-async def test_llm_request_forwards_request_id_without_changing_session_headers() -> None:
+async def test_shared_http_client_forwards_request_id() -> None:
     request_id = str(uuid4())
     token = set_request_id(request_id)
-    client = _Client()
-    service = _LLMService(client=client)  # type: ignore[arg-type]
+    params = SimpleNamespace(headers={})
 
     try:
-        response = await service.send(_LLMRequest(message="hello"), "/llm")
+        await SrvBaseClient._add_request_id(None, None, params)  # type: ignore[arg-type]  # ruff: ignore[private-member-access]
     finally:
         reset_request_id(token)
 
-    assert response.answer == "ok"
-    assert client.session.request_headers == {"X-Request-ID": request_id}
-    assert client.session.headers == {"Authorization": "Bearer token"}
+    assert params.headers == {"X-Request-ID": request_id}

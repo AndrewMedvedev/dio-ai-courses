@@ -10,9 +10,9 @@ from src.llm_router.services import LLMImageRouter, LLMTextRouter
 from src.shared.infra.request_context import reset_request_id, set_request_id
 
 
-def _original(method):
-    """Возвращает функцию под декораторами retry и LangSmith."""
-    return method.__wrapped__.__wrapped__
+def _tracked(method):
+    """Возвращает метод вместе с декоратором мониторинга."""
+    return method
 
 
 @pytest.mark.asyncio
@@ -40,7 +40,7 @@ async def test_text_invocation_saves_response_model_and_tokens() -> None:
     request_id = uuid4()
     token = set_request_id(str(request_id))
     try:
-        result = await _original(LLMTextRouter._invoke)(
+        result = await _tracked(LLMTextRouter._invoke)(
             router,
             model="gpt-5.4-mini",
             input="Проверка",
@@ -53,7 +53,11 @@ async def test_text_invocation_saves_response_model_and_tokens() -> None:
     invocation = invocation_repos.create.await_args.args[0]
     assert invocation.request_id == request_id
     assert invocation.model == "gpt-5.4-mini"
-    assert (invocation.input_tokens, invocation.output_tokens, invocation.total_tokens) == (12, 8, 20)
+    assert invocation.total_tokens == 20
+    assert invocation.duration_ms >= 0
+    assert invocation.status == "completed"
+    assert invocation.error is None
+    assert invocation.request == "Проверка"
     assert invocation.response == {
         "output": None,
         "raw_text": "Готовый ответ",
@@ -83,7 +87,7 @@ async def test_image_invocation_does_not_save_base64() -> None:
         wrapper=AsyncMock(),
     )
 
-    result = await _original(LLMImageRouter._invoke_image)(
+    result = await _tracked(LLMImageRouter._invoke_image)(
         router,
         model="gpt-image-2",
         prompt="Нарисуй схему",
@@ -91,6 +95,7 @@ async def test_image_invocation_does_not_save_base64() -> None:
 
     assert result.image == "base64-image"
     invocation = invocation_repos.create.await_args.args[0]
+    assert invocation.request == "Нарисуй схему"
     assert invocation.response == {"size": "1024x1024", "output_format": "png"}
     assert "base64-image" not in str(invocation.response)
 
@@ -119,7 +124,7 @@ async def test_monitoring_failure_does_not_break_llm_response() -> None:
         wrapper=AsyncMock(),
     )
 
-    result = await _original(LLMTextRouter._invoke)(
+    result = await _tracked(LLMTextRouter._invoke)(
         router,
         model="gpt-5-nano",
         input="Проверка",
@@ -127,3 +132,34 @@ async def test_monitoring_failure_does_not_break_llm_response() -> None:
 
     assert result.raw_text == "Ответ"
     session.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_failed_invocation_is_saved() -> None:
+    client = SimpleNamespace(
+        responses=SimpleNamespace(create=AsyncMock(side_effect=RuntimeError("provider unavailable")))
+    )
+    invocation_repos = AsyncMock()
+    session = AsyncMock()
+    router = LLMTextRouter(
+        ai_model_repos=AsyncMock(),
+        invocation_repos=invocation_repos,
+        session=session,
+        client=client,
+        wrapper=AsyncMock(),
+    )
+
+    with pytest.raises(RuntimeError, match="provider unavailable"):
+        await _tracked(LLMTextRouter._invoke)(
+            router,
+            model="gpt-5-nano",
+            input="Проверка",
+        )
+
+    invocation = invocation_repos.create.await_args.args[0]
+    assert invocation.status == "failed"
+    assert invocation.error == "provider unavailable"
+    assert invocation.request == "Проверка"
+    assert invocation.total_tokens == 0
+    assert invocation.response == {}
+    session.commit.assert_awaited_once()

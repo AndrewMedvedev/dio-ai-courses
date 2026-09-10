@@ -1,10 +1,11 @@
 # pyright: reportOptionalMemberAccess=false,reportArgumentType=false, reportOptionalSubscript=false,reportAttributeAccessIssue=false
 
+from typing import Any
+
 import base64
 import logging
 import operator
 from contextlib import suppress
-from typing import Any
 from uuid import UUID, uuid4
 
 from langsmith import traceable
@@ -31,6 +32,7 @@ from src.llm_service.schemas import (
 from src.shared.application.dtos import Pagination
 from src.shared.infra.request_context import get_request_id
 
+from .decorators import track_llm_invocation
 from .domain.dataclass import LLMInvocation
 from .infra.repository import SqlAIModelRepository, SqlLLMInvocationRepository
 from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
@@ -84,49 +86,66 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         return UUID(request_id) if request_id is not None else uuid4()
 
     @staticmethod
-    def _usage(result: Response | ImagesResponse) -> tuple[int, int, int]:
-        """Извлекает статистику токенов из ответа провайдера."""
+    def _total_tokens(result: Response | ImagesResponse) -> int:
+        """Извлекает общее количество токенов из ответа провайдера."""
         usage = getattr(result, "usage", None)
         if usage is None:
-            return 0, 0, 0
-        return (
-            int(getattr(usage, "input_tokens", 0) or 0),
-            int(getattr(usage, "output_tokens", 0) or 0),
-            int(getattr(usage, "total_tokens", 0) or 0),
-        )
+            return 0
+        return int(getattr(usage, "total_tokens", 0) or 0)
 
     async def _record_invocation(
         self,
         *,
         model: str,
-        input_tokens: int,
-        output_tokens: int,
-        total_tokens: int,
-        response: dict[str, Any],
+        request: Any,
+        duration_ms: int,
+        result: LLMTextResponse | LLMImageResponse | None = None,
+        error: str | None = None,
     ) -> None:
         """Логирует и сохраняет выполненный вызов модели."""
+        if result is None:
+            total_tokens = 0
+            response: dict[str, Any] = {}
+            status = "failed"
+        elif isinstance(result, LLMTextResponse):
+            total_tokens = result.total_tokens
+            response = {
+                "output": result.output,
+                "raw_text": result.raw_text,
+                "tool_calls": [tool.model_dump(mode="json") for tool in result.tool_calls],
+            }
+            status = "completed"
+        else:
+            total_tokens = result.total_tokens
+            response = {"size": result.size, "output_format": result.output_format}
+            status = "completed"
+
         request_id = self._current_request_id()
         invocation = LLMInvocation(
             request_id=request_id,
             model=model,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
             total_tokens=total_tokens,
+            request=request,
             response=response,
+            duration_ms=duration_ms,
+            status=status,
+            error=error,
         )
 
         try:
             await self._invocation_repos.create(invocation)
             await self._session.commit()
             logger.info(
-                "LLM invocation completed",
+                "LLM invocation recorded",
                 extra={
                     "request_id": str(request_id),
                     "model": model,
-                    "input_tokens": input_tokens,
-                    "output_tokens": output_tokens,
                     "total_tokens": total_tokens,
+                    "request": request,
                     "response": response,
+                    "duration_ms": duration_ms,
+                    "status": status,
+                    "error": error,
                 },
             )
         except Exception:
@@ -140,6 +159,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             with suppress(Exception):
                 await self._session.rollback()
 
+    @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     async def _invoke(
@@ -152,19 +172,6 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             response=result,
             input_messages=kwargs["input"],
             text_format=kwargs.get("text"),
-        )
-        response = {
-            "output": parsed.output,
-            "raw_text": parsed.raw_text,
-            "tool_calls": [tool.model_dump(mode="json") for tool in parsed.tool_calls],
-        }
-        input_tokens, output_tokens, total_tokens = self._usage(result)
-        await self._record_invocation(
-            model=result.model or model,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            total_tokens=total_tokens,
-            response=response,
         )
         return parsed
 
@@ -281,49 +288,45 @@ class LLMTextRouter(LLMRouter):
 
 
 class LLMImageRouter(LLMRouter):
+    @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    async def _invoke_image(self, model: str, **kwargs) -> LLMImageResponse:
+    async def _invoke_image(
+        self,
+        model: str,
+        **kwargs,
+    ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
         result: ImagesResponse = await self._client.images.generate(model=model, **kwargs)
-        input_tokens, output_tokens, total_tokens = self._usage(result)
+        total_tokens = self._total_tokens(result)
         response = LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,
             total_tokens=total_tokens,
             output_format=result.output_format,
         )
-        await self._record_invocation(
-            model=model,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            total_tokens=total_tokens,
-            response={"size": response.size, "output_format": response.output_format},
-        )
         return response
 
+    @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    async def _invoke_image_based(self, model: str, **kwargs) -> LLMImageResponse:
+    async def _invoke_image_based(
+        self,
+        model: str,
+        **kwargs,
+    ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе изображения"""
         images = [base64.b64decode(image) for image in kwargs["image"]]
         kwargs.pop("image")
         result: ImagesResponse = await self._client.images.edit(
             model=model, image=images, **kwargs
         )
-        input_tokens, output_tokens, total_tokens = self._usage(result)
+        total_tokens = self._total_tokens(result)
         response = LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,
             total_tokens=total_tokens,
             output_format=result.output_format,
-        )
-        await self._record_invocation(
-            model=model,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            total_tokens=total_tokens,
-            response={"size": response.size, "output_format": response.output_format},
         )
         return response
 

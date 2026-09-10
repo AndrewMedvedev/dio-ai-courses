@@ -1,8 +1,8 @@
 # ruff: file-ignore[no-self-use, unused-method-argument]
 # pyright: reportOptionalSubscript=false, reportArgumentType=false, reportGeneralTypeIssues=false, reportOptionalIterable=false
-import asyncio
 from typing import Any, Literal
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
@@ -11,7 +11,6 @@ from functools import wraps
 
 from pydantic import BaseModel
 
-from src.shared.infra.request_context import get_request_id
 from src.shared.infra.services import SrvBaseClient
 
 from .dataclasses import StructuredTool
@@ -84,14 +83,8 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
         self.runtime = runtime
 
     async def _send_request(self, request: RequestT, path: str) -> ResponseT:
-        async with self._client._get_token_session() as session:
-            request_id = get_request_id()
-            headers = {"X-Request-ID": request_id} if request_id is not None else None
-            response = await session.post(
-                url=path,
-                json=request.model_dump(exclude_none=True),
-                headers=headers,
-            )
+        async with self._client._get_token_session() as session:  # ruff: ignore[private-member-access]
+            response = await session.post(url=path, json=request.model_dump(exclude_none=True))
             return self.response_model.model_validate(await response.json())
 
     @abstractmethod
