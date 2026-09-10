@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
+from src.shared.dependencies.database import DBSession
+from src.shared.domain.exceptions import NotFoundError
+from src.shared.utils.time import current_datetime
 
+from ...dependencies.base import LessonProgressRepoDep
 from ...dependencies.services import LearningProgressServiceDep
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.permissions.courses import COURSE_READ, UPDATE
@@ -48,10 +52,9 @@ async def read_course_progress(
 )
 async def get_course_students_progress(
     course_id: UUID,
-    identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> list[CourseProgress]:
-    return await service.get_course_students_progress(identity.id, course_id)
+    return await service.get_course_students_progress(course_id)
 
 
 @router.post(
@@ -118,6 +121,14 @@ async def read_lesson_progress(
 )
 async def mark_lesson_theory_completed(
     lesson_progress_id: UUID,
-    service: LearningProgressServiceDep,
+    repo: LessonProgressRepoDep,
+    session: DBSession,
 ) -> LessonProgress:
-    return await service.mark_lesson_theory_completed(lesson_progress_id)
+    progress = await repo.update(
+        lesson_progress_id,
+        theory_completed_at=current_datetime(),
+    )
+    if progress is None:
+        raise NotFoundError("Lesson progress was not found")
+    await session.commit()
+    return progress

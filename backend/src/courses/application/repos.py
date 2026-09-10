@@ -223,7 +223,12 @@ class PracticeRepository(Repository[Practice]):
         ...
 
 
-class LessonProgressRepository(Repository[LessonProgress]): ...
+class LessonProgressRepository(Repository[LessonProgress]):
+    async def get_id_by_user_and_lesson(
+        self,
+        user_id: UUID,
+        lesson_id: UUID,
+    ) -> UUID | None: ...
 
 
 class ModuleProgressRepository(Repository[ModuleProgress]): ...

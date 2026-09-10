@@ -8,7 +8,7 @@ import json
 from dataclasses import asdict
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from pydantic import TypeAdapter
 
 from src.iam.dependencies import require_permissions
@@ -152,15 +152,14 @@ async def check_test(
     answers: dict[str, str],
     practice_id: UUID,
     agent: TesterAgentDep,
-    _identity: CurrentIdentity,
-    lesson_progress_id: UUID = Body(),
+    identity: CurrentIdentity,
 ) -> PracticeResult:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     return await agent.call_agent_checker(
         practice=practice.model_dump(),
         answers=answers,
         practice_id=practice_id,
-        lesson_progress_id=lesson_progress_id,
+        user_id=identity.id,
     )
 
 
@@ -195,10 +194,9 @@ async def create_practice(
 async def check_practice(
     practice_id: UUID,
     agent: PracticeAgentDep,
-    _identity: CurrentIdentity,
+    identity: CurrentIdentity,
     file: UploadFile = File(...),
     practice: str = Form(),
-    lesson_progress_id: UUID = Form(),
 ) -> PracticeResult:
     """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     practice_obj = TypeAdapter(FileUploadAssignment).validate_json(practice)
@@ -207,5 +205,5 @@ async def check_practice(
         file=content,
         practice=asdict(practice_obj),
         practice_id=practice_id,
-        lesson_progress_id=lesson_progress_id,
+        user_id=identity.id,
     )

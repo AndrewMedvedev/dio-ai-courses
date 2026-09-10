@@ -18,6 +18,7 @@ router = APIRouter(prefix="/ai/models", tags=["AI Models"])
 
 @router.post(
     "",
+    response_model=AIModel,
     summary="Добавить AI-модель",
     description="Создаёт запись о доступной AI-модели с её названием, описанием и размером контекста.",
     status_code=status.HTTP_201_CREATED,
@@ -37,7 +38,7 @@ async def add_model(
 
 
 @router.post(
-    "",
+    "/search",
     response_model=Page[AIModel],
     summary="Получить список AI-моделей",
     description="Возвращает постраничный список доступных AI-моделей. Параметры пагинации передаются в теле запроса.",

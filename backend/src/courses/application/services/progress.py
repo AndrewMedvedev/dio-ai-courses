@@ -1,9 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from src.shared.application.uow import UnitOfWork
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.shared.domain.exceptions import ForbiddenError, NotFoundError
-from src.shared.utils.time import current_datetime
 
 from ...application.repos import (
     CourseRepository,
@@ -29,7 +29,7 @@ class LearningProgressService:
         module_progress_repo: ModuleProgressRepository,
         lesson_repo: LessonRepository,
         student_repo: StudentRepository,
-        uow: UnitOfWork,
+        session: AsyncSession,
     ) -> None:
         self._progress_repo = progress_repo
         self._course_progress_repo = course_progress_repo
@@ -38,7 +38,7 @@ class LearningProgressService:
         self._module_progress_repo = module_progress_repo
         self._lesson_repo = lesson_repo
         self._student_repo = student_repo
-        self._uow = uow
+        self._session = session
 
     async def create_course_progress(
         self,
@@ -49,7 +49,7 @@ class LearningProgressService:
         progress = await self._course_progress_repo.create(
             CourseProgress(user_id=user_id, course_id=course_id)
         )
-        await self._uow.commit()
+        await self._session.commit()
         return progress
 
     async def read_course_progress(
@@ -63,14 +63,11 @@ class LearningProgressService:
 
     async def get_course_students_progress(
         self,
-        teacher_id: UUID,
         course_id: UUID,
     ) -> list[CourseProgress]:
         course = await self._course_repo.read(course_id)
         if course is None:
             raise NotFoundError(f"Course with id {course_id} not found")
-        if course.creator_id != teacher_id:
-            raise ForbiddenError("Only the course creator can view students progress")
         return await self._course_progress_repo.find_by_course(course_id)
 
     async def create_module_progress(
@@ -82,16 +79,13 @@ class LearningProgressService:
         module = await self._module_repo.read(module_id)
         if module is None:
             raise NotFoundError(f"Module with id {module_id} not found")
-        if module.course_id != course_progress.course_id:
-            raise ValueError("Module does not belong to the course progress")
-
         progress = await self._module_progress_repo.create(
             ModuleProgress(
                 course_progress_id=course_progress.id,
                 module_id=module_id,
             )
         )
-        await self._uow.commit()
+        await self._session.commit()
         return progress
 
     async def read_module_progress(
@@ -112,8 +106,6 @@ class LearningProgressService:
         lesson = await self._lesson_repo.read(lesson_id)
         if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
-        if lesson.module_id != module_progress.module_id:
-            raise ValueError("Lesson does not belong to the module progress")
 
         progress = await self._progress_repo.create(
             LessonProgress(
@@ -121,7 +113,7 @@ class LearningProgressService:
                 lesson_id=lesson_id,
             )
         )
-        await self._uow.commit()
+        await self._session.commit()
         return progress
 
     async def read_lesson_progress(
@@ -131,21 +123,6 @@ class LearningProgressService:
         progress = await self._progress_repo.read(lesson_progress_id)
         if progress is None:
             raise NotFoundError("Lesson progress was not found")
-        return progress
-
-    async def mark_lesson_theory_completed(
-        self,
-        lesson_progress_id: UUID,
-    ) -> LessonProgress:
-        progress = await self.read_lesson_progress(lesson_progress_id)
-        if progress.theory_completed_at is None:
-            progress = self._require_progress(
-                await self._progress_repo.update(
-                    progress.id,
-                    theory_completed_at=current_datetime(),
-                )
-            )
-            await self._uow.commit()
         return progress
 
     async def mark_lesson_assessments_completed(
@@ -168,14 +145,9 @@ class LearningProgressService:
         progress = await self._progress_repo.update(lesson_progress_id, **updates)
         if progress is None:
             raise NotFoundError("Lesson progress was not found")
-        await self._uow.commit()
+        await self._session.commit()
 
     async def _require_student(self, user_id: UUID, course_id: UUID) -> None:
         if await self._student_repo.read(user_id, course_id) is None:
             raise ForbiddenError("Only enrolled students can manage course progress")
 
-    @staticmethod
-    def _require_progress(progress: LessonProgress | None) -> LessonProgress:
-        if progress is None:
-            raise RuntimeError("Lesson progress was not found after update")
-        return progress

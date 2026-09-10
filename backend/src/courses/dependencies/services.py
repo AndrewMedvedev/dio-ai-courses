@@ -79,7 +79,7 @@ def get_learning_progress_service(
         module_progress_repo=module_progress_repo,
         lesson_repo=lesson_repo,
         student_repo=student_repo,
-        uow=session,
+        session=session,
     )
 
 
