@@ -1,9 +1,33 @@
 import logging
 
+import aiohttp
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .request_context import create_request_id, reset_request_id, set_request_id
+from .request_context import (
+    create_request_id,
+    get_request_id,
+    reset_request_id,
+    set_request_id,
+)
+
+
+def create_request_id_trace_config() -> aiohttp.TraceConfig:
+    """Создаёт конфигурацию для передачи request-id во внутренние запросы."""
+    trace_config = aiohttp.TraceConfig()
+    trace_config.on_request_start.append(add_request_id_to_outgoing_request)
+    return trace_config
+
+
+async def add_request_id_to_outgoing_request(  # ruff: ignore[unused-async]
+    _session: aiohttp.ClientSession,
+    _trace_config_ctx: object,
+    params: aiohttp.TraceRequestStartParams,
+) -> None:
+    """Добавляет ID текущего HTTP-запроса во внутренний запрос."""
+    request_id = get_request_id()
+    if request_id is not None:
+        params.headers.setdefault("X-Request-ID", request_id)
 
 
 class RequestIdFilter(logging.Filter):
