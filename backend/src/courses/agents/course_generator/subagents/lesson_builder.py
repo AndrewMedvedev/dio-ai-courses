@@ -218,7 +218,12 @@ async def generate_content_blocks(state: AgentState) -> dict[str, LessonDict]:
 async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет урок, чтобы результат был доступен после завершения операции."""
     lesson = dict_to_lesson(state["lesson"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
-
+    try:
+        await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
+        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+    except IntegrityError:
+        await runtime.context.db_session.rollback()  # pyright: ignore[reportOptionalMemberAccess]
+        logger.info("Lesson %s alredy exsists", lesson.title)
     await VectorRepository(client=qdrant_client).index_document(
         text=get_content_blocks_context(lesson.content_blocks),
         metadata={
@@ -230,12 +235,6 @@ async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> No
     )
 
     logger.info("Saving lesson '%s' to database ...", lesson.title)
-    try:
-        await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
-        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
-    except IntegrityError:
-        await runtime.context.db_session.rollback()  # pyright: ignore[reportOptionalMemberAccess]
-        logger.info("Lesson %s alredy exsists", lesson.title)
 
 
 graph = StateGraph(AgentState, context_schema=RuntimeContext)

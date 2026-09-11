@@ -14,7 +14,7 @@ from ..infra.database.repos.practice import SqlPracticeRepository
 from ..infra.database.repos.student import SqlStudentRepository
 from ..infra.database.repos.theory_session import SqlLessonTheorySessionRepository
 
-splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=50, length_function=len)
+splitter = RecursiveCharacterTextSplitter(chunk_size=3072, chunk_overlap=150, length_function=len)
 
 
 def get_lesson_repo(session: DBSession) -> SqlLessonRepository:
