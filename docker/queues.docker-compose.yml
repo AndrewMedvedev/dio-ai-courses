@@ -6,7 +6,7 @@ services:
       - "${RABBIT_PORT}:5672"   # AMQP protocol
       - "${RABBIT_MANAGEMENT_PORT}:15672" # Management UI
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USERNAME}
       RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
