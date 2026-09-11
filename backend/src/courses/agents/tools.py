@@ -24,7 +24,7 @@ async def get_table_of_contents(runtime: Runtime[Context, State]) -> str | list[
     answer = await SqlDocumentRepository(session=runtime.state.db_session).get_tocs(  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess, reportArgumentType]
         owner_id=runtime.context.user_id
     )
-    if answer is None:
+    if not answer:
         return "У пользователя нету документов"
     return [{"toc_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
@@ -42,9 +42,9 @@ async def get_titles(
         owner_id=runtime.context.user_id,
         toc_id=toc_id,
     )
-    if answer is None:
+    if not answer:
         return "У пользователя нету документов"
-    return [{"heading_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    return [{"heading_id": model.id, "title": model.title} for model in answer]
 
 
 @tool(
@@ -53,13 +53,13 @@ async def get_titles(
 )
 async def get_content(runtime: Runtime[Context, State], heading_id: UUID) -> str:
     """Получает content, чтобы вызывающий код работал через единый интерфейс."""
-    answer = await SqlDocumentRepository(session=runtime.state.db_sessio).get_text(  # pyright: ignore[reportOptionalSubscript, reportAttributeAccessIssue, reportOptionalMemberAccess, reportGeneralTypeIssues]
+    answer = await SqlDocumentRepository(session=runtime.state.db_session).get_text(  # pyright: ignore[reportArgumentType, reportOptionalMemberAccess]
         owner_id=runtime.context.user_id,
         heading_id=heading_id,
     )
-    if answer is None:
+    if answer is None or answer.content is None:
         return "У пользователя нету документов"
-    return answer.content  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    return answer.content
 
 
 @tool(

@@ -50,7 +50,7 @@ services:
       - ../.env:/app/.env:ro
       - ./.docker/minio-data:/minio_data:ro
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - MINIO_ACCESS_KEY_ID=${YANDEX_CLOUD_ACCESS_KEY_ID}

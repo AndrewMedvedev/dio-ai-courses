@@ -104,7 +104,7 @@ services:
 
 secrets:
   qdrant_api_key:
-    environment: QDRANT_PASSWORD
+    environment: QDRANT_API_KEY
 
 
 volumes:
