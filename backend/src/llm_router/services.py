@@ -92,7 +92,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         if usage is None:
             return 0
         return int(getattr(usage, "total_tokens", 0) or 0)
-
+    #for pull request
     async def _record_invocation(
         self,
         *,
