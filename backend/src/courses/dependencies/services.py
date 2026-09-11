@@ -64,7 +64,6 @@ def get_learning_progress_service(
     session: DBSession,
     progress_repo: LessonProgressRepoDep,
     course_progress_repo: CourseProgressRepoDep,
-    course_repo: CourseRepoDep,
     module_repo: ModuleRepoDep,
     module_progress_repo: ModuleProgressRepoDep,
     lesson_repo: LessonRepoDep,
@@ -74,7 +73,6 @@ def get_learning_progress_service(
     return LearningProgressService(
         progress_repo=progress_repo,
         course_progress_repo=course_progress_repo,
-        course_repo=course_repo,
         module_repo=module_repo,
         module_progress_repo=module_progress_repo,
         lesson_repo=lesson_repo,

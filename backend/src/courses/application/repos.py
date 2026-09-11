@@ -223,17 +223,14 @@ class PracticeRepository(Repository[Practice]):
         ...
 
 
-class LessonProgressRepository(Repository[LessonProgress]):
-    async def get_id_by_user_and_lesson(self, user_id: UUID, lesson_id: UUID) -> UUID | None:
-        """Возвращает идентификатор прогресса пользователя по указанному уроку."""
-        ...
+class LessonProgressRepository(Repository[LessonProgress]): ...
 
 
 class ModuleProgressRepository(Repository[ModuleProgress]): ...
 
 
 class CourseProgressRepository(Repository[CourseProgress]):
-    async def find_by_course(self, course_id: UUID) -> list[CourseProgress]: ...
+    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
 
 
 class StudentRepository(Repository[Student]):

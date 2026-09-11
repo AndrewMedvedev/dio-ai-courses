@@ -1,9 +1,12 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
+from src.shared.application.dtos import Page, Pagination
+from src.shared.utils.time import current_datetime
 
 from ...dependencies.services import LearningProgressServiceDep
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
@@ -49,8 +52,9 @@ async def read_course_progress(
 async def get_course_students_progress(
     course_id: UUID,
     service: LearningProgressServiceDep,
-) -> list[CourseProgress]:
-    return await service.get_course_students_progress(course_id)
+    pagination: Annotated[Pagination, Query()],
+) -> Page[CourseProgress]:
+    return await service.get_course_students_progress(course_id, pagination)
 
 
 @router.post(
@@ -115,8 +119,8 @@ async def read_lesson_progress(
     description="Сохраняет время завершения теории. Практика и тест обновляются только после серверной проверки через событие.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
-async def mark_lesson_theory_completed(
-    lesson_progress_id: UUID,
-    service: LearningProgressServiceDep,
-) -> LessonProgress:
-    return await service.mark_lesson_theory_completed(lesson_progress_id)
+async def mark_lesson_theory_completed(lesson_progress_id: UUID,service: LearningProgressServiceDep) -> LessonProgress:
+    return await service.update(
+        lesson_progress_id,
+        theory_completed_at=current_datetime(),
+    )
