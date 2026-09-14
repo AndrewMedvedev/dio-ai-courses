@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -119,7 +120,7 @@ async def read_lesson_progress(
     description="Сохраняет время завершения теории. Практика и тест обновляются только после серверной проверки через событие.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
-async def mark_lesson_theory_completed(lesson_progress_id: UUID,service: LearningProgressServiceDep) -> LessonProgress:
+async def mark_lesson_theory_completed(lesson_progress_id: UUID, service: LearningProgressServiceDep) -> LessonProgress:
     return await service.update(
         lesson_progress_id,
         theory_completed_at=current_datetime(),

@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Float,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -138,6 +139,7 @@ class CourseProgressOrm(Base):
     __tablename__ = "course_progress"
 
     user_id: Mapped[UUID]
+    progress_percent: Mapped[float] = mapped_column(Float, default=0)
     course_id: Mapped[UUID] = mapped_column(
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,

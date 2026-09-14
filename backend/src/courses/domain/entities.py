@@ -418,6 +418,7 @@ class CourseProgress(Entity):
 
     user_id: UUID
     course_id: UUID
+    progress_percent: float = 0
 
 
 @dataclass(kw_only=True, slots=True)
@@ -437,7 +438,6 @@ class ModuleProgress(Entity):
 
     course_progress_id: UUID
     module_id: UUID
-
 
 
 @dataclass(kw_only=True, slots=True)

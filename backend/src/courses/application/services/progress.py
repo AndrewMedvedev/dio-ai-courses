@@ -40,7 +40,8 @@ class LearningProgressService:
 
     async def create_course_progress(self, user_id: UUID, course_id: UUID) -> CourseProgress:
         """Создаёт прогресс курса для записанного на него пользователя."""
-        await self._require_student(user_id, course_id)
+        if await self._student_repo.read(user_id, course_id) is None:
+            raise ForbiddenError("User is not enrolled in this course")
         progress = await self._course_progress_repo.create(CourseProgress(user_id=user_id, course_id=course_id))
         await self._session.commit()
         return progress
@@ -52,14 +53,13 @@ class LearningProgressService:
             raise NotFoundError("Course progress was not found")
         return progress
 
-    async def get_course_students_progress(self,course_id: UUID,pagination: Pagination) -> Page[CourseProgress]:
+    async def get_course_students_progress(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]:
         """Возвращает записи прогресса всех учеников указанного курса."""
         return await self._course_progress_repo.find_by_course(course_id, pagination)
 
     async def create_module_progress(self, course_progress_id: UUID, module_id: UUID) -> ModuleProgress:
         """Создаёт запись прогресса модуля внутри существующего прогресса курса."""
-        course_progress = await self.read_course_progress(course_progress_id)
-        progress = await self._module_progress_repo.create(ModuleProgress(course_progress_id=course_progress.id, module_id=module_id))
+        progress = await self._module_progress_repo.create(ModuleProgress(course_progress_id=course_progress_id, module_id=module_id))
         await self._session.commit()
         return progress
 
@@ -72,8 +72,7 @@ class LearningProgressService:
 
     async def create_lesson_progress(self, module_progress_id: UUID, lesson_id: UUID) -> LessonProgress:
         """Создаёт запись прогресса урока внутри существующего прогресса модуля."""
-        module_progress = await self.read_module_progress(module_progress_id)
-        progress = await self._progress_repo.create(LessonProgress(module_progress_id=module_progress.id, lesson_id=lesson_id))
+        progress = await self._progress_repo.create(LessonProgress(module_progress_id=module_progress_id, lesson_id=lesson_id))
         await self._session.commit()
         return progress
 
@@ -88,8 +87,3 @@ class LearningProgressService:
         progress = await self._progress_repo.update(lesson_progress_id, theory_completed_at=theory_completed_at)
         await self._session.commit()
         return progress
-
-    async def _require_student(self, user_id: UUID, course_id: UUID) -> None:
-        """Проверяет, что пользователь записан на курс перед созданием его прогресса."""
-        if await self._student_repo.read(user_id, course_id) is None:
-            raise ForbiddenError("Only enrolled students can manage course progress")

@@ -283,6 +283,7 @@ class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
             updated_at=model.updated_at,
             user_id=model.user_id,
             course_id=model.course_id,
+            progress_percent=model.progress_percent,
         )
 
     @staticmethod
@@ -293,6 +294,7 @@ class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
             updated_at=entity.updated_at,
             user_id=entity.user_id,
             course_id=entity.course_id,
+            progress_percent=entity.progress_percent,
         )
 
 

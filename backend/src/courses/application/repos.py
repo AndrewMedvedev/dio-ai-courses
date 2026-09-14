@@ -226,11 +226,14 @@ class PracticeRepository(Repository[Practice]):
 class LessonProgressRepository(Repository[LessonProgress]): ...
 
 
-class ModuleProgressRepository(Repository[ModuleProgress]): ...
+class ModuleProgressRepository(Repository[ModuleProgress]):
+    pass
 
 
 class CourseProgressRepository(Repository[CourseProgress]):
     async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
+
+    async def recalculate_progress(self, course_progress_id: UUID) -> None: ...
 
 
 class StudentRepository(Repository[Student]):
