@@ -19,6 +19,7 @@ from src.core.broker import rabbit_router
 from src.courses.api.v1 import router as courses_router
 from src.courses.infra.messaging import progress as progress_events  # noqa: F401
 from src.iam.api.v1 import router as iam_router
+from src.llm_router.infra import invocation_rabbit as llm_invocation_events  # noqa: F401
 from src.llm_router.api.v1 import router as llm_router
 from src.media.router import router as media_router
 from src.organization.api.v1 import router as organization_router

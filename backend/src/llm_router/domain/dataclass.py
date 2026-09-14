@@ -1,17 +1,11 @@
 from typing import Any
 
-from dataclasses import dataclass
-from enum import StrEnum
+from dataclasses import dataclass, field
 from uuid import UUID
 
+from .vo import LLMInvocationStatus
+
 from src.shared.domain.entities import Entity
-
-
-class LLMInvocationStatus(StrEnum):
-    """Статус выполнения вызова модели."""
-
-    COMPLETED = "completed"
-    FAILED = "failed"
 
 
 @dataclass(kw_only=True)
@@ -32,7 +26,8 @@ class LLMInvocation(Entity):
     total_tokens: int = 0
     request: dict[str, Any]
     response: dict[str, Any]
-    image: bytes | None = None
+    input_image_keys: list[str] | None = None
+    image_key: str | None = None
     duration_ms: int = 0
     status: LLMInvocationStatus
     error: str | None = None

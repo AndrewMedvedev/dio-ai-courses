@@ -5,7 +5,6 @@ from typing import Any
 import base64
 import logging
 import operator
-from contextlib import suppress
 from uuid import UUID, uuid4
 
 from langsmith import traceable
@@ -14,7 +13,6 @@ from openai import (
 )
 from openai.types.images_response import ImagesResponse
 from openai.types.responses.response import Response
-from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import (
     before_sleep_log,
     retry,
@@ -30,11 +28,13 @@ from src.llm_service.schemas import (
     LLMTextResponse,
 )
 from src.shared.application.dtos import Pagination
+from src.shared.domain.events import EventPublisher
 from src.shared.infra.request_context import get_request_id
 
 from .decorators import track_llm_invocation
-from .domain.dataclass import LLMInvocation, LLMInvocationStatus
-from .infra.repository import SqlAIModelRepository, SqlLLMInvocationRepository
+from .domain.dataclass import LLMInvocationStatus
+from .domain.events import LLMInvocationCreated
+from .infra.repository import SqlAIModelRepository
 from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
 from .schemas import CacheAIModelsProtocol
 from .utils import (
@@ -68,15 +68,13 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
     def __init__(
         self,
         ai_model_repos: SqlAIModelRepository,
-        invocation_repos: SqlLLMInvocationRepository,
-        session: AsyncSession,
+        event_publisher: EventPublisher,
         client: AsyncOpenAI,
         wrapper: CacheAIModelsProtocol,
     ) -> None:
         self._client = client
         self._ai_model_repos = ai_model_repos
-        self._invocation_repos = invocation_repos
-        self._session = session
+        self._event_publisher = event_publisher
         self._wrapper = wrapper
 
     @staticmethod
@@ -92,19 +90,19 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         if usage is None:
             return 0
         return int(getattr(usage, "total_tokens", 0) or 0)
-    #for pull request
-    async def _record_invocation(
+    async def _publish_invocation(
         self,
         *,
         model: str,
         request: dict[str, Any],
         duration_ms: int,
         status: LLMInvocationStatus,
-        image: bytes | None = None,
         result: LLMTextResponse | LLMImageResponse | None = None,
+        input_image_keys: list[str] | None = None,
+        image_key: str | None = None,
         error: str | None = None,
     ) -> None:
-        """Логирует и сохраняет выполненный вызов модели."""
+        """Публикует событие для асинхронного сохранения мониторинга."""
         if result is None:
             total_tokens = 0
             response: dict[str, Any] = {}
@@ -120,23 +118,23 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             response = {"size": result.size, "output_format": result.output_format}
 
         request_id = self._current_request_id()
-        invocation = LLMInvocation(
+        event = LLMInvocationCreated(
             request_id=request_id,
             model=model,
             total_tokens=total_tokens,
             request=request,
             response=response,
-            image=image,
             duration_ms=duration_ms,
             status=status,
+            input_image_keys=input_image_keys or [],
+            image_key=image_key,
             error=error,
         )
 
         try:
-            await self._invocation_repos.create(invocation)
-            await self._session.commit()
+            await self._event_publisher.publish(event)
             logger.info(
-                "LLM invocation recorded",
+                "LLM invocation published",
                 extra={
                     "request_id": str(request_id),
                     "model": model,
@@ -150,18 +148,16 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             )
         except Exception:
             logger.exception(
-                "Failed to record LLM invocation",
+                "Failed to publish LLM invocation",
                 extra={
                     "request_id": str(request_id),
                     "model": model,
                 },
             )
-            with suppress(Exception):
-                await self._session.rollback()
 
-    @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
+    @track_llm_invocation
     async def _invoke(
         self,
         model: str,
@@ -288,9 +284,9 @@ class LLMTextRouter(LLMRouter):
 
 
 class LLMImageRouter(LLMRouter):
-    @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
+    @track_llm_invocation
     async def _invoke_image(
         self,
         model: str,
@@ -307,12 +303,13 @@ class LLMImageRouter(LLMRouter):
         )
         return response
 
-    @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
+    @track_llm_invocation
     async def _invoke_image_based(
         self,
         model: str,
+        input_image_keys: list[str] | None = None,
         **kwargs,
     ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе изображения"""
@@ -335,6 +332,8 @@ class LLMImageRouter(LLMRouter):
         schema: LLMImageRequest,
         model: str | None = None,
     ) -> LLMImageResponse:
+        # После готовности media сохранить schema.image и получить input_image_keys.
+        # input_image_keys = await media_service.save_input_images(schema.image)
         models = (
             await self._wrapper(
                 func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
@@ -357,6 +356,7 @@ class LLMImageRouter(LLMRouter):
         if schema.image is not None:
             return await self._invoke_image_based(
                 model=selected_model,
+                # input_image_keys=input_image_keys,
                 **schema.model_dump(exclude_none=True, by_alias=True),
             )
         return await self._invoke_image(
