@@ -7,7 +7,7 @@ import aiohttp
 from fastapi import status
 from pydantic import BaseModel
 
-from ..request_context import get_request_id
+from ..middlewares import create_request_id_trace_config
 from .config import SrvBaseConfig
 from .exceptions import SrvBaseError
 
@@ -46,27 +46,14 @@ class SrvBaseClient:
                 ttl_dns_cache=300,
                 keepalive_timeout=self._config.keepalive_timeout,
             )
-            trace_config = aiohttp.TraceConfig()
-            trace_config.on_request_start.append(self._add_request_id)
             self._session = aiohttp.ClientSession(
                 base_url=str(self._config.base_url).rstrip("/"),
                 timeout=timeout,
                 connector=connector,
-                trace_configs=[trace_config],
+                trace_configs=[create_request_id_trace_config()],
             )
 
         yield self._session
-
-    @staticmethod
-    async def _add_request_id(
-        _session: aiohttp.ClientSession,
-        _trace_config_ctx: object,
-        params: aiohttp.TraceRequestStartParams,
-    ) -> None:
-        """Передаёт request-id текущего HTTP-запроса во внутренний сервис."""
-        request_id = get_request_id()
-        if request_id is not None:
-            params.headers.setdefault("X-Request-ID", request_id)
 
     async def __get_oauth_token(self) -> _OAuthToken:
 

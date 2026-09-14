@@ -33,7 +33,7 @@ from src.shared.application.dtos import Pagination
 from src.shared.infra.request_context import get_request_id
 
 from .decorators import track_llm_invocation
-from .domain.dataclass import LLMInvocation
+from .domain.dataclass import LLMInvocation, LLMInvocationStatus
 from .infra.repository import SqlAIModelRepository, SqlLLMInvocationRepository
 from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
 from .schemas import CacheAIModelsProtocol
@@ -97,8 +97,10 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         self,
         *,
         model: str,
-        request: Any,
+        request: dict[str, Any],
         duration_ms: int,
+        status: LLMInvocationStatus,
+        image: bytes | None = None,
         result: LLMTextResponse | LLMImageResponse | None = None,
         error: str | None = None,
     ) -> None:
@@ -106,7 +108,6 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         if result is None:
             total_tokens = 0
             response: dict[str, Any] = {}
-            status = "failed"
         elif isinstance(result, LLMTextResponse):
             total_tokens = result.total_tokens
             response = {
@@ -114,11 +115,9 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
                 "raw_text": result.raw_text,
                 "tool_calls": [tool.model_dump(mode="json") for tool in result.tool_calls],
             }
-            status = "completed"
         else:
             total_tokens = result.total_tokens
             response = {"size": result.size, "output_format": result.output_format}
-            status = "completed"
 
         request_id = self._current_request_id()
         invocation = LLMInvocation(
@@ -127,6 +126,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             total_tokens=total_tokens,
             request=request,
             response=response,
+            image=image,
             duration_ms=duration_ms,
             status=status,
             error=error,

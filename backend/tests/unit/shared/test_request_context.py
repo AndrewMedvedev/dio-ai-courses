@@ -6,9 +6,11 @@ import pytest
 from fastapi import FastAPI, Request, status
 from fastapi.testclient import TestClient
 
-from src.shared.infra.middlewares import LoggingMiddleware
+from src.shared.infra.middlewares import (
+    LoggingMiddleware,
+    add_request_id_to_outgoing_request,
+)
 from src.shared.infra.request_context import get_request_id, reset_request_id, set_request_id
-from src.shared.infra.services import SrvBaseClient
 
 
 def _create_app() -> FastAPI:
@@ -69,7 +71,7 @@ async def test_shared_http_client_forwards_request_id() -> None:
     params = SimpleNamespace(headers={})
 
     try:
-        await SrvBaseClient._add_request_id(None, None, params)  # type: ignore[arg-type]  # ruff: ignore[private-member-access]
+        await add_request_id_to_outgoing_request(None, None, params)  # type: ignore[arg-type]
     finally:
         reset_request_id(token)
 
