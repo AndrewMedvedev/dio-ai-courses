@@ -1,6 +1,6 @@
 from typing import Any
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from uuid import UUID
 
 from .vo import LLMInvocationStatus
@@ -26,8 +26,6 @@ class LLMInvocation(Entity):
     total_tokens: int = 0
     request: dict[str, Any]
     response: dict[str, Any]
-    input_image_keys: list[str] | None = None
-    image_key: str | None = None
     duration_ms: int = 0
     status: LLMInvocationStatus
     error: str | None = None

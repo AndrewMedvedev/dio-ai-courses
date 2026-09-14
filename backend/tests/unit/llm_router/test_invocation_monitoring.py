@@ -58,12 +58,10 @@ async def test_text_invocation_publishes_event() -> None:
         "raw_text": "Готовый ответ",
         "tool_calls": [],
     }
-    assert event.image_key is None
-    assert event.input_image_keys == []
 
 
 @pytest.mark.asyncio
-async def test_published_event_contains_output_image_key() -> None:
+async def test_published_event_contains_image_keys_in_request_and_response() -> None:
     publisher = AsyncMock()
     router = _text_router(SimpleNamespace(), publisher)
 
@@ -72,11 +70,16 @@ async def test_published_event_contains_output_image_key() -> None:
         request={"prompt": "Нарисуй схему"},
         duration_ms=50,
         status=LLMInvocationStatus.COMPLETED,
+        input_image_keys=["llm-inputs/request-1/image-1"],
         image_key="llm-outputs/request-1/image-1",
     )
 
     event = publisher.publish.await_args.args[0]
-    assert event.image_key == "llm-outputs/request-1/image-1"
+    assert event.request == {
+        "prompt": "Нарисуй схему",
+        "image_keys": ["llm-inputs/request-1/image-1"],
+    }
+    assert event.response == {"image_key": "llm-outputs/request-1/image-1"}
     assert event.status is LLMInvocationStatus.COMPLETED
     assert event.error is None
     assert event.duration_ms >= 0
@@ -104,8 +107,6 @@ async def test_failed_invocation_publishes_event_and_reraises() -> None:
     assert event.request == {"input": "Проверка"}
     assert event.response == {}
     assert event.total_tokens == 0
-    assert event.image_key is None
-    assert event.input_image_keys == []
     assert event.duration_ms >= 0
 
 
@@ -162,8 +163,6 @@ async def test_image_invocation_publishes_metadata_without_base64() -> None:
     assert event.request == {"prompt": "Нарисуй схему"}
     assert event.response == {"size": "1024x1024", "output_format": "png"}
     assert image_base64 not in str(event.response)
-    assert event.image_key is None
-    assert event.input_image_keys == []
 
 
 @pytest.mark.parametrize(

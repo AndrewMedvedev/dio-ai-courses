@@ -35,8 +35,6 @@ async def on_llm_invocation_created(
             total_tokens=event.total_tokens,
             request=event.request,
             response=event.response,
-            input_image_keys=event.input_image_keys,
-            image_key=event.image_key,
             duration_ms=event.duration_ms,
             status=event.status,
             error=event.error,

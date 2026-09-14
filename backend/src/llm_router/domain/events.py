@@ -1,6 +1,6 @@
 from typing import Any, ClassVar
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from uuid import UUID
 
 from src.shared.domain.events import Event
@@ -21,6 +21,4 @@ class LLMInvocationCreated(Event):
     response: dict[str, Any]
     duration_ms: int
     status: LLMInvocationStatus
-    input_image_keys: list[str] | None = None
-    image_key: str | None = None
     error: str | None = None

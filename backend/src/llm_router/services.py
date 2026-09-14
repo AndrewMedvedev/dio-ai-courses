@@ -117,6 +117,11 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             total_tokens = result.total_tokens
             response = {"size": result.size, "output_format": result.output_format}
 
+        if input_image_keys:
+            request = {**request, "image_keys": input_image_keys}
+        if image_key is not None:
+            response = {**response, "image_key": image_key}
+
         request_id = self._current_request_id()
         event = LLMInvocationCreated(
             request_id=request_id,
@@ -126,8 +131,6 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             response=response,
             duration_ms=duration_ms,
             status=status,
-            input_image_keys=input_image_keys or [],
-            image_key=image_key,
             error=error,
         )
 

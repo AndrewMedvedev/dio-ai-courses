@@ -37,13 +37,6 @@ class LLMInvocationOrm(Base):
     )
     request: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     response: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    input_image_keys: Mapped[list[str] | None] = mapped_column(
-        JSONB,
-        nullable=False,
-        default=list,
-        server_default=text("'[]'::jsonb"),
-    )
-    image_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     duration_ms: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
     )
