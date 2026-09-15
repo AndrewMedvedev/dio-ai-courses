@@ -1,5 +1,6 @@
 # ruff: file-ignore[private-member-access]
 
+import base64
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -13,6 +14,7 @@ from src.llm_service.schemas import LLMImageRequest, LLMTextRequest
 from src.shared.infra.request_context import reset_request_id, set_request_id
 
 TOTAL_TOKENS = 20
+EDIT_TOTAL_TOKENS = 9
 
 
 def _text_router(client: object, publisher: AsyncMock) -> LLMTextRouter:
@@ -148,6 +150,47 @@ async def test_image_invocation_publishes_response_schema() -> None:
     result = await router._invoke_image(model="gpt-image-2", schema=schema)
 
     assert result.image == image_base64
+    router._client.images.generate.assert_awaited_once_with(
+        model="gpt-image-2",
+        prompt="Нарисуй схему",
+        quality="medium",
+        output_format="png",
+    )
     event = publisher.publish.await_args.args[0]
     assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
     assert event.response == result.model_dump(mode="json", exclude_none=True)
+
+
+@pytest.mark.asyncio
+async def test_image_edit_decodes_base64_and_excludes_it_from_provider_request() -> None:
+    image_bytes = b"input image"
+    image_base64 = base64.b64encode(image_bytes).decode()
+    provider_response = SimpleNamespace(
+        size="1024x1024",
+        data=[SimpleNamespace(b64_json="edited-image")],
+        output_format="png",
+        usage=SimpleNamespace(total_tokens=EDIT_TOTAL_TOKENS),
+    )
+    publisher = AsyncMock()
+    edit = AsyncMock(return_value=provider_response)
+    router = LLMImageRouter(
+        ai_model_repos=AsyncMock(),
+        event_publisher=publisher,
+        client=SimpleNamespace(images=SimpleNamespace(edit=edit)),
+        wrapper=AsyncMock(),
+    )
+    schema = LLMImageRequest(image=[image_base64], prompt="Измени картинку")
+
+    result = await router._invoke_image_based(model="gpt-image-2", schema=schema)
+
+    assert result.image == "edited-image"
+    assert result.total_tokens == EDIT_TOTAL_TOKENS
+    edit.assert_awaited_once_with(
+        model="gpt-image-2",
+        image=[image_bytes],
+        prompt="Измени картинку",
+        quality="medium",
+        output_format="png",
+    )
+    event = publisher.publish.await_args.args[0]
+    assert event.request["image"] == [image_base64]

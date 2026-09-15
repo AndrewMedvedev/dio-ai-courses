@@ -4,13 +4,13 @@ from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
+    Enum,
     Index,
     Integer,
     String,
     Text,
     text,
 )
-from sqlalchemy import Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
