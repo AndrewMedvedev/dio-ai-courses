@@ -3,7 +3,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.shared.application.dtos import Page, Pagination
 from src.shared.domain.exceptions import ForbiddenError, NotFoundError
 
 from ...application.repos import (
@@ -15,6 +14,7 @@ from ...application.repos import (
     StudentRepository,
 )
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
+from ...domain.events import LessonProgressUpdated
 
 
 class LearningProgressService:
@@ -46,44 +46,65 @@ class LearningProgressService:
         await self._session.commit()
         return progress
 
-    async def read_course_progress(self, course_progress_id: UUID) -> CourseProgress:
+    async def read_course_progress(self, user_id: UUID, course_id: UUID) -> CourseProgress:
         """Возвращает прогресс курса или сообщает, что запись не найдена."""
-        progress = await self._course_progress_repo.read(course_progress_id)
+        progress = await self._course_progress_repo.read_by_user_and_course(user_id, course_id)
         if progress is None:
             raise NotFoundError("Course progress was not found")
         return progress
 
-    async def get_course_students_progress(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]:
-        """Возвращает записи прогресса всех учеников указанного курса."""
-        return await self._course_progress_repo.find_by_course(course_id, pagination)
-
-    async def create_module_progress(self, course_progress_id: UUID, module_id: UUID) -> ModuleProgress:
+    async def create_module_progress(self, user_id: UUID, module_id: UUID,) -> ModuleProgress:
         """Создаёт запись прогресса модуля внутри существующего прогресса курса."""
-        progress = await self._module_progress_repo.create(ModuleProgress(course_progress_id=course_progress_id, module_id=module_id))
+        module = await self._module_repo.read(module_id)
+        if module is None:
+            raise NotFoundError("Module was not found")
+        course_progress = await self._course_progress_repo.read_by_user_and_course(user_id, module.course_id)
+        if course_progress is None:
+            raise NotFoundError("Course progress was not found")
+        progress = await self._module_progress_repo.create(
+            ModuleProgress(course_progress_id=course_progress.id, module_id=module_id)
+        )
         await self._session.commit()
         return progress
 
-    async def read_module_progress(self, module_progress_id: UUID) -> ModuleProgress:
-        """Возвращает прогресс модуля или сообщает, что запись не найдена."""
-        progress = await self._module_progress_repo.read(module_progress_id)
-        if progress is None:
-            raise NotFoundError("Module progress was not found")
-        return progress
-
-    async def create_lesson_progress(self, module_progress_id: UUID, lesson_id: UUID) -> LessonProgress:
+    async def create_lesson_progress(self, user_id: UUID, lesson_id: UUID) -> LessonProgress:
         """Создаёт запись прогресса урока внутри существующего прогресса модуля."""
-        progress = await self._progress_repo.create(LessonProgress(module_progress_id=module_progress_id, lesson_id=lesson_id))
+        lesson = await self._lesson_repo.read(lesson_id)
+        if lesson is None:
+            raise NotFoundError("Lesson was not found")
+        module_progress = await self._module_progress_repo.read_by_user_and_module(user_id, lesson.module_id)
+        if module_progress is None:
+            raise NotFoundError("Module progress was not found")
+        progress = await self._progress_repo.create(
+            LessonProgress(module_progress_id=module_progress.id, lesson_id=lesson_id)
+        )
         await self._session.commit()
         return progress
 
-    async def read_lesson_progress(self, lesson_progress_id: UUID) -> LessonProgress:
+    async def read_lesson_progress(self, user_id: UUID, lesson_id: UUID) -> LessonProgress:
         """Возвращает прогресс урока или сообщает, что запись не найдена."""
-        progress = await self._progress_repo.read(lesson_progress_id)
+        progress = await self._progress_repo.read_by_user_and_lesson(user_id, lesson_id)
         if progress is None:
             raise NotFoundError("Lesson progress was not found")
         return progress
 
-    async def update(self, lesson_progress_id: UUID, theory_completed_at: datetime) -> LessonProgress:
-        progress = await self._progress_repo.update(lesson_progress_id, theory_completed_at=theory_completed_at)
+    async def update(self, user_id: UUID, lesson_id: UUID, theory_completed_at: datetime) -> LessonProgress:
+        progress = await self.read_lesson_progress(user_id, lesson_id)
+        progress = await self._progress_repo.update(
+            progress.id,
+            theory_completed_at=theory_completed_at,
+        )
         await self._session.commit()
         return progress
+
+    async def handle_lesson_progress_updated(self, event: LessonProgressUpdated) -> None:
+        """Обновляет прогресс урока и сохраняет процент курса после его полного прохождения."""
+        course_progress_id = await self._progress_repo.update_from_event(event)
+        if course_progress_id is not None:
+            progress_percent = await self._course_progress_repo.calculate_progress(course_progress_id)
+            if progress_percent is not None:
+                await self._course_progress_repo.update(
+                    course_progress_id,
+                    progress_percent=progress_percent,
+                )
+        await self._session.commit()

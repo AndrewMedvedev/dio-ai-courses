@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, Query, status
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
+from src.shared.domain.exceptions import NotFoundError
 from src.shared.utils.time import current_datetime
 
+from ...dependencies.base import CourseProgressRepoDep, ModuleProgressRepoDep
 from ...dependencies.services import LearningProgressServiceDep
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.permissions.courses import COURSE_READ, UPDATE
@@ -32,16 +34,17 @@ async def create_course_progress(
 
 
 @router.get(
-    "/courses/{course_progress_id}",
+    "/courses/{course_id}",
     summary="Получить прогресс курса",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному курсу.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_course_progress(
-    course_progress_id: UUID,
+    course_id: UUID,
+    identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> CourseProgress:
-    return await service.read_course_progress(course_progress_id)
+    return await service.read_course_progress(identity.id, course_id)
 
 
 @router.get(
@@ -52,10 +55,11 @@ async def read_course_progress(
 )
 async def get_course_students_progress(
     course_id: UUID,
-    service: LearningProgressServiceDep,
+    _identity: CurrentIdentity,
+    repo: CourseProgressRepoDep,
     pagination: Annotated[Pagination, Query()],
 ) -> Page[CourseProgress]:
-    return await service.get_course_students_progress(course_id, pagination)
+    return await repo.find_by_course(course_id, pagination)
 
 
 @router.post(
@@ -67,23 +71,27 @@ async def get_course_students_progress(
 )
 async def create_module_progress(
     module_id: UUID,
-    course_progress_id: UUID,
+    identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> ModuleProgress:
-    return await service.create_module_progress(course_progress_id, module_id)
+    return await service.create_module_progress(identity.id, module_id)
 
 
 @router.get(
-    "/modules/{module_progress_id}",
+    "/modules/{module_id}",
     summary="Получить прогресс модуля",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному модулю.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_module_progress(
-    module_progress_id: UUID,
-    service: LearningProgressServiceDep,
+    module_id: UUID,
+    identity: CurrentIdentity,
+    repo: ModuleProgressRepoDep,
 ) -> ModuleProgress:
-    return await service.read_module_progress(module_progress_id)
+    progress = await repo.read_by_user_and_module(identity.id, module_id)
+    if progress is None:
+        raise NotFoundError("Module progress was not found")
+    return progress
 
 
 @router.post(
@@ -95,33 +103,39 @@ async def read_module_progress(
 )
 async def create_lesson_progress(
     lesson_id: UUID,
-    module_progress_id: UUID,
+    identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
-    return await service.create_lesson_progress(module_progress_id, lesson_id)
+    return await service.create_lesson_progress(identity.id, lesson_id)
 
 
 @router.get(
-    "/lessons/{lesson_progress_id}",
+    "/lessons/{lesson_id}",
     summary="Получить прогресс урока",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному уроку.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_lesson_progress(
-    lesson_progress_id: UUID,
+    lesson_id: UUID,
+    identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
-    return await service.read_lesson_progress(lesson_progress_id)
+    return await service.read_lesson_progress(identity.id, lesson_id)
 
 
 @router.patch(
-    "/lessons/{lesson_progress_id}",
+    "/lessons/{lesson_id}",
     summary="Отметить теорию урока пройденной",
     description="Сохраняет время завершения теории. Практика и тест обновляются только после серверной проверки через событие.",
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
-async def mark_lesson_theory_completed(lesson_progress_id: UUID, service: LearningProgressServiceDep) -> LessonProgress:
+async def mark_lesson_theory_completed(
+    lesson_id: UUID,
+    identity: CurrentIdentity,
+    service: LearningProgressServiceDep,
+) -> LessonProgress:
     return await service.update(
-        lesson_progress_id,
+        identity.id,
+        lesson_id,
         theory_completed_at=current_datetime(),
     )

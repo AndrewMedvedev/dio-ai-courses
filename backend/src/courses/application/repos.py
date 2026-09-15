@@ -44,6 +44,7 @@ from ..domain.entities import (
     Practice,
     Student,
 )
+from ..domain.events import LessonProgressUpdated
 
 
 class BasicInfoProtocol[EntityT: Entity, BasicInfoT](Repository[EntityT]):
@@ -223,17 +224,22 @@ class PracticeRepository(Repository[Practice]):
         ...
 
 
-class LessonProgressRepository(Repository[LessonProgress]): ...
+class LessonProgressRepository(Repository[LessonProgress]):
+    async def read_by_user_and_lesson(self, user_id: UUID, lesson_id: UUID) -> LessonProgress | None: ...
+
+    async def update_from_event(self, event: LessonProgressUpdated) -> UUID | None: ...
 
 
 class ModuleProgressRepository(Repository[ModuleProgress]):
-    pass
+    async def read_by_user_and_module(self, user_id: UUID, module_id: UUID) -> ModuleProgress | None: ...
 
 
 class CourseProgressRepository(Repository[CourseProgress]):
+    async def read_by_user_and_course(self, user_id: UUID, course_id: UUID) -> CourseProgress | None: ...
+
     async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
 
-    async def recalculate_progress(self, course_progress_id: UUID) -> None: ...
+    async def calculate_progress(self, course_progress_id: UUID) -> float | None: ...
 
 
 class StudentRepository(Repository[Student]):

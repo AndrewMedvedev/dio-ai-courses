@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
@@ -14,11 +14,20 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
     model = CourseProgressOrm
     model_mapper = CourseProgressMapper
 
-    async def recalculate_progress(self, course_progress_id: UUID) -> None:
-        """Считает и сохраняет процент прохождения курса по завершённым урокам."""
+    async def read_by_user_and_course(self, user_id: UUID, course_id: UUID) -> CourseProgress | None:
+        stmt = select(self.model).where(
+            self.model.user_id == user_id,
+            self.model.course_id == course_id,
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return None if model is None else self.model_mapper.from_model(model)
+
+    async def calculate_progress(self, course_progress_id: UUID) -> float | None:
+        """Считает процент прохождения курса по завершённым урокам."""
         progress = await self._session.get(CourseProgressOrm, course_progress_id)
         if progress is None:
-            return
+            return None
         total_lessons = await self._session.scalar(
             select(func.count())
             .select_from(LessonOrm)
@@ -35,12 +44,7 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
                 LessonProgressOrm.test_completed_at.is_not(None),
             )
         )
-        progress_percent = round(completed_lessons * 100 / total_lessons, 2) if total_lessons else 0
-        await self._session.execute(
-            update(CourseProgressOrm)
-            .where(CourseProgressOrm.id == progress.id)
-            .values(progress_percent=progress_percent)
-        )
+        return round(completed_lessons * 100 / total_lessons, 2) if total_lessons else 0
 
     async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]:
         """Возвращает progress всех учеников курса для teacher endpoint."""

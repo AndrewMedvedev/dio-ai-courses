@@ -53,11 +53,6 @@ class CourseOrm(Base):
         passive_deletes=True,
     )
     students: Mapped[list[StudentOrm]] = relationship(back_populates="course")
-    progress_records: Mapped[list[CourseProgressOrm]] = relationship(
-        back_populates="course",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
 
 
 class ModuleOrm(Base):
@@ -76,10 +71,6 @@ class ModuleOrm(Base):
         back_populates="module",
         order_by="LessonOrm.id",
         cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    progress_records: Mapped[list[ModuleProgressOrm]] = relationship(
-        back_populates="module",
         passive_deletes=True,
     )
 
@@ -103,10 +94,6 @@ class LessonOrm(Base):
     )
 
     module: Mapped[ModuleOrm | None] = relationship(back_populates="lessons")
-    progress_records: Mapped[list[LessonProgressOrm]] = relationship(
-        back_populates="lesson",
-        passive_deletes=True,
-    )
 
     __table_args__ = (Index("ix_lessons_module_id", "module_id"),)
 
@@ -144,7 +131,6 @@ class CourseProgressOrm(Base):
         ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
     )
-    course: Mapped[CourseOrm] = relationship(back_populates="progress_records")
     module_progresses: Mapped[list[ModuleProgressOrm]] = relationship(
         back_populates="course_progress",
         cascade="all, delete-orphan",
@@ -170,7 +156,6 @@ class ModuleProgressOrm(Base):
     course_progress: Mapped[CourseProgressOrm] = relationship(
         back_populates="module_progresses"
     )
-    module: Mapped[ModuleOrm] = relationship(back_populates="progress_records")
     lesson_progresses: Mapped[list[LessonProgressOrm]] = relationship(
         back_populates="module_progress",
         cascade="all, delete-orphan",
@@ -210,8 +195,6 @@ class LessonProgressOrm(Base):
     module_progress: Mapped[ModuleProgressOrm] = relationship(
         back_populates="lesson_progresses"
     )
-    lesson: Mapped[LessonOrm] = relationship(back_populates="progress_records")
-
     __table_args__ = (
         UniqueConstraint(
             "module_progress_id",
