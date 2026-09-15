@@ -6,9 +6,9 @@ from src.core.broker import rabbit_router
 from src.core.settings import settings
 from src.shared.dependencies.database import DBSession
 
+from ..dependencies import LLMInvocationRepoDep
 from ..domain.dataclass import LLMInvocation
 from ..domain.events import LLMInvocationCreated
-from .repository import SqlLLMInvocationRepository
 
 MAX_CONCURRENT_INVOCATION_LOGS = 5
 
@@ -24,6 +24,7 @@ invocation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_INVOCATION_LOGS)
 @rabbit_router.subscriber(invocation_queue, exchange)
 async def on_llm_invocation_created(
     event: LLMInvocationCreated,
+    repository: LLMInvocationRepoDep,
     session: DBSession,
 ) -> None:
     """Сохраняет события мониторинга в PostgreSQL не более чем по пять одновременно."""
@@ -39,6 +40,5 @@ async def on_llm_invocation_created(
             status=event.status,
             error=event.error,
         )
-        repository = SqlLLMInvocationRepository(session)
         await repository.create(invocation)
         await session.commit()

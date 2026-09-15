@@ -5,13 +5,11 @@ from typing import Any
 import base64
 import logging
 import operator
-from uuid import UUID, uuid4
 
 from langsmith import traceable
 from openai import (
     AsyncOpenAI,
 )
-from openai.types.images_response import ImagesResponse
 from openai.types.responses.response import Response
 from tenacity import (
     before_sleep_log,
@@ -29,10 +27,8 @@ from src.llm_service.schemas import (
 )
 from src.shared.application.dtos import Pagination
 from src.shared.domain.events import EventPublisher
-from src.shared.infra.request_context import get_request_id
 
-from .decorators import track_llm_invocation
-from .domain.dataclass import LLMInvocationStatus
+from .decorators import track_image_invocation, track_text_invocation
 from .domain.events import LLMInvocationCreated
 from .infra.repository import SqlAIModelRepository
 from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
@@ -77,102 +73,52 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         self._event_publisher = event_publisher
         self._wrapper = wrapper
 
-    @staticmethod
-    def _current_request_id() -> UUID:
-        """Возвращает UUID текущего HTTP-запроса или создаёт локальный."""
-        request_id = get_request_id()
-        return UUID(request_id) if request_id is not None else uuid4()
-
-    @staticmethod
-    def _total_tokens(result: Response | ImagesResponse) -> int:
-        """Извлекает общее количество токенов из ответа провайдера."""
-        usage = getattr(result, "usage", None)
-        if usage is None:
-            return 0
-        return int(getattr(usage, "total_tokens", 0) or 0)
     async def _publish_invocation(
         self,
-        *,
-        model: str,
-        request: dict[str, Any],
-        duration_ms: int,
-        status: LLMInvocationStatus,
-        result: LLMTextResponse | LLMImageResponse | None = None,
-        input_image_keys: list[str] | None = None,
-        image_key: str | None = None,
-        error: str | None = None,
+        event: LLMInvocationCreated,
     ) -> None:
         """Публикует событие для асинхронного сохранения мониторинга."""
-        if result is None:
-            total_tokens = 0
-            response: dict[str, Any] = {}
-        elif isinstance(result, LLMTextResponse):
-            total_tokens = result.total_tokens
-            response = {
-                "output": result.output,
-                "raw_text": result.raw_text,
-                "tool_calls": [tool.model_dump(mode="json") for tool in result.tool_calls],
-            }
-        else:
-            total_tokens = result.total_tokens
-            response = {"size": result.size, "output_format": result.output_format}
-
-        if input_image_keys:
-            request = {**request, "image_keys": input_image_keys}
-        if image_key is not None:
-            response = {**response, "image_key": image_key}
-
-        request_id = self._current_request_id()
-        event = LLMInvocationCreated(
-            request_id=request_id,
-            model=model,
-            total_tokens=total_tokens,
-            request=request,
-            response=response,
-            duration_ms=duration_ms,
-            status=status,
-            error=error,
-        )
-
         try:
             await self._event_publisher.publish(event)
             logger.info(
                 "LLM invocation published",
                 extra={
-                    "request_id": str(request_id),
-                    "model": model,
-                    "total_tokens": total_tokens,
-                    "request": request,
-                    "response": response,
-                    "duration_ms": duration_ms,
-                    "status": status,
-                    "error": error,
+                    "request_id": str(event.request_id),
+                    "model": event.model,
+                    "total_tokens": event.total_tokens,
+                    "request": event.request,
+                    "response": event.response,
+                    "duration_ms": event.duration_ms,
+                    "status": event.status,
+                    "error": event.error,
                 },
             )
         except Exception:
             logger.exception(
                 "Failed to publish LLM invocation",
                 extra={
-                    "request_id": str(request_id),
-                    "model": model,
+                    "request_id": str(event.request_id),
+                    "model": event.model,
                 },
             )
 
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    @track_llm_invocation
+    @track_text_invocation
     async def _invoke(
         self,
         model: str,
-        **kwargs,
+        schema: LLMTextRequest,
     ) -> LLMTextResponse:
-        result: Response = await self._client.responses.create(model=model, **kwargs)
-        parsed = parse_llm_response(
-            response=result,
-            input_messages=kwargs["input"],
-            text_format=kwargs.get("text"),
+        result: Response = await self._client.responses.create(
+            model=model,
+            **schema.model_dump(exclude_none=True, by_alias=True),
         )
-        return parsed
+        return parse_llm_response(
+            response=result,
+            input_messages=schema.messages,
+            text_format=schema.text,
+        )
 
     @traceable(run_type="chain", name="ResolveModel")
     async def _resolve_model(
@@ -228,9 +174,11 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         if model not in {i["name"] for i in models}:
             result = await self._invoke(
                 model=selected_model,
-                input=f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",  # ruff: ignore[line-too-long]
-                instructions=PROMPT_RETRY,
-                text=build_model_selection_text(models),
+                schema=LLMTextRequest(
+                    input=f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",  # ruff: ignore[line-too-long]
+                    instructions=PROMPT_RETRY,
+                    text=build_model_selection_text(models),
+                ),
             )
             return result.output.get("model_name", selected_model)
         return model
@@ -245,9 +193,11 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
 
         result = await self._invoke(
             model=selected_model,
-            input=f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",
-            instructions=PROMPT_CHOOSE_MODEL,
-            text=build_model_selection_text(models),
+            schema=LLMTextRequest(
+                input=f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",
+                instructions=PROMPT_CHOOSE_MODEL,
+                text=build_model_selection_text(models),
+            ),
         )
         return result.output.get("model_name", selected_model)
 
@@ -282,61 +232,59 @@ class LLMTextRouter(LLMRouter):
 
         return await self._invoke(
             model=selected_model,
-            **schema.model_dump(exclude_none=True, by_alias=True),
+            schema=schema,
         )
 
 
 class LLMImageRouter(LLMRouter):
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    @track_llm_invocation
+    @track_image_invocation
     async def _invoke_image(
         self,
         model: str,
-        **kwargs,
+        schema: LLMImageRequest,
     ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
-        result: ImagesResponse = await self._client.images.generate(model=model, **kwargs)
-        total_tokens = self._total_tokens(result)
-        response = LLMImageResponse(
+        result = await self._client.images.generate(
+            model=model,
+            **schema.model_dump(exclude_none=True, by_alias=True),
+        )
+        return LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,
-            total_tokens=total_tokens,
+            total_tokens=result.usage.total_tokens or 0,
             output_format=result.output_format,
         )
-        return response
 
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    @track_llm_invocation
+    @track_image_invocation
     async def _invoke_image_based(
         self,
         model: str,
-        input_image_keys: list[str] | None = None,
-        **kwargs,
+        schema: LLMImageRequest,
     ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе изображения"""
-        images = [base64.b64decode(image) for image in kwargs["image"]]
-        kwargs.pop("image")
-        result: ImagesResponse = await self._client.images.edit(
-            model=model, image=images, **kwargs
+        images = [base64.b64decode(image) for image in schema.image or []]
+        request = schema.model_dump(
+            exclude_none=True,
+            by_alias=True,
+            exclude={"image"},
         )
-        total_tokens = self._total_tokens(result)
-        response = LLMImageResponse(
+        result = await self._client.images.edit(model=model, image=images, **request)
+        return LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,
-            total_tokens=total_tokens,
+            total_tokens=result.usage.total_tokens or 0,
             output_format=result.output_format,
         )
-        return response
 
     async def call_llm(
         self,
         schema: LLMImageRequest,
         model: str | None = None,
     ) -> LLMImageResponse:
-        # После готовности media сохранить schema.image и получить input_image_keys.
-        # input_image_keys = await media_service.save_input_images(schema.image)
         models = (
             await self._wrapper(
                 func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
@@ -359,10 +307,9 @@ class LLMImageRouter(LLMRouter):
         if schema.image is not None:
             return await self._invoke_image_based(
                 model=selected_model,
-                # input_image_keys=input_image_keys,
-                **schema.model_dump(exclude_none=True, by_alias=True),
+                schema=schema,
             )
         return await self._invoke_image(
             model=selected_model,
-            **schema.model_dump(exclude_none=True, by_alias=True),
+            schema=schema,
         )

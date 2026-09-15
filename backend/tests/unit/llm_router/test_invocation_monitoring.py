@@ -9,7 +9,10 @@ import pytest
 from src.llm_router.domain.events import LLMInvocationCreated
 from src.llm_router.domain.vo import LLMInvocationStatus
 from src.llm_router.services import LLMImageRouter, LLMTextRouter
+from src.llm_service.schemas import LLMImageRequest, LLMTextRequest
 from src.shared.infra.request_context import reset_request_id, set_request_id
+
+TOTAL_TOKENS = 20
 
 
 def _text_router(client: object, publisher: AsyncMock) -> LLMTextRouter:
@@ -29,20 +32,18 @@ async def test_text_invocation_publishes_event() -> None:
         model="gpt-5.4-mini",
         output=[],
         output_text="Готовый ответ",
-        usage=SimpleNamespace(total_tokens=20),
+        usage=SimpleNamespace(total_tokens=TOTAL_TOKENS),
     )
     publisher = AsyncMock()
     router = _text_router(
         SimpleNamespace(responses=SimpleNamespace(create=AsyncMock(return_value=provider_response))),
         publisher,
     )
+    schema = LLMTextRequest(input="Проверка")
     request_id = uuid4()
     token = set_request_id(str(request_id))
     try:
-        result = await router._invoke(
-            model="gpt-5.4-mini",
-            input="Проверка",
-        )
+        result = await router._invoke(model="gpt-5.4-mini", schema=schema)
     finally:
         reset_request_id(token)
 
@@ -51,38 +52,28 @@ async def test_text_invocation_publishes_event() -> None:
     assert isinstance(event, LLMInvocationCreated)
     assert event.request_id == request_id
     assert event.model == "gpt-5.4-mini"
-    assert event.total_tokens == 20
-    assert event.request == {"input": "Проверка"}
-    assert event.response == {
-        "output": None,
-        "raw_text": "Готовый ответ",
-        "tool_calls": [],
-    }
+    assert event.total_tokens == TOTAL_TOKENS
+    assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
+    assert event.response == result.model_dump(mode="json", exclude_none=True)
 
 
 @pytest.mark.asyncio
-async def test_published_event_contains_image_keys_in_request_and_response() -> None:
+async def test_publish_invocation_publishes_ready_event() -> None:
     publisher = AsyncMock()
     router = _text_router(SimpleNamespace(), publisher)
-
-    await router._publish_invocation(
+    event = LLMInvocationCreated(
+        request_id=uuid4(),
         model="gpt-image-2",
-        request={"prompt": "Нарисуй схему"},
+        total_tokens=0,
+        request={"prompt": "Нарисуй схему", "image_keys": ["input-key"]},
+        response={"image_key": "output-key"},
         duration_ms=50,
         status=LLMInvocationStatus.COMPLETED,
-        input_image_keys=["llm-inputs/request-1/image-1"],
-        image_key="llm-outputs/request-1/image-1",
     )
 
-    event = publisher.publish.await_args.args[0]
-    assert event.request == {
-        "prompt": "Нарисуй схему",
-        "image_keys": ["llm-inputs/request-1/image-1"],
-    }
-    assert event.response == {"image_key": "llm-outputs/request-1/image-1"}
-    assert event.status is LLMInvocationStatus.COMPLETED
-    assert event.error is None
-    assert event.duration_ms >= 0
+    await router._publish_invocation(event)
+
+    publisher.publish.assert_awaited_once_with(event)
 
 
 @pytest.mark.asyncio
@@ -90,21 +81,21 @@ async def test_failed_invocation_publishes_event_and_reraises() -> None:
     publisher = AsyncMock()
     router = _text_router(
         SimpleNamespace(
-            responses=SimpleNamespace(create=AsyncMock(side_effect=RuntimeError("provider unavailable")))
+            responses=SimpleNamespace(
+                create=AsyncMock(side_effect=RuntimeError("provider unavailable"))
+            )
         ),
         publisher,
     )
+    schema = LLMTextRequest(input="Проверка")
 
     with pytest.raises(RuntimeError, match="provider unavailable"):
-        await router._invoke(
-            model="gpt-5-nano",
-            input="Проверка",
-        )
+        await router._invoke(model="gpt-5-nano", schema=schema)
 
     event = publisher.publish.await_args.args[0]
     assert event.status is LLMInvocationStatus.FAILED
     assert event.error == "provider unavailable"
-    assert event.request == {"input": "Проверка"}
+    assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
     assert event.response == {}
     assert event.total_tokens == 0
     assert event.duration_ms >= 0
@@ -129,7 +120,7 @@ async def test_monitoring_publish_failure_does_not_break_llm_response() -> None:
 
     result = await router._invoke(
         model="gpt-5-nano",
-        input="Проверка",
+        schema=LLMTextRequest(input="Проверка"),
     )
 
     assert result.raw_text == "Ответ"
@@ -137,7 +128,7 @@ async def test_monitoring_publish_failure_does_not_break_llm_response() -> None:
 
 
 @pytest.mark.asyncio
-async def test_image_invocation_publishes_metadata_without_base64() -> None:
+async def test_image_invocation_publishes_response_schema() -> None:
     image_base64 = "base64-image"
     provider_response = SimpleNamespace(
         size="1024x1024",
@@ -152,26 +143,11 @@ async def test_image_invocation_publishes_metadata_without_base64() -> None:
         client=SimpleNamespace(images=SimpleNamespace(generate=AsyncMock(return_value=provider_response))),
         wrapper=AsyncMock(),
     )
+    schema = LLMImageRequest(prompt="Нарисуй схему")
 
-    result = await router._invoke_image(
-        model="gpt-image-2",
-        prompt="Нарисуй схему",
-    )
+    result = await router._invoke_image(model="gpt-image-2", schema=schema)
 
     assert result.image == image_base64
     event = publisher.publish.await_args.args[0]
-    assert event.request == {"prompt": "Нарисуй схему"}
-    assert event.response == {"size": "1024x1024", "output_format": "png"}
-    assert image_base64 not in str(event.response)
-
-
-@pytest.mark.parametrize(
-    ("result", "expected_tokens"),
-    [
-        (SimpleNamespace(usage=SimpleNamespace(total_tokens=15)), 15),
-        (SimpleNamespace(), 0),
-        (SimpleNamespace(usage=SimpleNamespace(total_tokens=None)), 0),
-    ],
-)
-def test_total_tokens(result: SimpleNamespace, expected_tokens: int) -> None:
-    assert LLMTextRouter._total_tokens(result) == expected_tokens
+    assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
+    assert event.response == result.model_dump(mode="json", exclude_none=True)

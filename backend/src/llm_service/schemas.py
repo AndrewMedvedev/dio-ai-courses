@@ -27,7 +27,7 @@ class ToolCallParsed(BaseModel):
 class LLMTextRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    messages: list[dict[str, Any]] = Field(alias="input")
+    messages: list[dict[str, Any]] | str = Field(alias="input")
     tools: list[ToolParam] | None = None
     instructions: str | None = None
     reasoning: Literal["low", "medium", "high"] | None = None

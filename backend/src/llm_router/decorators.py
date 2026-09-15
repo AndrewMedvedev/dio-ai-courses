@@ -1,68 +1,112 @@
-from typing import ParamSpec, TypeVar
-
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from functools import wraps
 from time import perf_counter
+from uuid import UUID, uuid4
 
-from .domain.dataclass import LLMInvocationStatus
+from src.llm_service.schemas import (
+    LLMImageRequest,
+    LLMImageResponse,
+    LLMTextRequest,
+    LLMTextResponse,
+)
+from src.shared.infra.request_context import get_request_id
 
-P = ParamSpec("P")
-T = TypeVar("T")
+from .domain.events import LLMInvocationCreated
+from .domain.vo import LLMInvocationStatus
 
 logger = logging.getLogger(__name__)
 
 
-def track_llm_invocation(  # ruff: ignore[non-pep695-generic-function]
-    func: Callable[P, Awaitable[T]],
-) -> Callable[P, Awaitable[T]]:
-    """Измеряет успешный вызов LLM и сохраняет его мониторинг."""
+def track_text_invocation(func: Callable) -> Callable:
+    """Публикует мониторинг вызова текстовой модели."""
 
     @wraps(func)
-    async def wrapper(self, *args: P.args, **kwargs: P.kwargs) -> T:
+    async def wrapper(
+        self,
+        model: str,
+        schema: LLMTextRequest,
+    ) -> LLMTextResponse:
         started_at = perf_counter()
-        model = kwargs.get("model") or args[0]
-        request = (
-            {"input": kwargs["input"]}
-            if "input" in kwargs
-            else {"prompt": kwargs["prompt"]}
-            if "prompt" in kwargs
-            else {}
-        )
-        input_image_keys = kwargs.get("input_image_keys") or []
+        request_id = UUID(get_request_id() or str(uuid4()))
+        request = schema.model_dump(mode="json", by_alias=True, exclude_none=True)
 
         try:
-            result = await func(self, *args, **kwargs)
+            result = await func(self, model=model, schema=schema)
         except Exception as error:
-            duration_ms = round((perf_counter() - started_at) * 1000)
-
             await self._publish_invocation(
-                model=model,
-                request=request,
-                duration_ms=duration_ms,
-                status=LLMInvocationStatus.FAILED,
-                input_image_keys=input_image_keys,
-                error=str(error),
+                LLMInvocationCreated(
+                    request_id=request_id,
+                    model=model,
+                    total_tokens=0,
+                    request=request,
+                    response={},
+                    duration_ms=round((perf_counter() - started_at) * 1000),
+                    status=LLMInvocationStatus.FAILED,
+                    error=str(error),
+                )
             )
-
-            logger.exception("LLM invocation failed")
+            logger.exception("LLM text invocation failed")
             raise
 
-        duration_ms = round((perf_counter() - started_at) * 1000)
-
-        image_key = None
-        # После готовности media для LLMImageResponse сохранить result.image и получить image_key.
-        # image_key = await media_service.save_output_image(result.image)
         await self._publish_invocation(
-            model=model,
-            result=result,
-            duration_ms=duration_ms,
-            request=request,
-            status=LLMInvocationStatus.COMPLETED,
-            input_image_keys=input_image_keys,
-            image_key=image_key,
+            LLMInvocationCreated(
+                request_id=request_id,
+                model=model,
+                total_tokens=result.total_tokens,
+                request=request,
+                response=result.model_dump(mode="json", exclude_none=True),
+                duration_ms=round((perf_counter() - started_at) * 1000),
+                status=LLMInvocationStatus.COMPLETED,
+            )
         )
+        return result
 
+    return wrapper
+
+
+def track_image_invocation(func: Callable) -> Callable:
+    """Публикует мониторинг вызова модели изображений."""
+
+    @wraps(func)
+    async def wrapper(
+        self,
+        model: str,
+        schema: LLMImageRequest,
+    ) -> LLMImageResponse:
+        started_at = perf_counter()
+        request_id = UUID(get_request_id() or str(uuid4()))
+        request = schema.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+        try:
+            result = await func(self, model=model, schema=schema)
+        except Exception as error:
+            await self._publish_invocation(
+                LLMInvocationCreated(
+                    request_id=request_id,
+                    model=model,
+                    total_tokens=0,
+                    request=request,
+                    response={},
+                    duration_ms=round((perf_counter() - started_at) * 1000),
+                    status=LLMInvocationStatus.FAILED,
+                    error=str(error),
+                )
+            )
+            logger.exception("LLM image invocation failed")
+            raise
+
+        await self._publish_invocation(
+            LLMInvocationCreated(
+                request_id=request_id,
+                model=model,
+                total_tokens=result.total_tokens,
+                request=request,
+                response=result.model_dump(mode="json", exclude_none=True),
+                duration_ms=round((perf_counter() - started_at) * 1000),
+                status=LLMInvocationStatus.COMPLETED,
+            )
+        )
         return result
 
     return wrapper

@@ -10,7 +10,7 @@ from sqlalchemy import (
     Text,
     text,
 )
-from sqlalchemy import Enum as SqlEnum
+from sqlalchemy import Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -41,11 +41,7 @@ class LLMInvocationOrm(Base):
         Integer, nullable=False, default=0, server_default=text("0")
     )
     status: Mapped[LLMInvocationStatus] = mapped_column(
-        SqlEnum(
-            LLMInvocationStatus,
-            name="llm_invocation_status",
-            values_callable=lambda statuses: [status.value for status in statuses],
-        ),
+        Enum(LLMInvocationStatus),
         nullable=False,
     )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
