@@ -175,7 +175,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             result = await self._invoke(
                 model=selected_model,
                 schema=LLMTextRequest(
-                    input=f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",  # ruff: ignore[line-too-long]
+                    input=[{"content": f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",}],  # ruff: ignore[line-too-long]
                     instructions=PROMPT_RETRY,
                     text=build_model_selection_text(models),
                 ),
@@ -194,7 +194,7 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
         result = await self._invoke(
             model=selected_model,
             schema=LLMTextRequest(
-                input=f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",
+                input=[{"content": f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",}],
                 instructions=PROMPT_CHOOSE_MODEL,
                 text=build_model_selection_text(models),
             ),
@@ -237,6 +237,20 @@ class LLMTextRouter(LLMRouter):
 
 
 class LLMImageRouter(LLMRouter):
+    def __init__(
+        self,
+        ai_model_repos: SqlAIModelRepository,
+        event_publisher: EventPublisher,  # ruff: ignore[unused-method-argument]
+        client: AsyncOpenAI,
+        wrapper: CacheAIModelsProtocol,
+        ) -> None:
+        super().__init__(
+            ai_model_repos=ai_model_repos,
+            event_publisher=event_publisher,
+            client=client,
+            wrapper=wrapper
+            )
+
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     @track_image_invocation

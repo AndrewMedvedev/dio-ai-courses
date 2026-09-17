@@ -41,9 +41,9 @@ async def test_text_invocation_publishes_event() -> None:
         SimpleNamespace(responses=SimpleNamespace(create=AsyncMock(return_value=provider_response))),
         publisher,
     )
-    schema = LLMTextRequest(input="Проверка")
+    schema = LLMTextRequest(input=[{"content": "Проверка"}])
     request_id = uuid4()
-    token = set_request_id(str(request_id))
+    token = set_request_id(request_id)
     try:
         result = await router._invoke(model="gpt-5.4-mini", schema=schema)
     finally:
@@ -89,7 +89,7 @@ async def test_failed_invocation_publishes_event_and_reraises() -> None:
         ),
         publisher,
     )
-    schema = LLMTextRequest(input="Проверка")
+    schema = LLMTextRequest(input=[{"content": "Проверка"}])
 
     with pytest.raises(RuntimeError, match="provider unavailable"):
         await router._invoke(model="gpt-5-nano", schema=schema)
@@ -122,7 +122,7 @@ async def test_monitoring_publish_failure_does_not_break_llm_response() -> None:
 
     result = await router._invoke(
         model="gpt-5-nano",
-        schema=LLMTextRequest(input="Проверка"),
+        schema=LLMTextRequest(input=[{"content": "Проверка"}]),
     )
 
     assert result.raw_text == "Ответ"

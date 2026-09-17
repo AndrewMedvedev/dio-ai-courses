@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
 
@@ -47,7 +48,9 @@ async def _successful_image_call(
 async def test_track_text_invocation_publishes_success() -> None:
     result = LLMTextResponse(raw_text="Готовый ответ", total_tokens=8)
     target = SimpleNamespace(result=result, _publish_invocation=AsyncMock())
-    schema = LLMTextRequest(input="Проверь текст")
+    schema = LLMTextRequest(
+    input=[{"content": "Проверь текст"}]
+    )
 
     returned_result = await _successful_text_call(target, "gpt-5-mini", schema)
 
@@ -65,8 +68,9 @@ async def test_track_text_invocation_publishes_success() -> None:
 @pytest.mark.asyncio
 async def test_track_text_invocation_publishes_failure_and_reraises() -> None:
     target = SimpleNamespace(_publish_invocation=AsyncMock())
-    schema = LLMTextRequest(input="Проверь текст")
-
+    schema = LLMTextRequest(
+    input=[{"content": "Проверь текст"}]
+)
     with pytest.raises(RuntimeError, match="LLM unavailable"):
         await _failing_text_call(target, "gpt-5-mini", schema)
 
@@ -95,3 +99,84 @@ async def test_track_image_invocation_publishes_success() -> None:
     assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
     assert event.response == result.model_dump(mode="json", exclude_none=True)
     assert event.status is LLMInvocationStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_text_invocation_generates_request_id_when_context_is_empty(
+    monkeypatch,
+):
+    publisher = AsyncMock()
+    router = AsyncMock()
+    router._publish_invocation = publisher
+
+    result = LLMTextResponse(
+        output={"result": "test"},
+        raw_text=None,
+        tool_calls=[],
+        messages=[],
+        total_tokens=10,
+    )
+
+    async def invoke(*args, **kwargs):
+        return result
+
+    router.invoke = invoke
+
+    decorated = track_text_invocation(invoke)
+
+    monkeypatch.setattr(
+        "src.llm_router.decorators.get_request_id",
+        lambda: None,
+    )
+
+    request = LLMTextRequest(
+        input=[{"content": "Проверка"}],
+    )
+
+    await decorated(
+        router,
+        model="test-model",
+        schema=request,
+    )
+
+    event = publisher.await_args.args[0]
+
+    assert isinstance(event.request_id, UUID)
+    assert event.model == "test-model"
+    assert event.status == LLMInvocationStatus.COMPLETED
+
+@pytest.mark.asyncio
+async def test_track_image_invocation_publishes_failure_and_reraises() -> None:
+    async def failing_call(
+        _target: SimpleNamespace,
+        model: str,
+        schema: LLMImageRequest,
+    ) -> LLMImageResponse:
+        del model, schema
+        raise RuntimeError("Image generation failed")
+
+    decorated = track_image_invocation(failing_call)
+
+    target = SimpleNamespace(_publish_invocation=AsyncMock())
+    schema = LLMImageRequest(prompt="Нарисуй схему")
+
+    with pytest.raises(RuntimeError, match="Image generation failed"):
+        await decorated(
+            target,
+            model="gpt-image-2",
+            schema=schema,
+        )
+
+    target._publish_invocation.assert_awaited_once()
+
+    event = target._publish_invocation.await_args.args[0]
+
+    assert event.request == schema.model_dump(
+        mode="json",
+        by_alias=True,
+        exclude_none=True,
+    )
+    assert event.status is LLMInvocationStatus.FAILED
+    assert event.error == "Image generation failed"
+    assert event.total_tokens == 0
+    assert event.duration_ms >= 0

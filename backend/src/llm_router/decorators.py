@@ -28,7 +28,7 @@ def track_text_invocation(func: Callable) -> Callable:
         schema: LLMTextRequest,
     ) -> LLMTextResponse:
         started_at = perf_counter()
-        request_id = UUID(get_request_id() or str(uuid4()))
+        request_id = get_request_id() or uuid4()
         request = schema.model_dump(mode="json", by_alias=True, exclude_none=True)
 
         try:
@@ -75,7 +75,7 @@ def track_image_invocation(func: Callable) -> Callable:
         schema: LLMImageRequest,
     ) -> LLMImageResponse:
         started_at = perf_counter()
-        request_id = UUID(get_request_id() or str(uuid4()))
+        request_id = get_request_id() or uuid4()
         request = schema.model_dump(mode="json", by_alias=True, exclude_none=True)
 
         try:
