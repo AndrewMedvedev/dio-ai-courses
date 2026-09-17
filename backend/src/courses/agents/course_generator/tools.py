@@ -139,6 +139,6 @@ async def browse_page(schema: BrowsePageInput) -> str:
     Используй этот инструмент экономно.
     """,
 )
-async def web_search(schema: SearchInput) -> list[dict[str, Any]]:  # ruff:ignore[unused-async]
+async def web_search(schema: SearchInput) -> list[dict[str, Any]]:
     """Выполняет действие `web_search`, чтобы поддержать основной сценарий модуля."""
     return DDGS().text(schema.search_query, region="ru-ru", max_results=10)

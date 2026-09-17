@@ -7,21 +7,21 @@ from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....domain.entities import (
-    Student,
+    Member,
 )
 from ...mappers import (
-    StudentMapper,
+    MemberMapper,
 )
-from ...models import StudentOrm
+from ...models import MemberOrm
 
 logger = logging.getLogger(__name__)
 
 
-class SqlStudentRepository(SqlAlchemyRepository[Student, StudentOrm]):
-    model = StudentOrm
-    model_mapper = StudentMapper  # pyright: ignore[reportAssignmentType]
+class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
+    model = MemberOrm
+    model_mapper = MemberMapper  # pyright: ignore[reportAssignmentType]
 
-    async def read(self, user_id: UUID, course_id: UUID) -> Student | None:
+    async def read(self, user_id: UUID, course_id: UUID) -> Member | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
         stmt = select(self.model).where(
             self.model.user_id == user_id,
@@ -35,7 +35,7 @@ class SqlStudentRepository(SqlAlchemyRepository[Student, StudentOrm]):
         self,
         course_id: UUID,
         pagination: Pagination,
-    ) -> Page[Student]:
+    ) -> Page[Member]:
         """Получает студентов, записанных на курс, с пагинацией."""
 
         stmt = select(self.model).where(

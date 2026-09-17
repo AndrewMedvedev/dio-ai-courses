@@ -17,6 +17,7 @@ from .vo import (
     DifficultyLevel,
     DocumentNodeType,
     ExtendedContentType,
+    MemberRole,
     PracticeStatus,
 )
 
@@ -399,7 +400,7 @@ class Course(AggregateRoot):
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[Module] = field(default_factory=list)
-    students: list[Student] = field(default_factory=list)
+    members: list[Member] = field(default_factory=list)
 
     def append_module(self, module: Module) -> None:
         """Выполняет действие `append_module`, чтобы поддержать основной сценарий модуля."""
@@ -440,9 +441,10 @@ class Chat(Entity):
 
 
 @dataclass(kw_only=True, slots=True)
-class Student(Entity):
-    """Описывает доменную сущность `Student` и её данные для бизнес-логики."""
+class Member(Entity):
+    """Описывает доменную сущность `Member` и её данные для бизнес-логики."""
 
+    role: MemberRole
     course_id: UUID
     user_id: UUID
 

@@ -14,10 +14,10 @@ from ..domain.entities import (
     Lesson,
     LessonBasicInfo,
     LessonTheorySession,
+    Member,
     Module,
     ModuleBasicInfo,
     Practice,
-    Student,
 )
 from .models import (
     ChatOrm,
@@ -25,9 +25,9 @@ from .models import (
     DocumentOrm,
     LessonOrm,
     LessonTheorySessionOrm,
+    MemberOrm,
     ModuleOrm,
     PracticeOrm,
-    StudentOrm,
 )
 
 logger = logging.getLogger(__name__)
@@ -274,23 +274,25 @@ class PracticeMapper(ModelMapper[Practice, PracticeOrm]):
         )
 
 
-class StudentMapper(ModelMapper[Student, StudentOrm]):
+class MemberMapper(ModelMapper[Member, MemberOrm]):
     @staticmethod
-    def from_model(model: StudentOrm) -> Student:
-        return Student(
+    def from_model(model: MemberOrm) -> Member:
+        return Member(
             id=model.id,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            role=model.role,
             course_id=model.course_id,
             user_id=model.user_id,
         )
 
     @staticmethod
-    def to_model(entity: Student) -> StudentOrm:
-        return StudentOrm(
+    def to_model(entity: Member) -> MemberOrm:
+        return MemberOrm(
             id=entity.id,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
+            role=entity.role,
             course_id=entity.course_id,
             user_id=entity.user_id,
         )

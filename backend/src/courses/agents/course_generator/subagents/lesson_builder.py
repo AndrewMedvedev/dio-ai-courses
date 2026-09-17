@@ -19,7 +19,7 @@ from ....application.domain_dtos import (
 from ....application.mappers import dict_to_lesson, lesson_to_dict, model_to_typed_dict
 from ....domain.entities import AnyContentBlock, ContentType, Lesson
 from ....infra.database.repos.lesson import SqlLessonRepository
-from ....infra.services import course_client
+from ....infra.services.client import SrvCourseClient
 from ....infra.vector_repo import VectorRepository
 from ....utils.formatting import get_content_blocks_context, get_lesson_context
 from ...schemas import Context, RuntimeContext
@@ -46,10 +46,11 @@ class AgentState(TypedDict):
 
 async def plan_lesson_structure(
     state: AgentState,
+    runtime: Runtime[RuntimeContext],
 ) -> dict[str, LessonStructureDict | LessonDict]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
-        client=course_client,
+        client=runtime.context.client,
         system_prompt=LESSON_STRUCTURE_PROMPT,
     )
 
@@ -145,6 +146,7 @@ async def build_content_block(
     generation_context: Context,
     content_plan: list[ContentSpecification],
     prompt: str,
+    client: SrvCourseClient,
     lesson: Lesson,
 ) -> tuple[int, AnyContentBlock]:
     """Собирает контент-блок из входных данных для следующего шага сценария."""
@@ -167,7 +169,7 @@ async def build_content_block(
         content_type=content_type,
         context=generation_context,
         prompt=prompt_template,
-        client=course_client,
+        client=client,
     )
     elapsed_time = time.monotonic() - start_time
     logger.info(
@@ -178,7 +180,10 @@ async def build_content_block(
     return order, content_block
 
 
-async def generate_content_blocks(state: AgentState) -> dict[str, LessonDict]:
+async def generate_content_blocks(
+    state: AgentState,
+    runtime: Runtime[RuntimeContext],
+) -> dict[str, LessonDict]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
     """
@@ -200,6 +205,7 @@ async def generate_content_blocks(state: AgentState) -> dict[str, LessonDict]:
                     content_plan=lesson_structure.content_plan,
                     prompt=content.prompt,
                     lesson=lesson,
+                    client=runtime.context.client,
                 )
             )
             for order, content in enumerate(lesson_structure.content_plan, start=1)
@@ -217,12 +223,12 @@ async def generate_content_blocks(state: AgentState) -> dict[str, LessonDict]:
 
 async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет урок, чтобы результат был доступен после завершения операции."""
-    lesson = dict_to_lesson(state["lesson"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    lesson = dict_to_lesson(state["lesson"])  # type: ignore
     try:
-        await SqlLessonRepository(runtime.context.db_session).create(lesson)  # pyright: ignore[reportArgumentType]
-        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
+        await SqlLessonRepository(runtime.context.db_session).create(lesson)
+        await runtime.context.db_session.commit()
     except IntegrityError:
-        await runtime.context.db_session.rollback()  # pyright: ignore[reportOptionalMemberAccess]
+        await runtime.context.db_session.rollback()
         logger.info("Lesson %s alredy exsists", lesson.title)
     await VectorRepository(client=qdrant_client).index_document(
         text=get_content_blocks_context(lesson.content_blocks),

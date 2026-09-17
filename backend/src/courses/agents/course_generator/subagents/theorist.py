@@ -10,7 +10,6 @@ from src.llm_service import (
     LLMTextService,
     Runtime,
 )
-from src.shared.infra.services import SrvBaseClient
 
 from ....domain.entities import (
     AnyContentBlock,
@@ -24,6 +23,7 @@ from ....domain.entities import (
     TextBlock,
 )
 from ....domain.vo import ContentType
+from ....infra.services.client import SrvCourseClient
 from ...middlewares import SaveImageMiddleware
 from ...schemas import Context
 from ..few_shots import (
@@ -85,7 +85,7 @@ THEORIST_CONFIG = {
 async def generate_image(
     context: Context,
     prompt: str,
-    client: SrvBaseClient,
+    client: SrvCourseClient,
     images: list[str] | None = None,
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
@@ -107,7 +107,7 @@ async def generate_text(
     content_type: ContentType,
     context: Context,
     prompt: str,
-    client: SrvBaseClient,
+    client: SrvCourseClient,
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
 ) -> AnyContentBlock:
@@ -135,7 +135,7 @@ async def call_theory_agent(
     content_type: ContentType,
     context: Context,
     prompt: str,
-    client: SrvBaseClient,
+    client: SrvCourseClient,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -153,8 +153,8 @@ async def call_theory_agent(
             prompt=prompt,
         )
     return await generate_text(
-        client=client,
         content_type=content_type,
+        client=client,
         context=context,
         prompt=prompt,
     )

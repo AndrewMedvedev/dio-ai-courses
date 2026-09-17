@@ -1,3 +1,5 @@
+# pyright: reportGeneralTypeIssues=false
+
 from typing import Any, BinaryIO
 
 from contextlib import asynccontextmanager
@@ -8,7 +10,7 @@ from botocore.exceptions import ClientError
 
 from src.shared.domain.exceptions import NotFoundError
 
-from ..domain.ports import Storage
+from ....application.repos import Storage
 
 
 class S3Storage(Storage):
@@ -42,7 +44,7 @@ class S3Storage(Storage):
     async def upload(self, file: BinaryIO, storage_key: str, content_type: str) -> None:
         """Выполняет действие `upload`, чтобы поддержать основной сценарий модуля."""
         async with self.get_client() as client:
-            await client.put_object(  # pyright: ignore[reportGeneralTypeIssues]
+            await client.put_object(
                 Bucket=self.bucket_name,
                 Body=file.read(),
                 Key=storage_key,
@@ -52,14 +54,17 @@ class S3Storage(Storage):
     async def delete(self, storage_key: str) -> None:
         """Удаляет запись или ресурс, когда он больше не нужен системе."""
         async with self.get_client() as client:
-            await client.delete_object(Bucket=self.bucket_name, Key=storage_key)  # pyright: ignore[reportGeneralTypeIssues]
+            await client.delete_object(Bucket=self.bucket_name, Key=storage_key)
 
     async def create_presigned_upload_url(
-        self, storage_key: str, content_type: str, expires_in: int = 3600
+        self,
+        storage_key: str,
+        content_type: str,
+        expires_in: int = 3600,
     ) -> str:
         """Создаёт presigned upload url и инкапсулирует правила этой операции."""
         async with self.get_client() as client:
-            return await client.generate_presigned_url(  # pyright: ignore[reportGeneralTypeIssues]
+            return await client.generate_presigned_url(
                 "put_object",
                 Params={
                     "Bucket": self.bucket_name,
@@ -70,10 +75,14 @@ class S3Storage(Storage):
                 HttpMethod="PUT",
             )
 
-    async def create_presigned_download_url(self, storage_key: str, expires_in: int = 3600) -> str:
+    async def create_presigned_download_url(
+        self,
+        storage_key: str,
+        expires_in: int = 3600,
+    ) -> str:
         """Создаёт presigned download url и инкапсулирует правила этой операции."""
         async with self.get_client() as client:
-            return await client.generate_presigned_url(  # pyright: ignore[reportGeneralTypeIssues]
+            return await client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self.bucket_name, "Key": storage_key},
                 ExpiresIn=expires_in,
@@ -84,7 +93,7 @@ class S3Storage(Storage):
         """Получает file info, чтобы вызывающий код работал через единый интерфейс."""
         try:
             async with self.get_client() as client:
-                response = await client.head_object(Bucket=self.bucket_name, Key=storage_key)  # pyright: ignore[reportGeneralTypeIssues]
+                response = await client.head_object(Bucket=self.bucket_name, Key=storage_key)
                 return {
                     "size": response["ContentLength"],
                     "content_type": response["ContentType"],

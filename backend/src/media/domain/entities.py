@@ -4,7 +4,8 @@ from uuid import UUID
 
 from ...shared.domain.entities import Entity
 from ...shared.domain.exceptions import InvariantViolationError
-from ..constants import DOCUMENT_MIME_TYPES, MAX_FILENAME_LENGTH
+from .constants import DOCUMENT_MIME_TYPES, MAX_FILENAME_LENGTH
+from .vo import UploadStatus
 
 
 @dataclass(kw_only=True)
@@ -51,3 +52,22 @@ class Attachment(Entity):
         """Является ли документом"""
 
         return self.mime_type in DOCUMENT_MIME_TYPES
+
+
+@dataclass(kw_only=True)
+class Object(Entity):
+    storage_key: str
+    mime_type: str
+    size_bytes: int
+    checksum: str
+
+
+@dataclass(kw_only=True)
+class UploadSession(Entity):
+    object_id: UUID | None = None
+    status: UploadStatus = UploadStatus.PENDING
+    filename: str
+    uploaded_by: UUID
+    storage_key: str
+    declared_mime_type: str
+    declared_size: int

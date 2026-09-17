@@ -66,6 +66,12 @@ class DocumentNodeType(StrEnum):
     TEXT = auto()
 
 
+class MemberRole(StrEnum):
+    TEACHER = auto()  # Преподаватель
+    ASSISTANT = auto()  # Помощник
+    STUDENT = auto()  # Студент
+
+
 class TestType(StrEnum):
     """Тип тестирования"""
 

@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    String,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -27,6 +28,7 @@ from ..domain.vo import (
     CourseStatus,
     DifficultyLevel,
     DocumentNodeType,
+    MemberRole,
     PracticeStatus,
 )
 from .types import ContentBlockListType
@@ -51,7 +53,7 @@ class CourseOrm(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    students: Mapped[list[StudentOrm]] = relationship(back_populates="course")
+    members: Mapped[list[MemberOrm]] = relationship(back_populates="course")
 
 
 class ModuleOrm(Base):
@@ -129,17 +131,19 @@ class ChatOrm(Base):
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 
-class StudentOrm(Base):
-    __tablename__ = "students"
+class MemberOrm(Base):
+    __tablename__ = "members"
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))
+    role: Mapped[MemberRole] = mapped_column(String)
+
     user_id: Mapped[UUID]
 
-    course: Mapped[CourseOrm] = relationship(back_populates="students")
+    course: Mapped[CourseOrm] = relationship(back_populates="members")
 
     __table_args__ = (
-        UniqueConstraint("course_id", "user_id", name="uq_student"),
-        Index("ix_students_user_id", "user_id"),
+        UniqueConstraint("course_id", "user_id", name="uq_member"),
+        Index("ix_members_user_id", "user_id"),
     )
 
 
