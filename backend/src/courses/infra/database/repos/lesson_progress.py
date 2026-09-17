@@ -28,8 +28,8 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
 
-    async def update_from_event(self, event: LessonProgressUpdated) -> UUID | None:
-        """Обновляет прогресс урока и возвращает ID курса после его полного прохождения."""
+    async def update_from_event(self, event: LessonProgressUpdated) -> None:
+        """Обновляет прогресс урока по событию."""
         stmt = (
             update(LessonProgressOrm)
             .where(
@@ -39,21 +39,5 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
                 ),
             )
             .values(**event.progress.model_dump(exclude_none=True))
-            .returning(LessonProgressOrm)
         )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        if model is not None and all(
-            (
-                model.theory_completed_at,
-                model.practice_completed_at,
-                model.test_completed_at,
-            )
-        ):
-            module_progress = await self._session.get(
-                ModuleProgressOrm,
-                model.module_progress_id,
-            )
-            if module_progress is not None:
-                return module_progress.course_progress_id
-        return None
+        await self._session.execute(stmt)

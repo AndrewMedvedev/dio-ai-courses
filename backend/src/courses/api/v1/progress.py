@@ -47,6 +47,21 @@ async def read_course_progress(
     return await service.read_course_progress(identity.id, course_id)
 
 
+@router.patch(
+    "/courses/{course_id}",
+    summary="Обновить прогресс курса",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+)
+async def update_course_progress(
+    course_id: UUID,
+    total_lessons: int,
+    identity: CurrentIdentity,
+    service: LearningProgressServiceDep,
+) -> CourseProgress:
+    return await service.update_course_progress(identity.id, course_id, total_lessons)
+
+
 @router.get(
     "/courses/{course_id}/students",
     summary="Получить прогресс учеников курса",
@@ -71,10 +86,11 @@ async def get_course_students_progress(
 )
 async def create_module_progress(
     module_id: UUID,
+    course_id: UUID,
     identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> ModuleProgress:
-    return await service.create_module_progress(identity.id, module_id)
+    return await service.create_module_progress(identity.id, course_id, module_id)
 
 
 @router.get(
@@ -103,10 +119,11 @@ async def read_module_progress(
 )
 async def create_lesson_progress(
     lesson_id: UUID,
+    module_id: UUID,
     identity: CurrentIdentity,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
-    return await service.create_lesson_progress(identity.id, lesson_id)
+    return await service.create_lesson_progress(identity.id, module_id, lesson_id)
 
 
 @router.get(

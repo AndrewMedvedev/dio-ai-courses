@@ -127,10 +127,7 @@ class CourseProgressOrm(Base):
 
     user_id: Mapped[UUID]
     progress_percent: Mapped[float] = mapped_column(Float, default=0)
-    course_id: Mapped[UUID] = mapped_column(
-        ForeignKey("courses.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    course_id: Mapped[UUID]
     module_progresses: Mapped[list[ModuleProgressOrm]] = relationship(
         back_populates="course_progress",
         cascade="all, delete-orphan",
@@ -149,10 +146,7 @@ class ModuleProgressOrm(Base):
         ForeignKey("course_progress.id", ondelete="CASCADE"),
         nullable=False,
     )
-    module_id: Mapped[UUID] = mapped_column(
-        ForeignKey("modules.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    module_id: Mapped[UUID]
     course_progress: Mapped[CourseProgressOrm] = relationship(
         back_populates="module_progresses"
     )
@@ -179,10 +173,7 @@ class LessonProgressOrm(Base):
         ForeignKey("module_progress.id", ondelete="CASCADE"),
         nullable=False,
     )
-    lesson_id: Mapped[UUID] = mapped_column(
-        ForeignKey("lessons.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    lesson_id: Mapped[UUID]
     theory_completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
     )
