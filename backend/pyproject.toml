@@ -174,3 +174,8 @@ ignore_names = [
 
 [tool.basedpyright]
 typeCheckingMode = "basic"
+
+[dependency-groups]
+dev = [
+    "testcontainers[postgres]>=4.14.2",
+]

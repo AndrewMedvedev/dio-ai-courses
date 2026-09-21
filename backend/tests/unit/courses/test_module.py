@@ -93,7 +93,7 @@ class TestModuleService:
         """Не привязывает модуль к отсутствующему курсу."""
         course_repository.exists.return_value = False
 
-        with pytest.raises(NotFoundError, match="Course with id .* not found"):
+        with pytest.raises(NotFoundError, match="Module with id .* not found"):
             await service.assign_course(uuid4(), uuid4())
 
         repository.exists.assert_not_awaited()
@@ -108,7 +108,7 @@ class TestModuleService:
         course_repository.exists.return_value = True
         repository.exists.return_value = False
 
-        with pytest.raises(NotFoundError, match="Module with id .* not found"):
+        with pytest.raises(NotFoundError, match="Lesson with id .* not found"):
             await service.assign_course(uuid4(), uuid4())
 
         repository.assign_course.assert_not_awaited()
