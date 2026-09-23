@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Any, Protocol
 
 from collections.abc import Awaitable, Callable
 from uuid import UUID
@@ -14,6 +14,8 @@ class Repository[EntityT: Entity](Protocol):
 
     async def read(self, uid: UUID) -> EntityT | None: ...
 
+    async def read_by(self, **filters: Any) -> EntityT | None: ...
+
     async def find[FiltersT: BaseQueryParamFilters](
         self,
         pagination: Pagination,
@@ -27,6 +29,8 @@ class Repository[EntityT: Entity](Protocol):
     async def delete(self, uid: UUID) -> None: ...
 
     async def exists(self, uid: UUID) -> bool: ...
+
+    async def exists_by(self, **filters: Any) -> bool: ...
 
     async def get_by_ids(self, ids: list[UUID]) -> tuple[EntityT, ...]: ...
 
@@ -53,6 +57,9 @@ class RepositoryDecorator[EntityT: Entity](Repository[EntityT]):
     async def read(self, uid: UUID) -> EntityT | None:
         return await self._repo.read(uid)
 
+    async def read_by(self, **filters: Any) -> EntityT | None:
+        return await self._repo.read_by(**filters)
+
     async def find[FiltersT](
         self,
         pagination: Pagination,
@@ -68,6 +75,9 @@ class RepositoryDecorator[EntityT: Entity](Repository[EntityT]):
 
     async def exists(self, uid: UUID) -> bool:
         return await self._repo.exists(uid)
+
+    async def exists_by(self, **filters: Any) -> bool:
+        return await self._repo.exists_by(**filters)
 
     async def get_by_ids(self, ids: list[UUID]) -> tuple[EntityT, ...]:
         return await self._repo.get_by_ids(ids)

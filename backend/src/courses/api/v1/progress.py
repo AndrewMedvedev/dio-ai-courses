@@ -2,20 +2,32 @@ from typing import Annotated
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import Depends, Query, status
+from faststream.rabbit import RabbitExchange, RabbitQueue
+from faststream.rabbit.fastapi import RabbitRouter
 
 from src.iam.dependencies import require_permissions
+from src.core.settings import settings
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
+from src.shared.dependencies.database import DBSession
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.utils.time import current_datetime
 
-from ...dependencies.base import CourseProgressRepoDep, ModuleProgressRepoDep
+from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep, ModuleProgressRepoDep
 from ...dependencies.services import LearningProgressServiceDep
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
+from ...domain.events import LessonProgressUpdated
 from ...domain.permissions.courses import COURSE_READ, UPDATE
 
-router = APIRouter(prefix="/progress", tags=["Learning Progress"])
+router = RabbitRouter(prefix="/progress", tags=["Learning Progress"])
+
+exchange = RabbitExchange(settings.rabbit.exchange, durable=True)
+progress_queue = RabbitQueue(
+    "learning_progress_updated",
+    durable=True,
+    routing_key=LessonProgressUpdated.event_type,
+)
 
 
 @router.post(
@@ -78,7 +90,7 @@ async def get_course_students_progress(
 
 
 @router.post(
-    "/modules/{module_id}",
+    "/courses/{course_id}/modules/{module_id}",
     summary="Создать прогресс модуля",
     description="Создаёт запись прогресса текущего ученика по модулю. Прогресс курса создаётся автоматически, если его ещё нет.",
     status_code=status.HTTP_201_CREATED,
@@ -104,14 +116,14 @@ async def read_module_progress(
     identity: CurrentIdentity,
     repo: ModuleProgressRepoDep,
 ) -> ModuleProgress:
-    progress = await repo.read_by_user_and_module(identity.id, module_id)
+    progress = await repo.read_by(module_id=module_id, course_progress__user_id=identity.id )
     if progress is None:
         raise NotFoundError("Module progress was not found")
     return progress
 
 
 @router.post(
-    "/lessons/{lesson_id}",
+    "/module/{module_id}/lessons/{lesson_id}",
     summary="Создать прогресс урока",
     description="Создаёт запись прогресса текущего ученика по уроку. Прогресс модуля и курса создаётся автоматически, если его ещё нет.",
     status_code=status.HTTP_201_CREATED,
@@ -156,3 +168,13 @@ async def mark_lesson_theory_completed(
         lesson_id,
         theory_completed_at=current_datetime(),
     )
+
+
+@router.subscriber(progress_queue, exchange)
+async def on_lesson_progress_updated(
+    event: LessonProgressUpdated,
+    repo: LessonProgressRepoDep,
+    session: DBSession,
+) -> None:
+    await repo.update_from_event(event)
+    await session.commit()

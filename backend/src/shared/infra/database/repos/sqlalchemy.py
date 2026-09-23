@@ -10,7 +10,6 @@ from sqlalchemy import (
     asc,
     delete,
     desc,
-    exists,
     func,
     select,
     update,
@@ -113,10 +112,44 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
         return self.model_mapper.from_model(model)
 
     async def read(self, uid: UUID) -> EntityT | None:
-        stmt = select(self.model).where(self.model.id == uid)
+        return await self.read_by(id=uid)
+
+    def _filters_to_conditions(self, filters: dict[str, Any]) -> list[ColumnElement[bool]]:
+        conditions: list[ColumnElement[bool]] = []
+        for field_path, value in filters.items():
+            parts = field_path.split("__")
+            current_model = self.model
+            relationships = []
+
+            for relationship_name in parts[:-1]:
+                relationship = getattr(current_model, relationship_name)
+                relationships.append(relationship)
+                current_model = relationship.property.mapper.class_
+
+            condition = getattr(current_model, parts[-1]) == value
+            for relationship in reversed(relationships):
+                condition = relationship.has(condition)
+            conditions.append(condition)
+
+        return conditions
+
+    async def read_by(self, **filters: Any) -> EntityT | None:
+        return await self._read_one_by_stmt(
+            select(self.model).where(*self._filters_to_conditions(filters))
+        )
+
+    async def _read_one_by_stmt(self, stmt: Select[tuple[ModelT]]) -> EntityT | None:
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
+
+    async def _exists_by_stmt(self, stmt: Select[tuple[ModelT]]) -> bool:
+        return bool(await self._session.scalar(select(stmt.exists())))
+
+    async def exists_by(self, **filters: Any) -> bool:
+        return await self._exists_by_stmt(
+            select(self.model).where(*self._filters_to_conditions(filters))
+        )
 
     async def find[FiltersT: BaseQueryParamFilters](
         self,
@@ -152,9 +185,8 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
         stmt = delete(self.model).where(self.model.id == uid)
         await self._session.execute(stmt)
 
-    async def exists(self, uid: UUID) -> bool | None:
-        stmt = select(exists().where(self.model.id == uid))
-        return await self._session.scalar(stmt)
+    async def exists(self, uid: UUID) -> bool:
+        return await self.exists_by(id=uid)
 
     async def get_by_ids(self, ids: list[UUID]) -> list[EntityT]:
         stmt = select(self.model).where(self.model.id.in_(ids))

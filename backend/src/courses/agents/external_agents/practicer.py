@@ -8,10 +8,8 @@ from dataclasses import asdict
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.llm_service import LLMTextService
-from src.shared.domain.events import EventPublisher
+from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
 from src.shared.utils.time import current_datetime
@@ -29,18 +27,16 @@ from ..schemas import PracticeResult
 class PracticerAgent:
     def __init__(
         self,
-        session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
-        event_publisher: EventPublisher,
+        transaction: Transaction,
         client: SrvBaseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self._client = client
-        self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
-        self.event_publisher = event_publisher
+        self.transaction = transaction
 
     async def call_agent_creator(
         self,
@@ -76,7 +72,7 @@ class PracticerAgent:
                 practice=[asdict(practice)],
             ),
         )
-        await self.session.commit()
+        await self.transaction(created)
         return {"practice": practice, "practice_id": created.id}
 
     async def call_agent_checker(
@@ -99,27 +95,20 @@ class PracticerAgent:
             schema=PracticeResult,
         )
         response = PracticeResult.model_validate(result.output)
+        practice_entity = await self.practice_repo.update(
+            uid=practice_id,
+            status=PracticeStatus.COMPLETED if response.is_passed else PracticeStatus.FAILED,
+            practice={"practice": practice, **response.model_dump()},
+        )
+        if practice_entity is None:
+            raise NotFoundError("Practice was not found")
         if response.is_passed:
-            updated_practice = await self.practice_repo.update(
-                uid=practice_id,
-                status=PracticeStatus.COMPLETED,
-                practice={"practice": practice, **response.model_dump()},
-            )
-        else:
-            updated_practice = await self.practice_repo.update(
-                uid=practice_id,
-                status=PracticeStatus.FAILED,
-                practice={"practice": practice, **response.model_dump()},
-            )
-        await self.session.commit()
-        if response.is_passed:
-            await self.event_publisher.publish(
+            practice_entity.register_event(
                 LessonProgressUpdated(
-                    user_id=updated_practice.user_id,
-                    lesson_id=updated_practice.lesson_id,
-                    progress=LessonProgressUpdateSchema(
-                        practice_completed_at=current_datetime(),
-                    ),
+                    user_id=practice_entity.user_id,
+                    lesson_id=practice_entity.lesson_id,
+                    progress=LessonProgressUpdateSchema(practice_completed_at=current_datetime()),
                 )
             )
+        await self.transaction(practice_entity)
         return response

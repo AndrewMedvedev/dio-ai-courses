@@ -17,7 +17,7 @@ from src.core.redis import checkpointer
 from src.core.settings import settings
 from src.core.broker import rabbit_router
 from src.courses.api.v1 import router as courses_router
-from src.courses.infra.messaging import progress as progress_events  # noqa: F401
+from src.courses.api.v1.progress import router as progress_router
 from src.iam.api.v1 import router as iam_router
 from src.llm_router.api.v1 import router as llm_router
 from src.media.router import router as media_router
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Настройка логирования
     """Выполняет действие `lifespan`, чтобы поддержать основной сценарий модуля."""
     configure_logging(log_level="INFO")
@@ -54,7 +54,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             sparse_vectors_config={"bm25": models.SparseVectorParams()},
         )
 
-    yield
+    async with rabbit_router.lifespan_context(app):
+        yield
 
     thread_executor.shutdown(wait=True)
 
@@ -81,6 +82,7 @@ router.include_router(media_router)
 router.include_router(courses_router)
 router.include_router(llm_router)
 app.include_router(router)
+rabbit_router.include_router(progress_router, prefix="/api/v1")
 app.include_router(rabbit_router)
 
 app.add_middleware(

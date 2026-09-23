@@ -14,16 +14,7 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
     model = CourseProgressOrm
     model_mapper = CourseProgressMapper
 
-    async def read_by_user_and_course(self, user_id: UUID, course_id: UUID) -> CourseProgress | None:
-        stmt = select(self.model).where(
-            self.model.user_id == user_id,
-            self.model.course_id == course_id,
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
-
-    async def calculate_progress(self, course_progress_id: UUID, total_lessons: int) -> float:
+    async def count_completed_lessons(self, course_progress_id: UUID) -> int:
         completed_lessons = await self._session.scalar(
             select(func.count())
             .select_from(LessonProgressOrm)
@@ -34,7 +25,7 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
                 LessonProgressOrm.test_completed_at.is_not(None),
             )
         )
-        return round(completed_lessons * 100 / total_lessons, 2) if total_lessons else 0
+        return completed_lessons or 0
 
     async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]:
         """Возвращает progress всех учеников курса для teacher endpoint."""
