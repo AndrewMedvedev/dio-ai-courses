@@ -25,9 +25,8 @@ class NotificationChannel(Protocol):
 
 # Маппинг типов уведомлений к email шаблону
 EMAIL_TEMPLATE_MAP: dict[NotificationType, str] = {
-    NotificationType.TICKET_CREATED: "email/ticket_created.html",
-    NotificationType.TICKET_ASSIGNED: "email/assigned.html",
-    NotificationType.TICKET_STATUS_CHANGED: "email/ticket_status_changed.html",
+    NotificationType.INVITED_IN_COURSE: "email/ticket_created.html",
+    NotificationType.INVITED_IN_ORGANIZATION: "email/assigned.html",
 }
 
 
@@ -46,7 +45,7 @@ class EmailChannel:
         if template_name is None:
             logger.warning(
                 "No such template registered for this notification type_ - '%s'",
-                notification.type.value
+                notification.type.value,
             )
         try:
             await self.mail_sender.send(

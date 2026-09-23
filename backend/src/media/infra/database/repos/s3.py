@@ -2,72 +2,57 @@
 
 from typing import Any, BinaryIO
 
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+from contextlib import AsyncExitStack, asynccontextmanager
 
-from aiobotocore.config import AioConfig
+from aiobotocore.client import AioBaseClient
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 
-from src.shared.domain.exceptions import NotFoundError
+from src.core.s3.config import S3Config
 
-from ....application.repos import Storage
+from ....application.dtos import ObjectMeta
+from ....application.repos import AsyncReadable
+from ....domain.exceptions import S3NotFoundError
+
+_MIN_CHUNK_SIZE = 5 * 1024 * 1024
 
 
-class S3Storage(Storage):
-    def __init__(
-        self,
-        access_key: str,
-        secret_key: str,
-        endpoint_url: str,
-        bucket_name: str,
-    ) -> None:
-        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
-        self.config = {
-            "service_name": "s3",
-            "aws_access_key_id": access_key,
-            "aws_secret_access_key": secret_key,
-            "endpoint_url": endpoint_url,
-            "config": AioConfig(
-                signature_version="s3v4",
-                s3={"addressing_style": "path"},
-            ),
-        }
-        self.bucket_name = bucket_name
+class S3Client:
+    def __init__(self, config: S3Config) -> None:
+        self._config = config
         self.session = get_session()
 
     @asynccontextmanager
-    async def get_client(self):
-        """Получает client, чтобы вызывающий код работал через единый интерфейс."""
-        async with self.session.create_client(**self.config) as client:
+    async def get_client(self) -> AsyncIterator[AioBaseClient]:
+        async with self.session.create_client(**self._config.model_dump()) as client:
             yield client
 
     async def upload(self, file: BinaryIO, storage_key: str, content_type: str) -> None:
-        """Выполняет действие `upload`, чтобы поддержать основной сценарий модуля."""
         async with self.get_client() as client:
             await client.put_object(
-                Bucket=self.bucket_name,
-                Body=file.read(),
+                Bucket=self._config.bucket,
+                Body=file,
                 Key=storage_key,
                 ContentType=content_type,
             )
 
     async def delete(self, storage_key: str) -> None:
-        """Удаляет запись или ресурс, когда он больше не нужен системе."""
         async with self.get_client() as client:
-            await client.delete_object(Bucket=self.bucket_name, Key=storage_key)
+            await client.delete_object(Bucket=self._config.bucket, Key=storage_key)
 
-    async def create_presigned_upload_url(
+    async def create_upload_url(
         self,
         storage_key: str,
         content_type: str,
+        checksum: str | None = None,  # noqa: ARG002
         expires_in: int = 3600,
     ) -> str:
-        """Создаёт presigned upload url и инкапсулирует правила этой операции."""
         async with self.get_client() as client:
             return await client.generate_presigned_url(
                 "put_object",
                 Params={
-                    "Bucket": self.bucket_name,
+                    "Bucket": self._config.bucket,
                     "Key": storage_key,
                     "ContentType": content_type,
                 },
@@ -75,29 +60,114 @@ class S3Storage(Storage):
                 HttpMethod="PUT",
             )
 
-    async def create_presigned_download_url(
-        self,
-        storage_key: str,
-        expires_in: int = 3600,
-    ) -> str:
-        """Создаёт presigned download url и инкапсулирует правила этой операции."""
+    async def create_download_url(self, storage_key: str, expires_in: int = 3600) -> str:
         async with self.get_client() as client:
             return await client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": self.bucket_name, "Key": storage_key},
+                Params={"Bucket": self._config.bucket, "Key": storage_key},
                 ExpiresIn=expires_in,
                 HttpMethod="GET",
             )
 
-    async def get_file_info(self, storage_key: str) -> dict[str, Any]:
-        """Получает file info, чтобы вызывающий код работал через единый интерфейс."""
+    async def get_metadata(self, storage_key: str) -> ObjectMeta:
         try:
             async with self.get_client() as client:
-                response = await client.head_object(Bucket=self.bucket_name, Key=storage_key)
-                return {
-                    "size": response["ContentLength"],
-                    "content_type": response["ContentType"],
-                    "uploaded_at": response["LastModified"],
-                }
+                response = await client.head_object(Bucket=self._config.bucket, Key=storage_key)
+                return ObjectMeta(
+                    size=response["ContentLength"],
+                    content_type=response["ContentType"],
+                    last_modified=response["LastModified"],
+                    checksum=response.get("ChecksumSHA256"),
+                )
         except ClientError:
-            raise NotFoundError(f"File not found by key - {storage_key}") from None
+            raise S3NotFoundError(f"Object with key {storage_key!r}") from None
+
+    async def upload_stream(
+        self,
+        file_stream: AsyncReadable,
+        storage_key: str,
+        mime_type: str,
+        chunk_size: int = _MIN_CHUNK_SIZE,
+    ) -> None:
+        """Потоковая загрузка через Multipart upload."""
+
+        if chunk_size < _MIN_CHUNK_SIZE:
+            raise ValueError("chunk_size must be at least 5 MiB for S3 multipart upload.")
+
+        async with self.get_client as client:
+            response = await client.create_multipart_upload(
+                Bucket=self._config.bucket,
+                Key=storage_key,
+                ContentType=mime_type,
+            )
+
+            upload_id = response["UploadId"]
+            parts: list[dict[str, Any]] = []
+
+            try:
+                part_number = 1
+
+                while chunk := await file_stream.read(chunk_size):
+                    part = await client.upload_part(
+                        Bucket=self._config.bucket,
+                        Key=storage_key,
+                        UploadId=upload_id,
+                        PartNumber=part_number,
+                        Body=chunk,
+                    )
+
+                    parts.append({"ETag": part["ETag"], "PartNumber": part_number})
+                    part_number += 1
+
+                if not parts:
+                    await client.abort_multipart_upload(
+                        Bucket=self._config.bucket,
+                        Key=storage_key,
+                        UploadId=upload_id,
+                    )
+
+                    await client.put_object(
+                        Bucket=self._config.bucket,
+                        Key=storage_key,
+                        ContentType=mime_type,
+                        Body=b"",
+                    )
+                    return
+
+                await client.complete_multipart_upload(
+                    Bucket=self._config.bucket,
+                    Key=storage_key,
+                    UploadId=upload_id,
+                    MultipartUpload={"Parts": parts},
+                )
+
+            except Exception:
+                await client.abort_multipart_upload(
+                    Bucket=self._config.bucket,
+                    Key=storage_key,
+                    UploadId=upload_id,
+                )
+                raise
+
+    async def download_stream(
+        self,
+        storage_key: str,
+        chunk_size: int = _MIN_CHUNK_SIZE,
+    ) -> AsyncIterator[bytes]:
+        """Потоковое чтение объекта из S3."""
+
+        stack = AsyncExitStack()
+
+        try:
+            client = await stack.enter_async_context(self.get_client())
+            response = await client.get_object(Bucket=self._config.bucket, Key=storage_key)
+
+            body = response["Body"]
+
+            try:
+                while chunk := await body.read(chunk_size):
+                    yield chunk
+            finally:
+                body.close()
+        finally:
+            await stack.aclose()

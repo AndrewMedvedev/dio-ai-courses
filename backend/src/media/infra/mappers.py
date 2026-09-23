@@ -1,7 +1,7 @@
 from src.shared.infra.database.mappers import ModelMapper
 
-from ..domain.entities import Object, UploadSession
-from .models import ObjectOrm, UploadSessionOrm
+from ..domain.entities import StoredObject, UploadSession
+from .models import StoredObjectOrm, UploadSessionOrm
 
 
 class UploadSessionMapper(ModelMapper):
@@ -12,13 +12,15 @@ class UploadSessionMapper(ModelMapper):
             id=model.id,
             updated_at=model.updated_at,
             created_at=model.created_at,
-            object_id=model.object_id,
-            status=model.status,
-            filename=model.filename,
-            uploaded_by=model.uploaded_by,
             storage_key=model.storage_key,
-            declared_mime_type=model.declared_mime_type,
-            declared_size=model.declared_size,
+            filename=model.filename,
+            content_type=model.content_type,
+            size_bytes=model.size_bytes,
+            sha256=model.sha256,
+            uploaded_by=model.uploaded_by,
+            status=model.status,
+            expires_at=model.expires_at,
+            object_id=model.object_id,
         )
 
     @staticmethod
@@ -28,39 +30,41 @@ class UploadSessionMapper(ModelMapper):
             id=entity.id,
             updated_at=entity.updated_at,
             created_at=entity.created_at,
-            object_id=entity.object_id,
-            status=entity.status,
-            filename=entity.filename,
-            uploaded_by=entity.uploaded_by,
             storage_key=entity.storage_key,
-            declared_mime_type=entity.declared_mime_type,
-            declared_size=entity.declared_size,
+            filename=entity.filename,
+            content_type=entity.content_type,
+            size_bytes=entity.size_bytes,
+            sha256=entity.sha256,
+            uploaded_by=entity.uploaded_by,
+            status=entity.status,
+            expires_at=entity.expires_at,
+            object_id=entity.object_id,
         )
 
 
-class ObjectMapper(ModelMapper):
+class StoredObjectMapper(ModelMapper):
     @staticmethod
-    def from_model(model: ObjectOrm) -> Object:
+    def from_model(model: StoredObjectOrm) -> StoredObject:
         """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
-        return Object(
+        return StoredObject(
             id=model.id,
             updated_at=model.updated_at,
             created_at=model.created_at,
             storage_key=model.storage_key,
-            mime_type=model.mime_type,
             size_bytes=model.size_bytes,
-            checksum=model.checksum,
+            sha256=model.sha256,
+            content_type=model.content_type,
         )
 
     @staticmethod
-    def to_model(entity: Object) -> ObjectOrm:
+    def to_model(entity: StoredObject) -> StoredObjectOrm:
         """Преобразует доменную сущность в ORM модель, чтобы сохранить ее в базе данных."""
-        return ObjectOrm(
+        return StoredObjectOrm(
             id=entity.id,
             updated_at=entity.updated_at,
             created_at=entity.created_at,
             storage_key=entity.storage_key,
-            mime_type=entity.mime_type,
             size_bytes=entity.size_bytes,
-            checksum=entity.checksum,
+            sha256=entity.sha256,
+            content_type=entity.content_type,
         )

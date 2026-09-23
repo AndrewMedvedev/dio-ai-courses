@@ -1,58 +1,51 @@
-from datetime import datetime
+from __future__ import annotations
+
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-from src.shared.infra.database.types import StrUnique
+from src.shared.infra.database.types import DatetimeTz, StrUnique
 
 from ..domain.vo import UploadStatus
 
 
-class AttachmentOrm(Base):
-    __tablename__ = "attachments"
-
-    original_filename: Mapped[str]
-    mime_type: Mapped[str]
-    size_bytes: Mapped[int]
-    storage_key: Mapped[str] = mapped_column(unique=True)
-    owner_id: Mapped[UUID]
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    uploaded_by: Mapped[UUID]
-
-
-class ObjectOrm(Base):
-    """
-    Физический объект в объектном хранилище.
-
-    Запись может быть создана до непосредственной загрузки объекта.
-    Технические характеристики заполняются после inspection.
-    """
-
-    __tablename__ = "objects"
-
-    storage_key: Mapped[StrUnique]
-    mime_type: Mapped[str]
-    size_bytes: Mapped[int]
-    checksum: Mapped[str]
-
-    __table_args__ = (Index("ix_object_checksum", "checksum"),)
-
-
 class UploadSessionOrm(Base):
-    """Поток загрузки медиа актива."""
+    """Сессия прямой загрузки файла в S3."""
 
     __tablename__ = "upload_sessions"
 
+    storage_key: Mapped[StrUnique]
+    filename: Mapped[str]
+    content_type: Mapped[str]
+    size_bytes: Mapped[int]
+    sha256: Mapped[str]
+    uploaded_by: Mapped[UUID]
+    status: Mapped[UploadStatus] = mapped_column(default=UploadStatus.PENDING)
+    expires_at: Mapped[DatetimeTz]
     object_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("objects.id", ondelete="RESTRICT"),
-        unique=True,
+        ForeignKey("stored_objects.id", ondelete="RESTRICT"),
+        nullable=True,
     )
 
-    status: Mapped[UploadStatus] = mapped_column(default=UploadStatus.PENDING)
-    filename: Mapped[str]
-    uploaded_by: Mapped[UUID]
+    object: Mapped[StoredObjectOrm | None] = relationship()
+
+
+class StoredObjectOrm(Base):
+    """
+    Физически загруженный объект в хранилище.
+    Если такой объект существует, то файл гарантировано загружен в S3,
+    его размер и checksum подтверждены.
+    """
+
+    __tablename__ = "stored_objects"
+
     storage_key: Mapped[StrUnique]
-    declared_mime_type: Mapped[str]
-    declared_size: Mapped[int]
+    size_bytes: Mapped[int]
+    sha256: Mapped[str]
+    content_type: Mapped[str]
+
+    __table_args__ = (
+        UniqueConstraint("sha256", "size_bytes", name="uq_stored_object_sha256_size"),
+    )

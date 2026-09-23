@@ -1,14 +1,11 @@
-from enum import StrEnum
+from enum import StrEnum, auto
 
 
 class NotificationType(StrEnum):
     """Типы уведомлений в системе"""
 
-    TICKET_CREATED = "ticket_created"
-    TICKET_ASSIGNED = "ticket_assigned"
-    TICKET_STATUS_CHANGED = "ticket_status_changed"
-    COMMENT_ADDED = "comment_added"
-    SYSTEM = "system"
+    INVITED_IN_COURSE = auto()
+    INVITED_IN_ORGANIZATION = auto()
 
 
 class ChannelType(StrEnum):

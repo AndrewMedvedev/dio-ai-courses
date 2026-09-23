@@ -8,7 +8,7 @@ from src.iam.dependencies import require_permissions
 from ...application.dtos import EditLessonSchema, LessonSchema
 from ...dependencies.services import LessonServiceDep
 from ...domain.entities import AnyContentBlock, Lesson
-from ...domain.permissions.courses import COURSE_READ, CREATE, DELETE, UPDATE
+from ...domain.permissions.courses import CREATE, DELETE, READ, UPDATE
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def assign(
 @router.get(
     "/basic/info/{lesson_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get_lesson_basic_info(
     service: LessonServiceDep,
@@ -56,7 +56,7 @@ async def get_lesson_basic_info(
 @router.get(
     "/theory/{lesson_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get_theory(
     service: LessonServiceDep,

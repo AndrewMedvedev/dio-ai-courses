@@ -9,7 +9,7 @@ from src.shared.application.dtos import Page, Pagination
 
 from ...application.dtos import CourseSchema, EditCourseSchema
 from ...dependencies.base import CourseRepoDep
-from ...dependencies.services import CourseServiceDep
+from ...dependencies.services import CheckAccessDep, CourseServiceDep
 from ...domain.entities import Course, CourseBasicInfo
 from ...domain.permissions.courses import CREATE, DELETE, UPDATE
 from ...domain.vo import CourseStatus
@@ -84,25 +84,37 @@ async def get_course_basic_info(
 @router.put(
     "/edit/{course_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def edit_course(
     service: CourseServiceDep,
     course_id: UUID,
     schema: EditCourseSchema,
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
 ) -> Course:
+    await check_access(
+        identity=identity,
+        permission=UPDATE,
+        course_id=course_id,
+    )
     return await service.edit(course_id, schema)
 
 
 @router.post(
     "/publish/{course_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def publish_course(
     service: CourseServiceDep,
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     course_id: UUID,
 ) -> None:
+    await check_access(
+        identity=identity,
+        permission=UPDATE,
+        course_id=course_id,
+    )
     await service.change_status(course_id=course_id, status=CourseStatus.PUBLISHED)
 
 
@@ -121,10 +133,16 @@ async def delete_course(
 @router.post(
     "/{course_id}/invite-only",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def invite_only_course(
     service: CourseServiceDep,
     course_id: UUID,
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
 ) -> None:
+    await check_access(
+        identity=identity,
+        permission=UPDATE,
+        course_id=course_id,
+    )
     await service.change_status(course_id=course_id, status=CourseStatus.INVITE_ONLY)

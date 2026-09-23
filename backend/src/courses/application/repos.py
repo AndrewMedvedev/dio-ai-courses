@@ -1,5 +1,3 @@
-# ruff: file-ignore[unnecessary-placeholder]
-
 """
 Протоколы (Protocol) для репозиториев.
 
@@ -25,7 +23,6 @@ from uuid import UUID
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.repos import Repository
 
-# Поправьте пути импортов под структуру своего проекта при необходимости.
 from ..domain.entities import (
     AnyContentBlock,
     BasicInfo,
@@ -36,10 +33,10 @@ from ..domain.entities import (
     Entity,
     Lesson,
     LessonBasicInfo,
+    Member,
     Module,
     ModuleBasicInfo,
     Practice,
-    Student,
 )
 
 
@@ -97,7 +94,6 @@ class ModuleRepository(BasicInfoProtocol[Module, ModuleBasicInfo]):
 
     async def assign_course(self, module_id: UUID, course_id: UUID) -> None:
         """Привязывает модуль к курсу и сохраняет структуру курса."""
-        ...
 
     async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
         """Выбирает краткие данные уроков, входящих в указанный модуль."""
@@ -220,5 +216,5 @@ class PracticeRepository(Repository[Practice]):
         ...
 
 
-class StudentRepository(Repository[Student]):
-    async def read(self, user_id: UUID, course_id: UUID) -> Student | None: ...
+class MemberRepository(Repository[Member]):
+    async def read(self, user_id: UUID, course_id: UUID) -> Member | None: ...

@@ -3,7 +3,7 @@ from typing import Any
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import TEXT, DateTime, Enum, UniqueConstraint
+from sqlalchemy import TEXT, DateTime, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,7 +17,7 @@ class NotificationOrm(Base):
     user_id: Mapped[UUID]
     title: Mapped[str]
     message: Mapped[str] = mapped_column(TEXT)
-    notification_type: Mapped[NotificationType] = mapped_column(Enum(NotificationType))
+    notification_type: Mapped[NotificationType] = mapped_column(String)
     read: Mapped[bool]
     data: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
@@ -26,7 +26,7 @@ class UserPreferenceOrm(Base):
     __tablename__ = "user_preferences"
 
     user_id: Mapped[UUID]
-    notification_type: Mapped[NotificationType] = mapped_column(Enum(NotificationType))
+    notification_type: Mapped[NotificationType] = mapped_column(String)
     enabled_channels: Mapped[list[ChannelType]] = mapped_column(JSONB)
     muted_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

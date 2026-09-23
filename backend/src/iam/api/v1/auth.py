@@ -43,8 +43,8 @@ async def get_token(request: TokenRequest, service: AuthServiceDep) -> TokensRes
     summary="Обновить пару токенов",
 )
 async def refresh_tokens(
-        refresh_token: Annotated[str, Body(description="Refresh токен (долгоживущий)")],
-        service: AuthServiceDep,
+    refresh_token: Annotated[str, Body(description="Refresh токен (долгоживущий)")],
+    service: AuthServiceDep,
 ) -> TokensResponse:
     return await service.refresh_tokens(refresh_token)
 
@@ -62,7 +62,7 @@ async def logout(request: LogoutRequest, service: AuthServiceDep) -> TokensRespo
     path="/identity",
     status_code=status.HTTP_200_OK,
     response_model=IdentityResponse,
-    summary="Получить текущий авторизованный субъект"
+    summary="Получить текущий авторизованный субъект",
 )
 async def get_current_identity(identity: CurrentIdentity) -> IdentityResponse:
     return IdentityResponse.model_validate(identity)

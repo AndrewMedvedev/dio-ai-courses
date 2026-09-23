@@ -68,7 +68,7 @@ class DocumentNodeType(StrEnum):
 
 class MemberRole(StrEnum):
     TEACHER = auto()  # Преподаватель
-    ASSISTANT = auto()  # Помощник
+    MODERATOR = auto()  # Модератор
     STUDENT = auto()  # Студент
 
 
