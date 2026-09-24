@@ -9,6 +9,7 @@ from src.core.database import Base
 import src.iam.infra.database.models
 import src.llm_router.infra.models
 import src.courses.infra.models
+import src.feedback.infra.database.models
 import src.media.infra.models
 import src.organization.infra.models
 from src.core.settings import settings

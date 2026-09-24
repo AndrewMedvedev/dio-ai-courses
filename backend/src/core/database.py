@@ -14,7 +14,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .settings import settings
 
-engine = create_async_engine(url=settings.postgres.sqlalchemy_url, echo=True)
+engine = create_async_engine(url=settings.postgres.sqlalchemy_url, hide_parameters=True)
 sessionmaker = async_sessionmaker(
     engine, class_=AsyncSession, autoflush=False, expire_on_commit=False
 )
