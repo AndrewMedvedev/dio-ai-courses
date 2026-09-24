@@ -82,6 +82,9 @@ class PracticerAgent:
         practice_id: UUID,
     ) -> PracticeResult:
         """Проверяет практику, сохраняет результат и публикует событие при успешном прохождении."""
+        if not await self.practice_repo.exists(practice_id):
+            raise NotFoundError("Practice was not found")
+
         file_str = base64.b64encode(file).decode("utf-8")
         agent = LLMTextService(
             client=self._client,
@@ -95,20 +98,24 @@ class PracticerAgent:
             schema=PracticeResult,
         )
         response = PracticeResult.model_validate(result.output)
-        practice_entity = await self.practice_repo.update(
-            uid=practice_id,
-            status=PracticeStatus.COMPLETED if response.is_passed else PracticeStatus.FAILED,
-            practice={"practice": practice, **response.model_dump()},
-        )
-        if practice_entity is None:
-            raise NotFoundError("Practice was not found")
         if response.is_passed:
+            practice_entity = await self.practice_repo.update(
+                uid=practice_id,
+                status=PracticeStatus.COMPLETED,
+                practice={"practice": practice, **response.model_dump()},
+            )
             practice_entity.register_event(
                 LessonProgressUpdated(
                     user_id=practice_entity.user_id,
                     lesson_id=practice_entity.lesson_id,
                     progress=LessonProgressUpdateSchema(practice_completed_at=current_datetime()),
                 )
+            )
+        else:
+            practice_entity = await self.practice_repo.update(
+                uid=practice_id,
+                status=PracticeStatus.FAILED,
+                practice={"practice": practice, **response.model_dump()},
             )
         await self.transaction(practice_entity)
         return response

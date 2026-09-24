@@ -79,8 +79,6 @@ class LearningProgressService:
 
     async def read_lesson_progress(self, user_id: UUID, lesson_id: UUID) -> LessonProgress:
         """Возвращает прогресс урока или сообщает, что запись не найдена."""
-        if not await self._progress_repo.exists_by(lesson_id=lesson_id, module_progress__course_progress__user_id=user_id):
-            raise NotFoundError("Lesson progress was not found")
         progress = await self._progress_repo.read_by(lesson_id=lesson_id, module_progress__course_progress__user_id=user_id)
         if progress is None:
             raise NotFoundError("Lesson progress was not found")

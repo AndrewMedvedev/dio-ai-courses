@@ -44,6 +44,72 @@ async def test_get_by_id_basic_info_returns_course_with_modules(session):
 
 
 @pytest.mark.asyncio
+async def test_get_by_id_basic_info_returns_modules_in_course_order(session):
+    """Возвращает модули курса в порядке их позиции в программе."""
+    course = CourseOrm(
+        id=uuid4(),
+        creator_id=uuid4(),
+        title="Python",
+        description="Python course",
+        difficulty=DifficultyLevel.BEGINNER,
+        tags=["python"],
+        status=CourseStatus.PUBLISHED,
+    )
+    later_module = ModuleOrm(
+        id=uuid4(),
+        course_id=course.id,
+        title="Advanced",
+        description="Advanced Python",
+        order=2,
+    )
+    first_module = ModuleOrm(
+        id=uuid4(),
+        course_id=course.id,
+        title="Basics",
+        description="Python basics",
+        order=1,
+    )
+    session.add_all([course, later_module, first_module])
+    await session.flush()
+    repository = SqlCourseRepository(session)
+
+    basic_info = await repository.get_by_id_basic_info(course.id)
+
+    assert basic_info is not None
+    assert [module.id for module in basic_info.modules] == [first_module.id, later_module.id]
+
+
+@pytest.mark.asyncio
+async def test_get_by_id_basic_info_returns_none_for_unknown_course(session):
+    """Не возвращает базовые данные для отсутствующего курса."""
+    repository = SqlCourseRepository(session)
+
+    assert await repository.get_by_id_basic_info(uuid4()) is None
+
+
+@pytest.mark.asyncio
+async def test_get_by_id_basic_info_returns_empty_modules_for_new_course(session):
+    """Возвращает пустую программу для курса, в который еще не добавили модули."""
+    course = CourseOrm(
+        id=uuid4(),
+        creator_id=uuid4(),
+        title="Python",
+        description="Python course",
+        difficulty=DifficultyLevel.BEGINNER,
+        tags=["python"],
+        status=CourseStatus.DRAFT,
+    )
+    session.add(course)
+    await session.flush()
+    repository = SqlCourseRepository(session)
+
+    basic_info = await repository.get_by_id_basic_info(course.id)
+
+    assert basic_info is not None
+    assert basic_info.modules == []
+
+
+@pytest.mark.asyncio
 async def test_find_student_courses_excludes_archived_courses(session):
     """Возвращает ученику только доступные курсы, на которые он записан."""
     user_id = uuid4()
@@ -109,6 +175,34 @@ async def test_find_returns_only_published_courses(session):
     page = await repository.find(Pagination())
 
     assert [course.id for course in page.items] == [published_course.id]
+
+
+@pytest.mark.asyncio
+async def test_find_returns_page_metadata_for_published_courses(session):
+    """Возвращает корректные метаданные второй страницы опубликованных курсов."""
+    courses = [
+        CourseOrm(
+            id=uuid4(),
+            creator_id=uuid4(),
+            title=f"Python {number}",
+            description="Published course",
+            difficulty=DifficultyLevel.BEGINNER,
+            tags=["python"],
+            status=CourseStatus.PUBLISHED,
+        )
+        for number in range(3)
+    ]
+    session.add_all(courses)
+    await session.flush()
+    repository = SqlCourseRepository(session)
+
+    page = await repository.find(Pagination(page=2, size=2))
+
+    assert page.total == 3
+    assert page.pages == 2
+    assert page.has_prev is True
+    assert page.has_next is False
+    assert len(page.items) == 1
 
 
 @pytest.mark.asyncio
@@ -183,3 +277,11 @@ async def test_get_course_status_returns_none_for_other_creator(session):
     status = await repository.get_course_status(course.id, uuid4())
 
     assert status is None
+
+
+@pytest.mark.asyncio
+async def test_get_course_status_returns_none_for_unknown_course(session):
+    """Не возвращает статус, когда курса с указанным идентификатором нет."""
+    repository = SqlCourseRepository(session)
+
+    assert await repository.get_course_status(uuid4(), uuid4()) is None
