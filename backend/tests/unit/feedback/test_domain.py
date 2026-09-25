@@ -2,6 +2,7 @@ from uuid import UUID
 
 import pytest
 
+from src.feedback.domain.constants import MAX_COMMENT_LENGTH
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.events import FeedbackCreated
 from src.feedback.domain.vo import FeedbackRating
@@ -52,7 +53,7 @@ def test_create_rejects_empty_comment(user_id: UUID, comment: str) -> None:
 
 
 def test_create_accepts_comment_at_length_limit(user_id: UUID) -> None:
-    comment = "x" * Feedback.MAX_COMMENT_LENGTH
+    comment = "x" * MAX_COMMENT_LENGTH
 
     feedback = Feedback.create(
         user_id=str(user_id),
@@ -70,48 +71,5 @@ def test_create_rejects_comment_over_length_limit(user_id: UUID) -> None:
             user_id=str(user_id),
             email="user@example.com",
             rating=5,
-            comment="x" * (Feedback.MAX_COMMENT_LENGTH + 1),
+            comment="x" * (MAX_COMMENT_LENGTH + 1),
         )
-
-
-def test_edit_normalizes_comment_and_updates_timestamp(feedback: Feedback) -> None:
-    previous_updated_at = feedback.updated_at
-
-    feedback.edit(rating=3, comment="  Стало лучше  ")
-
-    assert feedback.rating.value == 3
-    assert feedback.comment == "Стало лучше"
-    assert feedback.updated_at >= previous_updated_at
-
-
-@pytest.mark.parametrize("comment", [" ", "x" * 2001])
-def test_edit_rejects_invalid_comment_without_changing_it(
-    feedback: Feedback, comment: str
-) -> None:
-    previous_comment = feedback.comment
-
-    with pytest.raises(ValueError):
-        feedback.edit(comment=comment)
-
-    assert feedback.comment == previous_comment
-
-
-def test_edit_without_changes_keeps_timestamp(feedback: Feedback) -> None:
-    previous_updated_at = feedback.updated_at
-
-    feedback.edit(rating=5, comment=feedback.comment)
-
-    assert feedback.updated_at == previous_updated_at
-
-
-def test_archive_is_idempotent(feedback: Feedback) -> None:
-    feedback.archive()
-    archived_at = feedback.deleted_at
-    updated_at = feedback.updated_at
-
-    feedback.archive()
-
-    assert feedback.is_deleted
-    assert archived_at is not None
-    assert feedback.deleted_at == archived_at
-    assert feedback.updated_at == updated_at

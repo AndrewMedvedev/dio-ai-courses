@@ -5,6 +5,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
 
+from ...domain.constants import MAX_RATING, MIN_RATING
+
 
 class FeedbackOrm(Base):
     __tablename__ = "feedbacks"
@@ -15,6 +17,9 @@ class FeedbackOrm(Base):
     comment: Mapped[str] = mapped_column(nullable=False)
 
     __table_args__ = (
-        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_feedbacks_rating_range"),
+        CheckConstraint(
+            f"rating >= {MIN_RATING} AND rating <= {MAX_RATING}",
+            name="ck_feedbacks_rating_range",
+        ),
         Index("ix_feedbacks_user_created_at", "user_id", "created_at"),
     )

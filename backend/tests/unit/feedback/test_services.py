@@ -6,7 +6,7 @@ import pytest
 
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.events import FeedbackCreated
-from src.feedback.services import FeedbackService
+from src.feedback.application.services import FeedbackService
 from src.iam.domain.exceptions import PermissionDeniedError
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.transaction import Transaction
@@ -17,7 +17,7 @@ from src.shared.utils.time import current_datetime
 @pytest.fixture
 def repository() -> AsyncMock:
     repo = AsyncMock()
-    repo.has_recent_feedback.return_value = False
+    repo.count_recent_feedback.return_value = 0
     return repo
 
 
@@ -32,15 +32,18 @@ def service(repository: AsyncMock, transaction: AsyncMock) -> FeedbackService:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("recent_count", [0, 4])
 async def test_create_locks_checks_saves_and_commits_in_order(
     service: FeedbackService,
     repository: AsyncMock,
     transaction: AsyncMock,
     user_id: UUID,
+    recent_count: int,
 ) -> None:
+    repository.count_recent_feedback.return_value = recent_count
     calls = Mock()
     calls.attach_mock(repository.lock_user, "lock")
-    calls.attach_mock(repository.has_recent_feedback, "check")
+    calls.attach_mock(repository.count_recent_feedback, "check")
     calls.attach_mock(repository.create, "create")
     calls.attach_mock(transaction, "commit")
     before = current_datetime() - timedelta(days=1)
@@ -60,7 +63,7 @@ async def test_create_locks_checks_saves_and_commits_in_order(
     assert feedback.comment == "Спасибо"
     assert [item[0] for item in calls.mock_calls] == ["lock", "check", "create", "commit"]
     repository.lock_user.assert_awaited_once_with(user_id)
-    checked_user_id, since = repository.has_recent_feedback.await_args.args
+    checked_user_id, since = repository.count_recent_feedback.await_args.args
     assert checked_user_id == user_id
     assert before <= since <= after
     repository.create.assert_awaited_once_with(feedback)
@@ -68,13 +71,15 @@ async def test_create_locks_checks_saves_and_commits_in_order(
 
 
 @pytest.mark.asyncio
-async def test_recent_feedback_returns_429_without_saving(
+@pytest.mark.parametrize("recent_count", [5, 6])
+async def test_daily_limit_returns_429_without_saving(
     service: FeedbackService,
     repository: AsyncMock,
     transaction: AsyncMock,
     user_id: UUID,
+    recent_count: int,
 ) -> None:
-    repository.has_recent_feedback.return_value = True
+    repository.count_recent_feedback.return_value = recent_count
 
     with pytest.raises(RateLimitExceededError) as exc_info:
         await service.create_feedback(
@@ -86,7 +91,7 @@ async def test_recent_feedback_returns_429_without_saving(
 
     assert exc_info.value.status_code == 429
     repository.lock_user.assert_awaited_once_with(user_id)
-    repository.has_recent_feedback.assert_awaited_once()
+    repository.count_recent_feedback.assert_awaited_once()
     repository.create.assert_not_awaited()
     transaction.assert_not_awaited()
 
@@ -145,10 +150,22 @@ async def test_admin_receives_filtered_page(
         pagination=pagination,
         requester_roles=frozenset({"admin"}),
         rating=5,
+        order="asc",
     )
 
     assert result is expected
-    repository.find.assert_awaited_once_with(pagination, rating=5)
+    repository.find.assert_awaited_once_with(pagination, rating=5, order="asc")
+
+
+@pytest.mark.asyncio
+async def test_admin_gets_newest_first_by_default(
+    service: FeedbackService, repository: AsyncMock
+) -> None:
+    pagination = Pagination()
+
+    await service.get_feedbacks(pagination=pagination, requester_roles=frozenset({"admin"}))
+
+    repository.find.assert_awaited_once_with(pagination, rating=None, order="desc")
 
 
 @pytest.mark.asyncio

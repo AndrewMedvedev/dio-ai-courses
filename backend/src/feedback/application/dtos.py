@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..domain.constants import MAX_RATING, MIN_RATING
 from ..domain.entities import Feedback
 
 
@@ -11,7 +12,7 @@ class FeedbackCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    rating: int = Field(ge=1, le=5)
+    rating: int = Field(ge=MIN_RATING, le=MAX_RATING)
     comment: str
 
 

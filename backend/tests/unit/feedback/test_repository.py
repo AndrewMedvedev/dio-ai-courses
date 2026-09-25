@@ -1,5 +1,7 @@
+from typing import Literal
+
 from datetime import timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
@@ -28,22 +30,22 @@ async def test_lock_user_uses_transaction_scoped_postgres_lock(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("has_feedback", [False, True])
-async def test_recent_feedback_checks_user_and_time(
-    mock_session: AsyncMock, user_id: UUID, has_feedback: bool
+@pytest.mark.parametrize("count", [0, 4, 5])
+async def test_recent_feedback_count_checks_user_and_time(
+    mock_session: AsyncMock, user_id: UUID, count: int
 ) -> None:
     repository = SqlFeedbackRepository(mock_session)
     since = current_datetime() - timedelta(days=1)
-    mock_session.scalar.return_value = has_feedback
+    mock_session.scalar.return_value = count
 
-    result = await repository.has_recent_feedback(user_id, since)
+    result = await repository.count_recent_feedback(user_id, since)
 
-    assert result is has_feedback
+    assert result == count
     mock_session.scalar.assert_awaited_once()
     statement = mock_session.scalar.await_args.args[0]
     compiled = statement.compile(dialect=postgresql.dialect())
     sql = str(compiled)
-    assert "EXISTS" in sql
+    assert "count(" in sql
     assert "feedbacks.user_id =" in sql
     assert "feedbacks.created_at >=" in sql
     assert user_id in compiled.params.values()
@@ -71,10 +73,12 @@ async def test_create_uses_existing_mapper_and_session(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("rating", [None, 4])
-async def test_find_filters_active_feedbacks_and_sorts_newest_first(
+@pytest.mark.parametrize("order", ["asc", "desc"])
+async def test_find_filters_active_feedbacks_and_sorts_by_date(
     mock_session: AsyncMock,
     monkeypatch: pytest.MonkeyPatch,
     rating: int | None,
+    order: Literal["asc", "desc"],
 ) -> None:
     pagination = Pagination(page=2, size=3)
     expected = Page.create([], total=0, page=2, size=3)
@@ -82,7 +86,7 @@ async def test_find_filters_active_feedbacks_and_sorts_newest_first(
     monkeypatch.setattr(repository_module, "paginate", paginate)
     repository = SqlFeedbackRepository(mock_session)
 
-    result = await repository.find(pagination, rating=rating)
+    result = await repository.find(pagination, rating=rating, order=order)
 
     assert result is expected
     paginate.assert_awaited_once()
@@ -90,7 +94,7 @@ async def test_find_filters_active_feedbacks_and_sorts_newest_first(
     assert kwargs["session"] is mock_session
     assert kwargs["model"] is FeedbackOrm
     assert kwargs["pagination"] is pagination
-    assert kwargs["sort"] == "created_at:desc"
+    assert kwargs["sort"] == f"created_at:{order}"
     compiled = kwargs["stmt"].compile(dialect=postgresql.dialect())
     sql = str(compiled)
     assert "feedbacks.deleted_at IS NULL" in sql
@@ -99,6 +103,25 @@ async def test_find_filters_active_feedbacks_and_sorts_newest_first(
     else:
         assert "feedbacks.rating =" in sql
         assert rating in compiled.params.values()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("order", ["asc", "desc"])
+async def test_find_orders_sql_before_pagination(
+    mock_session: AsyncMock, order: Literal["asc", "desc"]
+) -> None:
+    mock_session.scalar.return_value = 1
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = result
+    repository = SqlFeedbackRepository(mock_session)
+
+    await repository.find(Pagination(page=2, size=3), order=order)
+
+    statement = mock_session.execute.await_args.args[0]
+    sql = str(statement.compile(dialect=postgresql.dialect()))
+    assert f"ORDER BY feedbacks.created_at {order.upper()}" in sql
+    assert "LIMIT" in sql and "OFFSET" in sql
 
 
 def test_feedback_table_has_rating_check_and_user_date_index() -> None:

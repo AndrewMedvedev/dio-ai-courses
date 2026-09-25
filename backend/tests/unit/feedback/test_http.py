@@ -87,7 +87,7 @@ def test_http_get_allows_admin_and_applies_pagination_and_rating() -> None:
     )
     client, session, _publisher = _client(identity)
 
-    response = client.get("/api/v1/feedbacks?page=2&size=3&rating=4")
+    response = client.get("/api/v1/feedbacks?page=2&size=3&rating=4&order=asc")
 
     assert response.status_code == 200
     assert response.json()["page"] == 2
@@ -96,6 +96,21 @@ def test_http_get_allows_admin_and_applies_pagination_and_rating() -> None:
     session.scalar.assert_awaited_once()
     statement = session.scalar.await_args.args[0]
     assert 4 in statement.compile().params.values()
+
+
+def test_http_get_rejects_unknown_sort_order() -> None:
+    identity = Identity(
+        id=uuid4(),
+        type=IdentityType.USER,
+        email=Email("admin@example.com"),
+        roles=frozenset({"admin"}),
+    )
+    client, session, _publisher = _client(identity)
+
+    response = client.get("/api/v1/feedbacks?order=random")
+
+    assert response.status_code == 422
+    session.scalar.assert_not_awaited()
 
 
 def test_http_get_denies_non_admin() -> None:

@@ -1,7 +1,9 @@
+from typing import Literal
+
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import exists, select, text
+from sqlalchemy import func, select, text
 
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
@@ -23,18 +25,21 @@ class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
             {"key": lock_key},
         )
 
-    async def has_recent_feedback(self, user_id: UUID, since: datetime) -> bool:
-        """Проверяет, оставлял ли пользователь отзыв после указанного времени."""
-        stmt = select(
-            exists().where(
-                self.model.user_id == user_id,
-                self.model.created_at >= since,
-            )
+    async def count_recent_feedback(self, user_id: UUID, since: datetime) -> int:
+        """Считает отзывы пользователя за указанный период."""
+        stmt = select(func.count()).select_from(self.model).where(
+            self.model.user_id == user_id,
+            self.model.created_at >= since,
         )
-        return bool(await self._session.scalar(stmt))
+        return int(await self._session.scalar(stmt) or 0)
 
-    async def find(self, pagination: Pagination, rating: int | None = None) -> Page[Feedback]:
-        """Возвращает активные отзывы по дате создания, новые первыми."""
+    async def find(
+        self,
+        pagination: Pagination,
+        rating: int | None = None,
+        order: Literal["asc", "desc"] = "desc",
+    ) -> Page[Feedback]:
+        """Возвращает активные отзывы в заданном порядке по дате создания."""
         stmt = select(self.model).where(self.model.deleted_at.is_(None))
         if rating is not None:
             stmt = stmt.where(self.model.rating == rating)
@@ -45,5 +50,5 @@ class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
-            sort="created_at:desc",
+            sort=f"created_at:{order}",
         )

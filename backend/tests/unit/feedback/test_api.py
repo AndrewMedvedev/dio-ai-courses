@@ -57,12 +57,14 @@ async def test_get_passes_roles_filter_and_pagination(
         service=service,
         pagination=pagination,
         rating=5,
+        order="asc",
     )
 
     service.get_feedbacks.assert_awaited_once_with(
         pagination=pagination,
         requester_roles=frozenset({"admin"}),
         rating=5,
+        order="asc",
     )
     assert response.total == 4
     assert response.page == 2

@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from src.shared.dependencies.database import TransactionDep
 
-from ..services import FeedbackService
+from ..application.services import FeedbackService
 from .base import FeedbackRepoDep
 
 

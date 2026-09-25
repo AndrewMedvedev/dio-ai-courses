@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, status
 
@@ -34,11 +34,13 @@ async def get_feedbacks(
     service: FeedbackServiceDep,
     pagination: PaginationDep,
     rating: Annotated[int | None, Query(ge=1, le=5)] = None,
+    order: Literal["asc", "desc"] = "desc",
 ) -> Page[FeedbackResponse]:
     """Возвращает администратору страницу отзывов."""
     page = await service.get_feedbacks(
         pagination=pagination,
         requester_roles=identity.roles,
         rating=rating,
+        order=order,
     )
     return page.to_response(feedback_to_response)

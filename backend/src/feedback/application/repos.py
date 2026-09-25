@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Literal, Protocol
 
 from datetime import datetime
 from uuid import UUID
@@ -15,6 +15,11 @@ class FeedbackRepository(Protocol):
 
     async def lock_user(self, user_id: UUID) -> None: ...
 
-    async def has_recent_feedback(self, user_id: UUID, since: datetime) -> bool: ...
+    async def count_recent_feedback(self, user_id: UUID, since: datetime) -> int: ...
 
-    async def find(self, pagination: Pagination, rating: int | None = None) -> Page[Feedback]: ...
+    async def find(
+        self,
+        pagination: Pagination,
+        rating: int | None = None,
+        order: Literal["asc", "desc"] = "desc",
+    ) -> Page[Feedback]: ...
