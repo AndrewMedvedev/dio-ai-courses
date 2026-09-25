@@ -34,6 +34,7 @@ SYSTEM_PERMISSION_MODULES = (
     "src.organization.domain.permissions.organizations",
     "src.courses.domain.permissions.courses",
     "src.courses.domain.permissions.theory_session",
+    "src.feedback.domain.permissions.feedback",
     "src.llm_router.domain.permissions.ai_models",
 )
 

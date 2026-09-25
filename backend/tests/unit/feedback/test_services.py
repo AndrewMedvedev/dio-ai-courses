@@ -1,13 +1,14 @@
 from datetime import timedelta
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
 
+from src.feedback.application.dtos import FeedbackFilters
+from src.feedback.application.services import FeedbackService
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.events import FeedbackCreated
-from src.feedback.application.services import FeedbackService
-from src.iam.domain.exceptions import PermissionDeniedError
+from src.iam.domain.vo import Email
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import RateLimitExceededError
@@ -17,7 +18,7 @@ from src.shared.utils.time import current_datetime
 @pytest.fixture
 def repository() -> AsyncMock:
     repo = AsyncMock()
-    repo.count_recent_feedback.return_value = 0
+    repo.find.return_value = Page.create([], total=0, page=1, size=1)
     return repo
 
 
@@ -33,39 +34,33 @@ def service(repository: AsyncMock, transaction: AsyncMock) -> FeedbackService:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("recent_count", [0, 4])
-async def test_create_locks_checks_saves_and_commits_in_order(
+async def test_create_checks_limit_saves_and_commits(
     service: FeedbackService,
     repository: AsyncMock,
     transaction: AsyncMock,
     user_id: UUID,
     recent_count: int,
 ) -> None:
-    repository.count_recent_feedback.return_value = recent_count
-    calls = Mock()
-    calls.attach_mock(repository.lock_user, "lock")
-    calls.attach_mock(repository.count_recent_feedback, "check")
-    calls.attach_mock(repository.create, "create")
-    calls.attach_mock(transaction, "commit")
+    repository.find.return_value = Page.create([], total=recent_count, page=1, size=1)
     before = current_datetime() - timedelta(days=1)
 
     feedback = await service.create_feedback(
         user_id=user_id,
-        email="user@example.com",
+        email=Email("user@example.com"),
         rating=4,
         comment="  Спасибо  ",
     )
 
     after = current_datetime() - timedelta(days=1)
     assert isinstance(feedback, Feedback)
-    assert feedback.user_id == str(user_id)
-    assert feedback.email == "user@example.com"
+    assert feedback.user_id == user_id
+    assert feedback.email == Email("user@example.com")
     assert feedback.rating.value == 4
     assert feedback.comment == "Спасибо"
-    assert [item[0] for item in calls.mock_calls] == ["lock", "check", "create", "commit"]
-    repository.lock_user.assert_awaited_once_with(user_id)
-    checked_user_id, since = repository.count_recent_feedback.await_args.args
-    assert checked_user_id == user_id
-    assert before <= since <= after
+    pagination, filters = repository.find.await_args.args
+    assert pagination == Pagination(page=1, size=1)
+    assert filters.user_id == user_id
+    assert before <= filters.created_after <= after
     repository.create.assert_awaited_once_with(feedback)
     transaction.assert_awaited_once_with(feedback)
 
@@ -79,19 +74,18 @@ async def test_daily_limit_returns_429_without_saving(
     user_id: UUID,
     recent_count: int,
 ) -> None:
-    repository.count_recent_feedback.return_value = recent_count
+    repository.find.return_value = Page.create([], total=recent_count, page=1, size=1)
 
     with pytest.raises(RateLimitExceededError) as exc_info:
         await service.create_feedback(
             user_id=user_id,
-            email="user@example.com",
+            email=Email("user@example.com"),
             rating=5,
             comment="Повторный отзыв",
         )
 
     assert exc_info.value.status_code == 429
-    repository.lock_user.assert_awaited_once_with(user_id)
-    repository.count_recent_feedback.assert_awaited_once()
+    repository.find.assert_awaited_once()
     repository.create.assert_not_awaited()
     transaction.assert_not_awaited()
 
@@ -106,7 +100,7 @@ async def test_invalid_comment_does_not_save(
     with pytest.raises(ValueError, match="cannot be empty"):
         await service.create_feedback(
             user_id=user_id,
-            email="user@example.com",
+            email=Email("user@example.com"),
             rating=5,
             comment="   ",
         )
@@ -125,7 +119,7 @@ async def test_create_commits_and_publishes_registered_event(
 
     feedback = await service.create_feedback(
         user_id=user_id,
-        email="user@example.com",
+        email=Email("user@example.com"),
         rating=5,
         comment="Спасибо",
     )
@@ -139,42 +133,15 @@ async def test_create_commits_and_publishes_registered_event(
 
 
 @pytest.mark.asyncio
-async def test_admin_receives_filtered_page(
+async def test_get_feedbacks_forwards_filters(
     service: FeedbackService, repository: AsyncMock, feedback: Feedback
 ) -> None:
     pagination = Pagination(page=2, size=3)
+    filters = FeedbackFilters(rating=5, sort="created_at:asc")
     expected = Page.create([feedback], total=4, page=2, size=3)
     repository.find.return_value = expected
 
-    result = await service.get_feedbacks(
-        pagination=pagination,
-        requester_roles=frozenset({"admin"}),
-        rating=5,
-        order="asc",
-    )
+    result = await service.get_feedbacks(pagination=pagination, filters=filters)
 
     assert result is expected
-    repository.find.assert_awaited_once_with(pagination, rating=5, order="asc")
-
-
-@pytest.mark.asyncio
-async def test_admin_gets_newest_first_by_default(
-    service: FeedbackService, repository: AsyncMock
-) -> None:
-    pagination = Pagination()
-
-    await service.get_feedbacks(pagination=pagination, requester_roles=frozenset({"admin"}))
-
-    repository.find.assert_awaited_once_with(pagination, rating=None, order="desc")
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("roles", [frozenset(), frozenset({"user"})])
-async def test_non_admin_cannot_read_feedbacks(
-    service: FeedbackService, repository: AsyncMock, roles: frozenset[str]
-) -> None:
-    with pytest.raises(PermissionDeniedError) as exc_info:
-        await service.get_feedbacks(pagination=Pagination(), requester_roles=roles)
-
-    assert exc_info.value.status_code == 403
-    repository.find.assert_not_awaited()
+    repository.find.assert_awaited_once_with(pagination, filters)

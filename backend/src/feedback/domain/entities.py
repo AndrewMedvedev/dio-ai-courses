@@ -1,8 +1,9 @@
 from typing import Self
-
+from uuid import UUID
 from dataclasses import dataclass
 
 from src.shared.domain.entities import AggregateRoot
+from src.iam.domain.vo import Email
 
 from .constants import MAX_COMMENT_LENGTH
 from .events import FeedbackCreated
@@ -11,8 +12,8 @@ from .vo import FeedbackRating
 
 @dataclass(kw_only=True)
 class Feedback(AggregateRoot):
-    user_id: str
-    email: str
+    user_id: UUID
+    email: Email
     rating: FeedbackRating
     comment: str
 
@@ -34,8 +35,8 @@ class Feedback(AggregateRoot):
     def create(
         cls,
         *,
-        user_id: str,
-        email: str,
+        user_id: UUID,
+        email: Email,
         rating: int,
         comment: str,
     ) -> Self:
@@ -54,7 +55,7 @@ class Feedback(AggregateRoot):
             FeedbackCreated(
                 feedback_id=feedback.id,
                 user_id=feedback.user_id,
-                email=feedback.email,
+                email=feedback.email.value,
                 rating=feedback.rating.value,
                 comment=feedback.comment,
             )

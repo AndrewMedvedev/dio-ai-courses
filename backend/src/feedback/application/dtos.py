@@ -1,10 +1,13 @@
+from typing import Literal
+
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.shared.application.dtos import BaseQueryParamFilters
+
 from ..domain.constants import MAX_RATING, MIN_RATING
-from ..domain.entities import Feedback
 
 
 class FeedbackCreate(BaseModel):
@@ -16,24 +19,11 @@ class FeedbackCreate(BaseModel):
     comment: str
 
 
-class FeedbackResponse(BaseModel):
-    """Отзыв о платформе в ответе API."""
+class FeedbackFilters(BaseQueryParamFilters):
+    """Фильтры отзывов."""
 
-    id: UUID
-    user_id: UUID
-    email: str
-    rating: int
-    comment: str
-    created_at: datetime
-
-
-def feedback_to_response(feedback: Feedback) -> FeedbackResponse:
-    """Преобразует доменную сущность в ответ API."""
-    return FeedbackResponse(
-        id=feedback.id,
-        user_id=UUID(feedback.user_id),
-        email=feedback.email,
-        rating=feedback.rating.value,
-        comment=feedback.comment,
-        created_at=feedback.created_at,
-    )
+    user_id: UUID | None = None
+    rating: int | None = Field(default=None, ge=MIN_RATING, le=MAX_RATING)
+    created_after: datetime | None = None
+    created_before: datetime | None = None
+    sort: Literal["created_at:asc", "created_at:desc"] = "created_at:desc"

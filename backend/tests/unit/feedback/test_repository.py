@@ -1,55 +1,16 @@
 from typing import Literal
 
-from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID
 
 import pytest
 from sqlalchemy.dialects import postgresql
 
+from src.feedback.application.dtos import FeedbackFilters
 from src.feedback.domain.entities import Feedback
 from src.feedback.infra.database.models import FeedbackOrm
 from src.feedback.infra.database.repos import feedback as repository_module
 from src.feedback.infra.database.repos.feedback import SqlFeedbackRepository
 from src.shared.application.dtos import Page, Pagination
-from src.shared.utils.time import current_datetime
-
-
-@pytest.mark.asyncio
-async def test_lock_user_uses_transaction_scoped_postgres_lock(
-    mock_session: AsyncMock, user_id: UUID
-) -> None:
-    repository = SqlFeedbackRepository(mock_session)
-
-    await repository.lock_user(user_id)
-
-    mock_session.execute.assert_awaited_once()
-    statement, params = mock_session.execute.await_args.args
-    assert str(statement) == "SELECT pg_advisory_xact_lock(:key)"
-    assert params == {"key": int.from_bytes(user_id.bytes[8:], "big", signed=True)}
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("count", [0, 4, 5])
-async def test_recent_feedback_count_checks_user_and_time(
-    mock_session: AsyncMock, user_id: UUID, count: int
-) -> None:
-    repository = SqlFeedbackRepository(mock_session)
-    since = current_datetime() - timedelta(days=1)
-    mock_session.scalar.return_value = count
-
-    result = await repository.count_recent_feedback(user_id, since)
-
-    assert result == count
-    mock_session.scalar.assert_awaited_once()
-    statement = mock_session.scalar.await_args.args[0]
-    compiled = statement.compile(dialect=postgresql.dialect())
-    sql = str(compiled)
-    assert "count(" in sql
-    assert "feedbacks.user_id =" in sql
-    assert "feedbacks.created_at >=" in sql
-    assert user_id in compiled.params.values()
-    assert since in compiled.params.values()
 
 
 @pytest.mark.asyncio
@@ -63,8 +24,8 @@ async def test_create_uses_existing_mapper_and_session(
     mock_session.add.assert_called_once()
     model = mock_session.add.call_args.args[0]
     assert isinstance(model, FeedbackOrm)
-    assert model.user_id == UUID(feedback.user_id)
-    assert model.email == feedback.email
+    assert model.user_id == feedback.user_id
+    assert model.email == feedback.email.value
     assert model.rating == feedback.rating.value
     assert model.comment == feedback.comment
     assert result.id == feedback.id
@@ -86,7 +47,8 @@ async def test_find_filters_active_feedbacks_and_sorts_by_date(
     monkeypatch.setattr(repository_module, "paginate", paginate)
     repository = SqlFeedbackRepository(mock_session)
 
-    result = await repository.find(pagination, rating=rating, order=order)
+    filters = FeedbackFilters(rating=rating, sort=f"created_at:{order}")
+    result = await repository.find(pagination, filters)
 
     assert result is expected
     paginate.assert_awaited_once()
@@ -116,7 +78,10 @@ async def test_find_orders_sql_before_pagination(
     mock_session.execute.return_value = result
     repository = SqlFeedbackRepository(mock_session)
 
-    await repository.find(Pagination(page=2, size=3), order=order)
+    await repository.find(
+        Pagination(page=2, size=3),
+        FeedbackFilters(sort=f"created_at:{order}"),
+    )
 
     statement = mock_session.execute.await_args.args[0]
     sql = str(statement.compile(dialect=postgresql.dialect()))

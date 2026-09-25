@@ -12,7 +12,7 @@ class FeedbackCreated(Event):
     """Пользователь оставил отзыв."""
 
     feedback_id: UUID
-    user_id: str
+    user_id: UUID
     email: str
     rating: int
     comment: str | None = None

@@ -1,13 +1,9 @@
-from typing import Literal
-
-from datetime import datetime
-from uuid import UUID
-
-from sqlalchemy import func, select, text
+from sqlalchemy import select
 
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
+from ....application.dtos import FeedbackFilters
 from ....domain.entities import Feedback
 from ..mappers import FeedbackMapper
 from ..models import FeedbackOrm
@@ -17,32 +13,29 @@ class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
     model = FeedbackOrm
     model_mapper = FeedbackMapper
 
-    async def lock_user(self, user_id: UUID) -> None:
-        """Блокирует создание отзывов пользователя до завершения транзакции."""
-        lock_key = int.from_bytes(user_id.bytes[8:], "big", signed=True)
-        await self._session.execute(
-            text("SELECT pg_advisory_xact_lock(:key)"),
-            {"key": lock_key},
-        )
-
-    async def count_recent_feedback(self, user_id: UUID, since: datetime) -> int:
-        """Считает отзывы пользователя за указанный период."""
-        stmt = select(func.count()).select_from(self.model).where(
-            self.model.user_id == user_id,
-            self.model.created_at >= since,
-        )
-        return int(await self._session.scalar(stmt) or 0)
-
     async def find(
         self,
         pagination: Pagination,
-        rating: int | None = None,
-        order: Literal["asc", "desc"] = "desc",
+        filters: FeedbackFilters | None = None,
     ) -> Page[Feedback]:
-        """Возвращает активные отзывы в заданном порядке по дате создания."""
+        """Возвращает отзывы с применением фильтров."""
+
         stmt = select(self.model).where(self.model.deleted_at.is_(None))
-        if rating is not None:
-            stmt = stmt.where(self.model.rating == rating)
+
+        if filters:
+            if filters.user_id is not None:
+                stmt = stmt.where(self.model.user_id == filters.user_id)
+
+            if filters.rating is not None:
+                stmt = stmt.where(self.model.rating == filters.rating)
+
+            if filters.created_after is not None:
+                stmt = stmt.where(self.model.created_at >= filters.created_after)
+
+            if filters.created_before is not None:
+                stmt = stmt.where(self.model.created_at <= filters.created_before)
+
+        sort = filters.sort if filters and filters.sort else "created_at:desc"
 
         return await paginate(
             session=self._session,
@@ -50,5 +43,5 @@ class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
-            sort=f"created_at:{order}",
+            sort=sort,
         )

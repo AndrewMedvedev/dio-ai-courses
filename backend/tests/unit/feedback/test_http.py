@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
 from src.feedback.api.v1.feedback import router
+from src.feedback.domain.permissions.feedback import READ
 from src.iam.application.dtos import Identity, IdentityType
 from src.iam.dependencies.identity import get_current_identity
 from src.iam.domain.vo import Email
@@ -51,10 +52,11 @@ def test_http_post_creates_feedback_using_token_identity() -> None:
     assert response.status_code == 201
     body = response.json()
     assert body["user_id"] == str(user_id)
-    assert body["email"] == "user@example.com"
-    assert body["rating"] == 5
+    assert body["email"] == {"value": "user@example.com"}
+    assert body["rating"] == {"value": 5}
     assert body["comment"] == "Отлично"
-    session.execute.assert_awaited_once()
+    assert "_events" not in body
+    session.execute.assert_not_awaited()
     session.scalar.assert_awaited_once()
     session.add.assert_called_once()
     session.commit.assert_awaited_once()
@@ -78,16 +80,15 @@ def test_http_post_rejects_client_supplied_identity() -> None:
     session.add.assert_not_called()
 
 
-def test_http_get_allows_admin_and_applies_pagination_and_rating() -> None:
+def test_http_get_allows_service_account_with_permission_and_applies_filters() -> None:
     identity = Identity(
         id=uuid4(),
-        type=IdentityType.USER,
-        email=Email("admin@example.com"),
-        roles=frozenset({"admin"}),
+        type=IdentityType.SERVICE_ACCOUNT,
+        permissions=frozenset({READ.code}),
     )
     client, session, _publisher = _client(identity)
 
-    response = client.get("/api/v1/feedbacks?page=2&size=3&rating=4&order=asc")
+    response = client.get("/api/v1/feedbacks?page=2&size=3&rating=4&sort=created_at:asc")
 
     assert response.status_code == 200
     assert response.json()["page"] == 2
@@ -103,17 +104,17 @@ def test_http_get_rejects_unknown_sort_order() -> None:
         id=uuid4(),
         type=IdentityType.USER,
         email=Email("admin@example.com"),
-        roles=frozenset({"admin"}),
+        permissions=frozenset({READ.code}),
     )
     client, session, _publisher = _client(identity)
 
-    response = client.get("/api/v1/feedbacks?order=random")
+    response = client.get("/api/v1/feedbacks?sort=created_at:random")
 
     assert response.status_code == 422
     session.scalar.assert_not_awaited()
 
 
-def test_http_get_denies_non_admin() -> None:
+def test_http_get_denies_identity_without_permission() -> None:
     identity = Identity(
         id=uuid4(),
         type=IdentityType.USER,
@@ -134,7 +135,7 @@ def test_http_get_rejects_invalid_rating(rating: int) -> None:
         id=uuid4(),
         type=IdentityType.USER,
         email=Email("admin@example.com"),
-        roles=frozenset({"admin"}),
+        permissions=frozenset({READ.code}),
     )
     client, session, _publisher = _client(identity)
 

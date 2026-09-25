@@ -1,10 +1,7 @@
-from uuid import UUID
-
 import pytest
 from pydantic import ValidationError
 
-from src.feedback.application.dtos import FeedbackCreate, feedback_to_response
-from src.feedback.domain.entities import Feedback
+from src.feedback.application.dtos import FeedbackCreate, FeedbackFilters
 
 
 def test_create_schema_accepts_only_rating_and_comment() -> None:
@@ -32,12 +29,19 @@ def test_create_schema_requires_comment() -> None:
         FeedbackCreate.model_validate({"rating": 5})
 
 
-def test_response_maps_entity_fields(feedback: Feedback, user_id: UUID) -> None:
-    response = feedback_to_response(feedback)
+def test_feedback_filters_default_to_newest_first() -> None:
+    filters = FeedbackFilters()
 
-    assert response.id == feedback.id
-    assert response.user_id == user_id
-    assert response.email == feedback.email
-    assert response.rating == feedback.rating.value
-    assert response.comment == feedback.comment
-    assert response.created_at == feedback.created_at
+    assert filters.rating is None
+    assert filters.sort == "created_at:desc"
+
+
+@pytest.mark.parametrize("sort", ["created_at:asc", "created_at:desc"])
+def test_feedback_filters_accept_date_order(sort: str) -> None:
+    assert FeedbackFilters(rating=4, sort=sort).sort == sort
+
+
+@pytest.mark.parametrize("sort", ["rating:asc", "created_at:random"])
+def test_feedback_filters_reject_other_order(sort: str) -> None:
+    with pytest.raises(ValidationError):
+        FeedbackFilters(sort=sort)
