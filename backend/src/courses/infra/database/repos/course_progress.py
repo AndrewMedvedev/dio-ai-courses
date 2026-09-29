@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
@@ -13,6 +13,22 @@ from ...models import CourseProgressOrm, LessonProgressOrm
 class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CourseProgressOrm]):
     model = CourseProgressOrm
     model_mapper = CourseProgressMapper
+
+    async def read_by_user_and_course(self, user_id: UUID, course_id: UUID) -> CourseProgress | None:
+        stmt = select(self.model).where(
+            self.model.user_id == user_id,
+            self.model.course_id == course_id,
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return None if model is None else self.model_mapper.from_model(model)
+
+    async def exists_by_user_and_course(self, user_id: UUID, course_id: UUID) -> bool:
+        stmt = select(exists().where(
+            self.model.user_id == user_id,
+            self.model.course_id == course_id,
+        ))
+        return bool(await self._session.scalar(stmt))
 
     async def count_completed_lessons(self, course_progress_id: UUID) -> int:
         completed_lessons = await self._session.scalar(

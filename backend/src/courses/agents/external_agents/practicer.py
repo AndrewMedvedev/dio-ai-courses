@@ -14,10 +14,9 @@ from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
 from src.shared.utils.time import current_datetime
 
-from ...application.dtos import LessonProgressUpdateSchema
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import FileUploadAssignment, Practice
-from ...domain.events import LessonProgressUpdated
+from ...domain.events import LessonProgressUpdated, LessonProgressUpdate
 from ...domain.vo import PracticeStatus
 from ..course_generator.subagents.prompts import FILE_UPLOAD_PROMPT
 from ..prompts import ASSIGNMENT_PROMPT, PRACTICE_FILE_CHECKER_PROMPT
@@ -108,7 +107,7 @@ class PracticerAgent:
                 LessonProgressUpdated(
                     user_id=practice_entity.user_id,
                     lesson_id=practice_entity.lesson_id,
-                    progress=LessonProgressUpdateSchema(practice_completed_at=current_datetime()),
+                    progress=LessonProgressUpdate(practice_completed_at=current_datetime()),
                 )
             )
         else:

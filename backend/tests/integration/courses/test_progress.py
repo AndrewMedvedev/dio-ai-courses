@@ -3,9 +3,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.courses.application.dtos import LessonProgressUpdateSchema
 from src.courses.application.services.progress import LearningProgressService
-from src.courses.domain.events import LessonProgressUpdated
+from src.courses.domain.events import LessonProgressUpdated, LessonProgressUpdate
+from src.courses.infra.mappers import CourseProgressMapper, LessonProgressMapper
 from src.courses.infra.database.repos.course_progress import SqlCourseProgressRepository
 from src.courses.infra.database.repos.lesson_progress import SqlLessonProgressRepository
 from src.courses.infra.database.repos.module_progress import SqlModuleProgressRepository
@@ -14,7 +14,7 @@ from src.shared.application.dtos import Pagination
 
 
 @pytest.mark.asyncio
-async def test_read_by_user_and_course_returns_saved_progress(session):
+async def test_read_by_returns_saved_user_course_progress(session):
     """Возвращает сохранённый прогресс конкретного пользователя по курсу."""
     user_id = uuid4()
     course_id = uuid4()
@@ -35,7 +35,7 @@ async def test_read_by_user_and_course_returns_saved_progress(session):
 
 
 @pytest.mark.asyncio
-async def test_read_by_user_and_course_does_not_return_other_user_progress(session):
+async def test_read_by_does_not_return_other_user_course_progress(session):
     """Не возвращает progress курса пользователю, которому он не принадлежит."""
     course_progress = CourseProgressOrm(
         id=uuid4(),
@@ -52,7 +52,7 @@ async def test_read_by_user_and_course_does_not_return_other_user_progress(sessi
 
 
 @pytest.mark.asyncio
-async def test_read_by_user_and_module_does_not_return_other_user_progress(session):
+async def test_read_by_does_not_return_other_user_module_progress(session):
     """Не возвращает progress модуля пользователю, которому он не принадлежит."""
     module_id = uuid4()
     course_progress = CourseProgressOrm(
@@ -75,8 +75,8 @@ async def test_read_by_user_and_module_does_not_return_other_user_progress(sessi
 
 
 @pytest.mark.asyncio
-async def test_calculate_progress_counts_only_completed_lessons(session):
-    """Считает процент только по урокам с завершённой теорией, практикой и тестом."""
+async def test_count_completed_lessons_ignores_incomplete_lessons(session):
+    """Считает только уроки с завершённой теорией, практикой и тестом."""
     course_progress_id = uuid4()
     module_progress_id = uuid4()
     course_progress = CourseProgressOrm(
@@ -106,14 +106,14 @@ async def test_calculate_progress_counts_only_completed_lessons(session):
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
-    progress = await repository.calculate_progress(course_progress_id, total_lessons=2)
+    completed_lessons = await repository.count_completed_lessons(course_progress_id)
 
-    assert progress == 50
+    assert completed_lessons == 1
 
 
 @pytest.mark.asyncio
-async def test_calculate_progress_returns_zero_without_lessons(session):
-    """Возвращает нулевой процент, когда фронт передал нулевое число уроков."""
+async def test_count_completed_lessons_returns_zero_without_lessons(session):
+    """Возвращает ноль, когда для курса нет завершённых уроков."""
     course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
@@ -123,9 +123,46 @@ async def test_calculate_progress_returns_zero_without_lessons(session):
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
-    progress = await repository.calculate_progress(course_progress.id, total_lessons=0)
+    completed_lessons = await repository.count_completed_lessons(course_progress.id)
 
-    assert progress == 0
+    assert completed_lessons == 0
+
+
+@pytest.mark.asyncio
+async def test_update_course_progress_rounds_completed_lesson_fraction(session):
+    """Округляет процент, когда полностью завершен один из трех уроков."""
+    course_progress = CourseProgressOrm(id=uuid4(), user_id=uuid4(), course_id=uuid4())
+    module_progress = ModuleProgressOrm(
+        id=uuid4(),
+        course_progress_id=course_progress.id,
+        module_id=uuid4(),
+    )
+    completed_at = datetime.now(timezone.utc)
+    completed_lesson = LessonProgressOrm(
+        module_progress_id=module_progress.id,
+        lesson_id=uuid4(),
+        theory_completed_at=completed_at,
+        practice_completed_at=completed_at,
+        test_completed_at=completed_at,
+    )
+    incomplete_lessons = [
+        LessonProgressOrm(module_progress_id=module_progress.id, lesson_id=uuid4())
+        for _ in range(2)
+    ]
+    session.add_all([course_progress, module_progress, completed_lesson, *incomplete_lessons])
+    await session.flush()
+    service = LearningProgressService(
+        progress_repo=SqlLessonProgressRepository(session),
+        course_progress_repo=SqlCourseProgressRepository(session),
+        module_progress_repo=SqlModuleProgressRepository(session),
+        session=session,
+    )
+
+    progress = await service.update_course_progress(
+        CourseProgressMapper.from_model(course_progress), total_lessons=3
+    )
+
+    assert progress.progress_percent == 33.33
 
 
 @pytest.mark.asyncio
@@ -178,7 +215,7 @@ async def test_update_from_event_updates_only_target_user_progress(session):
     event = LessonProgressUpdated(
         user_id=user_id,
         lesson_id=lesson_id,
-        progress=LessonProgressUpdateSchema(practice_completed_at=completed_at),
+        progress=LessonProgressUpdate(practice_completed_at=completed_at),
     )
     repository = SqlLessonProgressRepository(session)
 
@@ -215,7 +252,7 @@ async def test_update_from_event_preserves_completed_progress_parts(session):
     event = LessonProgressUpdated(
         user_id=course_progress.user_id,
         lesson_id=lesson_progress.lesson_id,
-        progress=LessonProgressUpdateSchema(test_completed_at=test_completed_at),
+        progress=LessonProgressUpdate(test_completed_at=test_completed_at),
     )
     repository = SqlLessonProgressRepository(session)
 
@@ -224,6 +261,21 @@ async def test_update_from_event_preserves_completed_progress_parts(session):
 
     assert lesson_progress.practice_completed_at == practice_completed_at
     assert lesson_progress.test_completed_at == test_completed_at
+
+
+@pytest.mark.asyncio
+async def test_update_from_event_does_not_create_unknown_lesson_progress(session):
+    """Не создает progress, если событие пришло для отсутствующего урока пользователя."""
+    event = LessonProgressUpdated(
+        user_id=uuid4(),
+        lesson_id=uuid4(),
+        progress=LessonProgressUpdate(theory_completed_at=datetime.now(timezone.utc)),
+    )
+    repository = SqlLessonProgressRepository(session)
+
+    await repository.update_from_event(event)
+
+    assert await repository.read_by_user_and_lesson(event.user_id, event.lesson_id) is None
 
 
 @pytest.mark.asyncio
@@ -258,7 +310,7 @@ async def test_update_course_progress_saves_calculated_percent(session):
         session=session,
     )
 
-    progress = await service.update_course_progress(user_id, course_id, total_lessons=2)
+    progress = await service.update_course_progress(CourseProgressMapper.from_model(course_progress), total_lessons=2)
 
     assert progress is not None
     assert progress.progress_percent == 50
@@ -343,7 +395,7 @@ async def test_update_marks_theory_completed_only_for_target_user(session):
     )
     completed_at = datetime.now(timezone.utc)
 
-    progress = await service.update(user_id, lesson_id, completed_at)
+    progress = await service.update(LessonProgressMapper.from_model(target_lesson_progress), completed_at)
     await session.refresh(target_lesson_progress)
     await session.refresh(other_lesson_progress)
 

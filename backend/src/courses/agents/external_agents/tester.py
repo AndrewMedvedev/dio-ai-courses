@@ -14,10 +14,9 @@ from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.services import SrvBaseClient
 from src.shared.utils.time import current_datetime
 
-from ...application.dtos import LessonProgressUpdateSchema
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
-from ...domain.events import LessonProgressUpdated
+from ...domain.events import LessonProgressUpdated, LessonProgressUpdate
 from ...domain.vo import PracticeStatus, TestType
 from ..prompts import ASSIGNMENT_PROMPT, KNOWLEDGE_CONFIG, TEST_CHECKER_PROMPT
 from ..schemas import AnyKnowledgeTest, PracticeResult
@@ -115,7 +114,7 @@ class TesterAgent:
                 LessonProgressUpdated(
                     user_id=practice_entity.user_id,
                     lesson_id=practice_entity.lesson_id,
-                    progress=LessonProgressUpdateSchema(test_completed_at=current_datetime()),
+                    progress=LessonProgressUpdate(test_completed_at=current_datetime()),
                 )
             )
         else:

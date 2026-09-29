@@ -1,9 +1,12 @@
 # pyright: reportArgumentType=false
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends
 
+from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.dependencies.database import DBSession
+from src.shared.domain.exceptions import NotFoundError
 
 from ..application.services.course import CourseService
 from ..application.services.document import DocumentService
@@ -11,6 +14,7 @@ from ..application.services.lesson import LessonService
 from ..application.services.module import ModuleService
 from ..application.services.progress import LearningProgressService
 from ..application.services.student import StudentService
+from ..domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from .base import (
     CourseRepoDep,
     CourseProgressRepoDep,
@@ -75,6 +79,39 @@ def get_learning_progress_service(
     )
 
 
+async def get_course_progress(
+    course_id: UUID,
+    identity: CurrentIdentity,
+    repo: CourseProgressRepoDep,
+) -> CourseProgress:
+    progress = await repo.read_by_user_and_course(identity.id, course_id)
+    if progress is None:
+        raise NotFoundError("Course progress was not found")
+    return progress
+
+
+async def get_module_progress(
+    module_id: UUID,
+    identity: CurrentIdentity,
+    repo: ModuleProgressRepoDep,
+) -> ModuleProgress:
+    progress = await repo.read_by_user_and_module(identity.id, module_id)
+    if progress is None:
+        raise NotFoundError("Module progress was not found")
+    return progress
+
+
+async def get_lesson_progress(
+    lesson_id: UUID,
+    identity: CurrentIdentity,
+    repo: LessonProgressRepoDep,
+) -> LessonProgress:
+    progress = await repo.read_by_user_and_lesson(identity.id, lesson_id)
+    if progress is None:
+        raise NotFoundError("Lesson progress was not found")
+    return progress
+
+
 LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
 ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]
 CourseServiceDep = Annotated[CourseService, Depends(get_course_service)]
@@ -83,3 +120,6 @@ StudentServiceDep = Annotated[StudentService, Depends(get_student_service)]
 LearningProgressServiceDep = Annotated[
     LearningProgressService, Depends(get_learning_progress_service)
 ]
+CourseProgressDep = Annotated[CourseProgress, Depends(get_course_progress)]
+ModuleProgressDep = Annotated[ModuleProgress, Depends(get_module_progress)]
+LessonProgressDep = Annotated[LessonProgress, Depends(get_lesson_progress)]
