@@ -59,7 +59,7 @@ async def test_create_checks_limit_saves_and_commits(
     assert feedback.comment == "Спасибо"
     pagination, filters = repository.find.await_args.args
     assert pagination == Pagination(page=1, size=1)
-    assert filters.user_id == user_id
+    assert repository.find.await_args.kwargs == {"user_id": user_id}
     assert before <= filters.created_after <= after
     repository.create.assert_awaited_once_with(feedback)
     transaction.assert_awaited_once_with(feedback)
@@ -131,17 +131,3 @@ async def test_create_commits_and_publishes_registered_event(
     assert isinstance(events[0], FeedbackCreated)
     assert events[0].feedback_id == feedback.id
 
-
-@pytest.mark.asyncio
-async def test_get_feedbacks_forwards_filters(
-    service: FeedbackService, repository: AsyncMock, feedback: Feedback
-) -> None:
-    pagination = Pagination(page=2, size=3)
-    filters = FeedbackFilters(rating=5, sort="created_at:asc")
-    expected = Page.create([feedback], total=4, page=2, size=3)
-    repository.find.return_value = expected
-
-    result = await service.get_feedbacks(pagination=pagination, filters=filters)
-
-    assert result is expected
-    repository.find.assert_awaited_once_with(pagination, filters)

@@ -1,6 +1,7 @@
 from typing import Literal
 
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from sqlalchemy.dialects import postgresql
@@ -60,11 +61,30 @@ async def test_find_filters_active_feedbacks_and_sorts_by_date(
     compiled = kwargs["stmt"].compile(dialect=postgresql.dialect())
     sql = str(compiled)
     assert "feedbacks.deleted_at IS NULL" in sql
+    assert "feedbacks.user_id =" not in sql
     if rating is None:
         assert "feedbacks.rating =" not in sql
     else:
         assert "feedbacks.rating =" in sql
         assert rating in compiled.params.values()
+
+
+@pytest.mark.asyncio
+async def test_find_filters_by_internal_user_id(
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+    user_id: UUID,
+) -> None:
+    paginate = AsyncMock(return_value=Page.create([], total=0, page=1, size=1))
+    monkeypatch.setattr(repository_module, "paginate", paginate)
+    repository = SqlFeedbackRepository(mock_session)
+
+    await repository.find(Pagination(page=1, size=1), FeedbackFilters(), user_id=user_id)
+
+    statement = paginate.await_args.kwargs["stmt"]
+    compiled = statement.compile(dialect=postgresql.dialect())
+    assert "feedbacks.user_id =" in str(compiled)
+    assert user_id in compiled.params.values()
 
 
 @pytest.mark.asyncio

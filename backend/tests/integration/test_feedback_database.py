@@ -89,7 +89,8 @@ async def test_create_persists_feedback_and_enforces_daily_limit(
     assert stored.comment == "Отзыв 4"
     recent = await repository.find(
         Pagination(page=1, size=1),
-        FeedbackFilters(user_id=user_id, created_after=current_datetime() - timedelta(days=1)),
+        FeedbackFilters(created_after=current_datetime() - timedelta(days=1)),
+        user_id=user_id,
     )
     assert recent.total == 5
     assert publisher.publish_all.await_count == 5

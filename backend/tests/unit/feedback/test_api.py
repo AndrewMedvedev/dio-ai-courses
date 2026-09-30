@@ -42,19 +42,16 @@ async def test_post_uses_identity_not_client_fields(
 async def test_get_passes_filters_and_pagination(feedback: Feedback) -> None:
     pagination = Pagination(page=2, size=3)
     filters = FeedbackFilters(rating=5, sort="created_at:asc")
-    service = AsyncMock()
-    service.get_feedbacks.return_value = Page.create([feedback], total=4, page=2, size=3)
+    repo = AsyncMock()
+    repo.find.return_value = Page.create([feedback], total=4, page=2, size=3)
 
     response = await get_feedbacks(
-        service=service,
+        repo=repo,
         pagination=pagination,
         filters=filters,
     )
 
-    service.get_feedbacks.assert_awaited_once_with(
-        pagination=pagination,
-        filters=filters,
-    )
+    repo.find.assert_awaited_once_with(pagination, filters)
     assert response.total == 4
     assert response.page == 2
     assert response.items[0].id == feedback.id

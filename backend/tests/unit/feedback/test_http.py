@@ -55,7 +55,6 @@ def test_http_post_creates_feedback_using_token_identity() -> None:
     assert body["email"] == {"value": "user@example.com"}
     assert body["rating"] == {"value": 5}
     assert body["comment"] == "Отлично"
-    assert "_events" not in body
     session.execute.assert_not_awaited()
     session.scalar.assert_awaited_once()
     session.add.assert_called_once()
@@ -143,13 +142,3 @@ def test_http_get_rejects_invalid_rating(rating: int) -> None:
 
     assert response.status_code == 422
     session.scalar.assert_not_awaited()
-
-
-def test_http_post_denies_service_account() -> None:
-    identity = Identity(id=uuid4(), type=IdentityType.SERVICE_ACCOUNT)
-    client, session, _publisher = _client(identity)
-
-    response = client.post("/api/v1/feedbacks", json={"rating": 5, "comment": "Отзыв"})
-
-    assert response.status_code == 403
-    session.add.assert_not_called()

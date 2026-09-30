@@ -32,6 +32,7 @@ def test_create_schema_requires_comment() -> None:
 def test_feedback_filters_default_to_newest_first() -> None:
     filters = FeedbackFilters()
 
+    assert "user_id" not in FeedbackFilters.model_fields
     assert filters.rating is None
     assert filters.sort == "created_at:desc"
 

@@ -1,9 +1,10 @@
 from typing import Self
-from uuid import UUID
-from dataclasses import dataclass
 
-from src.shared.domain.entities import AggregateRoot
+from dataclasses import dataclass
+from uuid import UUID
+
 from src.iam.domain.vo import Email
+from src.shared.domain.entities import AggregateRoot
 
 from .constants import MAX_COMMENT_LENGTH
 from .events import FeedbackCreated

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 
 from src.shared.application.dtos import Page, Pagination
@@ -17,15 +19,17 @@ class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
         self,
         pagination: Pagination,
         filters: FeedbackFilters | None = None,
+        *,
+        user_id: UUID | None = None,
     ) -> Page[Feedback]:
         """Возвращает отзывы с применением фильтров."""
 
         stmt = select(self.model).where(self.model.deleted_at.is_(None))
 
-        if filters:
-            if filters.user_id is not None:
-                stmt = stmt.where(self.model.user_id == filters.user_id)
+        if user_id is not None:
+            stmt = stmt.where(self.model.user_id == user_id)
 
+        if filters:
             if filters.rating is not None:
                 stmt = stmt.where(self.model.rating == filters.rating)
 

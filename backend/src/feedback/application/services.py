@@ -2,7 +2,7 @@ from datetime import timedelta
 from uuid import UUID
 
 from src.iam.domain.vo import Email
-from src.shared.application.dtos import Page, Pagination
+from src.shared.application.dtos import Pagination
 from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import RateLimitExceededError
 from src.shared.utils.time import current_datetime
@@ -14,7 +14,7 @@ from .repos import FeedbackRepository
 
 
 class FeedbackService:
-    """Создаёт отзывы о платформе и выдаёт их администраторам."""
+    """Создаёт отзывы о платформе."""
 
     def __init__(
         self,
@@ -33,13 +33,13 @@ class FeedbackService:
         comment: str,
     ) -> Feedback:
         filters = FeedbackFilters(
-            user_id=user_id,
             created_after=current_datetime() - timedelta(days=1),
         )
 
         recent_feedbacks = await self._feedback_repo.find(
             Pagination(page=1, size=1),
             filters,
+            user_id=user_id,
         )
 
         if recent_feedbacks.total >= DAILY_FEEDBACK_LIMIT:
@@ -58,16 +58,3 @@ class FeedbackService:
         await self._transaction(feedback)
 
         return feedback
-
-    async def get_feedbacks(
-        self,
-        *,
-        pagination: Pagination,
-        filters: FeedbackFilters | None = None,
-    ) -> Page[Feedback]:
-        """Возвращает список отзывов с фильтрацией и пагинацией."""
-
-        return await self._feedback_repo.find(
-            pagination,
-            filters,
-        )

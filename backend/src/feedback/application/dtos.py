@@ -1,7 +1,6 @@
 from typing import Literal
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,7 +21,6 @@ class FeedbackCreate(BaseModel):
 class FeedbackFilters(BaseQueryParamFilters):
     """Фильтры отзывов."""
 
-    user_id: UUID | None = None
     rating: int | None = Field(default=None, ge=MIN_RATING, le=MAX_RATING)
     created_after: datetime | None = None
     created_before: datetime | None = None
