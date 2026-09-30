@@ -14,19 +14,19 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
     model = CourseProgressOrm
     model_mapper = CourseProgressMapper
 
-    async def read_by_user_and_course(self, user_id: UUID, course_id: UUID) -> CourseProgress | None:
+    async def get_by_user(self, user_id: UUID, resource_id: UUID) -> CourseProgress | None:
         stmt = select(self.model).where(
             self.model.user_id == user_id,
-            self.model.course_id == course_id,
+            self.model.course_id == resource_id,
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
 
-    async def exists_by_user_and_course(self, user_id: UUID, course_id: UUID) -> bool:
+    async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool:
         stmt = select(exists().where(
             self.model.user_id == user_id,
-            self.model.course_id == course_id,
+            self.model.course_id == resource_id,
         ))
         return bool(await self._session.scalar(stmt))
 

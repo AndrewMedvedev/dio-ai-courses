@@ -1,12 +1,13 @@
 # pyright: reportArgumentType=false
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends
 
-from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.dependencies.database import DBSession
 from src.shared.domain.exceptions import NotFoundError
 
+from ..application.repos import ProgressRepository
 from ..application.services.course import CourseService
 from ..application.services.document import DocumentService
 from ..application.services.lesson import LessonService
@@ -78,29 +79,14 @@ def get_learning_progress_service(
     )
 
 
-async def get_progress(
-    request: Request,
-    identity: CurrentIdentity,
-    course_repo: CourseProgressRepoDep,
-    module_repo: ModuleProgressRepoDep,
-    lesson_repo: LessonProgressRepoDep,
-) -> CourseProgress | ModuleProgress | LessonProgress:
-    path_params = request.path_params
-    progress: CourseProgress | ModuleProgress | LessonProgress | None
-    if "course_id" in path_params:
-        progress = await course_repo.read_by_user_and_course(identity.id, path_params["course_id"])
-        kind = "Course"
-    elif "module_id" in path_params:
-        progress = await module_repo.read_by_user_and_module(identity.id, path_params["module_id"])
-        kind = "Module"
-    elif "lesson_id" in path_params:
-        progress = await lesson_repo.read_by_user_and_lesson(identity.id, path_params["lesson_id"])
-        kind = "Lesson"
-    else:
-        raise RuntimeError("Progress route has no course, module or lesson ID")
-
+async def get_progress[ProgressT: CourseProgress | ModuleProgress | LessonProgress](
+    user_id: UUID,
+    resource_id: UUID,
+    repo: ProgressRepository[ProgressT],
+) -> ProgressT:
+    progress = await repo.get_by_user(user_id, resource_id)
     if progress is None:
-        raise NotFoundError(f"{kind} progress was not found")
+        raise NotFoundError("Progress was not found")
     return progress
 
 
@@ -112,6 +98,3 @@ StudentServiceDep = Annotated[StudentService, Depends(get_student_service)]
 LearningProgressServiceDep = Annotated[
     LearningProgressService, Depends(get_learning_progress_service)
 ]
-CourseProgressDep = Annotated[CourseProgress, Depends(get_progress)]
-ModuleProgressDep = Annotated[ModuleProgress, Depends(get_progress)]
-LessonProgressDep = Annotated[LessonProgress, Depends(get_progress)]

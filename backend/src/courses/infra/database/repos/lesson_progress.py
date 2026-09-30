@@ -14,24 +14,26 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
     model = LessonProgressOrm
     model_mapper = LessonProgressMapper
 
-    async def read_by_user_and_lesson(self, user_id: UUID, lesson_id: UUID) -> LessonProgress | None:
+    async def get_by_user(self, user_id: UUID, resource_id: UUID) -> LessonProgress | None:
         stmt = (
             select(self.model)
             .join(self.model.module_progress)
             .join(ModuleProgressOrm.course_progress)
             .where(
                 CourseProgressOrm.user_id == user_id,
-                self.model.lesson_id == lesson_id,
+                self.model.lesson_id == resource_id,
             )
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return None if model is None else self.model_mapper.from_model(model)
 
-    async def exists_by_module_and_lesson(self, module_progress_id: UUID, lesson_id: UUID) -> bool:
+    async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool:
         stmt = select(exists().where(
-            self.model.module_progress_id == module_progress_id,
-            self.model.lesson_id == lesson_id,
+            self.model.module_progress.has(
+                ModuleProgressOrm.course_progress.has(user_id=user_id)
+            ),
+            self.model.lesson_id == resource_id,
         ))
         return bool(await self._session.scalar(stmt))
 

@@ -13,8 +13,8 @@ from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies.database import DBSession
 from src.shared.utils.time import current_datetime
 
-from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep
-from ...dependencies.services import CourseProgressDep, LearningProgressServiceDep, LessonProgressDep, ModuleProgressDep
+from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep, ModuleProgressRepoDep
+from ...dependencies.services import LearningProgressServiceDep, get_progress
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.events import LessonProgressUpdated
 from ...domain.permissions.courses import COURSE_READ, UPDATE
@@ -51,9 +51,11 @@ async def create_course_progress(
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_course_progress(
-    progress: CourseProgressDep,
+    course_id: UUID,
+    identity: CurrentIdentity,
+    repo: CourseProgressRepoDep,
 ) -> CourseProgress:
-    return progress
+    return await get_progress(identity.id, course_id, repo)
 
 
 @router.patch(
@@ -63,10 +65,13 @@ async def read_course_progress(
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def update_course_progress(
+    course_id: UUID,
     total_lessons: int,
-    progress: CourseProgressDep,
+    identity: CurrentIdentity,
+    repo: CourseProgressRepoDep,
     service: LearningProgressServiceDep,
 ) -> CourseProgress:
+    progress = await get_progress(identity.id, course_id, repo)
     return await service.update_course_progress(progress, total_lessons)
 
 
@@ -108,9 +113,11 @@ async def create_module_progress(
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_module_progress(
-    progress: ModuleProgressDep,
+    module_id: UUID,
+    identity: CurrentIdentity,
+    repo: ModuleProgressRepoDep,
 ) -> ModuleProgress:
-    return progress
+    return await get_progress(identity.id, module_id, repo)
 
 
 @router.post(
@@ -136,9 +143,11 @@ async def create_lesson_progress(
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def read_lesson_progress(
-    progress: LessonProgressDep,
+    lesson_id: UUID,
+    identity: CurrentIdentity,
+    repo: LessonProgressRepoDep,
 ) -> LessonProgress:
-    return progress
+    return await get_progress(identity.id, lesson_id, repo)
 
 
 @router.patch(
@@ -148,9 +157,12 @@ async def read_lesson_progress(
     dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def mark_lesson_theory_completed(
-    progress: LessonProgressDep,
+    lesson_id: UUID,
+    identity: CurrentIdentity,
+    repo: LessonProgressRepoDep,
     service: LearningProgressServiceDep,
 ) -> LessonProgress:
+    progress = await get_progress(identity.id, lesson_id, repo)
     return await service.update(
         progress,
         theory_completed_at=current_datetime(),

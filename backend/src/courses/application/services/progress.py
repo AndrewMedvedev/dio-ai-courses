@@ -30,7 +30,7 @@ class LearningProgressService:
 
     async def create_course_progress(self, user_id: UUID, course_id: UUID) -> CourseProgress:
         """Создаёт прогресс курса для записанного на него пользователя."""
-        if await self._course_progress_repo.exists_by_user_and_course(user_id, course_id):
+        if await self._course_progress_repo.exist_by_user(user_id, course_id):
             raise AlreadyExistsError(f"Course progress for user {user_id} already exists")
         progress = await self._course_progress_repo.create(CourseProgress(user_id=user_id, course_id=course_id))
         await self._session.commit()
@@ -45,10 +45,10 @@ class LearningProgressService:
 
     async def create_module_progress(self, user_id: UUID, course_id: UUID, module_id: UUID) -> ModuleProgress:
         """Создаёт запись прогресса модуля внутри существующего прогресса курса."""
-        course_progress = await self._course_progress_repo.read_by_user_and_course(user_id, course_id)
+        course_progress = await self._course_progress_repo.get_by_user(user_id, course_id)
         if course_progress is None:
             raise NotFoundError("Course progress was not found")
-        if await self._module_progress_repo.exists_by_course_progress_and_module(course_progress.id, module_id):
+        if await self._module_progress_repo.exist_by_user(user_id, module_id):
             raise AlreadyExistsError(f"Module progress for module {module_id} already exists")
         progress = await self._module_progress_repo.create(
             ModuleProgress(course_progress_id=course_progress.id, module_id=module_id)
@@ -58,10 +58,10 @@ class LearningProgressService:
 
     async def create_lesson_progress(self, user_id: UUID, module_id: UUID, lesson_id: UUID) -> LessonProgress:
         """Создаёт запись прогресса урока внутри существующего прогресса модуля."""
-        module_progress = await self._module_progress_repo.read_by_user_and_module(user_id, module_id)
+        module_progress = await self._module_progress_repo.get_by_user(user_id, module_id)
         if module_progress is None:
             raise NotFoundError("Module progress was not found")
-        if await self._progress_repo.exists_by_module_and_lesson(module_progress.id, lesson_id):
+        if await self._progress_repo.exist_by_user(user_id, lesson_id):
             raise AlreadyExistsError(f"Lesson progress for lesson {lesson_id} already exists")
         progress = await self._progress_repo.create(
             LessonProgress(module_progress_id=module_progress.id, lesson_id=lesson_id)
