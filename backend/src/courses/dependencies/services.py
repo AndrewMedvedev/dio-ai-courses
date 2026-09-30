@@ -1,8 +1,7 @@
 # pyright: reportArgumentType=false
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.dependencies.database import DBSession
@@ -79,36 +78,29 @@ def get_learning_progress_service(
     )
 
 
-async def get_course_progress(
-    course_id: UUID,
+async def get_progress(
+    request: Request,
     identity: CurrentIdentity,
-    repo: CourseProgressRepoDep,
-) -> CourseProgress:
-    progress = await repo.read_by_user_and_course(identity.id, course_id)
+    course_repo: CourseProgressRepoDep,
+    module_repo: ModuleProgressRepoDep,
+    lesson_repo: LessonProgressRepoDep,
+) -> CourseProgress | ModuleProgress | LessonProgress:
+    path_params = request.path_params
+    progress: CourseProgress | ModuleProgress | LessonProgress | None
+    if "course_id" in path_params:
+        progress = await course_repo.read_by_user_and_course(identity.id, path_params["course_id"])
+        kind = "Course"
+    elif "module_id" in path_params:
+        progress = await module_repo.read_by_user_and_module(identity.id, path_params["module_id"])
+        kind = "Module"
+    elif "lesson_id" in path_params:
+        progress = await lesson_repo.read_by_user_and_lesson(identity.id, path_params["lesson_id"])
+        kind = "Lesson"
+    else:
+        raise RuntimeError("Progress route has no course, module or lesson ID")
+
     if progress is None:
-        raise NotFoundError("Course progress was not found")
-    return progress
-
-
-async def get_module_progress(
-    module_id: UUID,
-    identity: CurrentIdentity,
-    repo: ModuleProgressRepoDep,
-) -> ModuleProgress:
-    progress = await repo.read_by_user_and_module(identity.id, module_id)
-    if progress is None:
-        raise NotFoundError("Module progress was not found")
-    return progress
-
-
-async def get_lesson_progress(
-    lesson_id: UUID,
-    identity: CurrentIdentity,
-    repo: LessonProgressRepoDep,
-) -> LessonProgress:
-    progress = await repo.read_by_user_and_lesson(identity.id, lesson_id)
-    if progress is None:
-        raise NotFoundError("Lesson progress was not found")
+        raise NotFoundError(f"{kind} progress was not found")
     return progress
 
 
@@ -120,6 +112,6 @@ StudentServiceDep = Annotated[StudentService, Depends(get_student_service)]
 LearningProgressServiceDep = Annotated[
     LearningProgressService, Depends(get_learning_progress_service)
 ]
-CourseProgressDep = Annotated[CourseProgress, Depends(get_course_progress)]
-ModuleProgressDep = Annotated[ModuleProgress, Depends(get_module_progress)]
-LessonProgressDep = Annotated[LessonProgress, Depends(get_lesson_progress)]
+CourseProgressDep = Annotated[CourseProgress, Depends(get_progress)]
+ModuleProgressDep = Annotated[ModuleProgress, Depends(get_progress)]
+LessonProgressDep = Annotated[LessonProgress, Depends(get_progress)]
