@@ -27,7 +27,7 @@ async def test_read_by_returns_saved_user_course_progress(session):
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
-    progress = await repository.read_by_user_and_course(user_id, course_id)
+    progress = await repository.get_by_user(user_id, course_id)
 
     assert progress is not None
     assert progress.id == course_progress.id
@@ -46,7 +46,7 @@ async def test_read_by_does_not_return_other_user_course_progress(session):
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
-    progress = await repository.read_by_user_and_course(uuid4(), course_progress.course_id)
+    progress = await repository.get_by_user(uuid4(), course_progress.course_id)
 
     assert progress is None
 
@@ -69,7 +69,7 @@ async def test_read_by_does_not_return_other_user_module_progress(session):
     await session.flush()
     repository = SqlModuleProgressRepository(session)
 
-    progress = await repository.read_by_user_and_module(uuid4(), module_id)
+    progress = await repository.get_by_user(uuid4(), module_id)
 
     assert progress is None
 
@@ -275,7 +275,7 @@ async def test_update_from_event_does_not_create_unknown_lesson_progress(session
 
     await repository.update_from_event(event)
 
-    assert await repository.read_by_user_and_lesson(event.user_id, event.lesson_id) is None
+    assert await repository.get_by_user(event.user_id, event.lesson_id) is None
 
 
 @pytest.mark.asyncio

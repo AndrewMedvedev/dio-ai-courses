@@ -1,12 +1,11 @@
 from unittest.mock import AsyncMock
-from types import SimpleNamespace
 from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
 
 from src.courses.application.services.progress import LearningProgressService
-from src.courses.dependencies.services import get_course_progress, get_lesson_progress, get_module_progress
+from src.courses.dependencies.services import get_progress
 from src.courses.domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
@@ -52,11 +51,11 @@ class TestLearningProgressService:
         """Создаёт прогресс курса для текущего пользователя."""
         user_id = uuid4()
         course_id = uuid4()
-        course_progress_repo.exists_by_user_and_course.return_value = False
+        course_progress_repo.exist_by_user.return_value = False
 
         await service.create_course_progress(user_id, course_id)
 
-        course_progress_repo.exists_by_user_and_course.assert_awaited_once_with(user_id, course_id)
+        course_progress_repo.exist_by_user.assert_awaited_once_with(user_id, course_id)
         progress = course_progress_repo.create.await_args.args[0]
         assert progress.user_id == user_id
         assert progress.course_id == course_id
@@ -64,7 +63,7 @@ class TestLearningProgressService:
 
     @pytest.mark.asyncio
     async def test_create_course_progress_rejects_duplicate(self, service, course_progress_repo, session):
-        course_progress_repo.exists_by_user_and_course.return_value = True
+        course_progress_repo.exist_by_user.return_value = True
 
         with pytest.raises(AlreadyExistsError):
             await service.create_course_progress(uuid4(), uuid4())
@@ -78,39 +77,42 @@ class TestLearningProgressService:
         user_id = uuid4()
         course_id = uuid4()
         progress = CourseProgress(user_id=user_id, course_id=course_id)
-        course_progress_repo.read_by_user_and_course.return_value = progress
+        course_progress_repo.get_by_user.return_value = progress
 
-        result = await get_course_progress(course_id, SimpleNamespace(id=user_id), course_progress_repo)
+        result = await get_progress(user_id, course_id, course_progress_repo)
 
         assert result == progress
-        course_progress_repo.read_by_user_and_course.assert_awaited_once_with(user_id, course_id)
+        course_progress_repo.get_by_user.assert_awaited_once_with(user_id, course_id)
 
     @pytest.mark.asyncio
-    async def test_read_course_progress_raises_when_not_found(self, course_progress_repo):
+    async def test_read_course_progress_raises_when_not_found(
+        self, course_progress_repo
+    ):
         """Сообщает об отсутствии прогресса курса."""
-        course_progress_repo.read_by_user_and_course.return_value = None
-
-        with pytest.raises(NotFoundError, match="Course progress was not found"):
-            await get_course_progress(uuid4(), SimpleNamespace(id=uuid4()), course_progress_repo)
+        course_progress_repo.get_by_user.return_value = None
+        with pytest.raises(NotFoundError, match="Progress was not found"):
+            await get_progress(uuid4(), uuid4(), course_progress_repo)
 
     @pytest.mark.asyncio
     async def test_read_module_progress(self, module_progress_repo):
         user_id = uuid4()
         module_id = uuid4()
         progress = ModuleProgress(course_progress_id=uuid4(), module_id=module_id)
-        module_progress_repo.read_by_user_and_module.return_value = progress
+        module_progress_repo.get_by_user.return_value = progress
 
-        result = await get_module_progress(module_id, SimpleNamespace(id=user_id), module_progress_repo)
+        result = await get_progress(user_id, module_id, module_progress_repo)
 
         assert result == progress
-        module_progress_repo.read_by_user_and_module.assert_awaited_once_with(user_id, module_id)
+        module_progress_repo.get_by_user.assert_awaited_once_with(user_id, module_id)
 
     @pytest.mark.asyncio
-    async def test_read_module_progress_raises_when_not_found(self, module_progress_repo):
-        module_progress_repo.read_by_user_and_module.return_value = None
+    async def test_read_module_progress_raises_when_not_found(
+        self, module_progress_repo
+    ):
+        module_progress_repo.get_by_user.return_value = None
 
-        with pytest.raises(NotFoundError, match="Module progress was not found"):
-            await get_module_progress(uuid4(), SimpleNamespace(id=uuid4()), module_progress_repo)
+        with pytest.raises(NotFoundError, match="Progress was not found"):
+            await get_progress(uuid4(), uuid4(), module_progress_repo)
 
     @pytest.mark.asyncio
     async def test_update_course_progress(self, service, course_progress_repo, session):
@@ -154,16 +156,16 @@ class TestLearningProgressService:
         course_id = uuid4()
         module_id = uuid4()
         course_progress = CourseProgress(user_id=user_id, course_id=course_id)
-        course_progress_repo.read_by_user_and_course.return_value = course_progress
-        module_progress_repo.exists_by_course_progress_and_module.return_value = False
+        course_progress_repo.get_by_user.return_value = course_progress
+        module_progress_repo.exist_by_user.return_value = False
 
         await service.create_module_progress(user_id, course_id, module_id)
 
         progress = module_progress_repo.create.await_args.args[0]
         assert progress.course_progress_id == course_progress.id
         assert progress.module_id == module_id
-        course_progress_repo.read_by_user_and_course.assert_awaited_once_with(user_id, course_id)
-        module_progress_repo.exists_by_course_progress_and_module.assert_awaited_once_with(course_progress.id, module_id)
+        course_progress_repo.get_by_user.assert_awaited_once_with(user_id, course_id)
+        module_progress_repo.exist_by_user.assert_awaited_once_with(user_id, module_id)
         session.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -171,13 +173,13 @@ class TestLearningProgressService:
         self, service, course_progress_repo, module_progress_repo, session
     ):
         """Не создаёт прогресс модуля без прогресса курса."""
-        course_progress_repo.read_by_user_and_course.return_value = None
+        course_progress_repo.get_by_user.return_value = None
 
         with pytest.raises(NotFoundError, match="Course progress was not found"):
             await service.create_module_progress(uuid4(), uuid4(), uuid4())
 
         module_progress_repo.create.assert_not_awaited()
-        module_progress_repo.exists_by_course_progress_and_module.assert_not_awaited()
+        module_progress_repo.exist_by_user.assert_not_awaited()
         session.commit.assert_not_awaited()
 
     @pytest.mark.asyncio
@@ -188,13 +190,13 @@ class TestLearningProgressService:
         course_id = uuid4()
         module_id = uuid4()
         course_progress = CourseProgress(user_id=user_id, course_id=course_id)
-        course_progress_repo.read_by_user_and_course.return_value = course_progress
-        module_progress_repo.exists_by_course_progress_and_module.return_value = True
+        course_progress_repo.get_by_user.return_value = course_progress
+        module_progress_repo.exist_by_user.return_value = True
 
         with pytest.raises(AlreadyExistsError):
             await service.create_module_progress(user_id, course_id, module_id)
 
-        module_progress_repo.exists_by_course_progress_and_module.assert_awaited_once_with(course_progress.id, module_id)
+        module_progress_repo.exist_by_user.assert_awaited_once_with(user_id, module_id)
         module_progress_repo.create.assert_not_awaited()
         session.commit.assert_not_awaited()
 
@@ -205,16 +207,16 @@ class TestLearningProgressService:
         module_id = uuid4()
         lesson_id = uuid4()
         module_progress = ModuleProgress(course_progress_id=uuid4(), module_id=module_id)
-        module_progress_repo.read_by_user_and_module.return_value = module_progress
-        progress_repo.exists_by_module_and_lesson.return_value = False
+        module_progress_repo.get_by_user.return_value = module_progress
+        progress_repo.exist_by_user.return_value = False
 
         await service.create_lesson_progress(user_id, module_id, lesson_id)
 
         progress = progress_repo.create.await_args.args[0]
         assert progress.module_progress_id == module_progress.id
         assert progress.lesson_id == lesson_id
-        module_progress_repo.read_by_user_and_module.assert_awaited_once_with(user_id, module_id)
-        progress_repo.exists_by_module_and_lesson.assert_awaited_once_with(module_progress.id, lesson_id)
+        module_progress_repo.get_by_user.assert_awaited_once_with(user_id, module_id)
+        progress_repo.exist_by_user.assert_awaited_once_with(user_id, lesson_id)
         session.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -222,8 +224,8 @@ class TestLearningProgressService:
         self, service, module_progress_repo, progress_repo, session
     ):
         module_progress = ModuleProgress(course_progress_id=uuid4(), module_id=uuid4())
-        module_progress_repo.read_by_user_and_module.return_value = module_progress
-        progress_repo.exists_by_module_and_lesson.return_value = True
+        module_progress_repo.get_by_user.return_value = module_progress
+        progress_repo.exist_by_user.return_value = True
 
         with pytest.raises(AlreadyExistsError):
             await service.create_lesson_progress(uuid4(), module_progress.module_id, uuid4())
@@ -236,7 +238,7 @@ class TestLearningProgressService:
         self, service, module_progress_repo, progress_repo, session
     ):
         """Не создаёт прогресс урока без прогресса модуля."""
-        module_progress_repo.read_by_user_and_module.return_value = None
+        module_progress_repo.get_by_user.return_value = None
 
         with pytest.raises(NotFoundError, match="Module progress was not found"):
             await service.create_lesson_progress(uuid4(), uuid4(), uuid4())
@@ -250,20 +252,21 @@ class TestLearningProgressService:
         user_id = uuid4()
         lesson_id = uuid4()
         progress = LessonProgress(module_progress_id=uuid4(), lesson_id=lesson_id)
-        progress_repo.read_by_user_and_lesson.return_value = progress
+        progress_repo.get_by_user.return_value = progress
 
-        result = await get_lesson_progress(lesson_id, SimpleNamespace(id=user_id), progress_repo)
+        result = await get_progress(user_id, lesson_id, progress_repo)
 
         assert result == progress
-        progress_repo.read_by_user_and_lesson.assert_awaited_once_with(user_id, lesson_id)
+        progress_repo.get_by_user.assert_awaited_once_with(user_id, lesson_id)
 
     @pytest.mark.asyncio
-    async def test_read_lesson_progress_raises_when_not_found(self, progress_repo):
+    async def test_read_lesson_progress_raises_when_not_found(
+        self, progress_repo
+    ):
         """Сообщает об отсутствии прогресса урока."""
-        progress_repo.read_by_user_and_lesson.return_value = None
-
-        with pytest.raises(NotFoundError, match="Lesson progress was not found"):
-            await get_lesson_progress(uuid4(), SimpleNamespace(id=uuid4()), progress_repo)
+        progress_repo.get_by_user.return_value = None
+        with pytest.raises(NotFoundError, match="Progress was not found"):
+            await get_progress(uuid4(), uuid4(), progress_repo)
 
     @pytest.mark.asyncio
     async def test_update_lesson_progress(self, service, progress_repo, session):
