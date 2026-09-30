@@ -5,7 +5,7 @@ class ContentType(StrEnum):
     """Тип контента внутри блока."""
 
     TEXT = auto()  # Текстовый контент / лекция
-    # IMAGE = auto()  # Изображение
+    IMAGE = auto()  # Изображение
     PROGRAM_CODE = auto()  # Пример кода
     MERMAID = auto()  # Mermaid диаграмма
     QUIZ = auto()  # Вопросы для самопроверки
@@ -64,6 +64,12 @@ class DocumentNodeType(StrEnum):
     TOC = auto()
     HEADING = auto()
     TEXT = auto()
+
+
+class MemberRole(StrEnum):
+    TEACHER = auto()  # Преподаватель
+    MODERATOR = auto()  # Модератор
+    STUDENT = auto()  # Студент
 
 
 class TestType(StrEnum):

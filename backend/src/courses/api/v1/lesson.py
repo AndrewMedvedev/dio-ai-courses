@@ -8,17 +8,15 @@ from src.iam.dependencies import require_permissions
 from ...application.dtos import EditLessonSchema, LessonSchema
 from ...dependencies.services import LessonServiceDep
 from ...domain.entities import AnyContentBlock, Lesson
-from ...domain.permissions.courses import COURSE_READ, CREATE, DELETE, UPDATE
+from ...domain.permissions.courses import CREATE, DELETE, READ, UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/lessons", tags=["Lessons"])
+router = APIRouter(prefix="/lesson", tags=["Lesson"])
 
 
 @router.post(
-    "",
-    summary="Создать урок",
-    description="Создаёт урок. При передаче идентификатора модуля сразу связывает урок с этим модулем.",
+    "/create",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -31,9 +29,7 @@ async def create(
 
 
 @router.post(
-    "/{lesson_id}/modules/{module_id}",
-    summary="Привязать урок к модулю",
-    description="Связывает существующий урок с указанным модулем.",
+    "/assign/{lesson_id}/{module_id}",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -46,11 +42,9 @@ async def assign(
 
 
 @router.get(
-    "/{lesson_id}",
-    summary="Получить информацию об уроке",
-    description="Возвращает основную информацию об уроке без содержимого теоретических блоков.",
+    "/basic/info/{lesson_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get_lesson_basic_info(
     service: LessonServiceDep,
@@ -60,11 +54,9 @@ async def get_lesson_basic_info(
 
 
 @router.get(
-    "/{lesson_id}/theory",
-    summary="Получить теоретический материал урока",
-    description="Возвращает блоки теоретического содержимого указанного урока.",
+    "/theory/{lesson_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get_theory(
     service: LessonServiceDep,
@@ -74,9 +66,7 @@ async def get_theory(
 
 
 @router.put(
-    "/{lesson_id}",
-    summary="Обновить урок",
-    description="Обновляет переданные поля урока. Неуказанные поля остаются без изменений.",
+    "/edit/{lesson_id}",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -89,9 +79,7 @@ async def edit_lesson(
 
 
 @router.put(
-    "/{lesson_id}/content-blocks",
-    summary="Обновить блоки содержимого урока",
-    description="Полностью заменяет набор блоков теоретического содержимого урока.",
+    "/update/{lesson_id}",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
@@ -105,8 +93,6 @@ async def update_lesson_content_blocks(
 
 @router.delete(
     "/{lesson_id}",
-    summary="Удалить урок",
-    description="Удаляет урок и связанные с ним данные.",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

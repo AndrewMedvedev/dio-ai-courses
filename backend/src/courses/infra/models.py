@@ -13,7 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    Float,
+    String,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -28,6 +28,7 @@ from ..domain.vo import (
     CourseStatus,
     DifficultyLevel,
     DocumentNodeType,
+    MemberRole,
     PracticeStatus,
 )
 from .types import ContentBlockListType
@@ -52,7 +53,7 @@ class CourseOrm(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    students: Mapped[list[StudentOrm]] = relationship(back_populates="course")
+    members: Mapped[list[MemberOrm]] = relationship(back_populates="course")
 
 
 class ModuleOrm(Base):
@@ -122,79 +123,6 @@ class LessonTheorySessionOrm(Base):
     max_scroll_depth_percent: Mapped[int] = mapped_column(default=0)
 
 
-class CourseProgressOrm(Base):
-    __tablename__ = "course_progress"
-
-    user_id: Mapped[UUID]
-    progress_percent: Mapped[float] = mapped_column(Float, default=0)
-    course_id: Mapped[UUID]
-    module_progresses: Mapped[list[ModuleProgressOrm]] = relationship(
-        back_populates="course_progress",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
-    __table_args__ = (
-        UniqueConstraint("user_id", "course_id", name="uq_course_progress_user_course"),
-    )
-
-
-class ModuleProgressOrm(Base):
-    __tablename__ = "module_progress"
-
-    course_progress_id: Mapped[UUID] = mapped_column(
-        ForeignKey("course_progress.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    module_id: Mapped[UUID]
-    course_progress: Mapped[CourseProgressOrm] = relationship(
-        back_populates="module_progresses"
-    )
-    lesson_progresses: Mapped[list[LessonProgressOrm]] = relationship(
-        back_populates="module_progress",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
-    __table_args__ = (
-        UniqueConstraint(
-            "course_progress_id",
-            "module_id",
-            name="uq_module_progress_course_module",
-        ),
-        Index("ix_module_progress_course_progress_id", "course_progress_id"),
-    )
-
-
-class LessonProgressOrm(Base):
-    __tablename__ = "lesson_progress"
-
-    module_progress_id: Mapped[UUID] = mapped_column(
-        ForeignKey("module_progress.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    lesson_id: Mapped[UUID]
-    theory_completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
-    practice_completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
-    test_completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
-    module_progress: Mapped[ModuleProgressOrm] = relationship(
-        back_populates="lesson_progresses"
-    )
-    __table_args__ = (
-        UniqueConstraint(
-            "module_progress_id",
-            "lesson_id",
-            name="uq_lesson_progress_module_lesson",
-        ),
-    )
-
-
 class ChatOrm(Base):
     __tablename__ = "chats"
 
@@ -203,17 +131,19 @@ class ChatOrm(Base):
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 
-class StudentOrm(Base):
-    __tablename__ = "students"
+class MemberOrm(Base):
+    __tablename__ = "members"
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))
+    role: Mapped[MemberRole] = mapped_column(String)
+
     user_id: Mapped[UUID]
 
-    course: Mapped[CourseOrm] = relationship(back_populates="students")
+    course: Mapped[CourseOrm] = relationship(back_populates="members")
 
     __table_args__ = (
-        UniqueConstraint("course_id", "user_id", name="uq_student"),
-        Index("ix_students_user_id", "user_id"),
+        UniqueConstraint("course_id", "user_id", name="uq_member"),
+        Index("ix_members_user_id", "user_id"),
     )
 
 

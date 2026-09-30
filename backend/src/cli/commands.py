@@ -4,7 +4,7 @@ from importlib import import_module
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import session_factory
-from src.core.settings import settings
+from src.core.settings import super_admin_config
 from src.iam.domain.entities import Membership, Permission, Role, User
 from src.iam.domain.permissions.registry import get_permissions
 from src.iam.domain.types import RoleId
@@ -48,7 +48,7 @@ def _build_admin_user(admin_email: Email) -> User:
         email=admin_email,
         username=Username("admin"),
         full_name=FullName("System Admin"),
-        password_hash=SecretHash(hash_password(settings.admin.password)),
+        password_hash=SecretHash(hash_password(super_admin_config.password)),
     )
 
 
@@ -140,7 +140,7 @@ async def create_first_admin() -> None:
 
     async with session_factory() as session:
         user_repo = SqlUserRepository(session)
-        admin_email = Email(settings.admin.email)
+        admin_email = Email(super_admin_config.email)
 
         exists = await user_repo.get_by_email(admin_email)
         if exists:
@@ -179,7 +179,7 @@ async def create_default_organization() -> None:
         organization_repo = SqlOrganizationRepository(session)
         membership_repo = SqlMembershipRepository(session)
 
-        admin_email = Email(settings.admin.email)
+        admin_email = Email(super_admin_config.email)
         user_email = Email("user@user.com")
 
         admin = await user_repo.get_by_email(admin_email)
@@ -193,11 +193,11 @@ async def create_default_organization() -> None:
             await user_repo.create(user)
             logger.info("First admin created successfully")
 
-        organization = await organization_repo.get_by_email(settings.admin.email)
+        organization = await organization_repo.get_by_email(super_admin_config.email)
         if organization is None:
             organization = Organization(
-                name=settings.app.name,
-                email=settings.admin.email,
+                name="Master Organization",
+                email=super_admin_config.email,
                 description="Default system organization.",
             )
             await organization_repo.create(organization)

@@ -7,7 +7,6 @@ import aiohttp
 from fastapi import status
 from pydantic import BaseModel
 
-from ..middlewares import create_request_id_trace_config
 from .config import SrvBaseConfig
 from .exceptions import SrvBaseError
 
@@ -50,7 +49,6 @@ class SrvBaseClient:
                 base_url=str(self._config.base_url).rstrip("/"),
                 timeout=timeout,
                 connector=connector,
-                trace_configs=[create_request_id_trace_config()],
             )
 
         yield self._session

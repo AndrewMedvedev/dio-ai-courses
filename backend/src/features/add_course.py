@@ -51,6 +51,7 @@ COURSE_JSON_FILES = [
     PROJECT_ROOT / "course_digital_marketing.json",
     PROJECT_ROOT / "course_personal_finance.json",
     PROJECT_ROOT / "course_python_basics.json",
+    PROJECT_ROOT / "course_result.json",
 ]
 
 # ===================================================================

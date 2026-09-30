@@ -1,8 +1,7 @@
 import logging
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
@@ -15,13 +14,11 @@ from ...domain.permissions.courses import UPDATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/students", tags=["Students"])
+router = APIRouter(prefix="/student", tags=["Student"])
 
 
 @router.post(
-    "/{course_id}/enroll",
-    summary="Записаться на курс",
-    description="Записывает текущего пользователя на указанный курс.",
+    "/{course_id}/sign",
     status_code=status.HTTP_201_CREATED,
 )
 async def sign_up(
@@ -32,30 +29,26 @@ async def sign_up(
     return await service.sign_course(user_id=identity.id, course_id=course_id)
 
 
-@router.get(
-    "",
-    summary="Получить мои курсы",
-    description="Возвращает постраничный список курсов, на которые записан текущий пользователь.",
+@router.post(
+    "/",
     status_code=status.HTTP_200_OK,
 )
 async def get_courses(
     service: StudentServiceDep,
     identity: CurrentIdentity,
-    pagination: Annotated[Pagination, Query()],
+    pagination: Pagination,
 ) -> Page[Course]:
     return await service.get_my_courses(identity.id, pagination)
 
 
-@router.get(
+@router.post(
     "/{course_id}",
-    summary="Получить список студентов курса",
-    description="Возвращает постраничный список пользователей, записанных на указанный курс.",
     dependencies=[Depends(require_permissions(UPDATE.code))],
     status_code=status.HTTP_200_OK,
 )
 async def get_course_students(
     course_id: UUID,
     repo: StudentRepoDep,
-    pagination: Annotated[Pagination, Query()],
+    pagination: Pagination,
 ) -> Page[Student]:
     return await repo.find_by_course(course_id, pagination)

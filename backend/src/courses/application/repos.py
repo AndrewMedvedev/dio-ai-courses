@@ -1,5 +1,3 @@
-# ruff: file-ignore[unnecessary-placeholder]
-
 """
 Протоколы (Protocol) для репозиториев.
 
@@ -25,26 +23,21 @@ from uuid import UUID
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.repos import Repository
 
-# Поправьте пути импортов под структуру своего проекта при необходимости.
 from ..domain.entities import (
     AnyContentBlock,
     BasicInfo,
     Chat,
     Course,
     CourseBasicInfo,
-    CourseProgress,
     Document,
     Entity,
     Lesson,
     LessonBasicInfo,
-    LessonProgress,
+    Member,
     Module,
     ModuleBasicInfo,
-    ModuleProgress,
     Practice,
-    Student,
 )
-from ..domain.events import LessonProgressUpdated
 
 
 class BasicInfoProtocol[EntityT: Entity, BasicInfoT](Repository[EntityT]):
@@ -101,7 +94,6 @@ class ModuleRepository(BasicInfoProtocol[Module, ModuleBasicInfo]):
 
     async def assign_course(self, module_id: UUID, course_id: UUID) -> None:
         """Привязывает модуль к курсу и сохраняет структуру курса."""
-        ...
 
     async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
         """Выбирает краткие данные уроков, входящих в указанный модуль."""
@@ -224,24 +216,5 @@ class PracticeRepository(Repository[Practice]):
         ...
 
 
-class ProgressRepository[ProgressT: Entity](Repository[ProgressT]):
-    async def get_by_user(self, user_id: UUID, resource_id: UUID) -> ProgressT | None: ...
-
-    async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool: ...
-
-
-class LessonProgressRepository(ProgressRepository[LessonProgress]):
-    async def update_from_event(self, event: LessonProgressUpdated) -> None: ...
-
-
-class ModuleProgressRepository(ProgressRepository[ModuleProgress]): ...
-
-
-class CourseProgressRepository(ProgressRepository[CourseProgress]):
-    async def count_completed_lessons(self, course_progress_id: UUID) -> int: ...
-
-    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
-
-
-class StudentRepository(Repository[Student]):
-    async def read(self, user_id: UUID, course_id: UUID) -> Student | None: ...
+class MemberRepository(Repository[Member]):
+    async def read(self, user_id: UUID, course_id: UUID) -> Member | None: ...

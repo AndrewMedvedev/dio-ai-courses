@@ -7,7 +7,7 @@ from uuid import uuid4
 from fastembed.sparse import SparseTextEmbedding
 from qdrant_client import AsyncQdrantClient, models
 
-from src.core.retrieval_components import embed, rerank
+from src.core.retrieval import embed, rerank
 
 from ..dependencies.base import splitter
 

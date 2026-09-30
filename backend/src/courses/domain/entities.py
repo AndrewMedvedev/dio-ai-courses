@@ -17,6 +17,7 @@ from .vo import (
     DifficultyLevel,
     DocumentNodeType,
     ExtendedContentType,
+    MemberRole,
     PracticeStatus,
 )
 
@@ -63,18 +64,18 @@ class VideoBlock(ContentBlock):
     description: str
 
 
-# @dataclass(kw_only=True, slots=True)
-# class ImageBlock(ContentBlock):
-#     """Блок с изображением.
+@dataclass(kw_only=True, slots=True)
+class ImageBlock(ContentBlock):
+    """Блок с изображением.
 
-#     Attributes:
-#         content_type: Тип контента (всегда IMAGE).
-#         ai_generated: Флаг AI-генерации.
-#         image_id: id изображения.
-#     """
+    Attributes:
+        content_type: Тип контента (всегда IMAGE).
+        ai_generated: Флаг AI-генерации.
+        image_id: id изображения.
+    """
 
-#     content_type: ContentType = ContentType.IMAGE
-#     image_id: str
+    content_type: ContentType = ContentType.IMAGE
+    image_id: str
 
 
 @dataclass(kw_only=True, slots=True)
@@ -198,7 +199,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
 AnyContentBlock = (
     TextBlock
     | VideoBlock
-    # | ImageBlock
+    | ImageBlock
     | CodeBlock
     | QuizBlock
     | MermaidBlock
@@ -350,6 +351,9 @@ class Module(Entity):
         description: Описание модуля.
         order: Порядковый номер модуля в курсе.
         learning_objectives: Список целей модуля.
+        content_blocks: Блоки контента модуля (общие для всех уроков).
+        assignment: Задание модуля (может быть Assignment или сырой dict).
+        lesson_basic_info: Список {"order": int, "title": str}.
         lessons: Список уроков модуля.
 
 
@@ -396,7 +400,7 @@ class Course(AggregateRoot):
     image_url: str | None = None
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[Module] = field(default_factory=list)
-    students: list[Student] = field(default_factory=list)
+    members: list[Member] = field(default_factory=list)
 
     def append_module(self, module: Module) -> None:
         """Выполняет действие `append_module`, чтобы поддержать основной сценарий модуля."""
@@ -410,34 +414,6 @@ class LessonTheorySession(AggregateRoot):
     completed_at: datetime | None = None
     active_time_seconds: int = 0
     max_scroll_depth_percent: int = 0
-
-
-@dataclass(kw_only=True, slots=True)
-class CourseProgress(Entity):
-    """Хранит факт и момент завершения курса конкретным пользователем."""
-
-    user_id: UUID
-    course_id: UUID
-    progress_percent: float = 0
-
-
-@dataclass(kw_only=True, slots=True)
-class LessonProgress(Entity):
-    """Хранит время завершения частей урока конкретным пользователем."""
-
-    module_progress_id: UUID
-    lesson_id: UUID
-    theory_completed_at: datetime | None = None
-    practice_completed_at: datetime | None = None
-    test_completed_at: datetime | None = None
-
-
-@dataclass(kw_only=True, slots=True)
-class ModuleProgress(Entity):
-    """Хранит время завершения модуля конкретным пользователем."""
-
-    course_progress_id: UUID
-    module_id: UUID
 
 
 @dataclass(kw_only=True, slots=True)
@@ -465,9 +441,10 @@ class Chat(Entity):
 
 
 @dataclass(kw_only=True, slots=True)
-class Student(Entity):
-    """Описывает доменную сущность `Student` и её данные для бизнес-логики."""
+class Member(Entity):
+    """Описывает доменную сущность `Member` и её данные для бизнес-логики."""
 
+    role: MemberRole
     course_id: UUID
     user_id: UUID
 

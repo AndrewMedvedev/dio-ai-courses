@@ -3,7 +3,7 @@ from typing import Literal
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from src.core.settings import settings
+from src.core.settings import jwt_config
 from src.iam.application.builders import build_login_response
 from src.iam.application.dtos import (
     IdentityType,
@@ -79,7 +79,7 @@ def create_tokens_for_user(
     refresh_token = create_refresh_token(user_id=user.id, membership_id=membership.id)
 
     access_token_expires_at = get_expiration_timestamp(
-        expires_in=timedelta(minutes=settings.jwt.access_token_expires_in_minutes),
+        expires_in=timedelta(minutes=jwt_config.access_token_expires_in_minutes),
     )
 
     return TokensResponse(

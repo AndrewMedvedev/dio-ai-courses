@@ -1,5 +1,4 @@
 # pyright: reportOptionalMemberAccess=false, reportOptionalSubscript=false, reportOptionalMemberAccess=false, reportArgumentType=false
-# ruff: file-ignore[unused-method-argument, magic-value-comparison]
 
 
 from typing import Any
@@ -251,7 +250,7 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
 
 
 class SaveImageMiddleware(BaseAgentMiddleware):
-    async def after_model(  # ruff: ignore[no-self-use]
+    async def after_model(
         self,
         service: LLMImageServiceProtocol,
         response: LLMImageResponse,

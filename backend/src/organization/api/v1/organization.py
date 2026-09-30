@@ -26,7 +26,6 @@ router = APIRouter(prefix="/organizations", tags=["Организации"])
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
     summary="Создать Организацию",
-    description="Создаёт новую организацию с указанными данными.",
 )
 async def create_organization(
     data: OrganizationCreate,
@@ -43,7 +42,6 @@ async def create_organization(
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(ORGANIZATION_READ.code))],
     summary="Получить Организацию",
-    description="Возвращает данные организации по её идентификатору.",
 )
 async def read_my_organization(
     organization_id: UUID,
@@ -58,7 +56,6 @@ async def read_my_organization(
     response_model=Organization,
     dependencies=[Depends(require_permissions(UPDATE.code))],
     summary="Отредактировать организацию",
-    description="Обновляет переданные поля организации. Неуказанные поля остаются без изменений.",
 )
 async def edit_organization(
     organization_id: UUID,
@@ -73,7 +70,6 @@ async def edit_organization(
     response_model=Page[Organization],
     status_code=status.HTTP_200_OK,
     summary="Получение списка организаций",
-    description="Возвращает постраничный список организаций, доступных текущему пользователю.",
     dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get_organizations(
@@ -88,7 +84,7 @@ async def get_organizations(
     path="/{organization_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Удаление организации",
-    description="Деактивирует организацию без физического удаления её данных.",
+    description="Soft-delete метод, делает организацию не активной не удаляя фактически",
     dependencies=[Depends(require_permissions(DELETE.code))],
 )
 async def delete_organization(

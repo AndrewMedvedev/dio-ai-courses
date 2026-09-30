@@ -1,6 +1,3 @@
-# ruff: file-ignore[line-too-long]
-
-
 from typing import Any
 
 import json
@@ -8,16 +5,15 @@ import random
 from uuid import UUID
 
 from pydantic import TypeAdapter
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.llm_service import LLMTextService
-from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import NotFoundError
-from src.shared.infra.services import SrvBaseClient
-from src.shared.utils.time import current_datetime
 
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
-from ...domain.events import LessonProgressUpdated, LessonProgressUpdate
 from ...domain.vo import PracticeStatus, TestType
+from ...infra.services.client import SrvCourseClient
 from ..prompts import ASSIGNMENT_PROMPT, KNOWLEDGE_CONFIG, TEST_CHECKER_PROMPT
 from ..schemas import AnyKnowledgeTest, PracticeResult
 
@@ -25,16 +21,16 @@ from ..schemas import AnyKnowledgeTest, PracticeResult
 class TesterAgent:
     def __init__(
         self,
+        session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
-        transaction: Transaction,
-        client: SrvBaseClient,
+        client: SrvCourseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self._client = client
+        self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
-        self.transaction = transaction
 
     async def call_agent_creator(
         self,
@@ -43,7 +39,7 @@ class TesterAgent:
         lesson_id: UUID,
     ) -> dict[str, Any]:
         """Создает тест для студента на основе теории урока и его предыдущих практик."""
-        random_type = random.choice(list(TestType))  # ruff: ignore[suspicious-non-cryptographic-random-usage]
+        random_type = random.choice(list(TestType))
         config = KNOWLEDGE_CONFIG.get(random_type, {})
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:
@@ -54,10 +50,12 @@ class TesterAgent:
         ]
         practices = await self.practice_repo.read_by_module(user_id=user_id, module_id=module_id)
         if practices is not None:
-            messages.append({
-                "role": "user",
-                "content": f"Практика студента:\n{json.dumps(practices, ensure_ascii=False, indent=2)}",
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"Практика студента:\n{json.dumps(practices, ensure_ascii=False, indent=2)}",
+                }
+            )
         agent = LLMTextService(
             client=self._client,
             system_prompt=config.get("system_prompt", ""),
@@ -73,7 +71,7 @@ class TesterAgent:
                 practice=[practice.model_dump()],
             ),
         )
-        await self.transaction(created)
+        await self.session.commit()
         return {"practice": practice, "practice_id": created.id}
 
     async def call_agent_checker(
@@ -82,9 +80,7 @@ class TesterAgent:
         answers: dict[str, str],
         practice_id: UUID,
     ) -> PracticeResult:
-        """Проверяет тест, сохраняет результат и публикует событие при успешном прохождении."""
-        if not await self.practice_repo.exists(practice_id):
-            raise NotFoundError("Practice was not found")
+        """Оставляет точку расширения для будущей проверки практических заданий."""
 
         agent = LLMTextService(
             client=self._client,
@@ -105,23 +101,16 @@ class TesterAgent:
         )
         response = PracticeResult.model_validate(result.output)
         if response.is_passed:
-            practice_entity = await self.practice_repo.update(
+            await self.practice_repo.update(
                 uid=practice_id,
                 status=PracticeStatus.COMPLETED,
                 practice={"practice": practice, **response.model_dump()},
             )
-            practice_entity.register_event(
-                LessonProgressUpdated(
-                    user_id=practice_entity.user_id,
-                    lesson_id=practice_entity.lesson_id,
-                    progress=LessonProgressUpdate(test_completed_at=current_datetime()),
-                )
-            )
         else:
-            practice_entity = await self.practice_repo.update(
+            await self.practice_repo.update(
                 uid=practice_id,
                 status=PracticeStatus.FAILED,
                 practice={"practice": practice, **response.model_dump()},
             )
-        await self.transaction(practice_entity)
+        await self.session.commit()
         return response
