@@ -4,8 +4,9 @@ from enum import StrEnum, auto
 class NotificationType(StrEnum):
     """Типы уведомлений в системе"""
 
-    INVITED_IN_COURSE = auto()
-    INVITED_IN_ORGANIZATION = auto()
+    COURSE_INVITED = auto()
+    ORGANIZATION_INVITED = auto()
+    INVITED_IN_SYSTEM = auto()
 
 
 class ChannelType(StrEnum):

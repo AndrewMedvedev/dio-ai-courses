@@ -40,7 +40,6 @@ UPDATE = register_permission(
         title="Изменение курса",
     ),
 )
-
 DELETE = register_permission(
     Permission(
         resource="course",
@@ -48,6 +47,7 @@ DELETE = register_permission(
         scopes=frozenset(
             {
                 PermissionScope.ORGANIZATION,
+                PermissionScope.COURSE,
                 PermissionScope.OWN,
             }
         ),

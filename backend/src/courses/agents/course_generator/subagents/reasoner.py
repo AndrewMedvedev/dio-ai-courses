@@ -2,11 +2,11 @@ import logging
 
 from pydantic import BaseModel, Field
 
+from src.courses.agents.middlewares import LemmatizationMiddleware, ToolCallLimitMiddleware
+from src.courses.agents.schemas import Context
+from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService, Runtime, tool
 
-from ....infra.services.client import SrvCourseClient
-from ...middlewares import LemmatizationMiddleware, ToolCallLimitMiddleware
-from ...schemas import Context
 from ..tools import browse_page, knowledge_search, save_knowledge, web_search
 from .prompts import CRITIC_PROMPT, REASONER_PROMPT, RESEARCHER_PROMPT
 

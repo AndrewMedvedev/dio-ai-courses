@@ -10,19 +10,20 @@ from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
 from src.core.qdrant import qdrant_client
-from src.llm_service import LLMTextService
-
-from ....application.domain_dtos import (
+from src.courses.agents.schemas import Context, RuntimeContext
+from src.courses.application.domain_dtos import (
     LessonDict,
     LessonStructureDict,
 )
-from ....application.mappers import dict_to_lesson, lesson_to_dict, model_to_typed_dict
-from ....domain.entities import AnyContentBlock, ContentType, Lesson
-from ....infra.database.repos.lesson import SqlLessonRepository
-from ....infra.services.client import SrvCourseClient
-from ....infra.vector_repo import VectorRepository
-from ....utils.formatting import get_content_blocks_context, get_lesson_context
-from ...schemas import Context, RuntimeContext
+from src.courses.application.mappers import dict_to_lesson, lesson_to_dict, model_to_typed_dict
+from src.courses.domain.entities import Lesson
+from src.courses.domain.vo import AnyContentBlock, ContentType
+from src.courses.infra.database.repos.lesson import SqlLessonRepository
+from src.courses.infra.database.repos.vector_repo import VectorRepository
+from src.courses.infra.services.client import SrvCourseClient
+from src.courses.utils.formatting import get_content_blocks_context, get_lesson_context
+from src.llm_service import LLMTextService
+
 from ..few_shots import LESSON_STRUCTURE_FEW_SHOT
 from ..serializer import checkpointer
 from .prompts import LESSON_STRUCTURE_PROMPT, ContentSpecification, LessonStructure

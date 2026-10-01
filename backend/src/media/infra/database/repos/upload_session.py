@@ -2,11 +2,11 @@ from uuid import UUID
 
 from sqlalchemy import select, update
 
+from src.media.domain.entities import UploadSession
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
-from ....domain.entities import UploadSession
-from ...mappers import UploadSessionMapper
-from ...models import UploadSessionOrm
+from ..mappers import UploadSessionMapper
+from ..models import UploadSessionOrm
 
 
 class SqlUploadSessionRepository(SqlAlchemyRepository[UploadSession, UploadSessionOrm]):

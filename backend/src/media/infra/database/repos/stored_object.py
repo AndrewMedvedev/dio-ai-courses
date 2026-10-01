@@ -1,10 +1,10 @@
 from sqlalchemy import select
 
+from src.media.domain.entities import StoredObject
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
-from ....domain.entities import StoredObject
-from ...mappers import StoredObjectMapper
-from ...models import StoredObjectOrm
+from ..mappers import StoredObjectMapper
+from ..models import StoredObjectOrm
 
 
 class SqlStoredObjectRepository(SqlAlchemyRepository[StoredObject, StoredObjectOrm]):

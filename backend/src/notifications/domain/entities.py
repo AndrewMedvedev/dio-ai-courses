@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from src.shared.domain.vo import Email
+
 from ...iam.domain.exceptions import PermissionDeniedError
 from ...shared.domain.entities import Entity
 from ...shared.utils.time import current_datetime
@@ -16,7 +18,8 @@ class Notification(Entity):
     Уведомление пользователю о событие в системе
     """
 
-    user_id: UUID
+    email: Email
+    user_id: UUID | None = None
     title: str
     message: str
     type: NotificationType

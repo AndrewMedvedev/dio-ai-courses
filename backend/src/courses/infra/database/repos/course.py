@@ -12,10 +12,10 @@ from ....domain.entities import (
     CourseBasicInfo,
 )
 from ....domain.vo import CourseStatus
-from ...mappers import (
+from ..mappers import (
     CourseMapper,
 )
-from ...models import CourseOrm, MemberOrm, ModuleOrm
+from ..models import CourseOrm, MemberOrm, ModuleOrm
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,13 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
         return await paginate(
             session=self._session,
             model=self.model,
-            stmt=stmt,
+            stmt=stmt,  # pyright: ignore[reportArgumentType]
             pagination=pagination,
             mapper=self.model_mapper.from_model,
         )
+
+    async def read_creator_id(self, course_id: UUID) -> UUID | None:
+        """Получает существующую запись по идентификатору или заданным параметрам."""
+        stmt = select(self.model.creator_id).where(self.model.id == course_id)
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
