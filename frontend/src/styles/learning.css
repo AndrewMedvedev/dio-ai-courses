@@ -17,8 +17,8 @@
         var(--glass-inset),
         inset 0 0 20px -5px var(--glass-glow),
         inset 0 1px 0 var(--glass-top-shine);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     padding: 18px 16px;
     color: var(--text);
     scrollbar-width: thin;
@@ -662,8 +662,10 @@ body.is-resizing-lesson-chat * {
     padding: clamp(28px, 3vw, 42px);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
-    background: transparent;
+    background: var(--glass-tint);
     box-shadow: var(--glass-shadow), var(--glass-inset);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .lesson-scroll-frame > * {
@@ -684,22 +686,9 @@ body.is-resizing-lesson-chat * {
     pointer-events: none;
 }
 
-.lesson-scroll-frame::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    filter: url(#glass-distortion);
-    -webkit-filter: url("#glass-distortion");
-    pointer-events: none;
-}
-
 .page[data-theme="dark"] .lesson-scroll-frame {
     border-color: rgba(233, 222, 203, 0.24);
-    background: transparent;
+    background: var(--glass-tint);
 }
 
 .lesson-main-card,

@@ -35,6 +35,8 @@
     --glass-top-shine: rgba(255, 255, 255, 0.75);
     --glass-bg: transparent;
     --glass-bg-strong: transparent;
+    --glass-blur: 3px;
+    --glass-tint: color-mix(in srgb, var(--bg) 70%, transparent);
     --glass-border: rgba(255, 255, 255, 0.42);
     --glass-shadow: 0 6px 18px rgba(79, 67, 48, 0.05);
     --glass-inset:
@@ -152,11 +154,13 @@ body {
 .glass-card {
     border: 1px solid var(--glass-border);
     border-radius: 22px;
-    background: transparent;
+    background: var(--glass-tint);
     box-shadow: var(--glass-shadow), var(--glass-inset);
     position: relative;
     overflow: hidden;
     isolation: isolate;
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .glass-card > * {
@@ -174,19 +178,6 @@ body {
     box-shadow:
         inset 0 0 20px -5px var(--glass-glow),
         inset 0 1px 0 var(--glass-top-shine);
-}
-
-.glass-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    filter: url(#glass-distortion);
-    -webkit-filter: url("#glass-distortion");
-    pointer-events: none;
 }
 
 .header {
