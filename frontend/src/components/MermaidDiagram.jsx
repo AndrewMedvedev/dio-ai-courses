@@ -38,12 +38,13 @@ const themeVariables = {
   primaryBorderColor: "#8c718c",
   secondaryColor: "#dce8f7",
   tertiaryColor: "#f1e5d8",
-  lineColor: "#66778b",
+  lineColor: "#8c718c",
   textColor: "#2b2b2b",
   edgeLabelBackground: "#f6f1e9",
   noteBkgColor: "#f1dfcf",
   noteTextColor: "#654329",
   noteBorderColor: "#c98245",
+  fontFamily: '"Manrope", Arial, sans-serif',
 };
 
 /* -------------------------------------------------------------------------- */
@@ -55,6 +56,9 @@ const ULTIMATE_FALLBACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="
 /* Mermaid loader */
 /* -------------------------------------------------------------------------- */
 const getMermaid = async () => {
+  if (typeof document !== "undefined" && document.fonts?.ready) {
+    await document.fonts.ready;
+  }
   if (!mermaidPromise) {
     mermaidPromise = import("mermaid").then(
       (module) => module.default ?? module,
@@ -148,7 +152,7 @@ const quoteUnsafeSquareLabels = (source) =>
         return line;
       }
 
-      return line.replace(/\[([^\]\n]+)\]/g, (match, label) => {
+      return line.replace(/(?<!\[)\[(?!\[)([^\]\n]+)\](?!\])/g, (match, label) => {
         const trimmed = label.trim();
 
         if (!trimmed || /^["'`]/.test(trimmed)) {
@@ -213,14 +217,34 @@ const repairCommonErrors = (source) => {
   // 2. Mermaid поддерживает комментарии отдельной строкой, но inline `%%` часто ломают парсер.
   result = stripInlineComments(result);
 
-  // 3. Убираем все обратные слеши перед кавычками (любое количество)
-  result = result.replace(/\\(?:\\\\)*(["'])/g, "$1");
+  // Escaped quotes are label content, not Mermaid delimiters.
+  result = result.replace(/\\"/g, "#quot;");
+  result = result.replace(/\\'/g, "#apos;");
+
+  // Mermaid reserves `end`; keep subgraph terminators but rename node ids.
+  result = result.replace(/\bend(?=\s*[\[({])/gi, "node_end");
+  result = result.replace(/(-->\s*)end\b/gi, "$1node_end");
 
   // 4. Разбиваем склеенные инструкции вида A[Текст]B --> C.
   result = splitStuckFlowchartStatements(result);
 
   // 5. Mermaid 11 строже парсит спецсимволы внутри [label].
+  result = result.replace(/([A-Za-z_][\w-]*)(\[\[|\(\()([^\]\)\n]+)(\]\]|\)\))/g,
+    (match, id, open, label, close) => {
+      if ((open === "[[") !== (close === "]]")) return match;
+      const trimmed = label.trim();
+      if (/^".*"$/.test(trimmed)) return match;
+      return `${id}${open}"${trimmed.replace(/"/g, "#quot;")}"${close}`;
+    });
   result = quoteUnsafeSquareLabels(result);
+  result = result.replace(/([A-Za-z_][\w-]*)(\{\{|\{)([^{}\n]+)(\}\}|\})/g,
+    (match, id, open, label, close) => {
+      if ((open === "{{") !== (close === "}}")) return match;
+      const trimmed = label.trim();
+      if (!trimmed || /^".*"$/.test(trimmed)) return match;
+      if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) return match;
+      return `${id}${open}"${trimmed.replace(/"/g, "#quot;")}"${close}`;
+    });
 
   // 6. Повторяем после закавычивания, потому что строка могла стать A["Текст"]B --> C.
   result = splitStuckFlowchartStatements(result);
@@ -239,13 +263,17 @@ const repairCommonErrors = (source) => {
   result = result.replace(/\n\s*\n/g, "\n");
   result = result.replace(/^[ \t]+/gm, "");
 
+  // Links and callbacks are disabled by securityLevel=strict; malformed
+  // legacy click lines must not invalidate the entire diagram.
+  result = result.split("\n").filter((line) => !/^\s*click\s+/i.test(line)).join("\n");
+
   return result.trim();
 };
 
 /* -------------------------------------------------------------------------- */
 /* Render candidates — ТОЛЬКО исправленная версия */
 /* -------------------------------------------------------------------------- */
-const createRenderCandidates = (source) => {
+export const createRenderCandidates = (source) => {
   const normalized = normalizeMermaidSource(source);
   const repaired = repairCommonErrors(normalized);
   const candidates = [];
@@ -258,12 +286,31 @@ const createRenderCandidates = (source) => {
   return [...new Set(candidates.filter(Boolean))];
 };
 
+export const validateMermaidSource = async (chart) => {
+  const candidates = createRenderCandidates(chart);
+  if (!candidates.length) throw new Error("Код Mermaid пустой.");
+  const mermaid = await getMermaid();
+  return enqueueRender(async () => {
+    let lastError;
+    for (const candidate of candidates) {
+      try {
+        await validateCandidate(mermaid, candidate);
+        return candidate;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    const line = lastError?.hash?.loc?.first_line ?? lastError?.hash?.line;
+    throw new Error(`Mermaid${line ? `, строка ${line}` : ""}: ${formatMermaidError(lastError)}`);
+  });
+};
+
 /* -------------------------------------------------------------------------- */
 /* SVG normalization */
 /* -------------------------------------------------------------------------- */
 const sanitizeRenderedSvg = (svgElement) => {
   svgElement
-    .querySelectorAll("script, foreignObject, iframe, object, embed")
+    .querySelectorAll("script, iframe, object, embed")
     .forEach((element) => element.remove());
 
   svgElement.querySelectorAll("*").forEach((element) => {
@@ -290,8 +337,11 @@ const normalizeRenderedSvg = (svg) => {
   if (!svg) return "";
   try {
     const parser = new DOMParser();
-    const parsed = parser.parseFromString(svg, "image/svg+xml");
-    const svgElement = parsed.documentElement;
+    const xmlSafeSvg = svg.replace(/<br\s*\/?>/gi, "<br/>");
+    const parsed = parser.parseFromString(xmlSafeSvg, "image/svg+xml");
+    const svgElement = parsed.querySelector("parsererror")
+      ? parser.parseFromString(svg, "text/html").querySelector("svg")
+      : parsed.documentElement;
     if (!svgElement || svgElement.nodeName.toLowerCase() !== "svg") {
       return svg;
     }
@@ -335,13 +385,10 @@ const isErrorSvg = (svg) => {
 
   try {
     const parser = new DOMParser();
-    const parsed = parser.parseFromString(svg, "image/svg+xml");
-
-    if (parsed.querySelector("parsererror")) {
-      return true;
-    }
-
-    const svgElement = parsed.documentElement;
+    const parsed = parser.parseFromString(svg.replace(/<br\s*\/?>/gi, "<br/>"), "image/svg+xml");
+    const svgElement = parsed.querySelector("parsererror")
+      ? parser.parseFromString(svg, "text/html").querySelector("svg")
+      : parsed.documentElement;
     if (!svgElement || svgElement.nodeName.toLowerCase() !== "svg") {
       return true;
     }
@@ -432,10 +479,10 @@ const renderMermaid = async ({ chart, componentId }) => {
 
     if (!candidates.length) {
       return {
-        svg: ULTIMATE_FALLBACK_SVG,
-        error: null,
-        recovered: true,
-        fallback: true,
+        svg: "",
+        error: "Код диаграммы пустой.",
+        recovered: false,
+        fallback: false,
       };
     }
 
@@ -469,17 +516,27 @@ const renderMermaid = async ({ chart, componentId }) => {
   };
 };
 
+export const auditMermaidRender = (chart, componentId) =>
+  enqueueRender(() => renderMermaid({ chart, componentId }));
+
 /* -------------------------------------------------------------------------- */
 /* Component */
 /* -------------------------------------------------------------------------- */
-export default function MermaidDiagram({ chart }) {
+export default function MermaidDiagram({ chart, onRendered, lessonId, blockId }) {
   const reactId = useId();
+  const svgHostRef = useRef(null);
   const renderVersionRef = useRef(0);
   const [svg, setSvg] = useState("");
   const [status, setStatus] = useState("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+  const [showSource, setShowSource] = useState(false);
 
   const normalizedChart = useMemo(() => normalizeMermaidSource(chart), [chart]);
+
+  useEffect(() => {
+    if (svg && onRendered) onRendered(svgHostRef.current?.querySelector("svg") ?? null);
+  }, [svg, onRendered]);
 
   const componentId = useMemo(() => {
     const safeId = String(reactId)
@@ -501,16 +558,18 @@ export default function MermaidDiagram({ chart }) {
 
     const execute = async () => {
       const result = await enqueueRender(() =>
-        renderMermaid({
-          chart: chartToRender,
-          componentId,
-        }),
+        cancelled ? null : renderMermaid({ chart: chartToRender, componentId }),
       );
 
-      if (cancelled || currentVersion !== renderVersionRef.current) return;
+      if (!result || cancelled || currentVersion !== renderVersionRef.current) return;
 
       setSvg(result.svg);
       setErrorMessage(result.error || "");
+      if (result.error) {
+        const detail = { lessonId, blockId, source: normalizedChart, error: result.error };
+        console.error("Mermaid render failed", detail);
+        window.dispatchEvent(new CustomEvent("mermaid:render-error", { detail }));
+      }
       if (result.error) {
         setStatus("error");
       } else if (result.fallback) {
@@ -526,6 +585,9 @@ export default function MermaidDiagram({ chart }) {
       if (cancelled || currentVersion !== renderVersionRef.current) return;
       setSvg("");
       setErrorMessage(formatMermaidError(error));
+      const detail = { lessonId, blockId, source: normalizedChart, error: formatMermaidError(error) };
+      console.error("Mermaid render failed", detail);
+      window.dispatchEvent(new CustomEvent("mermaid:render-error", { detail }));
       setStatus("error");
     });
 
@@ -533,19 +595,27 @@ export default function MermaidDiagram({ chart }) {
       cancelled = true;
       renderVersionRef.current += 1;
     };
-  }, [normalizedChart, componentId]);
+  }, [normalizedChart, componentId, retryCount, lessonId, blockId]);
 
   return (
     <div className={["mermaid-diagram", `is-${status}`].join(" ")}>
       {svg ? (
         <div
+          ref={svgHostRef}
           className="mermaid-diagram-svg"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       ) : status === "error" ? (
         <div className="mermaid-diagram-error" role="alert">
-          <strong>Не удалось отрисовать Mermaid-диаграмму</strong>
+          <strong>Схему пока не удалось показать</strong>
           <span>{errorMessage}</span>
+          <div className="mermaid-diagram-error-actions">
+            <button type="button" onClick={() => setRetryCount((count) => count + 1)}>Повторить отрисовку</button>
+            <button type="button" onClick={() => setShowSource((shown) => !shown)} aria-expanded={showSource}>
+              {showSource ? "Скрыть исходный код" : "Показать исходный код"}
+            </button>
+          </div>
+          {showSource && <pre className="mermaid-diagram-source">{normalizedChart}</pre>}
         </div>
       ) : (
         <div

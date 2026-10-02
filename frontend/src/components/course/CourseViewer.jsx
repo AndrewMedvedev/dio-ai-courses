@@ -840,6 +840,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                       <ContentBlocks
                         ref={theoryContentRef}
                         blocks={contentBlocks}
+                        lessonId={selectedLesson.id}
                         ownerUserId={courseCreatorId || currentUserId}
                       />
                     )}
