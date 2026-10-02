@@ -52,7 +52,7 @@ class LLMImageRequest(BaseModel):
     image: list[str] | None = Field(default=None, min_length=1, max_length=5)
     messages: str = Field(alias="prompt")
     quality: Literal["standard", "hd", "low", "medium", "high", "auto"] = "medium"
-    size: Literal["1024x1024", "1024x1536", "1536x1024"] | None = None
+    size: Literal["1024x1024", "1024x1536", "1536x1024"] = "1024x1024"
     output_format: str = "png"
 
 

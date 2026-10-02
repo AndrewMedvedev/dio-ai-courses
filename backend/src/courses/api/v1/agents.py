@@ -23,8 +23,8 @@ from ...dependencies.agents import (
     PracticeAgentDep,
     TesterAgentDep,
 )
-from ...domain.entities import FileUploadAssignment
 from ...domain.permissions.courses import COURSE_READ, CREATE, UPDATE
+from ...domain.vo import FileUploadAssignment
 from ...utils.docs_processing import read_upload_with_limit
 
 router = APIRouter(prefix="/agent", tags=["Agents"])

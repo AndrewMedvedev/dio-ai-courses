@@ -68,6 +68,14 @@ serializer = JsonPlusRedisSerializer(
             "src.courses.agents.course_generator.subagents.prompts",
             "LessonStructure",
         ),
+        (
+            "builtins",
+            "ExceptionGroup",
+        ),
+        (
+            "builtins",
+            "BaseExceptionGroup",
+        ),
     ],
 )
 

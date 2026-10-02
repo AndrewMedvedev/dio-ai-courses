@@ -288,6 +288,24 @@ class LLMTextRouter(LLMRouter):
 
 
 class LLMImageRouter(LLMRouter):
+    def __init__(
+        self,
+        ai_model_repos: SqlAIModelRepository,
+        invocation_repos: SqlLLMInvocationRepository,
+        session: AsyncSession,
+        client: AsyncOpenAI,
+        image_client: AsyncOpenAI,
+        wrapper: CacheAIModelsProtocol,
+    ) -> None:
+        self._image_client = image_client
+        super().__init__(
+            ai_model_repos=ai_model_repos,
+            invocation_repos=invocation_repos,
+            session=session,
+            client=client,
+            wrapper=wrapper,
+        )
+
     @track_llm_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
@@ -297,7 +315,7 @@ class LLMImageRouter(LLMRouter):
         **kwargs,
     ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
-        result: ImagesResponse = await self._client.images.generate(model=model, **kwargs)
+        result: ImagesResponse = await self._image_client.images.generate(model=model, **kwargs)
         total_tokens = self._total_tokens(result)
         response = LLMImageResponse(
             size=result.size,
@@ -318,7 +336,7 @@ class LLMImageRouter(LLMRouter):
         """Отдельный метод для генерации изображения на основе изображения"""
         images = [base64.b64decode(image) for image in kwargs["image"]]
         kwargs.pop("image")
-        result: ImagesResponse = await self._client.images.edit(
+        result: ImagesResponse = await self._image_client.images.edit(
             model=model, image=images, **kwargs
         )
         total_tokens = self._total_tokens(result)

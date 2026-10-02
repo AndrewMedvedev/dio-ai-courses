@@ -5,17 +5,14 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from src.core.database import Base
-import src.iam.infra.database.models
-import src.llm_router.infra.models
-import src.courses.infra.models
-import src.media.infra.models
-import src.organization.infra.models
+from src.core.database import Base, import_all_models, postgres_config
+from src.core.settings import INSTALLED_MODULES
+import_all_models(INSTALLED_MODULES)
 from src.core.settings import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.postgres.sqlalchemy_url)
+config.set_main_option("sqlalchemy.url", postgres_config.uri)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
