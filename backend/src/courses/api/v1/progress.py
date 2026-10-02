@@ -7,7 +7,7 @@ from faststream.rabbit import RabbitExchange, RabbitQueue
 from faststream.rabbit.fastapi import RabbitRouter
 
 from src.iam.dependencies import require_permissions
-from src.core.settings import settings
+from src.core.rabbit.config import rabbit_config
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies.database import DBSession
@@ -17,11 +17,11 @@ from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep, M
 from ...dependencies.services import LearningProgressServiceDep, get_progress
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.events import LessonProgressUpdated
-from ...domain.permissions.courses import COURSE_READ, UPDATE
+from ...domain.permissions.courses import READ, UPDATE
 
 router = RabbitRouter(prefix="/progress", tags=["Learning Progress"])
 
-exchange = RabbitExchange(settings.rabbit.exchange, durable=True)
+exchange = RabbitExchange(rabbit_config.exchange, durable=True)
 progress_queue = RabbitQueue(
     "learning_progress_updated",
     durable=True,
@@ -34,7 +34,7 @@ progress_queue = RabbitQueue(
     summary="Создать прогресс курса",
     description="Создаёт запись прогресса текущего ученика по указанному курсу. Повторный вызов возвращает существующую запись.",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_course_progress(
     course_id: UUID,
@@ -48,7 +48,7 @@ async def create_course_progress(
     "/courses/{course_id}",
     summary="Получить прогресс курса",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному курсу.",
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def read_course_progress(
     course_id: UUID,
@@ -62,7 +62,7 @@ async def read_course_progress(
     "/courses/{course_id}",
     summary="Обновить прогресс курса",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def update_course_progress(
     course_id: UUID,
@@ -95,7 +95,7 @@ async def get_course_students_progress(
     summary="Создать прогресс модуля",
     description="Создаёт запись прогресса текущего ученика по модулю. Прогресс курса создаётся автоматически, если его ещё нет.",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_module_progress(
     module_id: UUID,
@@ -110,7 +110,7 @@ async def create_module_progress(
     "/modules/{module_id}",
     summary="Получить прогресс модуля",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному модулю.",
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def read_module_progress(
     module_id: UUID,
@@ -125,7 +125,7 @@ async def read_module_progress(
     summary="Создать прогресс урока",
     description="Создаёт запись прогресса текущего ученика по уроку. Прогресс модуля и курса создаётся автоматически, если его ещё нет.",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_lesson_progress(
     lesson_id: UUID,
@@ -140,7 +140,7 @@ async def create_lesson_progress(
     "/lessons/{lesson_id}",
     summary="Получить прогресс урока",
     description="Возвращает сохранённую запись прогресса текущего ученика по указанному уроку.",
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def read_lesson_progress(
     lesson_id: UUID,
@@ -154,7 +154,7 @@ async def read_lesson_progress(
     "/lessons/{lesson_id}",
     summary="Отметить теорию урока пройденной",
     description="Сохраняет время завершения теории. Практика и тест обновляются только после серверной проверки через событие.",
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def mark_lesson_theory_completed(
     lesson_id: UUID,

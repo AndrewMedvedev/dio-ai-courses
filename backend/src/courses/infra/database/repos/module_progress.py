@@ -5,8 +5,8 @@ from sqlalchemy import exists, select
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ....domain.entities import ModuleProgress
-from ...mappers import ModuleProgressMapper
-from ...models import CourseProgressOrm, ModuleProgressOrm
+from ..mappers import ModuleProgressMapper
+from ..models import CourseProgressOrm, ModuleProgressOrm
 
 
 class SqlModuleProgressRepository(SqlAlchemyRepository[ModuleProgress, ModuleProgressOrm]):

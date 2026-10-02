@@ -294,10 +294,10 @@ class LLMImageRouter(LLMRouter):
         invocation_repos: SqlLLMInvocationRepository,
         session: AsyncSession,
         client: AsyncOpenAI,
-        image_client: AsyncOpenAI,
         wrapper: CacheAIModelsProtocol,
+        image_client: AsyncOpenAI | None = None,
     ) -> None:
-        self._image_client = image_client
+        self._image_client = image_client or client
         super().__init__(
             ai_model_repos=ai_model_repos,
             invocation_repos=invocation_repos,

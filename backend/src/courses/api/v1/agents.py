@@ -23,7 +23,7 @@ from ...dependencies.agents import (
     PracticeAgentDep,
     TesterAgentDep,
 )
-from ...domain.permissions.courses import COURSE_READ, CREATE, UPDATE
+from ...domain.permissions.courses import CREATE, READ, UPDATE
 from ...domain.vo import FileUploadAssignment
 from ...utils.docs_processing import read_upload_with_limit
 
@@ -95,7 +95,7 @@ async def chat_with_editor(
     summary="Написать AI-наставнику",
     description="Передаёт сообщение AI-наставнику и возвращает его ответ по материалам курса.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def chat_with_mentor(
     request: MentorChat,
@@ -124,7 +124,7 @@ async def chat_with_mentor(
     summary="Сгенерировать тест для урока",
     description="Генерирует тест по указанному уроку с учётом контекста модуля и текущего пользователя.",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_test(
     module_id: UUID,
@@ -145,7 +145,7 @@ async def create_test(
     summary="Проверить ответы на тест",
     description="Проверяет ответы пользователя на сгенерированный тест и возвращает результат проверки.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def check_test(
     practice: AnyKnowledgeTest,
@@ -166,7 +166,7 @@ async def check_test(
     summary="Сгенерировать практическое задание",
     description="Генерирует практическое задание по указанному уроку с учётом контекста модуля.",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_practice(
     module_id: UUID,
@@ -187,7 +187,7 @@ async def create_practice(
     summary="Проверить практическое задание",
     description="Принимает файл с выполненным заданием, проверяет его и возвращает результат.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def check_practice(
     practice_id: UUID,
