@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from typing import Literal
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
@@ -102,7 +103,7 @@ class ContentBlock(ABC):
         ai_generated: Флаг, указывающий, сгенерирован ли контент искусственным интеллектом.
     """
 
-    content_type: ContentType
+    content_type: ContentType | ExtendedContentType
     ai_generated: bool = True
 
 
@@ -116,7 +117,7 @@ class TextBlock(ContentBlock):
         md_content: Текст лекции в формате Markdown.
     """
 
-    content_type: ContentType = ContentType.TEXT
+    content_type: Literal[ContentType.TEXT] = ContentType.TEXT
     md_content: str
 
 
@@ -130,7 +131,7 @@ class VideoBlock(ContentBlock):
         url: ссылка на Видео.
     """
 
-    content_type: ContentType = ExtendedContentType.VIDEO
+    content_type: Literal[ExtendedContentType.VIDEO] = ExtendedContentType.VIDEO
     url: str
     description: str
 
@@ -145,7 +146,7 @@ class ImageBlock(ContentBlock):
         image_id: id изображения.
     """
 
-    content_type: ContentType = ContentType.IMAGE
+    content_type: Literal[ContentType.IMAGE] = ContentType.IMAGE
     image_id: str
 
 
@@ -161,7 +162,7 @@ class CodeBlock(ContentBlock):
         explanation: Пояснение к коду.
     """
 
-    content_type: ContentType = ContentType.PROGRAM_CODE
+    content_type: Literal[ContentType.PROGRAM_CODE] = ContentType.PROGRAM_CODE
     language: str
     code: str
     explanation: str
@@ -179,7 +180,7 @@ class MermaidBlock(ContentBlock):
         explanation: Текстовое описание диаграммы.
     """
 
-    content_type: ContentType = ContentType.MERMAID
+    content_type: Literal[ContentType.MERMAID] = ContentType.MERMAID
     title: str
     md_content: str
     explanation: str
@@ -208,7 +209,7 @@ class QuizBlock(ContentBlock):
         questions: Список вопросов и ответов.
     """
 
-    content_type: ContentType = ContentType.QUIZ
+    content_type: Literal[ContentType.QUIZ] = ContentType.QUIZ
     questions: list[Question] = field(default_factory=list)
 
 
@@ -236,7 +237,7 @@ class MathBlock(FormulaBlock, ContentBlock):
         explanation: Пояснение.
     """
 
-    content_type: ContentType = ContentType.MATH_FORMULA
+    content_type: Literal[ContentType.MATH_FORMULA] = ContentType.MATH_FORMULA
 
 
 @dataclass(kw_only=True, slots=True)
@@ -250,7 +251,7 @@ class ChemicalBlock(FormulaBlock, ContentBlock):
         explanation: Пояснение.
     """
 
-    content_type: ContentType = ContentType.CHEMICAL_FORMULA
+    content_type: Literal[ContentType.CHEMICAL_FORMULA] = ContentType.CHEMICAL_FORMULA
 
 
 @dataclass(kw_only=True, slots=True)
@@ -264,7 +265,7 @@ class MusicalBlock(FormulaBlock, ContentBlock):
         explanation: Пояснение.
     """
 
-    content_type: ContentType = ContentType.MUSICAL_NOTATION
+    content_type: Literal[ContentType.MUSICAL_NOTATION] = ContentType.MUSICAL_NOTATION
 
 
 AnyContentBlock = (

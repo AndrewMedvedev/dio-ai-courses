@@ -8,10 +8,14 @@ from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService
+from src.shared.domain.events import EventPublisher
 from src.shared.domain.exceptions import NotFoundError
+from src.shared.utils.time import current_datetime
 
+from ...application.dtos import LessonProgressUpdateSchema
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
+from ...domain.events import LessonProgressUpdated
 from ...domain.vo import PracticeStatus, TestType
 from ...infra.services.client import SrvCourseClient
 from ..prompts import ASSIGNMENT_PROMPT, KNOWLEDGE_CONFIG, TEST_CHECKER_PROMPT
@@ -24,6 +28,7 @@ class TesterAgent:
         session: AsyncSession,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
+        event_publisher: EventPublisher,
         client: SrvCourseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
@@ -31,6 +36,7 @@ class TesterAgent:
         self.session = session
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
+        self.event_publisher = event_publisher
 
     async def call_agent_creator(
         self,
@@ -80,7 +86,7 @@ class TesterAgent:
         answers: dict[str, str],
         practice_id: UUID,
     ) -> PracticeResult:
-        """Оставляет точку расширения для будущей проверки практических заданий."""
+        """Проверяет тест, сохраняет результат и публикует событие при успешном прохождении."""
 
         agent = LLMTextService(
             client=self._client,
@@ -101,16 +107,26 @@ class TesterAgent:
         )
         response = PracticeResult.model_validate(result.output)
         if response.is_passed:
-            await self.practice_repo.update(
+            updated_practice = await self.practice_repo.update(
                 uid=practice_id,
                 status=PracticeStatus.COMPLETED,
                 practice={"practice": practice, **response.model_dump()},
             )
         else:
-            await self.practice_repo.update(
+            updated_practice = await self.practice_repo.update(
                 uid=practice_id,
                 status=PracticeStatus.FAILED,
                 practice={"practice": practice, **response.model_dump()},
             )
         await self.session.commit()
+        if response.is_passed:
+            await self.event_publisher.publish(
+                LessonProgressUpdated(
+                    user_id=updated_practice.user_id,
+                    lesson_id=updated_practice.lesson_id,
+                    progress=LessonProgressUpdateSchema(
+                        test_completed_at=current_datetime(),
+                    ),
+                )
+            )
         return response

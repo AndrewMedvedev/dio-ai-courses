@@ -27,6 +27,7 @@ dependencies = [
     "langsmith>=0.9.1",
     "lxml>=6.1.1",
     "markitdown[all]>=0.1.5",
+    "msgpack>=1.2.3",
     "openai>=2.38.0",
     "orjson>=3.11.9",
     "passlib>=1.7.4",

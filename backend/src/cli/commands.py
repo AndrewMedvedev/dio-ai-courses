@@ -34,6 +34,7 @@ PERMISSION_PACKAGES = (
     "src.organization.domain.permissions",
     "src.courses.domain.permissions",
     "src.llm_router.domain.permissions",
+    "src.feedback.domain.permissions",
 )
 
 def _load_system_permission_modules() -> None:
