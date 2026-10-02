@@ -23,6 +23,17 @@ let messageSequence = 0;
  *   error: string,
  *   activeRequestId: number | null
  * }} AgentConversation
+ * @typedef {{
+ *   hasStarted: boolean,
+ *   isGenerating: boolean,
+ *   taskId: string | null,
+ *   generatedCourseId: string | null,
+ *   status: string,
+ *   courseStatus: string,
+ *   progress: number,
+ *   error: string,
+ *   startedAt: string | null
+ * }} AgentGenerationState
  */
 
 function createMessage(role, text) {
@@ -83,6 +94,22 @@ function getConversation(state, key, agent, courseId) {
   );
 }
 
+export const createInitialGenerationState = () => ({
+  hasStarted: false,
+  isGenerating: false,
+  taskId: null,
+  generatedCourseId: null,
+  status: "Жду ответы в чате",
+  courseStatus: "",
+  progress: 0,
+  error: "",
+  startedAt: null,
+});
+
+function normalizeProgress(value) {
+  return Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+}
+
 function callAgent(agent, payload, options) {
   if (agent === "interviewer") {
     return askInterviewerAgent(payload, options);
@@ -102,6 +129,8 @@ export const createAgentConversationKey = (agent, courseId, contextId = "") =>
 export const useAgentStore = create((set, get) => ({
   /** @type {Record<string, AgentConversation>} */
   conversations: {},
+  /** @type {Record<string, AgentGenerationState>} */
+  generations: {},
 
   initializeConversation: ({ key, agent, courseId, initialMessage = "" }) => {
     set((state) => {
@@ -166,8 +195,10 @@ export const useAgentStore = create((set, get) => ({
     requestControllers.delete(key);
     set((state) => {
       const conversations = { ...state.conversations };
+      const generations = { ...state.generations };
       delete conversations[key];
-      return { conversations };
+      delete generations[key];
+      return { conversations, generations };
     });
   },
 
@@ -188,6 +219,40 @@ export const useAgentStore = create((set, get) => ({
         },
       };
     });
+  },
+
+  getGeneration: (key) =>
+    get().generations[key] || createInitialGenerationState(),
+
+  setGeneration: (key, patch) => {
+    if (!key) return;
+    set((state) => {
+      const current = state.generations[key] || createInitialGenerationState();
+      const nextPatch =
+        typeof patch === "function" ? patch(current) || {} : { ...patch };
+      if (Object.prototype.hasOwnProperty.call(nextPatch, "progress")) {
+        nextPatch.progress = normalizeProgress(nextPatch.progress);
+      }
+      return {
+        generations: {
+          ...state.generations,
+          [key]: {
+            ...current,
+            ...nextPatch,
+          },
+        },
+      };
+    });
+  },
+
+  resetGeneration: (key) => {
+    if (!key) return;
+    set((state) => ({
+      generations: {
+        ...state.generations,
+        [key]: createInitialGenerationState(),
+      },
+    }));
   },
 
   sendMessage: async ({

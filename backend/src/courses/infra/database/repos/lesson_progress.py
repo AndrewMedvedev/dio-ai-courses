@@ -5,8 +5,8 @@ from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ....domain.entities import LessonProgress
 from ....domain.events import LessonProgressUpdated
-from ...mappers import LessonProgressMapper
-from ...models import LessonProgressOrm, ModuleProgressOrm
+from ..mappers import LessonProgressMapper
+from ..models import LessonProgressOrm, ModuleProgressOrm
 
 
 class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonProgressOrm]):

@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import logging
 import time
@@ -8,21 +8,20 @@ from uuid import UUID
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
-from sqlalchemy.exc import IntegrityError
+from pydantic import TypeAdapter
 
 from src.core.database import session_factory
+from src.core.redis import checkpointer
+from src.courses.agents.schemas import Context, RuntimeContext
+from src.courses.domain.entities import Lesson, Module
+from src.courses.infra.database.repos.module import SqlModuleRepository
+from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService
 
-from ....application.domain_dtos import LessonDict, ModuleDict, ModuleStructureDict
-from ....application.mappers import dict_to_module, model_to_typed_dict, module_to_dict
-from ....domain.entities import Module
-from ....infra.database.repos.module import SqlModuleRepository
-from ....infra.services import course_client
-from ...schemas import Context, RuntimeContext
-from ..helper import invoke_or_resume
-from ..serializer import checkpointer
+from ..few_shots import MODULE_STRUCTURE_FEW_SHOT
+from ..helper import generation_data, invoke_or_resume
 from .lesson_builder import lesson_builder_agent
-from .prompts import ModuleStructure
+from .prompts import MODULE_STRUCTURE_PROMPT, ModuleStructure
 
 logger = logging.getLogger(__name__)
 
@@ -35,29 +34,61 @@ class AgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер модуля
     module_description: str  # Описание модуля из структуры курса
-    module_structure: NotRequired[ModuleStructureDict]  # Структура/сценарий модуля
-    module: NotRequired[ModuleDict]  # Сгенерированный модуль
+    module_structure: NotRequired[dict[str, Any]]  # Структура/сценарий модуля
+    module: NotRequired[dict[str, Any]]  # Сгенерированный модуль
 
 
 async def plan_module_structure(
     state: AgentState,
-) -> dict[str, ModuleStructureDict | ModuleDict]:
+    runtime: Runtime[RuntimeContext],
+) -> dict[str, dict[str, Any]]:
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
-        client=course_client,
-        system_prompt="""\
-    Ты полезный ассистент для планирования структуры образовательного модуля
-    по его описанию. Ты пишешь задание для агентов, которые будут наполнять модуль уроками
-    и заданиями.
-    """,
+        client=runtime.context.client,
+        system_prompt=MODULE_STRUCTURE_PROMPT,
     )
     prompt_template = f"""\
-    Сгенерируй структуру модуля используя следующую информацию:
-     - **Целевая аудитория курса:** {state["audience_description"]}
-     - **Цели обучения курса:** {state["learning_objectives"]}
-     - **Порядковый номер модуля:** {state["order"]}
-     - **Описание модуля:** {state["module_description"]}
+    Спроектируй структуру текущего учебного модуля.
+
+    ## Контекст курса
+
+    Целевая аудитория:
+    {state["audience_description"]}
+
+    Конечные цели обучения курса:
+    {state["learning_objectives"]}
+
+    ## Текущий модуль
+
+    Положение модуля в последовательности курса:
+    {state["order"]}
+
+    ВАЖНО:
+    порядковый номер используется только для понимания места модуля
+    в образовательной траектории.
+
+    Не добавляй этот номер в title.
+    Не используй названия вида "Модуль {state["order"]}. ...".
+
+    Описание и требования к содержанию модуля:
+    {state["module_description"]}
+
+    ## Задача
+
+    Определи структуру модуля так, чтобы он:
+    - соответствовал уровню целевой аудитории;
+    - выполнял свою роль в общей программе;
+    - достигал заявленных образовательных результатов;
+    - состоял из последовательных уроков;
+    - не требовал знаний, которые появятся только позже;
+    - не дублировал материал соседних этапов;
+    - содержал минимально достаточное количество уроков.
+
+    Каждый урок должен представлять отдельный логический шаг
+    в освоении материала.
+
+    Верни результат строго по переданной JSON Schema.
     """
     logger.info(
         "Planning %s - module structure by description: '%s ...'",
@@ -65,7 +96,11 @@ async def plan_module_structure(
         state["module_description"][:100],
     )
     result = await module_structure_planner.invoke(
-        messages=[{"role": "user", "content": prompt_template}], schema=ModuleStructure
+        messages=[
+            *MODULE_STRUCTURE_FEW_SHOT,
+            {"role": "user", "content": prompt_template},
+        ],
+        schema=ModuleStructure,
     )
 
     module_structure = ModuleStructure.model_validate(result.output)
@@ -80,22 +115,20 @@ async def plan_module_structure(
         order=state["order"],
     )
     return {
-        "module_structure": model_to_typed_dict(module_structure),
-        "module": module_to_dict(module),
+        "module_structure": module_structure.model_dump(mode="json"),
+        "module": generation_data(module),
     }
 
 
 async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет модуль, чтобы результат был доступен после завершения операции."""
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
-    module = dict_to_module(state["module"])  # type: ignore  # ruff:ignore[blanket-type-ignore]
-    try:
-        await module_repos.create(module)
-        logger.info("Saving module '%s' to database ...", module.title)
-
-        await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
-    except IntegrityError:
-        logger.info("Module %s alredy exsists", module.title)
+    module = TypeAdapter(Module).validate_python(
+        state["module"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    )
+    await module_repos.upsert(module)
+    logger.info("Saving module '%s' to database ...", module.title)
+    await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
 
 
 async def build_lesson(
@@ -106,7 +139,8 @@ async def build_lesson(
     module_id: UUID,
     audience_description: str,
     learning_objectives: list[str],
-) -> tuple[int, LessonDict]:
+    client: SrvCourseClient,
+) -> tuple[int, Lesson]:
     """Собирает урок из входных данных для следующего шага сценария."""
     lesson_thread_id = (
         f"course:{generation_context.course_id}:module:{module_order}:lesson:{order}"
@@ -126,15 +160,21 @@ async def build_lesson(
                 "lesson_description": lesson_description,
             },
             config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
-            context=RuntimeContext(db_session=session),
+            context=RuntimeContext(db_session=session, client=client),
         )
-        return order, result["lesson"]
+        return order, TypeAdapter(Lesson).validate_python(result["lesson"])
 
 
-async def generate_lessons(state: AgentState) -> dict[str, ModuleDict]:
+async def generate_lessons(
+    state: AgentState,
+    runtime: Runtime[RuntimeContext],
+) -> dict[str, dict[str, Any]]:
     """Генерация уроков по структуре модуля"""
 
-    module_structure, module = state["module_structure"], state["module"]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    module_structure = state["module_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    module = TypeAdapter(Module).validate_python(
+        state["module"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    )
     start_time = time.monotonic()
     total_modules = len(module_structure["lessons_descriptions"])
     logger.info("Start generate %s lessons ...", total_modules)
@@ -146,9 +186,10 @@ async def generate_lessons(state: AgentState) -> dict[str, ModuleDict]:
                     module_order=state["order"],
                     lesson_description=desc,
                     generation_context=state["generation_context"],
-                    module_id=module["id"],
+                    module_id=module.id,
                     audience_description=state["audience_description"],
                     learning_objectives=module_structure["learning_objectives"],
+                    client=runtime.context.client,
                 )
             )
             for order, desc in enumerate(module_structure["lessons_descriptions"], start=1)
@@ -157,14 +198,14 @@ async def generate_lessons(state: AgentState) -> dict[str, ModuleDict]:
     # Собираем результаты в правильном порядке
     lessons_by_order = sorted(task.result() for task in tasks)
     for _, lesson in lessons_by_order:
-        module["lessons"].append(lesson)
+        module.append_lesson(lesson)
 
     logger.info(
         "Successfully generated %s lessons, spent time %s seconds",
         total_modules,
         round(time.monotonic() - start_time, 2),
     )
-    return {"module": module}
+    return {"module": generation_data(module)}
 
 
 graph = StateGraph(AgentState, context_schema=RuntimeContext)

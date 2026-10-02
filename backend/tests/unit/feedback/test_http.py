@@ -14,7 +14,7 @@ from src.iam.application.dtos import Identity, IdentityType
 from src.iam.dependencies.identity import get_current_identity
 from src.iam.domain.vo import Email
 from src.shared.dependencies.events import get_event_publisher
-from src.shared.domain.exceptions import AppError
+from src.shared.domain.exceptions import DomainError
 
 
 def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
@@ -28,8 +28,8 @@ def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
     app.dependency_overrides[get_db] = lambda: session
     app.dependency_overrides[get_event_publisher] = lambda: publisher
 
-    @app.exception_handler(AppError)
-    def handle_app_error(_request: Request, error: AppError) -> JSONResponse:
+    @app.exception_handler(DomainError)
+    def handle_app_error(_request: Request, error: DomainError) -> JSONResponse:
         return JSONResponse(status_code=error.status_code, content={"error": error.error_code})
 
     return TestClient(app), session, publisher

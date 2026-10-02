@@ -142,7 +142,8 @@ async def test_image_invocation_publishes_response_schema() -> None:
     router = LLMImageRouter(
         ai_model_repos=AsyncMock(),
         event_publisher=publisher,
-        client=SimpleNamespace(images=SimpleNamespace(generate=AsyncMock(return_value=provider_response))),
+        client=SimpleNamespace(),
+        image_client=SimpleNamespace(images=SimpleNamespace(generate=AsyncMock(return_value=provider_response))),
         wrapper=AsyncMock(),
     )
     schema = LLMImageRequest(prompt="Нарисуй схему")
@@ -150,10 +151,11 @@ async def test_image_invocation_publishes_response_schema() -> None:
     result = await router._invoke_image(model="gpt-image-2", schema=schema)
 
     assert result.image == image_base64
-    router._client.images.generate.assert_awaited_once_with(
+    router._image_client.images.generate.assert_awaited_once_with(
         model="gpt-image-2",
         prompt="Нарисуй схему",
         quality="medium",
+        size="1024x1024",
         output_format="png",
     )
     event = publisher.publish.await_args.args[0]
@@ -176,7 +178,8 @@ async def test_image_edit_decodes_base64_and_excludes_it_from_provider_request()
     router = LLMImageRouter(
         ai_model_repos=AsyncMock(),
         event_publisher=publisher,
-        client=SimpleNamespace(images=SimpleNamespace(edit=edit)),
+        client=SimpleNamespace(),
+        image_client=SimpleNamespace(images=SimpleNamespace(edit=edit)),
         wrapper=AsyncMock(),
     )
     schema = LLMImageRequest(image=[image_base64], prompt="Измени картинку")
@@ -190,6 +193,7 @@ async def test_image_edit_decodes_base64_and_excludes_it_from_provider_request()
         image=[image_bytes],
         prompt="Измени картинку",
         quality="medium",
+        size="1024x1024",
         output_format="png",
     )
     event = publisher.publish.await_args.args[0]

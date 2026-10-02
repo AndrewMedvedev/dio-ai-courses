@@ -5,7 +5,7 @@ from uuid import UUID
 
 from src.activity.recorder import ActivityRecorder
 
-from ..schemas import Page, Pagination
+from ..application.dtos import Page, Pagination
 from .entities import Entity
 from .events import EventPublisher
 from .exceptions import NotFoundError
@@ -13,7 +13,6 @@ from .exceptions import NotFoundError
 
 @runtime_checkable
 class UnitOfWork(Protocol):
-
     async def __aenter__(self) -> Self: ...
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None: ...
@@ -26,13 +25,12 @@ class UnitOfWork(Protocol):
 
 
 class Repository[EntityT: Entity](Protocol):
-
     async def create(self, entity: EntityT) -> EntityT: ...
 
     async def read(self, uid: UUID) -> EntityT | None: ...
 
     async def paginate[T](
-            self, pagination: Pagination, filters: T | None = None
+        self, pagination: Pagination, filters: T | None = None
     ) -> Page[EntityT]: ...
 
     async def update(self, entity: EntityT) -> None: ...
@@ -45,9 +43,9 @@ class Repository[EntityT: Entity](Protocol):
 
 
 async def get_or_raise_404[EntityT: Entity](
-        loader: Callable[[UUID], Awaitable[EntityT | None]],
-        uid: UUID,
-        aggregate_type: type[EntityT],
+    loader: Callable[[UUID], Awaitable[EntityT | None]],
+    uid: UUID,
+    aggregate_type: type[EntityT],
 ) -> EntityT:
     obj = await loader(uid)
     if obj is None:
@@ -57,10 +55,10 @@ async def get_or_raise_404[EntityT: Entity](
 
 
 async def finalize[EntityT: Entity](
-        uow: UnitOfWork,
-        *aggregates: EntityT,
-        event_publisher: EventPublisher,
-        activity_recorder: ActivityRecorder | None = None,
+    uow: UnitOfWork,
+    *aggregates: EntityT,
+    event_publisher: EventPublisher,
+    activity_recorder: ActivityRecorder | None = None,
 ) -> None:
     events = []
     for aggregate in aggregates:

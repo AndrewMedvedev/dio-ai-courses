@@ -1,9 +1,8 @@
 import asyncio
 
-from faststream.rabbit import RabbitExchange, RabbitQueue
+from faststream.rabbit import RabbitQueue
 
-from src.core.broker import rabbit_router
-from src.core.settings import settings
+from src.core.rabbit import events_exchange as exchange, router as rabbit_router
 from src.shared.dependencies.database import DBSession
 
 from ..dependencies import LLMInvocationRepoDep
@@ -12,7 +11,6 @@ from ..domain.events import LLMInvocationCreated
 
 MAX_CONCURRENT_INVOCATION_LOGS = 5
 
-exchange = RabbitExchange(settings.rabbit.exchange, durable=True)
 invocation_queue = RabbitQueue(
     "llm_invocation_created",
     durable=True,

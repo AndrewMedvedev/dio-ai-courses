@@ -10,7 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from src.courses.infra.types import ContentBlockListType
+from src.courses.infra.database.types import ContentBlockListType
 # revision identifiers, used by Alembic.
 revision: str = '50f609846fb3'
 down_revision: Union[str, Sequence[str], None] = None

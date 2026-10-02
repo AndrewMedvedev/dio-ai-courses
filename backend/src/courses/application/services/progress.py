@@ -12,7 +12,7 @@ from ...application.repos import (
     LessonRepository,
     ModuleProgressRepository,
     ModuleRepository,
-    StudentRepository,
+    MemberRepository,
 )
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 
@@ -27,7 +27,7 @@ class LearningProgressService:
         module_repo: ModuleRepository,
         module_progress_repo: ModuleProgressRepository,
         lesson_repo: LessonRepository,
-        student_repo: StudentRepository,
+        member_repo: MemberRepository,
         session: AsyncSession,
     ) -> None:
         self._progress_repo = progress_repo
@@ -35,7 +35,7 @@ class LearningProgressService:
         self._module_repo = module_repo
         self._module_progress_repo = module_progress_repo
         self._lesson_repo = lesson_repo
-        self._student_repo = student_repo
+        self._member_repo = member_repo
         self._session = session
 
     async def create_course_progress(self, user_id: UUID, course_id: UUID) -> CourseProgress:
@@ -91,5 +91,5 @@ class LearningProgressService:
 
     async def _require_student(self, user_id: UUID, course_id: UUID) -> None:
         """Проверяет, что пользователь записан на курс перед созданием его прогресса."""
-        if await self._student_repo.read(user_id, course_id) is None:
+        if await self._member_repo.read(user_id, course_id) is None:
             raise ForbiddenError("Only enrolled students can manage course progress")

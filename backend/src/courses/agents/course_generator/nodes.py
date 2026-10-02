@@ -1,6 +1,6 @@
 # pyright: reportOptionalMemberAccess=false, reportArgumentType=false, reportReturnType=false
 
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import logging
 import time
@@ -9,22 +9,21 @@ from asyncio.taskgroups import TaskGroup
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime as GraphRuntime
-from sqlalchemy.exc import IntegrityError
+from pydantic import TypeAdapter
 
 from src.core.database import session_factory
+from src.core.redis import checkpointer
 from src.llm_service import LLMTextService, Runtime
 
-from ...application.domain_dtos import CourseDict, CourseStructureDict, ModuleDict
-from ...application.mappers import course_to_dict, dict_to_course
-from ...domain.entities import Course
+from ...domain.entities import Course, Module
 from ...domain.vo import CourseStatus
 from ...infra.database.repos.course import SqlCourseRepository
-from ...infra.services import course_client
+from ...infra.services.client import SrvCourseClient
 from ..schemas import Context, RuntimeContext
-from .helper import invoke_or_resume
-from .serializer import checkpointer
+from .few_shots import COURSE_STRUCTURE_FEW_SHOT
+from .helper import generation_data, invoke_or_resume
 from .subagents.module_builder import module_builder_agent
-from .subagents.prompts import PLANNER_PROMPT, CourseStructure
+from .subagents.prompts import COURSE_STRUCTURE_PROMPT, CourseStructure
 from .subagents.reasoner import reasoner_agent
 
 logger = logging.getLogger(__name__)
@@ -33,11 +32,11 @@ logger = logging.getLogger(__name__)
 class AgentState(TypedDict):
     generation_context: Context  # Контекстная информация курса
     thinks: NotRequired[str]  # Мысли - план reasoning агента
-    course_structure: NotRequired[CourseStructureDict]  # Сгенерированная структура курса
-    course: NotRequired[CourseDict]  # Готовый курс
+    course_structure: NotRequired[dict[str, Any]]  # Сгенерированная структура курса
+    course: NotRequired[dict[str, Any]]  # Готовый курс
 
 
-async def reasoning(state: AgentState) -> dict[str, str]:
+async def reasoning(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> dict[str, str]:
     """Размышление над запросом преподавателя"""
     if state.get("thinks") is not None:
         return {"thinks": state.get("thinks", "")}
@@ -47,7 +46,7 @@ async def reasoning(state: AgentState) -> dict[str, str]:
     agent = reasoner_agent(
         runtime=Runtime(
             context=state["generation_context"],
-            state=course_client,
+            state=runtime.context.client,
         )
     )
     result = await agent.invoke(
@@ -58,17 +57,23 @@ async def reasoning(state: AgentState) -> dict[str, str]:
     return {"thinks": result.raw_text}
 
 
-async def plan_course_structure(state: AgentState) -> dict:
+async def plan_course_structure(
+    state: AgentState,
+    runtime: GraphRuntime[RuntimeContext],
+) -> dict:
     """Планирование структуры курса используя информацию, полученную в ходе размышлений"""
 
     logger.info("Planning course structure using thinks: '%s ...'", state.get("thinks", "")[:150])
 
     agent = LLMTextService(
-        client=course_client,
-        system_prompt=PLANNER_PROMPT,
+        client=runtime.context.client,
+        system_prompt=COURSE_STRUCTURE_PROMPT,
     )
     result = await agent.invoke(
-        messages=[{"role": "user", "content": state.get("thinks", "")}],
+        messages=[
+            *COURSE_STRUCTURE_FEW_SHOT,
+            {"role": "user", "content": state.get("thinks", "")},
+        ],
         schema=CourseStructure,
     )
     course_structure = CourseStructure.model_validate(result.output)
@@ -84,23 +89,20 @@ async def plan_course_structure(state: AgentState) -> dict:
     )
     logger.info("Added `title`, `description` and `learning_objectives` in course")
     return {
-        "course_structure": course_structure.model_dump_json(),
-        "course": course_to_dict(course),
+        "course_structure": course_structure.model_dump(mode="json"),
+        "course": generation_data(course),
     }
 
 
 async def save_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
     """Сохраняет курс, чтобы результат был доступен после завершения операции."""
     course_repos = SqlCourseRepository(runtime.context.db_session)
-    course = dict_to_course(state["course"])  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    try:
-        await course_repos.create(course)
-        logger.info("Saving course '%s' to database ...", course.title)
-
-        await runtime.context.db_session.commit()
-    except IntegrityError:
-        await runtime.context.db_session.rollback()
-        logger.info("Course %s alredy exsists", course.title)
+    course = TypeAdapter(Course).validate_python(
+        state["course"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    )
+    await course_repos.upsert(course)
+    logger.info("Saving course '%s' to database ...", course.title)
+    await runtime.context.db_session.commit()
 
 
 async def build_module(
@@ -109,7 +111,8 @@ async def build_module(
     module_description: str,
     audience_description: str,
     learning_objectives: list[str],
-) -> tuple[int, ModuleDict]:
+    client: SrvCourseClient,
+) -> tuple[int, Module]:
     """Собирает модуль из входных данных для следующего шага сценария."""
     module_thread_id = f"course:{generation_context.course_id}:module:{order}"
     logger.info(
@@ -126,15 +129,21 @@ async def build_module(
                 "module_description": module_description,
             },
             config=RunnableConfig(configurable={"thread_id": module_thread_id}),
-            context=RuntimeContext(db_session=session),
+            context=RuntimeContext(db_session=session, client=client),
         )
-        return order, result["module"]
+        return order, TypeAdapter(Module).validate_python(result["module"])
 
 
-async def generate_modules(state: AgentState) -> dict[str, CourseDict]:
+async def generate_modules(
+    state: AgentState,
+    runtime: GraphRuntime[RuntimeContext],
+) -> dict[str, dict[str, Any]]:
     """Генерация модулей по структуре курса"""
 
-    course_structure, course = state["course_structure"], state["course"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    course_structure = state["course_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    course = TypeAdapter(Course).validate_python(
+        state["course"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    )
 
     start_time = time.monotonic()
     total_modules = len(course_structure["module_descriptions"])
@@ -152,6 +161,7 @@ async def generate_modules(state: AgentState) -> dict[str, CourseDict]:
                     module_description=desc,
                     audience_description=course_structure["audience_description"],
                     learning_objectives=course_structure["learning_objectives"],
+                    client=runtime.context.client,
                 )
             )
             for order, desc in enumerate(course_structure["module_descriptions"], start=1)
@@ -160,14 +170,14 @@ async def generate_modules(state: AgentState) -> dict[str, CourseDict]:
     # Собираем результаты в правильном порядке
     modules_by_order = sorted(task.result() for task in tasks)
     for _, module in modules_by_order:
-        course["modules"].append(module)
+        course.append_module(module)
 
     logger.info(
         "Successfully generated %s modules, spent time %s seconds",
         total_modules,
         round(time.monotonic() - start_time, 2),
     )
-    return {"course": course}
+    return {"course": generation_data(course)}
 
 
 async def update_course(state: AgentState, runtime: GraphRuntime[RuntimeContext]) -> None:
