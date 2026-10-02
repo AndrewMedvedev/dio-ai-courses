@@ -31,16 +31,20 @@ from ..domain.entities import (
     Chat,
     Course,
     CourseBasicInfo,
+    CourseProgress,
     Document,
     Entity,
     Invitation,
     Lesson,
     LessonBasicInfo,
+    LessonProgress,
     Member,
     Module,
     ModuleBasicInfo,
+    ModuleProgress,
     Practice,
 )
+from ..domain.events import LessonProgressUpdated
 
 
 class BasicInfoProtocol[EntityT: Entity, BasicInfoT](Repository[EntityT]):
@@ -223,6 +227,25 @@ class PracticeRepository(Repository[Practice]):
     async def read_by_module(self, user_id: UUID, module_id: UUID) -> list[dict[str, Any]]:
         """Получает практики пользователя внутри модуля без служебных полей."""
         ...
+
+
+class ProgressRepository[ProgressT: Entity](Repository[ProgressT]):
+    async def get_by_user(self, user_id: UUID, resource_id: UUID) -> ProgressT | None: ...
+
+    async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool: ...
+
+
+class LessonProgressRepository(ProgressRepository[LessonProgress]):
+    async def update_from_event(self, event: LessonProgressUpdated) -> None: ...
+
+
+class ModuleProgressRepository(ProgressRepository[ModuleProgress]): ...
+
+
+class CourseProgressRepository(ProgressRepository[CourseProgress]):
+    async def count_completed_lessons(self, course_progress_id: UUID) -> int: ...
+
+    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
 
 
 class MemberRepository(Repository[Member]):

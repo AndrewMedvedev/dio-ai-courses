@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Float,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -120,6 +121,79 @@ class LessonTheorySessionOrm(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     active_time_seconds: Mapped[int] = mapped_column(default=0)
     max_scroll_depth_percent: Mapped[int] = mapped_column(default=0)
+
+
+class CourseProgressOrm(Base):
+    __tablename__ = "course_progress"
+
+    user_id: Mapped[UUID]
+    progress_percent: Mapped[float] = mapped_column(Float, default=0)
+    course_id: Mapped[UUID]
+    module_progresses: Mapped[list[ModuleProgressOrm]] = relationship(
+        back_populates="course_progress",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_course_progress_user_course"),
+    )
+
+
+class ModuleProgressOrm(Base):
+    __tablename__ = "module_progress"
+
+    course_progress_id: Mapped[UUID] = mapped_column(
+        ForeignKey("course_progress.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    module_id: Mapped[UUID]
+    course_progress: Mapped[CourseProgressOrm] = relationship(
+        back_populates="module_progresses"
+    )
+    lesson_progresses: Mapped[list[LessonProgressOrm]] = relationship(
+        back_populates="module_progress",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "course_progress_id",
+            "module_id",
+            name="uq_module_progress_course_module",
+        ),
+        Index("ix_module_progress_course_progress_id", "course_progress_id"),
+    )
+
+
+class LessonProgressOrm(Base):
+    __tablename__ = "lesson_progress"
+
+    module_progress_id: Mapped[UUID] = mapped_column(
+        ForeignKey("module_progress.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lesson_id: Mapped[UUID]
+    theory_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    practice_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    test_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    module_progress: Mapped[ModuleProgressOrm] = relationship(
+        back_populates="lesson_progresses"
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "module_progress_id",
+            "lesson_id",
+            name="uq_lesson_progress_module_lesson",
+        ),
+    )
 
 
 class ChatOrm(Base):
