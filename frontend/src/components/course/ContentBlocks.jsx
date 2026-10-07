@@ -5,6 +5,7 @@ import ContentPreviewModal from "../ContentPreviewModal";
 import MermaidDiagram from "../MermaidDiagram";
 import SyntaxHighlightedCode from "../SyntaxHighlightedCode";
 import { getMediaUrl, MEDIA_FOLDERS } from "../../utils/media";
+import { normalizeQuizQuestions } from "../../utils/quiz";
 
 const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;
@@ -89,114 +90,16 @@ function TextBlock({ block, index, onPreview, lessonId }) {
   );
 }
 
-const quizPlaceholders = new Set(["question", "answer", "options", "todo", "tbd", "вопрос", "ответ"]);
-const quizTypeTags = new Set(["multipart", "multiple_choice", "multiple-choice", "detailed_answer", "quiz_question"]);
-const quizText = (value) => {
-  if (Array.isArray(value)) value = value.map(quizText).filter(Boolean).join("\n");
-  if (value && typeof value === "object") {
-    value = value.text ?? value.value ?? value.content ?? value.parts ?? "";
-    if (Array.isArray(value)) value = value.map(quizText).filter(Boolean).join("\n");
-  }
-  const text = typeof value === "string" ? value.trim() : "";
-  return quizPlaceholders.has(text.toLowerCase()) || quizTypeTags.has(text.toLowerCase()) ? "" : text;
-};
+// В текстах квиза встречается markdown-выделение **так**: показываем его жирным,
+// а не звёздочками. Полный markdown здесь не нужен.
+const renderQuizInline = (text) =>
+  String(text ?? "")
+    .split(/\*\*(.+?)\*\*/g)
+    .map((part, partIndex) =>
+      partIndex % 2 === 1 ? <strong key={partIndex}>{part}</strong> : part,
+    );
 
-const unwrapQuizRecord = (value) => {
-  let record = value;
-  while (true) {
-    if (Array.isArray(record) && record.length === 2 && quizTypeTags.has(String(record[0]).toLowerCase())) {
-      record = record[1];
-      continue;
-    }
-    if (record && typeof record === "object" && !Array.isArray(record)) {
-      const wrapper = [...quizTypeTags].find((tag) => tag in record);
-      if (wrapper) {
-        record = record[wrapper];
-        continue;
-      }
-      if (quizTypeTags.has(String(record.type).toLowerCase())) {
-        const payload = record.value ?? record.data ?? record.content ?? record.parts;
-        if (payload !== undefined) {
-          record = payload;
-          continue;
-        }
-      }
-    }
-    return record;
-  }
-};
-
-const normalizeQuizOptions = (value) => {
-  if (Array.isArray(value)) return value.map(quizText).filter(Boolean);
-  if (typeof value === "string") return value.split(/\r?\n/).map(quizText).filter(Boolean);
-  return [];
-};
-
-const normalizeQuizQuestions = (block, lessonId) => {
-  const raw = Array.isArray(block?.questions) ? block.questions : [];
-  const valid = [];
-  let pendingQuestion = "";
-  let pendingOptions = "";
-  let pendingAnswer = "";
-  let pendingExplanation = "";
-  const commitPending = (index) => {
-    if (!pendingQuestion) return;
-    const options = normalizeQuizOptions(pendingOptions);
-    const answerText = typeof pendingAnswer === "number" ? String(pendingAnswer) : quizText(pendingAnswer);
-    const answerIndex = Number.parseInt(answerText, 10);
-    const answer = Number.isInteger(answerIndex) && options[answerIndex]
-      ? options[answerIndex]
-      : options.find((option) => option.startsWith(`${answerText}.`) || option.startsWith(`${answerText})`)) || answerText;
-    if (answer || options.length) {
-      valid.push({ question: pendingQuestion, answer, options, explanation: quizText(pendingExplanation) });
-    } else {
-      console.error("Некорректная пара Quiz", { lessonId, index });
-    }
-    pendingQuestion = "";
-    pendingOptions = "";
-    pendingAnswer = "";
-    pendingExplanation = "";
-  };
-  raw.forEach((entry, index) => {
-    const normalizedEntry = unwrapQuizRecord(entry);
-    const field = Array.isArray(normalizedEntry) ? normalizedEntry[0] : null;
-    if (field === "question") {
-      commitPending(index - 1);
-      pendingQuestion = quizText(normalizedEntry[1]);
-      if (!pendingQuestion) console.error("Некорректный Quiz question", { lessonId, index });
-      return;
-    }
-    if (field === "options") {
-      pendingOptions = normalizedEntry[1];
-      return;
-    }
-    if (field === "explanation" || field === "rationale") {
-      pendingExplanation = normalizedEntry[1];
-      return;
-    }
-    if (field === "answer") {
-      pendingAnswer = normalizedEntry[1];
-      return;
-    }
-    if (field === "type" || field === "question_type") return;
-    if (pendingQuestion) commitPending(index - 1);
-    const record = normalizedEntry;
-    const legacyPair = Array.isArray(record) ? record : null;
-    const questionValue = unwrapQuizRecord(record?.question ?? record?.text ?? record?.prompt);
-    const rawAnswer = legacyPair ? legacyPair[1] : record?.answer ?? record?.correct_answer ?? record?.expected_answer;
-    const answerValue = unwrapQuizRecord(rawAnswer);
-    const question = quizText(typeof questionValue === "string" ? questionValue : questionValue?.text ?? questionValue?.value);
-    const options = normalizeQuizOptions(record?.options ?? record?.choices ?? answerValue?.options);
-    const answer = typeof answerValue === "number"
-      ? options[answerValue] ?? ""
-      : quizText(typeof answerValue === "string" ? answerValue : answerValue?.answer ?? answerValue?.correct_answer ?? answerValue?.expected_answer ?? answerValue?.text ?? answerValue?.value);
-    const explanation = quizText(record?.explanation ?? record?.rationale ?? answerValue?.explanation ?? answerValue?.rationale);
-    if (question && (answer || options.length)) valid.push({ question, answer, options, explanation });
-    else console.error("Некорректная пара Quiz", { lessonId, index });
-  });
-  commitPending(raw.length - 1);
-  return valid;
-};
+const stripQuizMarkup = (text) => String(text ?? "").replace(/\*\*(.+?)\*\*/g, "$1");
 
 function QuizBlock({ block, index, lessonId }) {
   const questions = normalizeQuizQuestions(block, lessonId);
@@ -211,12 +114,31 @@ function QuizBlock({ block, index, lessonId }) {
     }));
   };
 
+  const answerableIndexes = questions
+    .map((question, questionIndex) => (question.answer || question.explanation ? questionIndex : -1))
+    .filter((questionIndex) => questionIndex >= 0);
+  const allExpanded =
+    answerableIndexes.length > 0 &&
+    answerableIndexes.every((questionIndex) => expandedQuestions[questionIndex]);
+  const toggleAll = () => {
+    setExpandedQuestions(
+      allExpanded ? {} : Object.fromEntries(answerableIndexes.map((questionIndex) => [questionIndex, true])),
+    );
+  };
+
   if (!questions.length) return null;
 
   return (
     <article className="content-block-card">
       <div className="course-viewer-eyebrow">Блок {index + 1} · quiz</div>
-      <h3>{block.title || "Проверочные вопросы"}</h3>
+      <div className="quiz-block-head">
+        <h3>{block.title || "Проверочные вопросы"}</h3>
+        {answerableIndexes.length > 1 && (
+          <button type="button" className="quiz-toggle-all" onClick={toggleAll} aria-pressed={allExpanded}>
+            {allExpanded ? "Скрыть все ответы" : "Показать все ответы"}
+          </button>
+        )}
+      </div>
         <ol className="quiz-question-list">
           {questions.map((question, questionIndex) => {
             const title = question.question;
@@ -233,7 +155,7 @@ function QuizBlock({ block, index, lessonId }) {
                   aria-controls={hasAnswerDetails ? answerId : undefined}
                   onClick={() => toggleQuestion(questionIndex)}
                 >
-                  <strong>{title}</strong>
+                  <strong>{stripQuizMarkup(title)}</strong>
                   <span aria-hidden="true">
                     {isExpanded ? "Скрыть ответ" : "Показать ответ"}
                   </span>
@@ -241,14 +163,14 @@ function QuizBlock({ block, index, lessonId }) {
                 {question.options.length > 0 && (
                   <ul className="quiz-answer-options">
                     {question.options.map((option, optionIndex) => (
-                      <li key={`option-${optionIndex}`}>{option}</li>
+                      <li key={`option-${optionIndex}`}>{renderQuizInline(option)}</li>
                     ))}
                   </ul>
                 )}
                 {hasAnswerDetails && isExpanded && (
                   <div id={answerId} className="quiz-answer-details">
-                    {question.answer && <p><strong>Ответ:</strong> {question.answer}</p>}
-                    {question.explanation && <p><strong>Пояснение:</strong> {question.explanation}</p>}
+                    {question.answer && <p><strong>Ответ:</strong> {renderQuizInline(question.answer)}</p>}
+                    {question.explanation && <p><strong>Пояснение:</strong> {renderQuizInline(question.explanation)}</p>}
                   </div>
                 )}
               </li>

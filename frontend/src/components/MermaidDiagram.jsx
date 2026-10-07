@@ -204,6 +204,90 @@ const splitStuckFlowchartStatements = (source) =>
       "$1\n$2",
     );
 
+/* LLM-SLIPS-START */
+/* -------------------------------------------------------------------------- */
+/* Типовые огрехи сгенерированных flowchart-схем                               */
+/* -------------------------------------------------------------------------- */
+const FLOWCHART_PATTERN = /^\s*(flowchart|graph)\b/i;
+
+// Допустимые пары скобок у фигур узла: открывающая -> закрывающая.
+const NODE_SHAPE_CLOSERS = {
+  "[": "]",
+  "(": ")",
+  "{": "}",
+  "[[": "]]",
+  "((": "))",
+  "([": "])",
+  "[(": ")]",
+  "{{": "}}",
+  "(((": ")))",
+};
+
+const UNSAFE_EDGE_LABEL = /[()[\]{}"'<>#;:&]/;
+
+const repairFlowchartSlips = (source) => {
+  const text = String(source ?? "");
+  // Правки ниже специфичны для flowchart; sequence/class/state диаграммы не трогаем.
+  const firstLine = text.split("\n").find((line) => line.trim() && !/^\s*%%/.test(line)) ?? "";
+  if (hasDiagramType(firstLine) && !FLOWCHART_PATTERN.test(firstLine)) return text;
+
+  return text
+    .split("\n")
+    // `% комментарий` с одним процентом и несуществующая директива classId ломают парсер.
+    .filter((line) => !/^\s*%(?!%)/.test(line) && !/^\s*classId\b/i.test(line))
+    // `class a,b,c` без имени класса: список узлов есть, а применять нечего.
+    .filter((line) => !/^\s*class\s+\S+\s*;?\s*$/.test(line))
+    .map((line) => {
+      if (/^\s*%%/.test(line)) return line;
+      let next = line;
+
+      // classDef/style: свойства разделяются запятыми, `;` внутри обрывает инструкцию.
+      if (/^\s*(classDef|style|linkStyle)\b/.test(next)) {
+        // `shape:` не является CSS-свойством и не поддерживается в classDef.
+        next = next.replace(/[;,]\s*shape\s*:\s*[\w-]+/gi, "");
+        return next.replace(/;(?=\s*\S)/g, ",");
+      }
+
+      // subgraph ID [ Заголовок: с двоеточием ] -> subgraph ID ["Заголовок: с двоеточием"]
+      next = next.replace(
+        /^(\s*subgraph\s+[A-Za-z_][\w-]*)\s*\[\s*([^\]"\n]+?)\s*\]\s*$/,
+        (match, head, title) => `${head}["${title.replace(/"/g, "#quot;")}"]`,
+      );
+
+      // `==>>` и `-->>` в flowchart не существуют; `||метка|` — лишняя вертикальная черта.
+      next = next.replace(/(==|--)>>(?=\s*\||\s)/g, "$1>");
+      next = next.replace(/((?:==+|--+|-\.+-)>?)\s*\|\|\s*([^|\n]*?)\s*\|/g, "$1|$2|");
+
+      // Подпись связи со спецсимволами: |230 В (падение U)| -> |"230 В (падение U)"|
+      next = next.replace(
+        /((?:<?(?:==+|--+|-\.+-)[>ox]?))\s*\|([^|\n]+?)\|/g,
+        (match, arrow, label) => {
+          const trimmed = label.trim();
+          if (!trimmed || /^".*"$/.test(trimmed) || !UNSAFE_EDGE_LABEL.test(trimmed)) return match;
+          return `${arrow}|"${trimmed.replace(/"/g, "#quot;")}"|`;
+        },
+      );
+
+      // Узел с подписью в кавычках и несовпавшими скобками: A("текст"] / A["текст"]] / A({{"текст"}})
+      next = next.replace(
+        /([A-Za-z_][\w-]*)([[({]{1,3})("[^"\n]*")([\])}]{1,3})/g,
+        (match, id, open, label, close) => {
+          const expected = NODE_SHAPE_CLOSERS[open];
+          if (expected) return expected === close ? match : `${id}${open}${label}${expected}`;
+          const fallback = open.includes("{{") ? "{{" : open.includes("{") ? "{" : open.includes("(") ? "(" : "[";
+          return `${id}${fallback}${label}${NODE_SHAPE_CLOSERS[fallback]}`;
+        },
+      );
+
+      // Лишняя кавычка после закрывающей скобки в конце строки: Q{"Текст?"}"
+      next = next.replace(/([\])}])"(\s*;?\s*)$/, "$1$2");
+
+      return next;
+    })
+    .join("\n");
+};
+/* LLM-SLIPS-END */
+
 /* -------------------------------------------------------------------------- */
 /* УЛУЧШЕННЫЙ ремонт — удаляем все обратные слеши, вставляем пробелы между узлами */
 /* -------------------------------------------------------------------------- */
@@ -216,6 +300,9 @@ const repairCommonErrors = (source) => {
 
   // 2. Mermaid поддерживает комментарии отдельной строкой, но inline `%%` часто ломают парсер.
   result = stripInlineComments(result);
+
+  // 2a. Огрехи генерации в flowchart: несовпавшие скобки, лишние кавычки, битые стрелки.
+  result = repairFlowchartSlips(result);
 
   // Escaped quotes are label content, not Mermaid delimiters.
   result = result.replace(/\\"/g, "#quot;");

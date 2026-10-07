@@ -244,9 +244,24 @@
 
 .quiz-question-list {
     display: grid;
+    /* minmax(0, 1fr): колонка не шире карточки, даже если внутри строка без пробелов. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin: 14px 0 0;
     padding-left: 20px;
+}
+
+.quiz-question-list > li {
+    min-width: 0;
+}
+
+.quiz-question-toggle strong,
+.quiz-answer-options li,
+.quiz-answer-details p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    /* В тексте вопроса и ответа бывают осмысленные переносы строк (списки, пары). */
+    white-space: pre-line;
 }
 
 .quiz-question-toggle {
@@ -278,6 +293,32 @@
     flex: 0 0 auto;
     font-size: 0.82rem;
     font-weight: 800;
+}
+
+.quiz-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.quiz-toggle-all {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid rgba(var(--accent-rgb), 0.42);
+    border-radius: 999px;
+    background: var(--glass-bg-strong);
+    color: var(--ink-accent);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.quiz-toggle-all:hover,
+.quiz-toggle-all:focus-visible {
+    border-color: rgba(var(--accent-rgb), 0.7);
 }
 
 .quiz-answer-options,
@@ -378,7 +419,7 @@
 }
 
 .generated-course-enroll-card p {
-    color: var(--text-muted, #6d7284);
+    color: var(--muted);
     margin-top: 8px;
 }
 

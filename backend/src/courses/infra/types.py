@@ -11,7 +11,22 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator
 
 from ..domain.constants import _BLOCK_REGISTRY, ExtendedContentType
-from ..domain.entities import AnyContentBlock, QuizBlock
+from ..domain.entities import AnyContentBlock, Question, QuizBlock
+
+
+def _question_from_raw(raw: Any) -> Question:
+    """В базе вопрос лежит либо словарём {question, answer}, либо парой [вопрос, ответ].
+
+    Раньше здесь был tuple(q): для словаря он возвращал ключи ("question", "answer")
+    вместо текста, и на фронте вместо вопроса выводилось слово answer.
+    """
+    if isinstance(raw, Question):
+        return raw
+    if isinstance(raw, dict):
+        return Question(question=str(raw.get("question", "")), answer=str(raw.get("answer", "")))
+    if isinstance(raw, (list, tuple)) and len(raw) == 2:
+        return Question(question=str(raw[0]), answer=str(raw[1]))
+    return Question(question=str(raw), answer="")
 
 
 def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:
@@ -22,7 +37,7 @@ def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:
     kwargs["content_type"] = content_type
 
     if block_cls is QuizBlock and "questions" in kwargs:
-        kwargs["questions"] = [tuple(q) for q in kwargs["questions"]]
+        kwargs["questions"] = [_question_from_raw(q) for q in kwargs["questions"]]
 
     return block_cls(**kwargs)
 
