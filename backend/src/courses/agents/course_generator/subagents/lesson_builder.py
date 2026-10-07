@@ -3,19 +3,15 @@ from typing import NotRequired, TypedDict
 import logging
 import time
 from asyncio import TaskGroup
+from dataclasses import replace
 from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
-from sqlalchemy.exc import IntegrityError
 
 from src.core.qdrant import qdrant_client
+from src.core.redis import checkpointer
 from src.courses.agents.schemas import Context, RuntimeContext
-from src.courses.application.domain_dtos import (
-    LessonDict,
-    LessonStructureDict,
-)
-from src.courses.application.mappers import dict_to_lesson, lesson_to_dict, model_to_typed_dict
 from src.courses.domain.entities import Lesson
 from src.courses.domain.vo import AnyContentBlock, ContentType
 from src.courses.infra.database.repos.lesson import SqlLessonRepository
@@ -25,7 +21,6 @@ from src.courses.utils.formatting import get_content_blocks_context, get_lesson_
 from src.llm_service import LLMTextService
 
 from ..few_shots import LESSON_STRUCTURE_FEW_SHOT
-from ..serializer import checkpointer
 from .prompts import LESSON_STRUCTURE_PROMPT, ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
 
@@ -41,14 +36,14 @@ class AgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер урока
     lesson_description: str  # Описание урока из структуры модуля
-    lesson_structure: NotRequired[LessonStructureDict]  # Структура/сценарий урока
-    lesson: NotRequired[LessonDict]  # Сгенерированный урок
+    lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
+    lesson: NotRequired[Lesson]  # Сгенерированный урок
 
 
 async def plan_lesson_structure(
     state: AgentState,
     runtime: Runtime[RuntimeContext],
-) -> dict[str, LessonStructureDict | LessonDict]:
+) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
         client=runtime.context.client,
@@ -136,8 +131,8 @@ async def plan_lesson_structure(
         order=state["order"],
     )
     return {
-        "lesson_structure": model_to_typed_dict(lesson_structure),
-        "lesson": lesson_to_dict(lesson),
+        "lesson_structure": lesson_structure,
+        "lesson": lesson,
     }
 
 
@@ -184,16 +179,13 @@ async def build_content_block(
 async def generate_content_blocks(
     state: AgentState,
     runtime: Runtime[RuntimeContext],
-) -> dict[str, LessonDict]:
+) -> dict[str, Lesson]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
     """
 
-    lesson_structure_data = state["lesson_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
-
-    lesson = dict_to_lesson(state["lesson"])  # pyright: ignore[reportTypedDictNotRequiredAccess]
-
-    lesson_structure = LessonStructure.model_validate(lesson_structure_data)
+    lesson_structure = state["lesson_structure"]
+    lesson = replace(state["lesson"], content_blocks=list(state["lesson"].content_blocks))
     logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))
 
     async with TaskGroup() as tg:
@@ -219,18 +211,15 @@ async def generate_content_blocks(
         lesson.title,
     )
 
-    return {"lesson": lesson_to_dict(lesson)}
+    return {"lesson": lesson}
 
 
 async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет урок, чтобы результат был доступен после завершения операции."""
-    lesson = dict_to_lesson(state["lesson"])  # type: ignore
-    try:
-        await SqlLessonRepository(runtime.context.db_session).create(lesson)
-        await runtime.context.db_session.commit()
-    except IntegrityError:
-        await runtime.context.db_session.rollback()
-        logger.info("Lesson %s alredy exsists", lesson.title)
+    lesson = state["lesson"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+
+    await SqlLessonRepository(runtime.context.db_session).upsert(lesson)
+    await runtime.context.db_session.commit()
     await VectorRepository(client=qdrant_client).index_document(
         text=get_content_blocks_context(lesson.content_blocks),
         metadata={

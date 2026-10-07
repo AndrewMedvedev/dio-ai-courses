@@ -452,8 +452,6 @@ def to_langsmith_llm_output(result: LLMTextResponse | None) -> dict[str, Any]:
     return {
         "output": result,
         "usage_metadata": {
-            "input_tokens": None,
-            "output_tokens": None,
             "total_tokens": result.total_tokens,
         },
     }

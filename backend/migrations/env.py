@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from src.core.database import Base, import_all_models, postgres_config
 from src.core.settings import INSTALLED_MODULES
+import src.llm_router.infra.models
 import_all_models(INSTALLED_MODULES)
 from src.core.settings import settings
 # this is the Alembic Config object, which provides

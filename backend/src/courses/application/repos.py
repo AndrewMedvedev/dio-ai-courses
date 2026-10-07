@@ -31,14 +31,17 @@ from ..domain.entities import (
     Chat,
     Course,
     CourseBasicInfo,
+    CourseProgress,
     Document,
     Entity,
     Invitation,
     Lesson,
     LessonBasicInfo,
+    LessonProgress,
     Member,
     Module,
     ModuleBasicInfo,
+    ModuleProgress,
     Practice,
 )
 
@@ -223,6 +226,16 @@ class PracticeRepository(Repository[Practice]):
     async def read_by_module(self, user_id: UUID, module_id: UUID) -> list[dict[str, Any]]:
         """Получает практики пользователя внутри модуля без служебных полей."""
         ...
+
+
+class LessonProgressRepository(Repository[LessonProgress]): ...
+
+
+class ModuleProgressRepository(Repository[ModuleProgress]): ...
+
+
+class CourseProgressRepository(Repository[CourseProgress]):
+    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
 
 
 class MemberRepository(Repository[Member]):
