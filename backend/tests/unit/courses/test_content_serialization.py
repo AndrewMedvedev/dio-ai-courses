@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic import TypeAdapter
+from ddf.infra.cache.redis.serializers.msgpack import MsgpackSerializer
 
-from src.courses.agents.course_generator.helper import generation_data
 from src.courses.domain.entities import Course, Lesson, Module
 from src.courses.domain.vo import (
     AnyContentBlock,
@@ -21,7 +21,6 @@ from src.courses.domain.vo import (
     VideoBlock,
 )
 from src.courses.domain.vo import CourseStatus, DifficultyLevel
-from src.shared.infra.cache import MsgpackSerializer
 
 
 @pytest.mark.parametrize(
@@ -77,12 +76,12 @@ def test_course_roundtrip_preserves_content_types_and_fields(
     )
     module.append_lesson(lesson)
     course.append_module(module)
-    data = generation_data(course)
+    data = asdict(course)
     if checkpoint_format == "json":
         data = json.loads(json.dumps(data, default=str))
     elif checkpoint_format == "msgpack":
-        serializer = MsgpackSerializer(dict)
-        data = serializer.loads(serializer.dumps(data))
+        serializer = MsgpackSerializer(Course)
+        data = serializer.loads(serializer.dumps(course))
 
     restored = TypeAdapter(Course).validate_python(data)
 

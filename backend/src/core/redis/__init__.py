@@ -1,10 +1,17 @@
-from typing import Any
+from uuid import UUID
 
-from langgraph.checkpoint.redis.jsonplus_redis import JsonPlusRedisSerializer
+from ddf.infra.cache.redis import RedisCache
+from ddf.infra.cache.redis.serializers.msgpack import MsgpackSerializer
 from redis.asyncio import Redis
 
-from ...shared.infra.cache import BinaryRedisSaver, MsgpackSerializer
-
+from ...courses.agents.course_generator.subagents.prompts import (
+    CourseStructure,
+    LessonStructure,
+    ModuleStructure,
+)
+from ...courses.agents.schemas import Context
+from ...courses.domain.entities import Course, Lesson, Module
+from ...shared.infra.cache.redis import RedisCheckpointSaver, SavedCheckpoint, SavedWrite
 from .config import redis_config
 
 __all__ = ["checkpointer", "redis_client"]
@@ -16,20 +23,17 @@ redis_client = Redis(  # ruff: ignore[non-empty-init-module]
     password=redis_config.password,
     decode_responses=False,
 )
-
-checkpointer = BinaryRedisSaver(  # ruff: ignore[non-empty-init-module]
-    redis_client=redis_client,
-    serializer=MsgpackSerializer(dict[str, Any]),
-    channels=frozenset({"course", "module", "lesson"}),
-    key_prefix="course_state",
-    reference_field="_course_msgpack_key",
-    ttl={
-        "default_ttl": 60 * 10,  # Время жизни контрольных точек в минутах: 10 часов
-        "refresh_on_read": True,  # Сбросить время истечения срока действия при чтении контрольных точек  # ruff:ignore[line-too-long]
+checkpointer = RedisCheckpointSaver(  # ruff: ignore[non-empty-init-module]
+    cache=RedisCache(redis_client, MsgpackSerializer(SavedCheckpoint), ttl=10 * 60 * 60),
+    writes_serializer=MsgpackSerializer(SavedWrite),
+    state_types={
+        "course": Course,
+        "module": Module,
+        "lesson": Lesson,
+        "generation_context": Context,
+        "course_structure": CourseStructure,
+        "module_structure": ModuleStructure,
+        "lesson_structure": LessonStructure,
+        "module_id": UUID,
     },
-)
-
-# Контекст графа остаётся в метаданных; содержимое курса сохраняется через msgpack.
-checkpointer.serde = JsonPlusRedisSerializer(
-    allowed_json_modules=[("src", "courses", "agents", "schemas", "Context")],
 )

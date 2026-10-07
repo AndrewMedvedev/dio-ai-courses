@@ -1,25 +1,27 @@
-from typing import Any, Protocol, cast
+from typing import cast
 
-import logging
 import uuid
 from collections.abc import Sequence
-from hashlib import sha256
+from dataclasses import dataclass
+from urllib.parse import quote
 
-import msgpack
+from ddf.infra.cache.redis import RedisCache as DDFRedisCache
+from ddf.infra.cache.redis.serializers.protocol import Serializer
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
+    WRITES_IDX_MAP,
+    BaseCheckpointSaver,
     ChannelVersions,
     Checkpoint,
     CheckpointMetadata,
     CheckpointTuple,
+    get_checkpoint_id,
+    get_checkpoint_metadata,
 )
-from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from pydantic import TypeAdapter
 from redis.asyncio import Redis
 
 from .base import Cache
-
-logger = logging.getLogger(__name__)
 
 _TRUE_STRINGS = ("true", "1")
 
@@ -28,26 +30,152 @@ def build_key(prefix: str, uid: uuid.UUID) -> str:
     return f"{prefix}:{uid}"
 
 
-class Serializer[T](Protocol):
+@dataclass
+class SavedCheckpoint:
+    checkpoint: Checkpoint
+    metadata: dict[str, object]
+    parent_id: str | None
 
-    def dumps(self, value: T) -> bytes: ...
 
-    def loads(self, value: bytes) -> T: ...
+@dataclass
+class SavedWrite:
+    task_id: str
+    channel: str
+    value: object
 
 
-class MsgpackSerializer[T]:
-    """Сериализует данные в msgpack и восстанавливает типы по переданной схеме."""
+class RedisCheckpointSaver(BaseCheckpointSaver[int]):
+    """Асинхронные контрольные точки LangGraph в бинарном кэше DDF."""
 
-    def __init__(self, target_type: type[T]) -> None:
-        self._adapter = TypeAdapter(target_type)
+    def __init__(
+        self,
+        cache: DDFRedisCache[SavedCheckpoint],
+        writes_serializer: Serializer[SavedWrite],
+        state_types: dict[str, type],
+        *,
+        refresh_on_read: bool = True,
+    ) -> None:
+        super().__init__()
+        self.cache = cache
+        self.writes_serializer = writes_serializer
+        self.state_types = state_types
+        self._adapters = {channel: TypeAdapter(entity) for channel, entity in state_types.items()}
+        self._refresh_on_read = refresh_on_read
 
-    def dumps(self, value: T) -> bytes:
-        return cast(bytes, msgpack.dumps(
-            self._adapter.dump_python(value, mode="json"), use_bin_type=True,
-        ))
+    @staticmethod
+    def _prefix(config: RunnableConfig) -> str:
+        values = config["configurable"]
+        thread = quote(str(values["thread_id"]), safe="")
+        namespace = quote(values.get("checkpoint_ns", ""), safe="")
+        return f"checkpoint_msgpack:{thread}:{namespace}:"
 
-    def loads(self, value: bytes) -> T:
-        return self._adapter.validate_python(msgpack.loads(value, raw=False, use_list=True))
+    def _restore(self, channel: str, value: object) -> object:
+        if value is not None and channel in self._adapters:
+            return self._adapters[channel].validate_python(value)
+        if channel == "__start__" and isinstance(value, dict):
+            return {name: self._restore(name, item) for name, item in value.items()}
+        return value
+
+    async def asetup(self) -> None:
+        await self.cache.redis.ping()
+
+    setup = asetup
+
+    async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+        prefix = self._prefix(config)
+        checkpoint_id = get_checkpoint_id(config)
+        if checkpoint_id is None:
+            latest = await self.cache.redis.get(prefix + "latest")
+            if latest is None:
+                return None
+            checkpoint_id = latest.decode("utf-8")
+        key = prefix + checkpoint_id
+        saved = await self.cache.get(key)
+        if saved is None:
+            return None
+        writes = await self.cache.redis.hgetall(key + ":writes")
+        pending = [self.writes_serializer.loads(raw) for _, raw in sorted(writes.items())]
+        if self._refresh_on_read and self.cache.ttl is not None:
+            async with self.cache.redis.pipeline() as pipeline:
+                for ttl_key in (key, key + ":writes", prefix + "latest"):
+                    pipeline.expire(ttl_key, self.cache.ttl)
+                await pipeline.execute()
+        values = {
+            "thread_id": config["configurable"]["thread_id"],
+            "checkpoint_ns": config["configurable"].get("checkpoint_ns", ""),
+            "checkpoint_id": checkpoint_id,
+        }
+        return CheckpointTuple(
+            config={"configurable": values},
+            checkpoint={
+                **saved.checkpoint,
+                "channel_values": {
+                    channel: self._restore(channel, value)
+                    for channel, value in saved.checkpoint["channel_values"].items()
+                },
+            },
+            metadata=cast(CheckpointMetadata, saved.metadata),
+            parent_config=(
+                {"configurable": {**values, "checkpoint_id": saved.parent_id}}
+                if saved.parent_id is not None else None
+            ),
+            pending_writes=[
+                (write.task_id, write.channel, self._restore(write.channel, write.value))
+                for write in pending
+            ],
+        )
+
+    async def aput(
+        self,
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
+    ) -> RunnableConfig:
+        prefix = self._prefix(config)
+        checkpoint_id = checkpoint["id"]
+        await self.cache.set(
+            prefix + checkpoint_id,
+            SavedCheckpoint(
+                checkpoint,
+                dict(get_checkpoint_metadata(config, metadata)),
+                get_checkpoint_id(config),
+            ),
+        )
+        await self.cache.redis.set(prefix + "latest", checkpoint_id, ex=self.cache.ttl)
+        return {
+            "configurable": {
+                "thread_id": config["configurable"]["thread_id"],
+                "checkpoint_ns": config["configurable"].get("checkpoint_ns", ""),
+                "checkpoint_id": checkpoint_id,
+            },
+        }
+
+    async def aput_writes(
+        self,
+        config: RunnableConfig,
+        writes: Sequence[tuple[str, object]],
+        task_id: str,
+        task_path: str = "",
+    ) -> None:
+        key = self._prefix(config) + config["configurable"]["checkpoint_id"] + ":writes"
+        async with self.cache.redis.pipeline() as pipeline:
+            for index, (channel, value) in enumerate(writes):
+                index = WRITES_IDX_MAP.get(channel, index)
+                raw = self.writes_serializer.dumps(SavedWrite(task_id, channel, value))
+                field = f"{task_id}:{index}"
+                if index < 0:
+                    pipeline.hset(key, field, raw)
+                else:
+                    pipeline.hsetnx(key, field, raw)
+            if self.cache.ttl is not None:
+                pipeline.expire(key, self.cache.ttl)
+            await pipeline.execute()
+
+    async def adelete_thread(self, thread_id: str) -> None:
+        prefix = f"checkpoint_msgpack:{quote(str(thread_id), safe='')}:"
+        async for key in self.cache.redis.scan_iter(match=prefix + "*"):
+            await self.cache.redis.delete(key)
 
 
 class PrimitiveSerializer[T]:
@@ -103,112 +231,3 @@ class RedisCache[T](Cache[T]):
     async def exists(self, key: str) -> bool:
         result = await self.redis.exists(key)
         return result > 0
-
-
-class BinaryRedisSaver(AsyncRedisSaver):
-    """Хранит выбранные каналы бинарно, сохраняя стандартные контрольные точки."""
-
-    def __init__(
-        self,
-        *,
-        redis_client: Redis,
-        serializer: Serializer[dict[str, Any]],
-        channels: frozenset[str],
-        key_prefix: str,
-        reference_field: str,
-        ttl: dict[str, Any] | None = None,
-    ) -> None:
-        super().__init__(redis_client=redis_client, ttl=ttl)
-        self._content_redis = redis_client
-        self._content_serializer = serializer
-        self._channels = channels
-        self._key_prefix = key_prefix
-        self._reference_field = reference_field
-        ttl_minutes = (ttl or {}).get("default_ttl")
-        self._content_ttl = (
-            int(ttl_minutes * 60) if ttl_minutes is not None and ttl_minutes != -1 else None
-        )
-        self._refresh_on_read = (ttl or {}).get("refresh_on_read", False)
-
-    async def _store_content(
-        self,
-        config: RunnableConfig,
-        channel: str,
-        value: dict[str, Any],
-    ) -> dict[str, str]:
-        """Сохраняет msgpack до записи ссылки; одинаковые данные используют один ключ."""
-        configurable = config.get("configurable", {})
-        thread = sha256(str(configurable["thread_id"]).encode()).hexdigest()
-        namespace = sha256(str(configurable.get("checkpoint_ns", "")).encode()).hexdigest()
-        raw = self._content_serializer.dumps(value)
-        key = f"{self._key_prefix}:{thread}:{namespace}:{channel}:{sha256(raw).hexdigest()}"
-        await self._content_redis.set(key, raw, ex=self._content_ttl)
-        return {self._reference_field: key}
-
-    async def _load_content(self, value: Any) -> Any:
-        """Восстанавливает бинарные данные или возвращает старое JSON-значение."""
-        if not isinstance(value, dict) or self._reference_field not in value:
-            return value
-        key = value[self._reference_field]
-        if self._refresh_on_read and self._content_ttl is not None:
-            raw = await self._content_redis.getex(key, ex=self._content_ttl)
-        else:
-            raw = await self._content_redis.get(key)
-        if raw is None:
-            raise ValueError(f"Содержимое контрольной точки отсутствует в Redis: {key}")
-        return self._content_serializer.loads(raw)
-
-    async def aput(
-        self,
-        config: RunnableConfig,
-        checkpoint: Checkpoint,
-        metadata: CheckpointMetadata,
-        new_versions: ChannelVersions,
-        stream_mode: str = "values",
-    ) -> RunnableConfig:
-        """Заменяет крупные данные ссылками, не изменяя состояние работающего графа."""
-        values = checkpoint["channel_values"].copy()
-        for channel in self._channels.intersection(values):
-            values[channel] = await self._store_content(config, channel, values[channel])
-        return await super().aput(
-            config, {**checkpoint, "channel_values": values}, metadata, new_versions, stream_mode,
-        )
-
-    async def aput_writes(
-        self,
-        config: RunnableConfig,
-        writes: Sequence[tuple[str, Any]],
-        task_id: str,
-        task_path: str = "",
-    ) -> None:
-        """Сохраняет промежуточные результаты задач для возобновления после сбоя."""
-        stored_writes = [
-            (
-                channel,
-                await self._store_content(config, channel, value)
-                if channel in self._channels else value,
-            )
-            for channel, value in writes
-        ]
-        await super().aput_writes(config, stored_writes, task_id, task_path)
-
-    async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
-        """Восстанавливает состояние и промежуточные результаты для возобновления."""
-        snapshot = await super().aget_tuple(config)
-        if snapshot is None:
-            return None
-        values = {
-            channel: await self._load_content(value)
-            for channel, value in snapshot.checkpoint["channel_values"].items()
-        }
-        pending_writes = (
-            [
-                (task_id, channel, await self._load_content(value))
-                for task_id, channel, value in snapshot.pending_writes
-            ]
-            if snapshot.pending_writes is not None else None
-        )
-        return snapshot._replace(
-            checkpoint={**snapshot.checkpoint, "channel_values": values},
-            pending_writes=pending_writes,
-        )

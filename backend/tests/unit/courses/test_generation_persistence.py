@@ -1,6 +1,7 @@
 from typing import Any
 
 from unittest.mock import AsyncMock, Mock
+from dataclasses import asdict
 
 import pytest
 from langgraph.runtime import Runtime
@@ -8,7 +9,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.agents.course_generator import nodes
-from src.courses.agents.course_generator.helper import generation_data
 from src.courses.agents.course_generator.subagents import lesson_builder, module_builder
 from src.courses.agents.schemas import Context
 from tests.support.course_generation import load_course, make_runtime_context
@@ -32,7 +32,7 @@ def persistence(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch)
         "generation_context": Context(
             course_id=reference.id, user_id=reference.creator_id, prompt="Мок",
         ),
-        source: generation_data(entity),
+        source: entity,
     }
     return (
         getattr(module, f"save_{source}"), state,
@@ -51,7 +51,7 @@ async def test_repeated_generation_write_uses_shared_upsert(persistence: Any) ->
 
     assert repository.upsert.await_count == attempts
     for invocation in repository.upsert.await_args_list:
-        assert generation_data(invocation.args[0]) == generation_data(entity)
+        assert asdict(invocation.args[0]) == asdict(entity)
     repository.create.assert_not_awaited()
     assert session.commit.await_count == attempts
     session.rollback.assert_not_awaited()

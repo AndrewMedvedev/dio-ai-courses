@@ -1,14 +1,14 @@
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 import logging
 import time
 from asyncio import TaskGroup
+from dataclasses import replace
 from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
-from pydantic import TypeAdapter
 
 from src.core.database import session_factory
 from src.core.redis import checkpointer
@@ -19,7 +19,7 @@ from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService
 
 from ..few_shots import MODULE_STRUCTURE_FEW_SHOT
-from ..helper import generation_data, invoke_or_resume
+from ..helper import invoke_or_resume
 from .lesson_builder import lesson_builder_agent
 from .prompts import MODULE_STRUCTURE_PROMPT, ModuleStructure
 
@@ -34,14 +34,14 @@ class AgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер модуля
     module_description: str  # Описание модуля из структуры курса
-    module_structure: NotRequired[dict[str, Any]]  # Структура/сценарий модуля
-    module: NotRequired[dict[str, Any]]  # Сгенерированный модуль
+    module_structure: NotRequired[ModuleStructure]  # Структура/сценарий модуля
+    module: NotRequired[Module]  # Сгенерированный модуль
 
 
 async def plan_module_structure(
     state: AgentState,
     runtime: Runtime[RuntimeContext],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, ModuleStructure | Module]:
     """Планирование структуры модуля"""
 
     module_structure_planner = LLMTextService(
@@ -115,17 +115,15 @@ async def plan_module_structure(
         order=state["order"],
     )
     return {
-        "module_structure": module_structure.model_dump(mode="json"),
-        "module": generation_data(module),
+        "module_structure": module_structure,
+        "module": module,
     }
 
 
 async def save_module(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет модуль, чтобы результат был доступен после завершения операции."""
     module_repos = SqlModuleRepository(runtime.context.db_session)  # pyright: ignore[reportArgumentType]
-    module = TypeAdapter(Module).validate_python(
-        state["module"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    )
+    module = state["module"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
     await module_repos.upsert(module)
     logger.info("Saving module '%s' to database ...", module.title)
     await runtime.context.db_session.commit()  # pyright: ignore[reportOptionalMemberAccess]
@@ -162,21 +160,19 @@ async def build_lesson(
             config=RunnableConfig(configurable={"thread_id": lesson_thread_id}),
             context=RuntimeContext(db_session=session, client=client),
         )
-        return order, TypeAdapter(Lesson).validate_python(result["lesson"])
+        return order, result["lesson"]
 
 
 async def generate_lessons(
     state: AgentState,
     runtime: Runtime[RuntimeContext],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, Module]:
     """Генерация уроков по структуре модуля"""
 
     module_structure = state["module_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    module = TypeAdapter(Module).validate_python(
-        state["module"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    )
+    module = replace(state["module"], lessons=list(state["module"].lessons))
     start_time = time.monotonic()
-    total_modules = len(module_structure["lessons_descriptions"])
+    total_modules = len(module_structure.lessons_descriptions)
     logger.info("Start generate %s lessons ...", total_modules)
     async with TaskGroup() as tg:
         tasks = [
@@ -188,11 +184,11 @@ async def generate_lessons(
                     generation_context=state["generation_context"],
                     module_id=module.id,
                     audience_description=state["audience_description"],
-                    learning_objectives=module_structure["learning_objectives"],
+                    learning_objectives=module_structure.learning_objectives,
                     client=runtime.context.client,
                 )
             )
-            for order, desc in enumerate(module_structure["lessons_descriptions"], start=1)
+            for order, desc in enumerate(module_structure.lessons_descriptions, start=1)
         ]
 
     # Собираем результаты в правильном порядке
@@ -205,7 +201,7 @@ async def generate_lessons(
         total_modules,
         round(time.monotonic() - start_time, 2),
     )
-    return {"module": generation_data(module)}
+    return {"module": module}
 
 
 graph = StateGraph(AgentState, context_schema=RuntimeContext)

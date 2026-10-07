@@ -1,13 +1,13 @@
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 import logging
 import time
 from asyncio import TaskGroup
+from dataclasses import replace
 from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
-from pydantic import TypeAdapter
 
 from src.core.qdrant import qdrant_client
 from src.core.redis import checkpointer
@@ -21,7 +21,6 @@ from src.courses.utils.formatting import get_content_blocks_context, get_lesson_
 from src.llm_service import LLMTextService
 
 from ..few_shots import LESSON_STRUCTURE_FEW_SHOT
-from ..helper import generation_data
 from .prompts import LESSON_STRUCTURE_PROMPT, ContentSpecification, LessonStructure
 from .theorist import call_theory_agent
 
@@ -37,14 +36,14 @@ class AgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер урока
     lesson_description: str  # Описание урока из структуры модуля
-    lesson_structure: NotRequired[dict[str, Any]]  # Структура/сценарий урока
-    lesson: NotRequired[dict[str, Any]]  # Сгенерированный урок
+    lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
+    lesson: NotRequired[Lesson]  # Сгенерированный урок
 
 
 async def plan_lesson_structure(
     state: AgentState,
     runtime: Runtime[RuntimeContext],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, LessonStructure | Lesson]:
     """Планирование структуры урока"""
     lesson_structure_planner = LLMTextService(
         client=runtime.context.client,
@@ -132,8 +131,8 @@ async def plan_lesson_structure(
         order=state["order"],
     )
     return {
-        "lesson_structure": lesson_structure.model_dump(mode="json"),
-        "lesson": generation_data(lesson),
+        "lesson_structure": lesson_structure,
+        "lesson": lesson,
     }
 
 
@@ -180,18 +179,13 @@ async def build_content_block(
 async def generate_content_blocks(
     state: AgentState,
     runtime: Runtime[RuntimeContext],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, Lesson]:
     """Генерация контент блоков с помощью субагента - теоретика,
     используя сгенерированный план
     """
 
-    lesson_structure_data = state["lesson_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
-
-    lesson = TypeAdapter(Lesson).validate_python(
-        state["lesson"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    )
-
-    lesson_structure = LessonStructure.model_validate(lesson_structure_data)
+    lesson_structure = state["lesson_structure"]
+    lesson = replace(state["lesson"], content_blocks=list(state["lesson"].content_blocks))
     logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))
 
     async with TaskGroup() as tg:
@@ -217,14 +211,12 @@ async def generate_content_blocks(
         lesson.title,
     )
 
-    return {"lesson": generation_data(lesson)}
+    return {"lesson": lesson}
 
 
 async def save_lesson(state: AgentState, runtime: Runtime[RuntimeContext]) -> None:
     """Сохраняет урок, чтобы результат был доступен после завершения операции."""
-    lesson = TypeAdapter(Lesson).validate_python(
-        state["lesson"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
-    )
+    lesson = state["lesson"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     await SqlLessonRepository(runtime.context.db_session).upsert(lesson)
     await runtime.context.db_session.commit()

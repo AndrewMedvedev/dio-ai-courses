@@ -12,7 +12,6 @@ import sys
 from collections import Counter
 from collections.abc import AsyncIterator
 from dataclasses import asdict
-from hashlib import sha256
 from itertools import starmap
 from pathlib import Path
 from urllib.parse import urlparse
@@ -62,9 +61,6 @@ async def generation_id(generation_redis: Redis) -> AsyncIterator[UUID]:
 
     async def cleanup_thread(thread: str) -> None:
         await saver.adelete_thread(thread)
-        thread_hash = sha256(thread.encode()).hexdigest()
-        async for key in generation_redis.scan_iter(match=f"course_state:{thread_hash}:*"):
-            await generation_redis.unlink(key)
 
     for index in range(0, len(threads), 5):
         await asyncio.gather(*(
@@ -107,7 +103,7 @@ async def assert_complete(client: Redis, course_id: UUID) -> None:
         assert module.course_id == result.id
         for lesson in module.lessons:
             assert lesson.module_id == module.id
-    from src.shared.infra.cache import MsgpackSerializer
+    from ddf.infra.cache.redis.serializers.msgpack import MsgpackSerializer
 
     packed = MsgpackSerializer(Course).dumps(result)
     assert asdict(MsgpackSerializer(Course).loads(packed)) == asdict(result)

@@ -17,7 +17,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 from uuid import UUID
 
 import aiohttp
@@ -26,8 +26,7 @@ import pytest
 import qdrant_client
 import requests
 from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.redis.aio import AsyncRedisSaver
-from langgraph.checkpoint.redis.jsonplus_redis import JsonPlusRedisSerializer
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import StateGraph
 from pydantic import TypeAdapter
 from redis.asyncio import Redis
@@ -35,7 +34,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 if TYPE_CHECKING:
     from src.courses.agents.schemas import RuntimeContext
-    from src.shared.infra.cache import BinaryRedisSaver
 
 
 def pytest_load_initial_conftests(early_config: pytest.Config) -> None:
@@ -56,6 +54,9 @@ def block_external_api(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LANGCHAIN_TRACING_V2", "false")
     monkeypatch.setenv("SRV_COURSE_BASE_URL", "http://127.0.0.1:1")
     monkeypatch.setenv("SRV_COURSE_CLIENT_ID", "fake-course-client")
+    monkeypatch.setenv("SRV_ORGANIZATION_BASE_URL", "http://127.0.0.1:1")
+    monkeypatch.setenv("SRV_ORGANIZATION_CLIENT_ID", "fake-organization-client")
+    monkeypatch.setenv("SRV_ORGANIZATION_CLIENT_SECRET", "fake-unused-test-key")
     monkeypatch.setenv("APP_NAME", "course-tests")
     monkeypatch.setenv("APP_VERSION", "0.0.0")
     monkeypatch.setattr(qdrant_client, "AsyncQdrantClient", Mock())
@@ -121,21 +122,36 @@ def make_runtime_context(session: AsyncSession | None = None) -> RuntimeContext:
     )
 
 
-def make_saver(client: Redis) -> BinaryRedisSaver:
-    """Создаёт тот же адаптер и сериализатор метаданных, что используются в приложении."""
-    from src.shared.infra.cache import BinaryRedisSaver, MsgpackSerializer
+def make_saver(client: Redis) -> BaseCheckpointSaver[int]:
+    """Использует тот же бинарный saver и сериалайзеры DDF, что приложение."""
+    from ddf.infra.cache.redis import RedisCache
+    from src.core.redis import checkpointer
+    from src.shared.infra.cache.redis import RedisCheckpointSaver
 
-    saver = BinaryRedisSaver(
-        redis_client=client,
-        serializer=MsgpackSerializer(dict[str, Any]),
-        channels=frozenset({"course", "module", "lesson"}),
-        key_prefix="course_state",
-        reference_field="_course_msgpack_key",
+    return RedisCheckpointSaver(
+        cache=RedisCache(client, checkpointer.cache.serializer, ttl=checkpointer.cache.ttl),
+        writes_serializer=checkpointer.writes_serializer,
+        state_types=checkpointer.state_types,
     )
-    saver.serde = JsonPlusRedisSerializer(
-        allowed_json_modules=[("src", "courses", "agents", "schemas", "Context")],
-    )
-    return saver
+
+
+def mock_checkpoint_redis() -> AsyncMock:
+    """Мок Redis с сохранением бинарных значений между экземплярами saver."""
+    values: dict[str, bytes] = {}
+    hashes: dict[str, dict[str, bytes]] = {}
+    client = AsyncMock(spec=Redis)
+    client.get = AsyncMock(side_effect=values.get)
+    client.set = AsyncMock(side_effect=lambda key, value, ex=None: values.__setitem__(
+        key, value.encode() if isinstance(value, str) else value,
+    ))
+    client.hgetall = AsyncMock(side_effect=lambda key: hashes.get(key, {}).copy())
+    pipeline = MagicMock()
+    pipeline.__aenter__.return_value = pipeline
+    pipeline.execute = AsyncMock()
+    pipeline.hset.side_effect = lambda key, field, value: hashes.setdefault(key, {}).__setitem__(field, value)
+    pipeline.hsetnx.side_effect = lambda key, field, value: hashes.setdefault(key, {}).setdefault(field, value)
+    client.pipeline.return_value = pipeline
+    return client
 
 
 def mock_responses(reference: Any) -> tuple[Any, dict[str, Any], dict[str, Any]]:
@@ -180,7 +196,7 @@ def mock_responses(reference: Any) -> tuple[Any, dict[str, Any], dict[str, Any]]
 
 def mock_generation(
     monkeypatch: pytest.MonkeyPatch,
-    saver: AsyncRedisSaver,
+    saver: BaseCheckpointSaver[int],
     client: Redis,
     course_id: UUID,
     *,

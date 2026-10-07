@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
-from pydantic import TypeAdapter
 
 from src.courses.agents.course_generator import nodes
 from src.courses.agents.course_generator.subagents.prompts import CourseStructure
@@ -48,11 +47,13 @@ async def test_planner_output_can_be_used_to_generate_modules(
 
     runtime = Runtime(context=make_runtime_context())
     planned = await nodes.plan_course_structure(state, runtime)
-    assert planned["course_structure"] == structure.model_dump(mode="json")
+    assert planned["course_structure"] == structure
     state.update(planned)
     generated = await nodes.generate_modules(state, runtime)
 
-    course = TypeAdapter(Course).validate_python(generated["course"])
+    course = generated["course"]
+    assert isinstance(course, Course)
+    assert planned["course"].modules == []
     assert course.id == context.course_id
     assert course.creator_id == context.user_id
     assert course.title == structure.title
