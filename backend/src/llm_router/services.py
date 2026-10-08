@@ -30,6 +30,7 @@ from src.shared.domain.events import EventPublisher
 
 from .decorators import track_image_invocation, track_text_invocation
 from .domain.events import LLMInvocationCreated
+from .infra.media_client import MediaClient
 from .infra.repository import SqlAIModelRepository
 from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
 from .schemas import CacheAIModelsProtocol
@@ -244,8 +245,10 @@ class LLMImageRouter(LLMRouter):
         client: AsyncOpenAI,
         image_client: AsyncOpenAI,
         wrapper: CacheAIModelsProtocol,
+        media_client: MediaClient,
     ) -> None:
         self._image_client = image_client
+        self._media_client = media_client
         super().__init__(
             ai_model_repos=ai_model_repos,
             event_publisher=event_publisher,
@@ -253,9 +256,9 @@ class LLMImageRouter(LLMRouter):
             wrapper=wrapper,
         )
 
+    @track_image_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    @track_image_invocation
     async def _invoke_image(
         self,
         model: str,
@@ -273,9 +276,9 @@ class LLMImageRouter(LLMRouter):
             output_format=result.output_format,
         )
 
+    @track_image_invocation
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
-    @track_image_invocation
     async def _invoke_image_based(
         self,
         model: str,

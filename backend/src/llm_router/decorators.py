@@ -77,15 +77,18 @@ def track_image_invocation(func: Callable) -> Callable:
         started_at = perf_counter()
         request_id = get_request_id() or uuid4()
         request = schema.model_dump(mode="json", by_alias=True, exclude_none=True)
+        result = None
 
         try:
             result = await func(self, model=model, schema=schema)
+            duration_ms = round((perf_counter() - started_at) * 1000)
+            result.image = await self._media_client.save_image(result.image, folder="llm-outputs")
         except Exception as error:
             await self._publish_invocation(
                 LLMInvocationCreated(
                     request_id=request_id,
                     model=model,
-                    total_tokens=0,
+                    total_tokens=result.total_tokens if result is not None else 0,
                     request=request,
                     response={},
                     duration_ms=round((perf_counter() - started_at) * 1000),
@@ -103,7 +106,7 @@ def track_image_invocation(func: Callable) -> Callable:
                 total_tokens=result.total_tokens,
                 request=request,
                 response=result.model_dump(mode="json", exclude_none=True),
-                duration_ms=round((perf_counter() - started_at) * 1000),
+                duration_ms=duration_ms,
                 status=LLMInvocationStatus.COMPLETED,
             )
         )

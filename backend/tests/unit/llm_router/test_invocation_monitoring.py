@@ -142,18 +142,22 @@ async def test_image_invocation_publishes_response_schema() -> None:
     router = LLMImageRouter(
         ai_model_repos=AsyncMock(),
         event_publisher=publisher,
-        client=SimpleNamespace(images=SimpleNamespace(generate=AsyncMock(return_value=provider_response))),
+        client=SimpleNamespace(),
+        image_client=SimpleNamespace(images=SimpleNamespace(generate=AsyncMock(return_value=provider_response))),
+        media_client=SimpleNamespace(save_image=AsyncMock(return_value="llm-outputs/output.png")),
         wrapper=AsyncMock(),
     )
     schema = LLMImageRequest(prompt="Нарисуй схему")
 
     result = await router._invoke_image(model="gpt-image-2", schema=schema)
 
-    assert result.image == image_base64
-    router._client.images.generate.assert_awaited_once_with(
+    assert result.image == "llm-outputs/output.png"
+    router._media_client.save_image.assert_awaited_once_with(image_base64, folder="llm-outputs")
+    router._image_client.images.generate.assert_awaited_once_with(
         model="gpt-image-2",
         prompt="Нарисуй схему",
         quality="medium",
+        size="1024x1024",
         output_format="png",
     )
     event = publisher.publish.await_args.args[0]
@@ -176,21 +180,49 @@ async def test_image_edit_decodes_base64_and_excludes_it_from_provider_request()
     router = LLMImageRouter(
         ai_model_repos=AsyncMock(),
         event_publisher=publisher,
-        client=SimpleNamespace(images=SimpleNamespace(edit=edit)),
+        client=SimpleNamespace(),
+        image_client=SimpleNamespace(images=SimpleNamespace(edit=edit)),
+        media_client=SimpleNamespace(save_image=AsyncMock(return_value="llm-outputs/edited.png")),
         wrapper=AsyncMock(),
     )
     schema = LLMImageRequest(image=[image_base64], prompt="Измени картинку")
 
     result = await router._invoke_image_based(model="gpt-image-2", schema=schema)
 
-    assert result.image == "edited-image"
+    assert result.image == "llm-outputs/edited.png"
+    router._media_client.save_image.assert_awaited_once_with("edited-image", folder="llm-outputs")
     assert result.total_tokens == EDIT_TOTAL_TOKENS
     edit.assert_awaited_once_with(
         model="gpt-image-2",
         image=[image_bytes],
         prompt="Измени картинку",
         quality="medium",
+        size="1024x1024",
         output_format="png",
     )
     event = publisher.publish.await_args.args[0]
     assert event.request["image"] == [image_base64]
+
+
+@pytest.mark.asyncio
+async def test_media_error_does_not_retry_image_generation() -> None:
+    generate = AsyncMock(return_value=SimpleNamespace(
+        size="1024x1024", data=[SimpleNamespace(b64_json="image")], output_format="png",
+        usage=SimpleNamespace(total_tokens=12),
+    ))
+    publisher = AsyncMock()
+    router = LLMImageRouter(
+        ai_model_repos=AsyncMock(), event_publisher=publisher, client=SimpleNamespace(),
+        image_client=SimpleNamespace(images=SimpleNamespace(generate=generate)),
+        wrapper=AsyncMock(),
+        media_client=SimpleNamespace(save_image=AsyncMock(side_effect=RuntimeError("media down"))),
+    )
+    with pytest.raises(RuntimeError, match="media down"):
+        await router._invoke_image(model="gpt-image-2", schema=LLMImageRequest(prompt="Draw"))
+    generate.assert_awaited_once()
+    publisher.publish.assert_awaited_once()
+    event = publisher.publish.await_args.args[0]
+    assert event.status is LLMInvocationStatus.FAILED
+    assert event.error == "media down"
+    assert event.total_tokens == 12
+    assert event.response == {}

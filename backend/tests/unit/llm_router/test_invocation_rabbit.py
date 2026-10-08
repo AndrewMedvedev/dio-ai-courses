@@ -26,6 +26,7 @@ async def test_consumer_creates_invocation_and_commits() -> None:
         event=event,
         repository=repository,
         session=session,
+        media_client=AsyncMock(),
     )
 
     repository.create.assert_awaited_once()
@@ -39,4 +40,27 @@ async def test_consumer_creates_invocation_and_commits() -> None:
     assert invocation.duration_ms == event.duration_ms
     assert invocation.status is event.status
     assert invocation.error is None
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [LLMInvocationStatus.COMPLETED, LLMInvocationStatus.FAILED])
+async def test_input_images_are_saved_as_keys_for_both_statuses(status) -> None:
+    images = [f"base64-{index}" for index in range(5)]
+    keys = [f"llm-inputs/{index}.png" for index in range(5)]
+    event = LLMInvocationCreated(
+        request_id=uuid4(), model="gpt-image-2", total_tokens=0,
+        request={"image": images, "prompt": "Draw"}, response={}, duration_ms=10, status=status,
+    )
+    media = AsyncMock()
+    media.save_image.side_effect = keys
+    repo = AsyncMock()
+    session = AsyncMock()
+
+    await on_llm_invocation_created(event, repo, session, media)
+
+    assert media.save_image.await_count == len(images)
+    assert repo.create.await_args.args[0].request == {"image": keys, "prompt": "Draw"}
+    assert repo.create.await_args.args[0].status is status
+    assert event.request["image"] == images
     session.commit.assert_awaited_once()

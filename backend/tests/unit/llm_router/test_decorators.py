@@ -7,6 +7,7 @@ from uuid import UUID
 import pytest
 
 from src.llm_router.decorators import track_image_invocation, track_text_invocation
+from src.llm_router import decorators
 from src.llm_router.domain.vo import LLMInvocationStatus
 from src.llm_service.schemas import (
     LLMImageRequest,
@@ -89,12 +90,15 @@ async def test_track_image_invocation_publishes_success() -> None:
         image="base64-image",
         total_tokens=12,
     )
-    target = SimpleNamespace(result=result, _publish_invocation=AsyncMock())
+    media = SimpleNamespace(save_image=AsyncMock(return_value="llm-outputs/image.png"))
+    target = SimpleNamespace(result=result, _publish_invocation=AsyncMock(), _media_client=media)
     schema = LLMImageRequest(prompt="Нарисуй схему")
 
     returned_result = await _successful_image_call(target, "gpt-image-2", schema)
 
     assert returned_result is result
+    assert result.image == "llm-outputs/image.png"
+    media.save_image.assert_awaited_once_with("base64-image", folder="llm-outputs")
     event = target._publish_invocation.await_args.args[0]
     assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
     assert event.response == result.model_dump(mode="json", exclude_none=True)
@@ -125,7 +129,8 @@ async def test_text_invocation_generates_request_id_when_context_is_empty(
     decorated = track_text_invocation(invoke)
 
     monkeypatch.setattr(
-        "src.llm_router.decorators.get_request_id",
+        decorators,
+        "get_request_id",
         lambda: None,
     )
 

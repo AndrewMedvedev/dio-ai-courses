@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from src.llm_router.domain.events import LLMInvocationCreated
+from src.llm_router import services
 from src.llm_router.domain.vo import LLMInvocationStatus
 from src.llm_router.services import (
     LLMRouter,
@@ -64,12 +65,14 @@ async def test_invoke_retries_after_error(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "src.llm_router.services.parse_llm_response",
+        services,
+        "parse_llm_response",
         lambda **kwargs: expected_result,
     )
 
     monkeypatch.setattr(
-        "src.llm_router.services.wait_strategy",
+        services,
+        "wait_strategy",
         lambda retry_state: 0,
     )
 
@@ -134,7 +137,8 @@ async def test_invoke_passes_request_to_client(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "src.llm_router.services.parse_llm_response",
+        services,
+        "parse_llm_response",
         lambda **kwargs: expected_result,
     )
 

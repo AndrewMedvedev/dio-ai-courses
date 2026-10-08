@@ -5,7 +5,7 @@ from faststream.rabbit import RabbitQueue
 from src.core.rabbit import events_exchange as exchange, router as rabbit_router
 from src.shared.dependencies.database import DBSession
 
-from ..dependencies import LLMInvocationRepoDep
+from ..dependencies import LLMInvocationRepoDep, MediaClientDep
 from ..domain.dataclass import LLMInvocation
 from ..domain.events import LLMInvocationCreated
 
@@ -24,15 +24,21 @@ async def on_llm_invocation_created(
     event: LLMInvocationCreated,
     repository: LLMInvocationRepoDep,
     session: DBSession,
+    media_client: MediaClientDep,
 ) -> None:
     """Сохраняет события мониторинга в PostgreSQL не более чем по пять одновременно."""
     async with invocation_semaphore:
+        request = event.request.copy()
+        if images := request.get("image"):
+            request["image"] = [
+                await media_client.save_image(image, folder="llm-inputs") for image in images
+            ]
         invocation = LLMInvocation(
             id=event.event_id,
             request_id=event.request_id,
             model=event.model,
             total_tokens=event.total_tokens,
-            request=event.request,
+            request=request,
             response=event.response,
             duration_ms=event.duration_ms,
             status=event.status,

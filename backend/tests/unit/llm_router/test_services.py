@@ -49,6 +49,8 @@ def _image_router() -> tuple[LLMImageRouter, AsyncMock, AsyncMock]:
         ai_model_repos=repository,
         event_publisher=AsyncMock(),
         client=SimpleNamespace(),
+        image_client=SimpleNamespace(),
+        media_client=AsyncMock(),
         wrapper=wrapper,
     )
     return router, repository, wrapper
