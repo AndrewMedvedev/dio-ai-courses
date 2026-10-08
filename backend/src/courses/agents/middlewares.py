@@ -28,7 +28,7 @@ from src.llm_service import (
     Messages,
 )
 from src.llm_service.schemas import ToolCallParsed
-from src.media.schemas import PresignedUploadRequest
+from src.media.application.dtos import CreateUploadDTO
 
 from ..application.dtos import Chat as ChatSchema
 from ..application.repos import (
@@ -259,10 +259,11 @@ class SaveImageMiddleware(BaseAgentMiddleware):
         file_bytes = base64.b64decode(response.image)
         filename = f"{uuid4()}.{response.output_format}"
         result = await MediaClient(client=course_client).save_image(
-            request=PresignedUploadRequest(
+            request=CreateUploadDTO(
+                size_bytes=len(file_bytes),
+                sha256="",
                 folder="course-images",
                 filename=filename,
-                owner_id=service.runtime.context.course_id,
                 content_type=f"image/{response.output_format}",
             ),
             file=file_bytes,

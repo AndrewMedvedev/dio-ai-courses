@@ -8,12 +8,12 @@ from uuid import UUID
 from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.courses.domain.entities import Practice
 from src.llm_service import LLMTextService
 from src.shared.domain.exceptions import NotFoundError
 
 from ...application.repos import LessonRepository, PracticeRepository
-from ...domain.entities import FileUploadAssignment, Practice
-from ...domain.vo import PracticeStatus
+from ...domain.vo import FileUploadAssignment, PracticeStatus
 from ...infra.services.client import SrvCourseClient
 from ..course_generator.subagents.prompts import FILE_UPLOAD_PROMPT
 from ..prompts import ASSIGNMENT_PROMPT, PRACTICE_FILE_CHECKER_PROMPT

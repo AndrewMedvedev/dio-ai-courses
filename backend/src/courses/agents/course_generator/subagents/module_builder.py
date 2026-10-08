@@ -11,14 +11,14 @@ from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 
 from src.core.database import session_factory
+from src.courses.agents.schemas import Context, RuntimeContext
+from src.courses.application.domain_dtos import LessonDict, ModuleDict, ModuleStructureDict
+from src.courses.application.mappers import dict_to_module, model_to_typed_dict, module_to_dict
+from src.courses.domain.entities import Module
+from src.courses.infra.database.repos.module import SqlModuleRepository
+from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService
 
-from ....application.domain_dtos import LessonDict, ModuleDict, ModuleStructureDict
-from ....application.mappers import dict_to_module, model_to_typed_dict, module_to_dict
-from ....domain.entities import Module
-from ....infra.database.repos.module import SqlModuleRepository
-from ....infra.services.client import SrvCourseClient
-from ...schemas import Context, RuntimeContext
 from ..few_shots import MODULE_STRUCTURE_FEW_SHOT
 from ..helper import invoke_or_resume
 from ..serializer import checkpointer
