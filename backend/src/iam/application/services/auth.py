@@ -1,9 +1,10 @@
 from typing import Literal
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from src.core.settings import settings
+from src.core.settings import jwt_config
 from src.iam.application.builders import build_login_response
 from src.iam.application.dtos import (
     IdentityType,
@@ -61,25 +62,29 @@ def _verify_token(
 
 def create_tokens_for_user(
     user: User,
-    membership: Membership,
-    roles: set[Role],
+    membership: Membership | None,
+    roles: Sequence[Role] | None,
 ) -> TokensResponse:
     """Выпуск пары токенов для пользователя."""
 
+    if roles is None:
+        roles = set()
     permissions = {grant.permission for role in roles for grant in role.permissions}
     access_token = create_access_token(
         identity_id=user.id,
         identity_type=IdentityType.USER,
         email=user.email,
-        membership_id=membership.id,
-        organization_id=membership.organization_id,
+        membership_id=membership.id if membership else None,
+        organization_id=membership.organization_id if membership else None,
         roles={role.code for role in roles},
         permissions=permissions,
     )
-    refresh_token = create_refresh_token(user_id=user.id, membership_id=membership.id)
+    refresh_token = create_refresh_token(
+        user_id=user.id, membership_id=membership.id if membership else None
+    )
 
     access_token_expires_at = get_expiration_timestamp(
-        expires_in=timedelta(minutes=settings.jwt.access_token_expires_in_minutes),
+        expires_in=timedelta(minutes=jwt_config.access_token_expires_in_minutes),
     )
 
     return TokensResponse(

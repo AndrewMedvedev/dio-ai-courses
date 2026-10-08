@@ -3,12 +3,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
-from src.iam.dependencies import require_permissions
-
-from ...application.dtos import EditModuleSchema, ModuleSchema
-from ...dependencies.services import ModuleServiceDep
-from ...domain.entities import Module
-from ...domain.permissions.courses import CREATE, DELETE, UPDATE
+from src.courses.application.dtos import EditModuleSchema, ModuleSchema
+from src.courses.dependencies.services import CheckAccessDep, ModuleServiceDep
+from src.courses.domain.entities import Module
+from src.courses.domain.permissions.courses import CREATE, DELETE, READ, UPDATE
+from src.iam.dependencies import CurrentIdentity, require_permissions
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +34,19 @@ async def create(
     summary="Привязать модуль к курсу",
     description="Связывает существующий модуль с указанным курсом.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def assign(
     service: ModuleServiceDep,
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     module_id: UUID,
     course_id: UUID,
 ) -> None:
+    await check_access.course(
+        identity=identity,
+        permission=UPDATE,
+        course_id=course_id,
+    )
     await service.assign_course(module_id=module_id, course_id=course_id)
 
 
@@ -51,7 +56,17 @@ async def assign(
     description="Возвращает основную информацию о модуле и входящих в него уроках.",
     status_code=status.HTTP_200_OK,
 )
-async def get_module_basic_info(service: ModuleServiceDep, module_id: UUID):
+async def get_module_basic_info(
+    service: ModuleServiceDep,
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
+    module_id: UUID,
+):
+    await check_access.module(
+        identity=identity,
+        permission=READ,
+        module_id=module_id,
+    )
     return await service.get_basic_info(module_id)
 
 
@@ -60,13 +75,19 @@ async def get_module_basic_info(service: ModuleServiceDep, module_id: UUID):
     summary="Обновить модуль",
     description="Обновляет переданные поля модуля. Неуказанные поля остаются без изменений.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def edit_module(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: ModuleServiceDep,
     module_id: UUID,
     schema: EditModuleSchema,
 ) -> Module:
+    await check_access.module(
+        identity=identity,
+        permission=UPDATE,
+        module_id=module_id,
+    )
     return await service.edit(module_id=module_id, schema=schema)
 
 
@@ -78,7 +99,14 @@ async def edit_module(
     dependencies=[Depends(require_permissions(DELETE.code))],
 )
 async def delete(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: ModuleServiceDep,
     module_id: UUID,
 ) -> None:
+    await check_access.module(
+        identity=identity,
+        permission=DELETE,
+        module_id=module_id,
+    )
     return await service.delete(module_id=module_id)

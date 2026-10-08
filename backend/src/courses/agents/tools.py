@@ -24,7 +24,7 @@ async def get_table_of_contents(runtime: Runtime[Context, State]) -> str | list[
     answer = await SqlDocumentRepository(session=runtime.state.db_session).get_tocs(  # pyright: ignore[reportOptionalSubscript, reportOptionalMemberAccess, reportArgumentType]
         owner_id=runtime.context.user_id
     )
-    if answer is None:
+    if not answer:
         return "У пользователя нету документов"
     return [{"toc_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # ruff:ignore[blanket-type-ignore]
 
@@ -42,9 +42,9 @@ async def get_titles(
         owner_id=runtime.context.user_id,
         toc_id=toc_id,
     )
-    if answer is None:
+    if not answer:
         return "У пользователя нету документов"
-    return [{"heading_id": model.id, "toc": model.title} for model in answer]  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    return [{"heading_id": model.id, "title": model.title} for model in answer]
 
 
 @tool(
@@ -53,13 +53,13 @@ async def get_titles(
 )
 async def get_content(runtime: Runtime[Context, State], heading_id: UUID) -> str:
     """Получает content, чтобы вызывающий код работал через единый интерфейс."""
-    answer = await SqlDocumentRepository(session=runtime.state.db_sessio).get_text(  # pyright: ignore[reportOptionalSubscript, reportAttributeAccessIssue, reportOptionalMemberAccess, reportGeneralTypeIssues]
+    answer = await SqlDocumentRepository(session=runtime.state.db_session).get_text(  # pyright: ignore[reportOptionalMemberAccess]
         owner_id=runtime.context.user_id,
         heading_id=heading_id,
     )
-    if answer is None:
+    if answer is None or answer.content is None:
         return "У пользователя нету документов"
-    return answer.content  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    return answer.content
 
 
 @tool(
@@ -71,7 +71,7 @@ async def get_content(runtime: Runtime[Context, State], heading_id: UUID) -> str
         "Промпт строго на Русском языке."
     ),
 )
-async def complete_interview(  # ruff: ignore[unused-async]
+async def complete_interview(
     prompt: str,
     runtime: Runtime[Context, State],
 ) -> str:
@@ -84,4 +84,4 @@ async def complete_interview(  # ruff: ignore[unused-async]
 
     result = generate_course.send(generation_context=generation_context.model_dump(mode="json"))
     runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Курс поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."  # ruff: ignore[line-too-long]
+    return f"Курс поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."

@@ -5,6 +5,6 @@ datasources:
     type: loki
     uid: loki_main
     access: proxy
-    url: http://loki:3100
+    url: http://loki-ai:3100
     isDefault: false
     editable: true

@@ -1,14 +1,13 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 
-from src.iam.dependencies import require_permissions
-
-from ...application.dtos import EditLessonSchema, LessonSchema
-from ...dependencies.services import LessonServiceDep
-from ...domain.entities import AnyContentBlock, Lesson
-from ...domain.permissions.courses import COURSE_READ, CREATE, DELETE, UPDATE
+from src.courses.application.dtos import EditLessonSchema, LessonSchema
+from src.courses.dependencies.services import CheckAccessDep, LessonServiceDep
+from src.courses.domain.entities import AnyContentBlock, Lesson
+from src.courses.domain.permissions.courses import DELETE, READ, UPDATE
+from src.iam.dependencies import CurrentIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,6 @@ router = APIRouter(prefix="/lessons", tags=["Lessons"])
     summary="Создать урок",
     description="Создаёт урок. При передаче идентификатора модуля сразу связывает урок с этим модулем.",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permissions(CREATE.code))],
 )
 async def create(
     service: LessonServiceDep,
@@ -35,13 +33,19 @@ async def create(
     summary="Привязать урок к модулю",
     description="Связывает существующий урок с указанным модулем.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def assign(
     service: LessonServiceDep,
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     module_id: UUID,
     lesson_id: UUID,
 ) -> None:
+    await check_access.module(
+        identity=identity,
+        permission=UPDATE,
+        module_id=module_id,
+    )
     await service.assign_module(module_id=module_id, lesson_id=lesson_id)
 
 
@@ -50,12 +54,18 @@ async def assign(
     summary="Получить информацию об уроке",
     description="Возвращает основную информацию об уроке без содержимого теоретических блоков.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def get_lesson_basic_info(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: LessonServiceDep,
     lesson_id: UUID,
 ):
+    await check_access.lesson(
+        identity=identity,
+        permission=READ,
+        lesson_id=lesson_id,
+    )
     return await service.get_basic_info(lesson_id)
 
 
@@ -64,12 +74,18 @@ async def get_lesson_basic_info(
     summary="Получить теоретический материал урока",
     description="Возвращает блоки теоретического содержимого указанного урока.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(COURSE_READ.code))],
 )
 async def get_theory(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: LessonServiceDep,
     lesson_id: UUID,
 ):
+    await check_access.lesson(
+        identity=identity,
+        permission=READ,
+        lesson_id=lesson_id,
+    )
     return await service.read_content_blocks(lesson_id)
 
 
@@ -78,13 +94,19 @@ async def get_theory(
     summary="Обновить урок",
     description="Обновляет переданные поля урока. Неуказанные поля остаются без изменений.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def edit_lesson(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: LessonServiceDep,
     lesson_id: UUID,
     schema: EditLessonSchema,
 ) -> Lesson:
+    await check_access.lesson(
+        identity=identity,
+        permission=UPDATE,
+        lesson_id=lesson_id,
+    )
     return await service.edit(lesson_id=lesson_id, schema=schema)
 
 
@@ -93,13 +115,19 @@ async def edit_lesson(
     summary="Обновить блоки содержимого урока",
     description="Полностью заменяет набор блоков теоретического содержимого урока.",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def update_lesson_content_blocks(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: LessonServiceDep,
     lesson_id: UUID,
     content_blocks: list[AnyContentBlock],
 ) -> Lesson:
+    await check_access.lesson(
+        identity=identity,
+        permission=UPDATE,
+        lesson_id=lesson_id,
+    )
     return await service.update_content_blocks(lesson_id=lesson_id, content_blocks=content_blocks)
 
 
@@ -108,10 +136,16 @@ async def update_lesson_content_blocks(
     summary="Удалить урок",
     description="Удаляет урок и связанные с ним данные.",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_permissions(DELETE.code))],
 )
 async def delete(
+    check_access: CheckAccessDep,
+    identity: CurrentIdentity,
     service: LessonServiceDep,
     lesson_id: UUID,
 ) -> None:
+    await check_access.lesson(
+        identity=identity,
+        permission=DELETE,
+        lesson_id=lesson_id,
+    )
     return await service.delete(lesson_id=lesson_id)
