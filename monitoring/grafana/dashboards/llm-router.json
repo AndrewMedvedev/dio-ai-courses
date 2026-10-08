@@ -1,0 +1,110 @@
+{
+  "uid": "llm-router",
+  "title": "LLM Router — запросы и ответы",
+  "description": "Выберите обращение в списке: ниже показаны полный запрос и ответ одной записи, как Input / Output в LangSmith.",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["llm", "tracing"],
+  "timezone": "browser",
+  "time": {"from": "now-24h", "to": "now"},
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "invocation_id",
+        "label": "ID выбранного обращения",
+        "type": "textbox",
+        "query": "",
+        "current": {"text": "", "value": ""},
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Обращения — нажмите «Открыть»",
+      "description": "Последние 500 обращений за выбранный период, новые сверху. Для более старых записей измените период. Полный запрос и ответ загружаются только для выбранного ID.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 10},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT id::text AS id, created_at AS \"Дата\", request_id::text AS request_id, model AS \"Модель\", status::text AS \"Статус\", duration_ms AS \"Время, мс\", total_tokens AS \"Токены\", left(request::text, 160) AS \"Запрос (кратко)\" FROM public.llm_invocations WHERE deleted_at IS NULL AND $__timeFilter(created_at) ORDER BY created_at DESC, id DESC LIMIT 500"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "left"}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "id"},
+            "properties": [
+              {"id": "displayName", "value": "Запись"},
+              {"id": "custom.width", "value": 100},
+              {"id": "custom.cellOptions", "value": {"type": "data-links"}},
+              {"id": "links", "value": [{"title": "Открыть", "url": "/d/llm-router/llm-router?from=${__from}&to=${__to}&var-invocation_id=${__value.raw}", "targetBlank": false}]}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "enablePagination": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "Запрос / Input — ${invocation_id}",
+      "description": "Полный сохранённый JSON без обрезания. Откройте просмотр значения ячейки, чтобы прочитать или скопировать весь запрос.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 0, "y": 10, "w": 12, "h": 14},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT jsonb_pretty(request) AS \"Запрос\" FROM public.llm_invocations WHERE id = NULLIF(${invocation_id:sqlstring}, '')::uuid AND deleted_at IS NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"cellOptions": {"type": "json-view"}, "inspect": true}},
+        "overrides": []
+      },
+      "options": {"showHeader": true, "cellHeight": "lg"}
+    },
+    {
+      "id": 3,
+      "title": "Ответ / Output — ${invocation_id}",
+      "description": "Ответ той же записи без обрезания. Для failed отдельно показана сохранённая ошибка. Откройте просмотр значения ячейки для полного JSON.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 12, "y": 10, "w": 12, "h": 14},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT jsonb_pretty(response) AS \"Ответ\", COALESCE(error, '') AS \"Ошибка\" FROM public.llm_invocations WHERE id = NULLIF(${invocation_id:sqlstring}, '')::uuid AND deleted_at IS NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"cellOptions": {"type": "json-view"}, "inspect": true}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Ошибка"},
+            "properties": [{"id": "custom.cellOptions", "value": {"type": "auto"}}]
+          }
+        ]
+      },
+      "options": {"showHeader": true, "cellHeight": "lg"}
+    }
+  ]
+}
