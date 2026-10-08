@@ -24,10 +24,15 @@ export function useAppPermissions() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(COURSE_PERMISSIONS.CREATE);
+  // У бэкенда право на прохождение курса называется course:course_read;
+  // старого course:read может не быть вовсе, поэтому принимаем любое из двух.
   const canReadCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.READ);
+    hasAnyPermission([
+      COURSE_PERMISSIONS.READ,
+      COURSE_PERMISSIONS.COURSE_READ,
+    ]);
   const canOpenCourse =
     isAuthenticated &&
     arePermissionsLoaded &&

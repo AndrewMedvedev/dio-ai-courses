@@ -858,6 +858,18 @@ export default function LessonContentEditor({
                   />
                 </label>
                 <label>
+                  <span>Варианты ответа</span>
+                  <textarea
+                    value={(question.options || []).join("\n")}
+                    onChange={(event) =>
+                      updateQuestion(block.id, questionIndex, {
+                        options: event.target.value.split(/\r?\n/).filter(Boolean),
+                      })
+                    }
+                    placeholder="Каждый вариант с новой строки"
+                  />
+                </label>
+                <label>
                   <span>Ответ</span>
                   <textarea
                     value={question.answer || ""}
@@ -867,6 +879,18 @@ export default function LessonContentEditor({
                       })
                     }
                     placeholder="Введите правильный ответ"
+                  />
+                </label>
+                <label>
+                  <span>Пояснение</span>
+                  <textarea
+                    value={question.explanation || ""}
+                    onChange={(event) =>
+                      updateQuestion(block.id, questionIndex, {
+                        explanation: event.target.value,
+                      })
+                    }
+                    placeholder="Почему этот ответ верный"
                   />
                 </label>
                 <button

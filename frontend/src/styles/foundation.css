@@ -35,6 +35,8 @@
     --glass-top-shine: rgba(255, 255, 255, 0.75);
     --glass-bg: transparent;
     --glass-bg-strong: transparent;
+    --glass-blur: 3px;
+    --glass-tint: color-mix(in srgb, var(--bg) 70%, transparent);
     --glass-border: rgba(255, 255, 255, 0.42);
     --glass-shadow: 0 6px 18px rgba(79, 67, 48, 0.05);
     --glass-inset:
@@ -95,6 +97,12 @@ body,
     min-height: 100%;
 }
 
+/* Сплошной цвет под градиентом: при быстрой прокрутке браузер показывает ещё не
+   отрисованные участки цветом корня, и без него в тёмной теме мелькает белое. */
+html {
+    background-color: var(--bg-dark);
+}
+
 body {
     margin: 0;
     font-family: "Manrope", sans-serif;
@@ -146,17 +154,22 @@ body {
     position: relative;
     z-index: 1;
     width: min(1360px, 96vw);
+    /* vw считает и полосу прокрутки: без ограничения секции шириной 98vw
+       вылезают на несколько пикселей и дают горизонтальный скролл. */
+    max-width: 100%;
     margin: 0 auto;
 }
 
 .glass-card {
     border: 1px solid var(--glass-border);
     border-radius: 22px;
-    background: transparent;
+    background: var(--glass-tint);
     box-shadow: var(--glass-shadow), var(--glass-inset);
     position: relative;
     overflow: hidden;
     isolation: isolate;
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .glass-card > * {
@@ -176,7 +189,15 @@ body {
         inset 0 1px 0 var(--glass-top-shine);
 }
 
-.glass-card::after {
+/* Главная страница: исходный «жидкий» эффект стекла (лёгкий блюр + искажение).
+   Матовое стекло для читаемости действует только на страницах курса. */
+.page.is-home-page .glass-card {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+.page.is-home-page .glass-card::after {
     content: "";
     position: absolute;
     inset: 0;

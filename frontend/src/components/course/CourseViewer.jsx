@@ -224,11 +224,23 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
           throw new Error("Идентификатор курса не указан");
         }
 
-        const basicCourse = isMetricsMode
-          ? await getCourseLearningStructure(effectiveCourseId)
-          : !isUuid(effectiveCourseId) && localCourse?.id === effectiveCourseId
-            ? localCourse
-            : await getCourseBasicInfo(effectiveCourseId);
+        // Прямая ссылка или обновление страницы на модуле/уроке: в краткой информации
+        // о курсе уроков нет, поэтому догружаем структуру, иначе урок из адреса
+        // не находится и вместо него открывается обзор курса.
+        const isDeepLink =
+          isUuid(effectiveCourseId) && Boolean(blockId || lessonId);
+        let basicCourse =
+          isMetricsMode || isDeepLink
+            ? await getCourseLearningStructure(effectiveCourseId)
+            : !isUuid(effectiveCourseId) &&
+                localCourse?.id === effectiveCourseId
+              ? localCourse
+              : await getCourseBasicInfo(effectiveCourseId);
+
+        if (!isMetricsMode && isDeepLink && lessonId && isUuid(lessonId)) {
+          await getLessonById(lessonId).catch(() => null);
+          basicCourse = await getCourseBasicInfo(effectiveCourseId);
+        }
 
         if (!isMetricsMode && canReadCourseContent) {
           await loadMyCourses({ page: 1, size: 100 }).catch(() => null);
@@ -840,6 +852,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                       <ContentBlocks
                         ref={theoryContentRef}
                         blocks={contentBlocks}
+                        lessonId={selectedLesson.id}
                         ownerUserId={courseCreatorId || currentUserId}
                       />
                     )}

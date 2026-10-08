@@ -42,7 +42,8 @@
     background: rgba(255, 255, 255, 0.72);
     box-shadow: 0 20px 60px rgba(27, 35, 68, 0.08);
     padding: 24px;
-    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    backdrop-filter: var(--glass-backdrop);
 }
 
 [data-theme="dark"] .course-viewer-card,
@@ -52,7 +53,7 @@
 }
 
 .course-viewer-eyebrow {
-    color: var(--accent, #6c63ff);
+    color: var(--ink-accent);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -60,13 +61,13 @@
 }
 
 .course-viewer-description {
-    color: var(--text-muted, #596075);
+    color: var(--muted);
     line-height: 1.7;
     margin: 14px 0 0;
 }
 
 .course-viewer-muted {
-    color: var(--text-muted, #6d7284);
+    color: var(--muted);
     line-height: 1.6;
     margin: 10px 0 0;
 }
@@ -80,12 +81,14 @@
 
 .course-meta-grid > div {
     border-radius: 18px;
-    background: rgba(111, 119, 255, 0.08);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.08), rgba(var(--accent-rgb), 0.08)),
+        var(--glass-bg-strong);
     padding: 14px;
 }
 
 .course-meta-grid span {
-    color: var(--text-muted, #6d7284);
+    color: var(--muted);
     display: block;
     font-size: 0.84rem;
     margin-bottom: 4px;
@@ -100,8 +103,10 @@
 
 .course-tags span {
     border-radius: 999px;
-    background: rgba(111, 119, 255, 0.12);
-    color: var(--accent, #5d57e8);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)),
+        var(--glass-bg-strong);
+    color: var(--ink-accent);
     font-size: 0.86rem;
     font-weight: 700;
     padding: 7px 12px;
@@ -145,7 +150,7 @@
     align-items: flex-start;
     border: 1px solid rgba(114, 121, 156, 0.22);
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.48);
+    background: var(--glass-bg-strong);
     color: inherit;
     cursor: pointer;
     display: grid;
@@ -176,7 +181,7 @@
 }
 
 .course-pick-order {
-    color: var(--accent, #6c63ff);
+    color: var(--ink-accent);
     font-weight: 800;
 }
 
@@ -239,9 +244,24 @@
 
 .quiz-question-list {
     display: grid;
+    /* minmax(0, 1fr): колонка не шире карточки, даже если внутри строка без пробелов. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin: 14px 0 0;
     padding-left: 20px;
+}
+
+.quiz-question-list > li {
+    min-width: 0;
+}
+
+.quiz-question-toggle strong,
+.quiz-answer-options li,
+.quiz-answer-details p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    /* В тексте вопроса и ответа бывают осмысленные переносы строк (списки, пары). */
+    white-space: pre-line;
 }
 
 .quiz-question-toggle {
@@ -252,7 +272,9 @@
     gap: 12px;
     border: 1px solid rgba(var(--accent-rgb), 0.26);
     border-radius: 12px;
-    background: rgba(var(--accent-rgb), 0.06);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.06), rgba(var(--accent-rgb), 0.06)),
+        var(--glass-bg-strong);
     color: inherit;
     cursor: pointer;
     font: inherit;
@@ -273,16 +295,71 @@
     font-weight: 800;
 }
 
+.quiz-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.quiz-toggle-all {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid rgba(var(--accent-rgb), 0.42);
+    border-radius: 999px;
+    background: var(--glass-bg-strong);
+    color: var(--ink-accent);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.quiz-toggle-all:hover,
+.quiz-toggle-all:focus-visible {
+    border-color: rgba(var(--accent-rgb), 0.7);
+}
+
+.quiz-answer-options,
+.quiz-answer-details {
+    margin: 10px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--glass-bg-strong);
+}
+
+.quiz-answer-options {
+    display: grid;
+    gap: 6px;
+    padding-left: 34px;
+}
+
+.quiz-answer-details p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.quiz-answer-details p + p {
+    margin-top: 10px;
+}
+
 .course-enrollment-view .course-basic-info {
     border: 1px solid rgba(var(--accent-rgb), 0.34);
     border-radius: 14px;
-    background: rgba(var(--accent-rgb), 0.08);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.08), rgba(var(--accent-rgb), 0.08)),
+        var(--glass-bg);
     box-shadow: none;
-    backdrop-filter: none;
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    backdrop-filter: var(--glass-backdrop);
 }
 
 .page[data-theme="dark"] .course-enrollment-view .course-basic-info {
-    background: rgba(255, 255, 255, 0.08);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+        var(--glass-bg);
     border-color: rgba(247, 220, 168, 0.34);
     color: #f4ead8;
 }
@@ -342,7 +419,7 @@
 }
 
 .generated-course-enroll-card p {
-    color: var(--text-muted, #6d7284);
+    color: var(--muted);
     margin-top: 8px;
 }
 
@@ -394,7 +471,9 @@
 .generated-course-nav-course {
     border: 1px solid rgba(var(--accent-rgb), 0.34);
     border-radius: 16px;
-    background: rgba(var(--accent-rgb), 0.08);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.08), rgba(var(--accent-rgb), 0.08)),
+        var(--glass-bg-strong);
     color: var(--heading);
     cursor: pointer;
     display: grid;
@@ -439,6 +518,10 @@
     min-height: 0;
 }
 
+.generated-course-learning-grid .generated-course-scroll-frame::after {
+    content: none;
+}
+
 .generated-course-learning-grid .lesson-mode-switch {
     justify-self: start;
     margin-bottom: 0;
@@ -454,8 +537,11 @@
 .generated-course-learning-grid .course-viewer-side-card {
     border: 1px solid rgba(var(--accent-rgb), 0.34);
     border-radius: 14px;
-    background: rgba(var(--accent-rgb), 0.08);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.08), rgba(var(--accent-rgb), 0.08)),
+        var(--glass-bg-strong);
     box-shadow: none;
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }
 
@@ -471,14 +557,18 @@
 .page[data-theme="dark"]
     .generated-course-learning-grid
     .course-viewer-side-card {
-    background: rgba(var(--accent-rgb), 0.12);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)),
+        var(--glass-bg-strong);
     border-color: rgba(var(--accent-rgb), 0.42);
 }
 
 .page[data-theme="dark"] .generated-course-learning-grid .course-basic-info,
 .page[data-theme="dark"] .generated-course-learning-grid .module-basic-info,
 .page[data-theme="dark"] .generated-course-learning-grid .lesson-basic-info {
-    background: rgba(255, 255, 255, 0.08);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+        var(--glass-bg-strong);
     border-color: rgba(247, 220, 168, 0.34);
     color: #f4ead8;
 }
@@ -551,7 +641,9 @@
     .lesson-basic-info
     .course-meta-grid
     > div {
-    background: rgba(255, 255, 255, 0.08);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+        var(--glass-bg-strong);
     border: 1px solid rgba(247, 220, 168, 0.18);
 }
 
@@ -579,10 +671,13 @@
     overflow: hidden;
     border: 1px solid rgba(var(--accent-rgb), 0.34);
     border-radius: 14px;
-    background: rgba(var(--accent-rgb), 0.08);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.08), rgba(var(--accent-rgb), 0.08)),
+        var(--glass-bg-strong);
     color: var(--text);
     box-shadow: none;
     padding: 14px;
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }
 
@@ -593,7 +688,9 @@
 }
 
 .page[data-theme="dark"] .generated-course-learning-grid .content-block-card {
-    background: rgba(var(--accent-rgb), 0.12);
+    background:
+        linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)),
+        var(--glass-bg-strong);
     border-color: rgba(var(--accent-rgb), 0.42);
     color: #f4ead8;
 }
@@ -1552,5 +1649,19 @@
     .generated-course-enroll-card {
         align-items: stretch;
         flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .course-enrollment-view .course-basic-info,
+    .generated-course-learning-grid .generated-course-scroll-frame {
+        background: var(--glass-fallback-bg);
+    }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .course-enrollment-view .course-basic-info,
+    .generated-course-learning-grid .generated-course-scroll-frame {
+        background: var(--glass-fallback-bg);
     }
 }

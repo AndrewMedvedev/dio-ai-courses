@@ -1,5 +1,6 @@
 import { getMediaId } from "./media";
 import { getLocalStorage } from "./storage";
+import { validateMermaidSource } from "../components/MermaidDiagram.jsx";
 
 const SESSION_KEY = "aicolab_session";
 const API_BASE = "/api/v1";
@@ -849,6 +850,40 @@ function withoutEmptyValues(payload) {
   );
 }
 
+function normalizeQuizQuestionPayload(question) {
+  let record = question;
+  if (Array.isArray(record)) {
+    if (["multipart", "multiple_choice", "detailed_answer"].includes(String(record[0]).toLowerCase())) {
+      return normalizeQuizQuestionPayload(record[1]);
+    }
+    return {
+      question: record[0] ?? "",
+      answer: record[1] ?? "",
+    };
+  }
+  if (!record || typeof record !== "object") return { question: "", answer: "" };
+  for (const tag of ["multipart", "multiple_choice", "detailed_answer"]) {
+    if (tag in record) {
+      record = record[tag];
+      break;
+    }
+  }
+  const answerValue = record.answer ?? record.correct_answer ?? record.expected_answer ?? "";
+  const answerRecord = answerValue && typeof answerValue === "object" ? answerValue : null;
+  const options = record.options ?? record.choices ?? answerRecord?.options ?? [];
+  const correctAnswer = typeof answerValue === "number"
+    ? options[answerValue] ?? ""
+    : typeof answerValue === "string"
+      ? answerValue
+      : answerRecord?.answer ?? answerRecord?.correct_answer ?? answerRecord?.expected_answer ?? answerRecord?.text ?? "";
+  return {
+    question: record.question ?? record.text ?? record.prompt ?? "",
+    options,
+    answer: correctAnswer,
+    explanation: record.explanation ?? record.rationale ?? answerRecord?.explanation ?? answerRecord?.rationale ?? "",
+  };
+}
+
 function sanitizeContentBlock(block) {
   const source =
     block && typeof block === "object" ? block : { content: block };
@@ -905,12 +940,14 @@ function sanitizeContentBlock(block) {
       source.md_content ?? source.mdContent ?? source.content ?? "";
     payload.explanation = source.explanation ?? "";
   } else if (contentType === "quiz") {
-    payload.questions = Array.isArray(source.questions)
-      ? source.questions.map((question) => ({
-          question: question?.question || "",
-          answer: question?.answer || "",
-        }))
-      : [];
+    const questions = Array.isArray(source.questions) ? source.questions : [];
+    const questionFields = new Set(["question", "answer", "options", "explanation", "rationale"]);
+    const isFieldPairs = questions.length > 0 && questions.every(
+      (entry) => Array.isArray(entry) && entry.length === 2 && questionFields.has(entry[0]),
+    );
+    payload.questions = isFieldPairs
+      ? [normalizeQuizQuestionPayload(Object.fromEntries(questions))]
+      : questions.map(normalizeQuizQuestionPayload);
   } else {
     payload.formula = source.formula ?? "";
     payload.explanation = source.explanation ?? "";
@@ -1578,7 +1615,6 @@ export async function getModuleBasicInfo(moduleId, options = {}) {
   const data = await requestJson(
     `/module/basic/info/${encodeURIComponent(moduleId)}`,
     options,
-    { auth: false },
   );
   return moduleBasicToLearningBlock(data);
 }
@@ -1747,6 +1783,29 @@ export async function updateLessonContentBlocks(lessonId, contentBlocks) {
   const payload = (Array.isArray(contentBlocks) ? contentBlocks : [])
     .map(sanitizeContentBlock)
     .filter(Boolean);
+  if (payload.some((block) => block.content_type === "mermaid" ||
+    (block.content_type === "text" && /```mermaid\s*\n/i.test(block.md_content || "")))) {
+    for (const [index, block] of payload.entries()) {
+      try {
+        if (block.content_type === "mermaid") {
+          block.md_content = await validateMermaidSource(block.md_content);
+        } else if (block.content_type === "text" && /```mermaid\s*\n/i.test(block.md_content || "")) {
+          const source = block.md_content;
+          const matches = [...source.matchAll(/```mermaid\s*\n([\s\S]*?)\n```/gi)];
+          let normalized = "";
+          let offset = 0;
+          for (const match of matches) {
+            normalized += source.slice(offset, match.index);
+            normalized += `\`\`\`mermaid\n${await validateMermaidSource(match[1])}\n\`\`\``;
+            offset = match.index + match[0].length;
+          }
+          block.md_content = normalized + source.slice(offset);
+        }
+      } catch (error) {
+        throw new Error(`Блок ${index + 1}: ${error.message || "ошибка Mermaid"}`);
+      }
+    }
+  }
   const data = await jsonRequest(
     `/lesson/update/${encodeURIComponent(lessonId)}`,
     "PUT",
@@ -1805,6 +1864,26 @@ export async function fetchCourseStatus(courseId, options = {}) {
 }
 
 export async function publishCourse(courseId, options = {}) {
+  const course = await getCourseBasicInfo(courseId, options);
+  for (const module of course.blocks || []) {
+    for (const lesson of module.lessons || []) {
+      const blocks = await getLessonTheory(lesson.id, options);
+      for (const [index, block] of blocks.entries()) {
+        const diagrams = block.content_type === "mermaid"
+          ? [block.md_content]
+          : block.content_type === "text"
+            ? [...String(block.md_content || "").matchAll(/```mermaid\s*\n([\s\S]*?)\n```/gi)].map((match) => match[1])
+            : [];
+        for (const source of diagrams) {
+          try {
+            await validateMermaidSource(source);
+          } catch (error) {
+            throw new Error(`Урок «${lesson.title || lesson.id}», блок ${index + 1}: ${error.message}`);
+          }
+        }
+      }
+    }
+  }
   const data = await requestJson(
     `/course/publish/${encodeURIComponent(courseId)}`,
     { method: "POST", ...(options || {}) },

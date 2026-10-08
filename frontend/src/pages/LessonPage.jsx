@@ -324,6 +324,7 @@ export default function LessonPage({
                     <ContentBlocks
                       ref={theoryContentRef}
                       blocks={visibleContentBlocks}
+                      lessonId={selectedLesson.id}
                     />
                   </div>
                 ) : null}
