@@ -658,6 +658,83 @@ export async function updateCurrentUser(changes) {
   });
 }
 
+// ───── приглашения на курс ─────
+
+// Точечный поиск по уникальному email (индекс в БД): null, если такого пользователя нет.
+export async function findUserByEmail(email, options = {}) {
+  try {
+    return await requestJson(
+      `/users/by-email/${encodeURIComponent(email)}`,
+      options,
+    );
+  } catch (error) {
+    if (error?.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function inviteToCourse({ courseId, email, role }) {
+  return jsonRequest("/courses/invitations", "POST", {
+    course_id: courseId,
+    email,
+    role,
+  });
+}
+
+// Приглашения курса, которые ещё ждут ответа (без токенов из писем).
+export async function fetchCourseInvitationsPage(
+  courseId,
+  { page = 1, size = 20 } = {},
+) {
+  const query = new URLSearchParams({
+    course_id: courseId,
+    page: String(page),
+    size: String(size),
+  });
+  const data = await requestJson(`/courses/invitations?${query.toString()}`);
+  const items = Array.isArray(data) ? data : data?.items || [];
+  return {
+    items,
+    page: Number(data?.page) || page,
+    size: Number(data?.size) || size,
+    total: Number(data?.total) || items.length,
+    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
+export async function revokeCourseInvitation(invitationId) {
+  return requestJson(
+    `/courses/invitations/revoke/${encodeURIComponent(invitationId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function acceptCourseInvitation(token) {
+  return requestJson(
+    `/courses/invitations/accept/${encodeURIComponent(token)}`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchCourseMembersPage(
+  courseId,
+  { page = 1, size = 20 } = {},
+) {
+  const data = await jsonRequest(
+    `/members/${encodeURIComponent(courseId)}`,
+    "POST",
+    { page, size },
+  );
+  const items = Array.isArray(data) ? data : data?.items || [];
+  return {
+    items,
+    page: Number(data?.page) || page,
+    size: Number(data?.size) || size,
+    total: Number(data?.total) || items.length,
+    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
 export async function fetchUsers(params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {

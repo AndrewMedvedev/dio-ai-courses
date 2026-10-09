@@ -10,8 +10,9 @@ from src.iam.application.dtos import Identity
 from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
+from src.shared.application.dtos import Page, Pagination
 from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
+from src.shared.domain.exceptions import AlreadyExistsError, InvalidStateError, NotFoundError
 from src.shared.domain.repos import get_or_raise_404
 from src.shared.domain.vo import Email
 
@@ -122,11 +123,31 @@ class InvitationService:
         await self.transaction(member, invitation)
         return member
 
-    async def revoke_invitation(self, invitation_id: UUID) -> None:
+    async def get_course_invitations(self, course_id: UUID, identity: Identity, pagination: Pagination) -> Page[Invitation]:
+        """
+        Приглашения курса, которые ещё ждут ответа.
+        """
+        await self._check_access(
+            identity,
+            permission=INVITE,
+            course_id=course_id,
+            role=MemberRole.MODERATOR,
+        )
+        return await self.invitation_repo.find_by_course(course_id, pagination)
+
+    async def revoke_invitation(self, invitation_id: UUID, identity: Identity) -> None:
         """
         Отзыв ошибочно отправленного приглашения.
         """
         invitation = await get_or_raise_404(self.invitation_repo.read, invitation_id, Invitation)
+        await self._check_access(
+            identity,
+            permission=INVITE,
+            course_id=invitation.course_id,
+            role=invitation.role,
+        )
+        if invitation.is_used:
+            raise InvalidStateError("Invitation is already accepted and can't be revoked.")
 
         await self.invitation_repo.delete(invitation_id)
         await self.transaction(invitation)
