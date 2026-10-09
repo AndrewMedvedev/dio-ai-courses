@@ -1,0 +1,145 @@
+{
+  "uid": "llm-router",
+  "title": "LLM Router — Traces",
+  "description": "Слева — запросы, справа — вызовы выбранного запроса, ниже — Input / Output выбранного вызова. Связь по request_id; порядок по дате сохранения, без выдуманной вложенности.",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["llm", "tracing"],
+  "timezone": "browser",
+  "time": {"from": "now-24h", "to": "now"},
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "invocation_id",
+        "label": "Выбранный вызов",
+        "type": "textbox",
+        "query": "",
+        "current": {"text": "", "value": ""},
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Traces / Запросы",
+      "description": "Одна строка — общий request_id. Нажмите «Открыть», чтобы увидеть связанные вызовы. Последние 500 запросов за выбранный период.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 12},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT (array_agg(id ORDER BY created_at, id))[1]::text AS id, request_id::text AS \"Request ID\", max(created_at) AS \"Дата\", count(*) AS \"Вызовы\", CASE WHEN bool_or(status::text = 'FAILED') THEN 'FAILED' ELSE 'COMPLETED' END AS \"Статус\" FROM public.llm_invocations WHERE deleted_at IS NULL AND $__timeFilter(created_at) GROUP BY request_id ORDER BY max(created_at) DESC, request_id DESC LIMIT 500"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "left"}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "id"},
+            "properties": [
+              {"id": "displayName", "value": "Trace"},
+              {"id": "custom.width", "value": 100},
+              {"id": "custom.cellOptions", "value": {"type": "data-links"}},
+              {"id": "links", "value": [{"title": "Открыть", "url": "/d/llm-router/llm-router?from=${__from}&to=${__to}&var-invocation_id=${__value.raw}", "targetBlank": false}]}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Статус"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-text"}},
+              {"id": "mappings", "value": [{"type": "value", "options": {"COMPLETED": {"text": "✓ Completed", "color": "green"}, "FAILED": {"text": "✕ Failed", "color": "red"}}}]}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "enablePagination": true
+      }
+    },
+    {
+      "id": 4,
+      "title": "Вызовы выбранного запроса → выберите шаг",
+      "description": "Все сохранённые вызовы с тем же request_id, включая вызовы за пределами выбранного периода. Нумерация по дате сохранения, не дерево родительских связей. Нажмите «Открыть» для Input / Output.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 8, "y": 0, "w": 16, "h": 12},
+      "targets": [{
+        "refId": "A", "format": "table", "editorMode": "code", "rawQuery": true,
+        "rawSql": "SELECT id::text AS id, row_number() OVER (ORDER BY created_at, id) AS \"Шаг\", CASE WHEN id = NULLIF(${invocation_id:sqlstring}, '')::uuid THEN '▶ ' ELSE '' END || model AS \"Вызов / Модель\", status::text AS \"Статус\", duration_ms AS \"Время, мс\", total_tokens AS \"Токены\", created_at AS \"Сохранён\" FROM public.llm_invocations WHERE deleted_at IS NULL AND request_id = (SELECT request_id FROM public.llm_invocations WHERE id = NULLIF(${invocation_id:sqlstring}, '')::uuid AND deleted_at IS NULL) ORDER BY created_at, id"
+      }],
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "left"}},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "id"}, "properties": [
+            {"id": "displayName", "value": "Выбрать"},
+            {"id": "custom.width", "value": 100},
+            {"id": "custom.cellOptions", "value": {"type": "data-links"}},
+            {"id": "links", "value": [{"title": "Открыть", "url": "/d/llm-router/llm-router?from=${__from}&to=${__to}&var-invocation_id=${__value.raw}", "targetBlank": false}]}
+          ]},
+          {"matcher": {"id": "byName", "options": "Статус"}, "properties": [
+            {"id": "custom.cellOptions", "value": {"type": "color-text"}},
+            {"id": "mappings", "value": [{"type": "value", "options": {"COMPLETED": {"text": "✓ Completed", "color": "green"}, "FAILED": {"text": "✕ Failed", "color": "red"}}}]}
+          ]}
+        ]
+      },
+      "options": {"showHeader": true, "cellHeight": "sm", "enablePagination": true}
+    },
+    {
+      "id": 2,
+      "title": "Запрос / Input — ${invocation_id}",
+      "description": "Полный сохранённый JSON без обрезания. Откройте просмотр значения ячейки, чтобы прочитать или скопировать весь запрос.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 14},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT jsonb_pretty(request) AS \"Запрос\" FROM public.llm_invocations WHERE id = NULLIF(${invocation_id:sqlstring}, '')::uuid AND deleted_at IS NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"cellOptions": {"type": "json-view"}, "inspect": true}},
+        "overrides": []
+      },
+      "options": {"showHeader": true, "cellHeight": "lg"}
+    },
+    {
+      "id": 3,
+      "title": "Ответ / Output — ${invocation_id}",
+      "description": "Ответ той же записи без обрезания. Для failed отдельно показана сохранённая ошибка. Откройте просмотр значения ячейки для полного JSON.",
+      "type": "table",
+      "datasource": {"type": "postgres", "uid": "llm_postgres"},
+      "gridPos": {"x": 12, "y": 12, "w": 12, "h": 14},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT jsonb_pretty(response) AS \"Ответ\", COALESCE(error, '') AS \"Ошибка\" FROM public.llm_invocations WHERE id = NULLIF(${invocation_id:sqlstring}, '')::uuid AND deleted_at IS NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"custom": {"cellOptions": {"type": "json-view"}, "inspect": true}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Ошибка"},
+            "properties": [{"id": "custom.cellOptions", "value": {"type": "auto"}}]
+          }
+        ]
+      },
+      "options": {"showHeader": true, "cellHeight": "lg"}
+    }
+  ]
+}
