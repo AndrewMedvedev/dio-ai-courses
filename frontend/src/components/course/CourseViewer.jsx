@@ -15,6 +15,7 @@ import {
   getModuleById,
 } from "../../services/courseService";
 import ContentBlocks from "./ContentBlocks";
+import CourseInviteDialog from "./CourseInviteDialog";
 import CourseBasicInfo from "./CourseBasicInfo";
 import LessonBasicInfo from "./LessonBasicInfo";
 import LessonList from "./LessonList";
@@ -155,6 +156,27 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     currentUserId && courseCreatorId && currentUserId === courseCreatorId,
   );
   const canViewWithoutEnrollment = isOwnCourse;
+  const canInviteToCourse = isOwnCourse || canUpdateCourse;
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const inviteControls = canInviteToCourse ? (
+    <>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setIsInviteOpen(true)}
+      >
+        Пригласить
+      </button>
+      <CourseInviteDialog
+        open={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
+        courseId={course?.id || effectiveCourseId}
+        courseTitle={course?.title}
+        canViewMembers={canUpdateCourse}
+        currentUserId={currentUserId}
+      />
+    </>
+  ) : null;
   const canNavigateCourseContent = isMetricsMode
     ? canUpdateCourse
     : canReadCourseContent;
@@ -606,6 +628,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                 </button>
               </>
             )}
+            {inviteControls}
           </div>
           {enrollmentError && (
             <p className="lesson-ai-error" role="alert">
@@ -668,6 +691,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                 </button>
               </>
             )}
+            {inviteControls}
           </div>
         </article>
       </section>

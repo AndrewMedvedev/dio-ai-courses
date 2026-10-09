@@ -99,3 +99,16 @@ class InvitationCreate(BaseModel):
     course_id: UUID
     email: EmailStr
     role: MemberRole
+
+
+class InvitationResponse(BaseModel):
+    """Приглашение на курс для списков — без токена из письма."""
+
+    id: UUID
+    course_id: UUID
+    email: EmailStr
+    role: MemberRole
+    user_id: UUID | None = None
+    invited_by: UUID
+    created_at: datetime
+    expires_at: datetime

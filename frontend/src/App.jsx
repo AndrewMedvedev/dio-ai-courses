@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import CoursePage from "./pages/CoursePage";
+import CourseInvitationAcceptPage from "./pages/CourseInvitationAcceptPage";
 import CourseViewer from "./components/course/CourseViewer";
 import BlockPage from "./pages/BlockPage";
 import LessonPage from "./pages/LessonPage";
@@ -1555,6 +1556,10 @@ function AppContent() {
               </Route>
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/register" element={<AuthPage mode="register" />} />
+              <Route
+                path="/courses/invitations/accept/:token"
+                element={<CourseInvitationAcceptPage />}
+              />
               <Route
                 path="/course/:courseId"
                 element={<CourseViewer localCourse={selectedCourse} />}

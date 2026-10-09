@@ -42,7 +42,7 @@ async function parseError(response, fallbackMessage) {
 
 export async function signCourse(courseId, options = {}) {
   const response = await apiFetch(
-    `/student/${encodeURIComponent(courseId)}/sign`,
+    `/members/${encodeURIComponent(courseId)}/sign`,
     {
       ...options,
       method: "POST",
@@ -103,7 +103,7 @@ export async function getCourseStudents(
   { page = 1, size = 10 } = {},
   options = {},
 ) {
-  const response = await apiFetch(`/student/${encodeURIComponent(courseId)}`, {
+  const response = await apiFetch(`/members/${encodeURIComponent(courseId)}`, {
     ...options,
     method: "POST",
     headers: {
@@ -138,7 +138,7 @@ export async function getUserById(userId, options = {}) {
 }
 
 export async function getMyCourses({ page = 1, size = 10 } = {}, options = {}) {
-  const response = await apiFetch("/student/", {
+  const response = await apiFetch("/members/", {
     ...options,
     method: "POST",
     headers: {

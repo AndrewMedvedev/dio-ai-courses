@@ -236,6 +236,12 @@ class MemberRepository(Repository[Member]):
 class InvitationRepository(Repository[Invitation]):
     async def get_by_token(self, token: str) -> Invitation | None: ...
 
+    async def find_by_course(
+        self,
+        course_id: UUID,
+        pagination: Pagination,
+    ) -> Page[Invitation]: ...
+
     async def get_active(
         self,
         email: Email,

@@ -6,9 +6,10 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from src.courses.domain.constants import _BLOCK_REGISTRY
-from src.courses.domain.entities import Course, Lesson, Module
+from src.courses.domain.entities import Course, Invitation, Lesson, Module
 from src.courses.domain.vo import AnyContentBlock, ExtendedContentType, Question, QuizBlock
 
+from .dtos import InvitationResponse
 from .domain_dtos import (
     AnyContentBlockDict,
     ChemicalBlockDict,
@@ -184,4 +185,19 @@ def dict_to_lesson(data: LessonDict) -> Lesson:
         learning_objectives=data["learning_objectives"],
         content_blocks=[dict_to_content_block(block) for block in data["content_blocks"]],
         estimated_time_minutes=data["estimated_time_minutes"],
+    )
+
+
+def invitation_to_response(invitation: Invitation) -> InvitationResponse:
+    """Приглашение для ответа API — без токена из письма."""
+
+    return InvitationResponse(
+        id=invitation.id,
+        course_id=invitation.course_id,
+        email=invitation.email.value,
+        role=invitation.role,
+        user_id=invitation.user_id,
+        invited_by=invitation.invited_by,
+        created_at=invitation.created_at,
+        expires_at=invitation.expires_at,
     )
