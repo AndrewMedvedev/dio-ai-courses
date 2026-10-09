@@ -19,7 +19,8 @@ import BlockPage from "./pages/BlockPage";
 import LessonPage from "./pages/LessonPage";
 import PracticePage from "./pages/PracticePage";
 import CreatorPage from "./pages/CreatorPage";
-import ManualCourseBuilderPage from "./pages/ManualCourseBuilderPage";
+import DragAndDropCoursePage from "./pages/DragAndDropCoursePage";
+import DragAndDropCoursePreviewPage from "./pages/DragAndDropCoursePreviewPage";
 import ProfilePage from "./pages/ProfilePage";
 import OrganizationsPage from "./pages/OrganizationsPage";
 import ModelsPage from "./pages/ModelsPage";
@@ -1320,23 +1321,6 @@ function AppContent() {
     }
   };
 
-  const createManualCourse = async ({ courseId }) => {
-    if (!canCreateCourse || !courseId) {
-      return;
-    }
-
-    const course = await getCourse(courseId);
-    const firstBlock = course.blocks?.[0];
-
-    setEditableCourses((prev) => mergeCourse(prev, course));
-    setSelectedCourseId(course.id);
-    setSelectedBlockId(firstBlock?.id ?? null);
-    setSelectedLessonId(firstBlock?.lessons?.[0]?.id ?? null);
-    setSelectedPracticeId(firstBlock?.practice?.[0]?.id ?? null);
-    setIsCourseEditMode(true);
-    navigate(`/course/${course.id}/edit`);
-  };
-
   return (
     <div
       className={`page ${location.pathname === "/" ? "is-home-page" : "is-inner-page"}`}
@@ -1610,12 +1594,16 @@ function AppContent() {
               >
                 <Route path="/creator" element={<CreatorPage />} />
                 <Route
+                  path="/drag-and-drop-course"
+                  element={<DragAndDropCoursePage />}
+                />
+                <Route
+                  path="/drag-and-drop-course/:courseId/preview"
+                  element={<DragAndDropCoursePreviewPage />}
+                />
+                <Route
                   path="/manual-course-builder"
-                  element={
-                    <ManualCourseBuilderPage
-                      onCreateCourse={createManualCourse}
-                    />
-                  }
+                  element={<Navigate to="/drag-and-drop-course" replace />}
                 />
               </Route>
               <Route element={<ProtectedRoute />}>

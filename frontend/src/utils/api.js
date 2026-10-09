@@ -1575,10 +1575,10 @@ export async function getCourse(courseId, options = {}) {
 }
 
 export async function getModuleBasicInfo(moduleId, options = {}) {
+  // Бэкенд проверяет права на модуль через курс, поэтому запрос нужен с токеном.
   const data = await requestJson(
     `/module/basic/info/${encodeURIComponent(moduleId)}`,
     options,
-    { auth: false },
   );
   return moduleBasicToLearningBlock(data);
 }
