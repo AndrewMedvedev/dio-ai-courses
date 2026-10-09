@@ -1,0 +1,102 @@
+/* Матовое стекло для страниц курса и редактора курса (курс → модуль → урок → практика).
+   Те же токены, что у просмотра курса: верхний уровень — полупрозрачный фон с сильным
+   блюром, вложенные карточки — почти непрозрачный фон без второго блюра. Эффект
+   «искажения» (#glass-distortion) здесь выключен: сквозь него читалась сетка фона.
+   Главная страница не затрагивается. */
+.course-details-view,
+.block-view,
+.practice-view,
+.lesson-view {
+    --muted: #4f493f;
+    --eyebrow: #3d4a61;
+    --ink-accent: #564556;
+    --info-text: #3d4a61;
+    --glass-bg: rgba(250, 247, 241, 0.74);
+    --glass-bg-strong: rgba(252, 250, 246, 0.92);
+    --glass-blur: 18px;
+    --glass-backdrop: blur(var(--glass-blur)) saturate(140%);
+}
+
+.page[data-theme="dark"] .course-details-view,
+.page[data-theme="dark"] .block-view,
+.page[data-theme="dark"] .practice-view,
+.page[data-theme="dark"] .lesson-view {
+    --muted: #c4b9a7;
+    --eyebrow: #a0c4ff;
+    --ink-accent: #dfd2bf;
+    --info-text: #b7ab99;
+    --glass-bg: rgba(34, 34, 34, 0.74);
+    --glass-bg-strong: rgba(44, 44, 44, 0.92);
+}
+
+:is(.course-details-view, .block-view, .practice-view) .glass-card,
+.lesson-view .glass-card:not(.lesson-main-card) {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    backdrop-filter: var(--glass-backdrop);
+}
+
+:is(.course-details-view, .block-view, .practice-view, .lesson-view) .glass-card::after {
+    content: none;
+}
+
+:is(.course-details-view, .block-view, .practice-view) .glass-card .glass-card,
+.lesson-view .glass-card .glass-card:not(.lesson-main-card) {
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+:is(.course-details-view, .block-view, .practice-view, .lesson-view) .course-nav-tree,
+.page[data-theme="dark"] :is(.course-details-view, .block-view, .practice-view, .lesson-view) .course-nav-tree {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    backdrop-filter: var(--glass-backdrop);
+}
+
+/* Рамка урока тянется на всю высоту контента: блюр под такой площадью пересчитывается
+   на каждом кадре прокрутки, поэтому здесь плотный фон без backdrop-filter. */
+.lesson-view .lesson-scroll-frame,
+.page[data-theme="dark"] .lesson-view .lesson-scroll-frame {
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+.lesson-view .lesson-scroll-frame::after {
+    content: none;
+}
+
+/* Поля редактора на стекле: свой фон, чтобы текст не терялся. */
+:is(.course-details-view, .block-view, .practice-view, .lesson-view)
+    :is(.course-editor-field input, .course-editor-field textarea, .course-editor-field select) {
+    background: var(--glass-bg-strong);
+}
+
+/* Сплошной цвет под градиентом страницы: при быстрой прокрутке браузер закрашивает
+   ещё не отрисованные участки цветом корня, и без него в тёмной теме мелькает белое. */
+html {
+    background-color: var(--bg-dark);
+}
+
+/* vw учитывает полосу прокрутки: без ограничения контейнер шириной 96vw
+   вылезает на несколько пикселей и даёт горизонтальный скролл. */
+.container {
+    max-width: 100%;
+}
+
+/* Пункты списков модулей/уроков в тёмной теме: вместо светлой «плашки» — тёплое стекло. */
+.page[data-theme="dark"] :is(.course-details-view, .block-view, .practice-view, .lesson-view) .course-pick-item {
+    border-color: rgba(233, 222, 203, 0.16);
+    background: rgba(233, 222, 203, 0.05);
+    color: var(--text);
+}
+
+.page[data-theme="dark"] :is(.course-details-view, .block-view, .practice-view, .lesson-view) .course-pick-item.is-selected {
+    border-color: var(--contrast);
+    background: rgba(203, 170, 203, 0.12);
+}
+
+.page[data-theme="dark"] :is(.course-details-view, .block-view, .practice-view, .lesson-view) .course-pick-item:not(:disabled):hover {
+    border-color: var(--accent);
+}
