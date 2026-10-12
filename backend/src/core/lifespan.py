@@ -12,6 +12,7 @@ from .others import thread_executor
 from .qdrant import qdrant_client
 from .rabbit import router as rabbit_router
 from .redis import checkpointer, redis_client
+from .taskiq import broker as task_broker
 
 _BOOTSTRAP_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("alembic", "upgrade", "head"),
@@ -51,8 +52,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             },
             sparse_vectors_config={"bm25": models.SparseVectorParams()},
         )
-    async with rabbit_router.lifespan_context(app):
-        yield
+    await task_broker.startup()
+    try:
+        async with rabbit_router.lifespan_context(app):
+            yield
+    finally:
+        await task_broker.shutdown()
     thread_executor.shutdown(wait=True)
 
 

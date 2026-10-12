@@ -82,6 +82,8 @@ async def complete_interview(
         prompt=prompt,
     )
 
-    result = generate_course.send(generation_context=generation_context.model_dump(mode="json"))
-    runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Курс поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."
+    result = await generate_course.kiq(
+        generation_context=generation_context.model_dump(mode="json"),
+    )
+    runtime.state.task_id = result.task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Курс поставлен в очередь на генерацию, task_id={result.task_id}, ,больше не вызывай никакие инструменты, заверши чат."

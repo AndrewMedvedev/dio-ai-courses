@@ -2,10 +2,10 @@ from typing import Any
 
 import logging
 
-from dramatiq import actor
 from langchain_core.runnables import RunnableConfig
 
 from src.core.database import session_factory
+from src.core.taskiq import broker
 
 from ...infra.services import course_client
 from ..schemas import RuntimeContext
@@ -15,13 +15,7 @@ from .nodes import Context, agent
 logger = logging.getLogger(__name__)
 
 
-@actor(
-    max_retries=6,  # сколько раз повторить при ошибке
-    min_backoff=10000,  # мин. задержка перед повтором (мс)
-    max_backoff=100000,  # макс. задержка (мс)
-    store_results=True,
-    time_limit=5 * 60 * 60 * 1000,
-)
+@broker.task(retry_on_error=True, timeout=5 * 60 * 60)
 async def generate_course(generation_context: dict[str, Any]) -> dict[str, str]:
     """Генерирует курс, чтобы автоматически подготовить часть учебного контента."""
     context = Context(**generation_context)

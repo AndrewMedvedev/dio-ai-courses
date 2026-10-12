@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.shared.infra.middlewares import LoggingMiddleware
 
@@ -18,12 +17,6 @@ app = FastAPI(
     version=app_config.version,
     lifespan=lifespan,
 )
-Instrumentator(
-    should_group_status_codes=True,
-    should_group_untemplated=True,
-    excluded_handlers=["/health", "/metrics"],
-).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
-
 app.add_middleware(LoggingMiddleware)
 
 

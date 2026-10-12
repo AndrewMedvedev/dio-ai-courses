@@ -413,7 +413,6 @@ dependencies = [
     { name = "asyncpg" },
     { name = "ddgs" },
     { name = "dotenv" },
-    { name = "dramatiq", extra = ["prometheus", "redis", "watch"] },
     { name = "fastapi", extra = ["all"] },
     { name = "faststream", extra = ["rabbit"] },
     { name = "freezegun" },
@@ -445,6 +444,9 @@ dependencies = [
     { name = "redis" },
     { name = "sqlalchemy" },
     { name = "sse-starlette" },
+    { name = "taskiq", extra = ["metrics"] },
+    { name = "taskiq-aio-pika" },
+    { name = "taskiq-redis" },
     { name = "tiktoken" },
     { name = "types-passlib" },
     { name = "types-pytz" },
@@ -462,7 +464,6 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "ddgs", specifier = ">=9.14.4" },
     { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "dramatiq", extras = ["prometheus", "redis", "watch"], specifier = ">=2.2.0" },
     { name = "fastapi", extras = ["all"], specifier = ">=0.136.1" },
     { name = "faststream", extras = ["rabbit"], specifier = ">=0.7.4" },
     { name = "freezegun", specifier = ">=1.5.5" },
@@ -494,6 +495,9 @@ requires-dist = [
     { name = "redis", specifier = ">=7.4.1" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
     { name = "sse-starlette", specifier = ">=3.4.11" },
+    { name = "taskiq", extras = ["metrics"], specifier = ">=0.13.0" },
+    { name = "taskiq-aio-pika", specifier = ">=0.6.1" },
+    { name = "taskiq-redis", specifier = ">=1.2.4" },
     { name = "tiktoken", specifier = ">=0.13.0" },
     { name = "types-passlib", specifier = ">=1.7.7.20260211" },
     { name = "types-pytz", specifier = ">=2026.2.0.20260506" },
@@ -857,26 +861,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892, upload-time = "2025-02-19T22:15:01.647Z" },
-]
-
-[[package]]
-name = "dramatiq"
-version = "2.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/29/fb/78b1b689c4a121fc762ab6f00674cfa7246980678117edb03cbb168e5f9f/dramatiq-2.2.0.tar.gz", hash = "sha256:70c9278b0a9b880aeb23b8e09c9d43b1421ac8e807ef18903f6dd059130474a1", size = 108462, upload-time = "2026-06-17T11:18:34.629Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/57/a9be0b205b24e794c833a5295497f914776eb4d606d5a25a5b290e8b75ec/dramatiq-2.2.0-py3-none-any.whl", hash = "sha256:2b2aa244b4098e154600c47cdb2c04cec6c3af44e9e159c319c6fc8b6f0ba90e", size = 127342, upload-time = "2026-06-17T11:18:33.433Z" },
-]
-
-[package.optional-dependencies]
-prometheus = [
-    { name = "prometheus-client" },
-]
-redis = [
-    { name = "redis" },
-]
-watch = [
-    { name = "watchdog" },
 ]
 
 [[package]]
@@ -2787,6 +2771,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pycron"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/bf/dc33987a3275ad7c9f7785d14bd5e9e58cd396e62ac15b6822576ffbeeb5/pycron-3.3.0.tar.gz", hash = "sha256:877017822a65b949713b4746dcd3a3ff5bbd8b26db55e20e472dc191ea539d69", size = 71121, upload-time = "2026-09-17T07:41:46.472Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/b2/520fca1c0f4fb0334721e2ea187a650074492df7112209d45acb40032100/pycron-3.3.0-py3-none-any.whl", hash = "sha256:ab04a1ffa01257cc809de777cad1bf2e1a329ec6986059585b730269b7a18806", size = 5006, upload-time = "2026-09-17T07:41:45.519Z" },
+]
+
+[[package]]
 name = "pydantic"
 version = "2.13.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3175,16 +3168,16 @@ fastembed = [
 
 [[package]]
 name = "redis"
-version = "7.4.1"
+version = "8.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/51/93/05e7d4a65285066a74f48697f9b9cde5cfce71398033d69ed83c3d98f5c9/redis-7.4.1.tar.gz", hash = "sha256:1a1df5067062cf7cbe677994e391f8ee0840f499d370f1a71266e0dd3aa9308e", size = 4945742, upload-time = "2026-06-05T09:10:06.703Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/99/604f0b666d4c616d891cf77ebb9db6bb21601344c051aebf1b72b9ff915f/redis-8.1.0.tar.gz", hash = "sha256:6e1a19beef9225c83efd689c7e6b7da2d5215b1f42cd13b7fc3714d0a09c7b25", size = 5254356, upload-time = "2026-07-30T08:51:00.269Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/2e/2677f3f93dae0497e7e33b6637302e7f3744efc553f34231183e32584885/redis-7.4.1-py3-none-any.whl", hash = "sha256:1fa4647af1c5e93a2c685aa248ee44cce092691146d41390518dabe9a99839b0", size = 410171, upload-time = "2026-06-05T09:10:05.128Z" },
+    { url = "https://files.pythonhosted.org/packages/66/9d/c5731f6e3608663d4d3656fd8d3aecee8b509c3082818f5a13eae925baea/redis-8.1.0-py3-none-any.whl", hash = "sha256:a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb", size = 560618, upload-time = "2026-07-30T08:50:58.497Z" },
 ]
 
 [[package]]
 name = "redisvl"
-version = "0.23.0"
+version = "0.28.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonpath-ng" },
@@ -3196,9 +3189,9 @@ dependencies = [
     { name = "redis" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/85/ced77a6796c76190b66ee4ee06d596a92cfec9f610878f8fb72deb5b7819/redisvl-0.23.0.tar.gz", hash = "sha256:ba55049845321e9ac7dbf348c10ad967fc8849f4ec2a73f327419a4983d97a2c", size = 1192525, upload-time = "2026-07-03T13:24:46.368Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/f2/b13b84bb79be86dcd4812152d892d634228be4affa3c9315b58f262c2261/redisvl-0.28.0.tar.gz", hash = "sha256:851a9528ffefc547263e50db90e5bf9efaeb9f5c91771073705827f294ab02c0", size = 1388567, upload-time = "2026-10-09T13:35:34.033Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/ec/8a06734bcdb0eb359e3951098f586aec267f2fd625bc5009499bc55dd456/redisvl-0.23.0-py3-none-any.whl", hash = "sha256:7f5ddce5f0e59f67a25ba6dd3522c7bf570458eaa01f3da1df1e35cf4c3c5a51", size = 370727, upload-time = "2026-07-03T13:24:44.62Z" },
+    { url = "https://files.pythonhosted.org/packages/46/5c/79d31615c7ffa512825d7bcfe63e42052f815871692f9f1e3bd0fa1c92c7/redisvl-0.28.0-py3-none-any.whl", hash = "sha256:0f013853a54219651355ec3a6c5a3d2c5cdf02935ffc0aa27c9cb80e2023d306", size = 435177, upload-time = "2026-10-09T13:35:32.122Z" },
 ]
 
 [[package]]
@@ -3546,6 +3539,63 @@ wheels = [
 ]
 
 [[package]]
+name = "taskiq"
+version = "0.13.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "anyio" },
+    { name = "pycron" },
+    { name = "pydantic" },
+    { name = "taskiq-dependencies" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/09/c6/a6e5a15158e1db35b458f68f40b3e44c32134d7edad6bfcdb5bbd4128174/taskiq-0.13.0.tar.gz", hash = "sha256:7d56609a6c5a20b0c9da67e9f310ec9640266f620b8f81880bccd5f16913e687", size = 411167, upload-time = "2026-09-26T14:45:16.997Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/59/9c/c4fb8085424ef1c5479877f0f16f8dc4b406dcf6f367d51464bbf134d086/taskiq-0.13.0-py3-none-any.whl", hash = "sha256:b51e1961d8919bc897caa6f5484ac08d812341413a20a3704b69c597c4c154d2", size = 94856, upload-time = "2026-09-26T14:45:15.768Z" },
+]
+
+[package.optional-dependencies]
+metrics = [
+    { name = "prometheus-client" },
+]
+
+[[package]]
+name = "taskiq-aio-pika"
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aio-pika" },
+    { name = "taskiq" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/85/69/1b58c2e76bf96405a3e481fe653c9e96fad7b20990501b996f2e856a1005/taskiq_aio_pika-0.6.1.tar.gz", hash = "sha256:9f25fcc78cc4ae13ad771f5adfb4fca2d80d6ab444a9e85625ba74a9e8d570c0", size = 10271, upload-time = "2026-09-16T12:51:01.863Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/57/ea/c0b76496a5058701da357407ed14cfa880a0b900241d21196f5e10e4f586/taskiq_aio_pika-0.6.1-py3-none-any.whl", hash = "sha256:a807e9bac4da4069c5411323fbe621718cc6e858001d661c2dc84755a410bbb0", size = 11491, upload-time = "2026-09-16T12:51:00.896Z" },
+]
+
+[[package]]
+name = "taskiq-dependencies"
+version = "1.5.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/90/47a627696e53bfdcacabc3e8c05b73bf1424685bcb5f17209cb8b12da1bf/taskiq_dependencies-1.5.7.tar.gz", hash = "sha256:0d3b240872ef152b719153b9526d866d2be978aeeaea6600e878414babc2dcb4", size = 14875, upload-time = "2025-02-26T22:07:39.876Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/6d/4a012f2de002c2e93273f5e7d3e3feea02f7fdbb7b75ca2ca1dd10703091/taskiq_dependencies-1.5.7-py3-none-any.whl", hash = "sha256:6fcee5d159bdb035ef915d4d848826169b6f06fe57cc2297a39b62ea3e76036f", size = 13801, upload-time = "2025-02-26T22:07:38.622Z" },
+]
+
+[[package]]
+name = "taskiq-redis"
+version = "1.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "redis" },
+    { name = "taskiq" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/18/a8/c8968e6cbb0c0c36988824cd53729d26b98052e42e700cdd1fac85194a68/taskiq_redis-1.2.4.tar.gz", hash = "sha256:be7df97ea39f9572c5cdc15d6db0de0c8d78fa5d5b4db626f9673840383032ff", size = 15066, upload-time = "2026-09-28T15:36:25.524Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/4c/d969bea733f1450e05af8738fb0eaf843852932901598c959ec82200d746/taskiq_redis-1.2.4-py3-none-any.whl", hash = "sha256:76e3621517a3c285bc9b72830cb7fa065be8213c08033025b4b13401eec9268e", size = 20896, upload-time = "2026-09-28T15:36:24.377Z" },
+]
+
+[[package]]
 name = "tenacity"
 version = "9.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3817,27 +3867,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/37/945b4ca0ac27e3dc4952642d4c900edd030b3da6c9634875af6e13ae80e5/uvloop-0.22.1-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b91328c72635f6f9e0282e4a57da7470c7350ab1c9f48546c0f2866205349d21", size = 4467065, upload-time = "2025-10-16T22:16:58.206Z" },
     { url = "https://files.pythonhosted.org/packages/97/cc/48d232f33d60e2e2e0b42f4e73455b146b76ebe216487e862700457fbf3c/uvloop-0.22.1-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:daf620c2995d193449393d6c62131b3fbd40a63bf7b307a1527856ace637fe88", size = 4328384, upload-time = "2025-10-16T22:16:59.36Z" },
     { url = "https://files.pythonhosted.org/packages/e4/16/c1fd27e9549f3c4baf1dc9c20c456cd2f822dbf8de9f463824b0c0357e06/uvloop-0.22.1-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:6cde23eeda1a25c75b2e07d39970f3374105d5eafbaab2a4482be82f272d5a5e", size = 4296730, upload-time = "2025-10-16T22:17:00.744Z" },
-]
-
-[[package]]
-name = "watchdog"
-version = "6.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/db/7d/7f3d619e951c88ed75c6037b246ddcf2d322812ee8ea189be89511721d54/watchdog-6.0.0.tar.gz", hash = "sha256:9ddf7c82fda3ae8e24decda1338ede66e1c99883db93711d8fb941eaa2d8c282", size = 131220, upload-time = "2024-11-01T14:07:13.037Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/68/98/b0345cabdce2041a01293ba483333582891a3bd5769b08eceb0d406056ef/watchdog-6.0.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:490ab2ef84f11129844c23fb14ecf30ef3d8a6abafd3754a6f75ca1e6654136c", size = 96480, upload-time = "2024-11-01T14:06:42.952Z" },
-    { url = "https://files.pythonhosted.org/packages/85/83/cdf13902c626b28eedef7ec4f10745c52aad8a8fe7eb04ed7b1f111ca20e/watchdog-6.0.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:76aae96b00ae814b181bb25b1b98076d5fc84e8a53cd8885a318b42b6d3a5134", size = 88451, upload-time = "2024-11-01T14:06:45.084Z" },
-    { url = "https://files.pythonhosted.org/packages/fe/c4/225c87bae08c8b9ec99030cd48ae9c4eca050a59bf5c2255853e18c87b50/watchdog-6.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a175f755fc2279e0b7312c0035d52e27211a5bc39719dd529625b1930917345b", size = 89057, upload-time = "2024-11-01T14:06:47.324Z" },
-    { url = "https://files.pythonhosted.org/packages/a9/c7/ca4bf3e518cb57a686b2feb4f55a1892fd9a3dd13f470fca14e00f80ea36/watchdog-6.0.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:7607498efa04a3542ae3e05e64da8202e58159aa1fa4acddf7678d34a35d4f13", size = 79079, upload-time = "2024-11-01T14:06:59.472Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/51/d46dc9332f9a647593c947b4b88e2381c8dfc0942d15b8edc0310fa4abb1/watchdog-6.0.0-py3-none-manylinux2014_armv7l.whl", hash = "sha256:9041567ee8953024c83343288ccc458fd0a2d811d6a0fd68c4c22609e3490379", size = 79078, upload-time = "2024-11-01T14:07:01.431Z" },
-    { url = "https://files.pythonhosted.org/packages/d4/57/04edbf5e169cd318d5f07b4766fee38e825d64b6913ca157ca32d1a42267/watchdog-6.0.0-py3-none-manylinux2014_i686.whl", hash = "sha256:82dc3e3143c7e38ec49d61af98d6558288c415eac98486a5c581726e0737c00e", size = 79076, upload-time = "2024-11-01T14:07:02.568Z" },
-    { url = "https://files.pythonhosted.org/packages/ab/cc/da8422b300e13cb187d2203f20b9253e91058aaf7db65b74142013478e66/watchdog-6.0.0-py3-none-manylinux2014_ppc64.whl", hash = "sha256:212ac9b8bf1161dc91bd09c048048a95ca3a4c4f5e5d4a7d1b1a7d5752a7f96f", size = 79077, upload-time = "2024-11-01T14:07:03.893Z" },
-    { url = "https://files.pythonhosted.org/packages/2c/3b/b8964e04ae1a025c44ba8e4291f86e97fac443bca31de8bd98d3263d2fcf/watchdog-6.0.0-py3-none-manylinux2014_ppc64le.whl", hash = "sha256:e3df4cbb9a450c6d49318f6d14f4bbc80d763fa587ba46ec86f99f9e6876bb26", size = 79078, upload-time = "2024-11-01T14:07:05.189Z" },
-    { url = "https://files.pythonhosted.org/packages/62/ae/a696eb424bedff7407801c257d4b1afda455fe40821a2be430e173660e81/watchdog-6.0.0-py3-none-manylinux2014_s390x.whl", hash = "sha256:2cce7cfc2008eb51feb6aab51251fd79b85d9894e98ba847408f662b3395ca3c", size = 79077, upload-time = "2024-11-01T14:07:06.376Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/e8/dbf020b4d98251a9860752a094d09a65e1b436ad181faf929983f697048f/watchdog-6.0.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:20ffe5b202af80ab4266dcd3e91aae72bf2da48c0d33bdb15c66658e685e94e2", size = 79078, upload-time = "2024-11-01T14:07:07.547Z" },
-    { url = "https://files.pythonhosted.org/packages/07/f6/d0e5b343768e8bcb4cda79f0f2f55051bf26177ecd5651f84c07567461cf/watchdog-6.0.0-py3-none-win32.whl", hash = "sha256:07df1fdd701c5d4c8e55ef6cf55b8f0120fe1aef7ef39a1c6fc6bc2e606d517a", size = 79065, upload-time = "2024-11-01T14:07:09.525Z" },
-    { url = "https://files.pythonhosted.org/packages/db/d9/c495884c6e548fce18a8f40568ff120bc3a4b7b99813081c8ac0c936fa64/watchdog-6.0.0-py3-none-win_amd64.whl", hash = "sha256:cbafb470cf848d93b5d013e2ecb245d4aa1c8fd0504e863ccefa32445359d680", size = 79070, upload-time = "2024-11-01T14:07:10.686Z" },
-    { url = "https://files.pythonhosted.org/packages/33/e8/e40370e6d74ddba47f002a32919d91310d6074130fe4e17dabcafc15cbf1/watchdog-6.0.0-py3-none-win_ia64.whl", hash = "sha256:a1914259fa9e1454315171103c6a30961236f508b9b623eae470268bbcc6a22f", size = 79067, upload-time = "2024-11-01T14:07:11.845Z" },
 ]
 
 [[package]]

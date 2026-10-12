@@ -10,21 +10,26 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ../monitoring/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  dramatiq:
+  taskiq:
     build:
       context: ../backend
       dockerfile: Dockerfile
     command: >
-      dramatiq src.courses.agents.course_generator.workflow
-      --processes 1
-      --threads 4
-      --watch /app
+      sh -c 'mkdir -p /tmp/taskiq-metrics && exec taskiq worker
+      src.core.taskiq:broker src.courses.agents.course_generator.workflow
+      --workers 1 --max-async-tasks 4 --ack-type when_saved'
+    restart: unless-stopped
+    environment:
+      PROMETHEUS_MULTIPROC_DIR: /tmp/taskiq-metrics
+    tmpfs:
+      - /tmp/taskiq-metrics
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -35,7 +40,7 @@ services:
       qdrant:
         condition: service_started
     env_file:
-      - ../.env.prod
+      - ${BACKEND_ENV_FILE:-../.env.prod}
 
 
 volumes:

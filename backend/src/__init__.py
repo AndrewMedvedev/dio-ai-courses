@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter
 
-from src.core import dramatiq
+from src.core import taskiq
 
 from .courses.api.v1 import router as courses_router
 from .iam.api.v1 import router as iam_router
@@ -23,4 +23,4 @@ router.include_router(courses_router)
 router.include_router(llm_router)
 
 
-__all__ = ["dramatiq", "router"]
+__all__ = ["router", "taskiq"]

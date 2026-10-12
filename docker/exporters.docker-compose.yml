@@ -5,17 +5,12 @@ services:
     container_name: postgres-exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?sslmode=disable"
     ports:
       - "9187:9187"
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9187/metrics | grep -q '^pg_up'"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
 
   redis-exporter:
     image: oliver006/redis_exporter:latest
@@ -29,11 +24,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9121/metrics | grep -q '^redis_up'"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
