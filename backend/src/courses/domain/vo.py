@@ -104,6 +104,7 @@ class ContentBlock(ABC):
 
     content_type: ContentType
     ai_generated: bool = True
+    sources: list[str] = field(default_factory=list)
 
 
 @dataclass(kw_only=True, slots=True)

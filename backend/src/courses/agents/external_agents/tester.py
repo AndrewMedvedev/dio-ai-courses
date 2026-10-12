@@ -1,7 +1,7 @@
 from typing import Any
 
 import json
-import random
+import secrets
 from uuid import UUID
 
 from pydantic import TypeAdapter
@@ -39,7 +39,7 @@ class TesterAgent:
         lesson_id: UUID,
     ) -> dict[str, Any]:
         """Создает тест для студента на основе теории урока и его предыдущих практик."""
-        random_type = random.choice(list(TestType))
+        random_type = secrets.choice(list(TestType))
         config = KNOWLEDGE_CONFIG.get(random_type, {})
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:

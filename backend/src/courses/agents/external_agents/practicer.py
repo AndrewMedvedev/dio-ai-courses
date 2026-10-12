@@ -40,7 +40,6 @@ class PracticerAgent:
         module_id: UUID,
         lesson_id: UUID,
     ) -> dict[str, Any]:
-        """Создает практическое задание для студента на основе теории урока и его предыдущих практик."""
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:
             raise NotFoundError(message="Урок не найден")

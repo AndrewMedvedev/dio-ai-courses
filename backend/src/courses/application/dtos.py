@@ -19,6 +19,14 @@ class Chat(BaseModel):
     content: str | dict[str, Any]
 
 
+class ModuleGenerationChat(Chat):
+    order: int
+
+
+class LessonGenerationChat(ModuleGenerationChat):
+    module_id: UUID
+
+
 class EditorChat(Chat):
     content_type: ContentType
     content_block: str

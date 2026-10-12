@@ -13,10 +13,9 @@ from src.shared.domain.repos import get_or_raise_404
 from src.shared.domain.vo import Email
 
 from ..repos import (
-    IAMInvitationRepository,
+    IAMRepository,
     InvitationRepository,
     MembershipRepository,
-    UserRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,15 +27,13 @@ class InvitationService:
         transaction: Transaction,
         invitation_repo: InvitationRepository,
         membership_repo: MembershipRepository,
-        user_repo: UserRepository,
-        iam_invitation_repo: IAMInvitationRepository,
+        iam_repo: IAMRepository,
         client: SrvOrganizationClient,
     ) -> None:
         self.transaction = transaction
         self.invitation_repo = invitation_repo
         self.membership_repo = membership_repo
-        self.user_repo = user_repo
-        self.iam_invitation_repo = iam_invitation_repo
+        self.iam_repo = iam_repo
         self.client = client
 
     async def create(
@@ -48,11 +45,10 @@ class InvitationService:
             email=Email(dto.email),
             organization_id=dto.organization_id,
         )
-        user = await self.user_repo(dto.email, self.client)
+        user = await self.iam_repo.get_user_by_email(dto.email)
         if user is None:
-            await self.iam_invitation_repo(
+            await self.iam_repo.invite_user_in_system(
                 IAMInvitationCreate(email=dto.email, granted_roles=dto.granted_roles),
-                self.client,
             )
         else:
             membership = await self.membership_repo.get_user_membership(
