@@ -13,7 +13,8 @@ from src.llm_service import LLMTextService
 from src.shared.domain.exceptions import NotFoundError
 
 from ...application.repos import LessonRepository, PracticeRepository
-from ...domain.vo import FileUploadAssignment, PracticeStatus
+from ...domain.enums import PracticeStatus
+from ...domain.vo import FileUploadAssignment
 from ...infra.services.client import SrvCourseClient
 from ..course_generator.subagents.prompts import FILE_UPLOAD_PROMPT
 from ..prompts import ASSIGNMENT_PROMPT, PRACTICE_FILE_CHECKER_PROMPT

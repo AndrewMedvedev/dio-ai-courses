@@ -19,17 +19,17 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-
-from ...domain.entities import (
+from src.courses.domain.entities import (
     AnyContentBlock,
 )
-from ...domain.vo import (
+from src.courses.domain.enums import (
     CourseStatus,
     DifficultyLevel,
     DocumentNodeType,
-    MemberRole,
     PracticeStatus,
 )
+from src.courses.domain.vo import MemberRole
+
 from .types import ContentBlockListType
 
 

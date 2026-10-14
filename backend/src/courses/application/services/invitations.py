@@ -100,7 +100,6 @@ class InvitationService:
                     client=self.client,
                     dto=OrganizationInvitationCreate(
                         email=dto.email,
-                        organization_id=identity.organization_id,
                         granted_roles=set(),
                     ),
                 )

@@ -9,7 +9,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 from src.shared.application.dtos import BaseQueryParamFilters
 
-from ..domain.vo import ContentType, DifficultyLevel, MemberRole
+from ..domain.enums import ContentType, DifficultyLevel
+from ..domain.vo import MemberRole
 
 
 class Chat(BaseModel):

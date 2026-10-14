@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-import json
 from dataclasses import asdict
 from uuid import UUID
 
@@ -131,7 +130,6 @@ async def chat_with_editor(
     identity: CurrentIdentity,
     check_access: CheckCourseAccessDep,
 ) -> Chat:
-    """Обрабатывает HTTP-запрос `chat_with_editor` и связывает API с сервисным слоем."""
     await check_access(
         identity=identity,
         permission=UPDATE,
@@ -150,7 +148,7 @@ async def chat_with_editor(
         chat_id=request.chat_id,
         course_id=request.course_id,
         role="assistant",
-        content=json.dumps(asdict(result), ensure_ascii=False, default=str),
+        content=asdict(result),
     )
 
 
@@ -164,7 +162,6 @@ async def chat_with_mentor(
     identity: CurrentIdentity,
     check_access: CheckCourseAccessDep,
 ) -> Chat:
-    """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     await check_access(
         identity=identity,
         permission=READ,
@@ -197,7 +194,6 @@ async def create_test(
     identity: CurrentIdentity,
     check_access: CheckCourseAccessDep,
 ) -> dict[str, Any]:
-    """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     await check_access(
         identity=identity,
         permission=READ,
@@ -221,7 +217,6 @@ async def check_test(
     agent: TesterAgentDep,
     _identity: CurrentIdentity,
 ) -> PracticeResult:
-    """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     return await agent.call_agent_checker(
         practice=practice.model_dump(),
         answers=answers,
@@ -240,7 +235,6 @@ async def create_practice(
     identity: CurrentIdentity,
     check_access: CheckCourseAccessDep,
 ) -> dict[str, Any]:
-    """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     await check_access(
         identity=identity,
         permission=READ,
@@ -264,7 +258,6 @@ async def check_practice(
     file: Annotated[UploadFile, File()],
     practice: Annotated[str, Form()],
 ) -> PracticeResult:
-    """Обрабатывает HTTP-запрос `chat_with_mentor` и связывает API с сервисным слоем."""
     practice_obj = TypeAdapter(FileUploadAssignment).validate_json(practice)
     content = await read_upload_with_limit(file)
     return await agent.call_agent_checker(
