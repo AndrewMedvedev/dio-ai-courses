@@ -10,7 +10,6 @@ from qdrant_client import models
 
 from src.core.database import session_factory
 from src.core.qdrant import qdrant_client
-from src.core.redis import checkpointer
 from src.courses.agents.course_generator.helper import invoke_or_resume
 from src.courses.agents.course_generator.nodes import Context, agent
 from src.courses.agents.schemas import RuntimeContext
@@ -43,8 +42,6 @@ async def main():
 
     course_id = UUID("693e6c1a-44a5-46f1-a7b3-d94345a670ee")
     user_id = UUID("3887cb68-d0ab-46d0-9f15-d13d4b4fc78f")
-
-    await checkpointer.setup()  # pyright: ignore[reportAttributeAccessIssue]
 
     exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
 

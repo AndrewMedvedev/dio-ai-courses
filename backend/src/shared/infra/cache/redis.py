@@ -1,6 +1,5 @@
 from typing import cast
 
-import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from urllib.parse import quote
@@ -21,10 +20,6 @@ from langgraph.checkpoint.base import (
 from pydantic import TypeAdapter
 
 _TRUE_STRINGS = ("true", "1")
-
-
-def build_key(prefix: str, uid: uuid.UUID) -> str:
-    return f"{prefix}:{uid}"
 
 
 @dataclass
@@ -49,15 +44,12 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         cache: RedisCache[SavedCheckpoint],
         writes_serializer: Serializer[SavedWrite],
         state_types: dict[str, type],
-        *,
-        refresh_on_read: bool = True,
     ) -> None:
         super().__init__()
         self.cache = cache
         self.writes_serializer = writes_serializer
         self.state_types = state_types
         self._adapters = {channel: TypeAdapter(entity) for channel, entity in state_types.items()}
-        self._refresh_on_read = refresh_on_read
 
     @staticmethod
     def _prefix(config: RunnableConfig) -> str:
@@ -72,11 +64,6 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         if channel == "__start__" and isinstance(value, dict):
             return {name: self._restore(name, item) for name, item in value.items()}
         return value
-
-    async def asetup(self) -> None:
-        await self.cache.redis.ping()
-
-    setup = asetup
 
     async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
         prefix = self._prefix(config)
@@ -94,11 +81,6 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         pending = [
             self.writes_serializer.loads(cast(bytes, raw)) for _, raw in sorted(writes.items())
         ]
-        if self._refresh_on_read and self.cache.ttl is not None:
-            async with self.cache.redis.pipeline() as pipeline:
-                for ttl_key in (key, key + ":writes", prefix + "latest"):
-                    pipeline.expire(ttl_key, self.cache.ttl)
-                await pipeline.execute()
         values = {
             "thread_id": config.get("configurable", {})["thread_id"],
             "checkpoint_ns": config.get("configurable", {}).get("checkpoint_ns", ""),
@@ -171,12 +153,6 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
             if self.cache.ttl is not None:
                 pipeline.expire(key, self.cache.ttl)
             await pipeline.execute()
-
-    async def adelete_thread(self, thread_id: str) -> None:
-        prefix = f"checkpoint_msgpack:{quote(str(thread_id), safe='')}:"
-        async for key in self.cache.redis.scan_iter(match=prefix + "*"):
-            await self.cache.redis.delete(key)
-
 
 class PrimitiveSerializer[T]:
     def __init__(self, cast_type: type[T]) -> None:

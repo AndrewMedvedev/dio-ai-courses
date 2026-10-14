@@ -54,23 +54,9 @@ async def generation_redis(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[Red
         yield client
 
 
-@pytest_asyncio.fixture
-async def generation_id(generation_redis: Redis) -> AsyncIterator[UUID]:
-    course_id = uuid4()
-    yield course_id
-    saver = make_saver(generation_redis)
-    threads = list(generation_threads(course_id))
-
-    async def cleanup_thread(thread: str) -> None:
-        await saver.adelete_thread(thread)
-
-    for index in range(0, len(threads), 5):
-        await asyncio.gather(*(
-            cleanup_thread(thread) for thread in threads[index:index + 5]
-        ))
-    await generation_redis.delete(
-        f"course-test:{course_id}:calls", f"course-test:{course_id}:paused",
-    )
+@pytest.fixture
+def generation_id() -> UUID:
+    return uuid4()
 
 
 async def generate(
@@ -80,7 +66,6 @@ async def generate(
     from src.courses.agents.course_generator.helper import invoke_or_resume
 
     saver = make_saver(client)
-    await saver.asetup()
     graph, context = mock_generation(
         monkeypatch, saver, client, course_id, fault_stage=fault_stage,
         course_path=COURSE_FIXTURE,

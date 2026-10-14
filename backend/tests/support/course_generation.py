@@ -309,7 +309,6 @@ async def run_worker(args: argparse.Namespace) -> None:
 
         async with Redis.from_url(args.redis_url, decode_responses=False) as client:
             saver = make_saver(client)
-            await saver.asetup()
             graph, context = mock_generation(
                 monkeypatch, saver, client, UUID(args.course_id),
                 fault_stage=args.pause_before, pause=True, course_path=args.course_file,

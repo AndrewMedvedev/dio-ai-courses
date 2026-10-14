@@ -11,7 +11,7 @@ from .logging import configure_logging
 from .others import thread_executor
 from .qdrant import qdrant_client
 from .rabbit import router as rabbit_router
-from .redis import checkpointer, redis_client
+from .redis import redis_client
 
 _BOOTSTRAP_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("alembic", "upgrade", "head"),
@@ -38,7 +38,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await redis_client.ping()  # pyright: ignore[reportGeneralTypeIssues]
 
     await _run_bootstrap_commands()
-    await checkpointer.setup()
     exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
     if not exists:
         await qdrant_client.create_collection(
