@@ -72,6 +72,7 @@ function inviteErrorMessage(error, roleLabel) {
     return `Недостаточно прав, чтобы приглашать с ролью «${roleLabel}».`;
   }
   if (error?.status === 404) return "Курс не найден.";
+  if (error?.status === 409) return "Этот пользователь уже участник курса.";
   if (error?.status === 422) return "Проверьте email.";
   return getErrorMessage(error, "Не удалось отправить приглашение.");
 }

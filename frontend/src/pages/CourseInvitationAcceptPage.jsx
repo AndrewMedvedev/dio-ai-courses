@@ -16,6 +16,12 @@ function describeError(error) {
       text: "Возможно, оно уже использовано или истёк срок действия. Попросите отправить новое приглашение.",
     };
   }
+  if (error?.status === 403) {
+    return {
+      title: "Приглашение отправлено на другой email",
+      text: "Войдите под тем аккаунтом, на чей email пришло письмо с приглашением.",
+    };
+  }
   if (error?.status === 409) {
     return {
       title: "Вы уже участник курса",
@@ -118,7 +124,7 @@ export default function CourseInvitationAcceptPage() {
             <h2>{errorInfo.title}</h2>
             <p>{errorInfo.text}</p>
             <div className="course-invite-accept-actions">
-              {state.error?.status !== 404 && state.error?.status !== 409 ? (
+              {![403, 404, 409].includes(state.error?.status) ? (
                 <button type="button" className="btn btn-solid" onClick={accept}>
                   Повторить
                 </button>

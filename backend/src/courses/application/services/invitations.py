@@ -12,7 +12,12 @@ from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, InvalidStateError, NotFoundError
+from src.shared.domain.exceptions import (
+    AlreadyExistsError,
+    ForbiddenError,
+    InvalidStateError,
+    NotFoundError,
+)
 from src.shared.domain.repos import get_or_raise_404
 from src.shared.domain.vo import Email
 
@@ -80,6 +85,11 @@ class InvitationService:
             course_id=dto.course_id,
         )
         user = await get_user_by_email(dto.email, self.client)
+        if user is not None and await self.member_repo.exists(
+            user_id=user.id,
+            course_id=dto.course_id,
+        ):
+            raise AlreadyExistsError("User is already a member of the course.")
         if user is None:
             await invite_user_in_system(
                 dto=IAMInvitationCreate(email=dto.email),
@@ -101,11 +111,17 @@ class InvitationService:
         await self.transaction(invitation)
         return invitation
 
-    async def accept(self, token: str, user_id: UUID) -> Member:
+    async def accept(self, token: str, identity: Identity) -> Member:
         if (
             invitation := await self.invitation_repo.get_by_token(token)
         ) is None or not invitation.is_valid:
             raise NotFoundError(f"Invitation with token - '{token}' not found or invalid.")
+
+        # Принять приглашение может только тот, кому оно отправлено
+        identity_email = identity.email.value if identity.email is not None else ""
+        if identity_email.strip().lower() != invitation.email.value.strip().lower():
+            raise ForbiddenError("Invitation was sent to another email.")
+        user_id = identity.id
 
         if await self.member_repo.exists(
             user_id=user_id,

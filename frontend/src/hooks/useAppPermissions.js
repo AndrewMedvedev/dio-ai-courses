@@ -24,10 +24,15 @@ export function useAppPermissions() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(COURSE_PERMISSIONS.CREATE);
+  // На бэке чтение курса теперь называется course.course_read (course.read остался
+  // только у роли user), поэтому принимаем любое из двух — иначе админ не может открыть курс.
   const canReadCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.READ);
+    hasAnyPermission([
+      COURSE_PERMISSIONS.READ,
+      COURSE_PERMISSIONS.COURSE_READ,
+    ]);
   const canOpenCourse =
     isAuthenticated &&
     arePermissionsLoaded &&

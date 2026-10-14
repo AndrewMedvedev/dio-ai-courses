@@ -18,6 +18,7 @@ from src.courses.domain.entities import (
     ModuleBasicInfo,
     Practice,
 )
+from src.courses.domain.vo import MemberRole
 from src.shared.domain.vo import Email
 from src.shared.infra.database.mappers import ModelMapper
 
@@ -284,7 +285,7 @@ class MemberMapper(ModelMapper[Member, MemberOrm]):
             id=model.id,
             created_at=model.created_at,
             updated_at=model.updated_at,
-            role=model.role,
+            role=MemberRole(model.role),
             course_id=model.course_id,
             user_id=model.user_id,
         )
@@ -314,7 +315,7 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
             email=Email(model.email),
             token=model.token,
             invited_by=model.invited_by,
-            role=model.role,
+            role=MemberRole(model.role),
             expires_at=model.expires_at,
             used_at=model.used_at,
             is_used=model.is_used,

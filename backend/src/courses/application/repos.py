@@ -131,7 +131,7 @@ class CourseRepository(BasicInfoProtocol[Course, CourseBasicInfo]):
         """Выбирает краткие данные модулей, входящих в указанный курс."""
         ...
 
-    async def find_student_courses(
+    async def find_member_courses(
         self,
         user_id: UUID,
         pagination: Pagination,

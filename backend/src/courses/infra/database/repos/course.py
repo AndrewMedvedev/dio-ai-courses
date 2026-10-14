@@ -80,7 +80,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             )
             .where(
                 MemberOrm.user_id == user_id,
-                self.model.status != {CourseStatus.ARCHIVED, CourseStatus.DRAFT},
+                self.model.status.notin_([CourseStatus.ARCHIVED, CourseStatus.DRAFT]),
             )
         )
 

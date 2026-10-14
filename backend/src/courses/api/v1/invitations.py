@@ -7,7 +7,7 @@ from fastapi import APIRouter, Path, Query, status
 from src.courses.application.dtos import InvitationCreate, InvitationResponse
 from src.courses.application.mappers import invitation_to_response
 from src.courses.dependencies.services import InvitationServiceDep
-from src.courses.domain.entities import Invitation, Member
+from src.courses.domain.entities import Member
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page
 from src.shared.dependencies.params import PaginationDep
@@ -26,8 +26,9 @@ async def create_invitations(
     identity: CurrentIdentity,
     service: InvitationServiceDep,
     dto: InvitationCreate,
-) -> Invitation:
-    return await service.create(dto=dto, identity=identity)
+) -> InvitationResponse:
+    invitation = await service.create(dto=dto, identity=identity)
+    return invitation_to_response(invitation)
 
 
 @router.get(
@@ -73,4 +74,4 @@ async def accept_invitation(
     token: Annotated[str, Path(description="Токен из пригласительного письма")],
     service: InvitationServiceDep,
 ) -> Member:
-    return await service.accept(token=token, user_id=identity.id)
+    return await service.accept(token=token, identity=identity)
