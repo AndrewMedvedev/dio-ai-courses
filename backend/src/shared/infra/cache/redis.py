@@ -1,11 +1,11 @@
 from typing import cast
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from urllib.parse import quote
 
-from ddf.infra.cache.redis import RedisCache as DDFRedisCache
+from ddf.infra.cache.redis import RedisCache
 from ddf.infra.cache.redis.serializers.protocol import Serializer
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
@@ -19,9 +19,6 @@ from langgraph.checkpoint.base import (
     get_checkpoint_metadata,
 )
 from pydantic import TypeAdapter
-from redis.asyncio import Redis
-
-from .base import Cache
 
 _TRUE_STRINGS = ("true", "1")
 
@@ -49,7 +46,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
 
     def __init__(
         self,
-        cache: DDFRedisCache[SavedCheckpoint],
+        cache: RedisCache[SavedCheckpoint],
         writes_serializer: Serializer[SavedWrite],
         state_types: dict[str, type],
         *,
@@ -64,7 +61,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
 
     @staticmethod
     def _prefix(config: RunnableConfig) -> str:
-        values = config["configurable"]
+        values = config.get("configurable", {})
         thread = quote(str(values["thread_id"]), safe="")
         namespace = quote(values.get("checkpoint_ns", ""), safe="")
         return f"checkpoint_msgpack:{thread}:{namespace}:"
@@ -88,21 +85,23 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
             latest = await self.cache.redis.get(prefix + "latest")
             if latest is None:
                 return None
-            checkpoint_id = latest.decode("utf-8")
+            checkpoint_id = cast(bytes, latest).decode("utf-8")
         key = prefix + checkpoint_id
         saved = await self.cache.get(key)
         if saved is None:
             return None
         writes = await self.cache.redis.hgetall(key + ":writes")
-        pending = [self.writes_serializer.loads(raw) for _, raw in sorted(writes.items())]
+        pending = [
+            self.writes_serializer.loads(cast(bytes, raw)) for _, raw in sorted(writes.items())
+        ]
         if self._refresh_on_read and self.cache.ttl is not None:
             async with self.cache.redis.pipeline() as pipeline:
                 for ttl_key in (key, key + ":writes", prefix + "latest"):
                     pipeline.expire(ttl_key, self.cache.ttl)
                 await pipeline.execute()
         values = {
-            "thread_id": config["configurable"]["thread_id"],
-            "checkpoint_ns": config["configurable"].get("checkpoint_ns", ""),
+            "thread_id": config.get("configurable", {})["thread_id"],
+            "checkpoint_ns": config.get("configurable", {}).get("checkpoint_ns", ""),
             "checkpoint_id": checkpoint_id,
         }
         return CheckpointTuple(
@@ -117,7 +116,8 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
             metadata=cast(CheckpointMetadata, saved.metadata),
             parent_config=(
                 {"configurable": {**values, "checkpoint_id": saved.parent_id}}
-                if saved.parent_id is not None else None
+                if saved.parent_id is not None
+                else None
             ),
             pending_writes=[
                 (write.task_id, write.channel, self._restore(write.channel, write.value))
@@ -130,7 +130,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
-        new_versions: ChannelVersions,
+        new_versions: ChannelVersions,  # noqa: ARG002 - интерфейс LangGraph
     ) -> RunnableConfig:
         prefix = self._prefix(config)
         checkpoint_id = checkpoint["id"]
@@ -145,8 +145,8 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         await self.cache.redis.set(prefix + "latest", checkpoint_id, ex=self.cache.ttl)
         return {
             "configurable": {
-                "thread_id": config["configurable"]["thread_id"],
-                "checkpoint_ns": config["configurable"].get("checkpoint_ns", ""),
+                "thread_id": config.get("configurable", {})["thread_id"],
+                "checkpoint_ns": config.get("configurable", {}).get("checkpoint_ns", ""),
                 "checkpoint_id": checkpoint_id,
             },
         }
@@ -156,15 +156,15 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         config: RunnableConfig,
         writes: Sequence[tuple[str, object]],
         task_id: str,
-        task_path: str = "",
+        task_path: str = "",  # noqa: ARG002 - интерфейс LangGraph
     ) -> None:
-        key = self._prefix(config) + config["configurable"]["checkpoint_id"] + ":writes"
+        key = self._prefix(config) + config.get("configurable", {})["checkpoint_id"] + ":writes"
         async with self.cache.redis.pipeline() as pipeline:
             for index, (channel, value) in enumerate(writes):
-                index = WRITES_IDX_MAP.get(channel, index)
+                write_index = WRITES_IDX_MAP.get(channel, index)
                 raw = self.writes_serializer.dumps(SavedWrite(task_id, channel, value))
-                field = f"{task_id}:{index}"
-                if index < 0:
+                field = f"{task_id}:{write_index}"
+                if write_index < 0:
                     pipeline.hset(key, field, raw)
                 else:
                     pipeline.hsetnx(key, field, raw)
@@ -190,44 +190,11 @@ class PrimitiveSerializer[T]:
 
     def loads(self, value: bytes) -> T:
         if self._cast_type is bytes:
-            return value
+            return cast(T, value)
 
         value_str = value.decode("utf-8")
 
         if self._cast_type is bool:
-            return value_str.lower() in _TRUE_STRINGS
+            return cast(T, value_str.lower() in _TRUE_STRINGS)
 
-        return self._cast_type(value_str)
-
-
-class RedisCache[T](Cache[T]):
-
-    def __init__(
-            self,
-            redis: Redis,
-            serializer: Serializer[T],
-            ttl: int | None = None
-    ) -> None:
-        self.redis = redis
-        self.serializer = serializer
-        self.ttl = ttl
-
-    async def get(self, key: str) -> T | None:
-        if (raw := await self.redis.get(key)) is None:
-            return None
-
-        return self.serializer.loads(raw)
-
-    async def set(self, key: str, value: T, ttl: int | None = None) -> None:
-        raw = self.serializer.dumps(value)
-
-        effective_ttl = ttl if ttl is not None else self.ttl
-
-        await self.redis.set(key, raw, ex=effective_ttl)
-
-    async def delete(self, key: str) -> None:
-        await self.redis.delete(key)
-
-    async def exists(self, key: str) -> bool:
-        result = await self.redis.exists(key)
-        return result > 0
+        return cast(Callable[[str], T], self._cast_type)(value_str)

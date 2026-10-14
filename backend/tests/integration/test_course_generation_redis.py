@@ -1,13 +1,13 @@
 """Настоящий Redis и этапы генерации, но без LLM, OAuth, SQL и внешних API."""
 
 # Генератор импортируется только после запрета API в тестовой фикстуре.
-# ruff: file-ignore[import-outside-top-level]
+# ruff: noqa: PLC0415
 
 from typing import Any
 
 import asyncio
 import os
-import subprocess  # ruff: ignore[suspicious-subprocess-import]
+import subprocess
 import sys
 from collections import Counter
 from collections.abc import AsyncIterator
@@ -38,6 +38,8 @@ STAGES = (
     "module.plan_module_structure", "module.save_module", "module.generate_lessons",
     "lesson.plan_lesson_structure", "lesson.generate_content_blocks", "lesson.save_lesson",
 )
+
+COURSE_FIXTURE = Path(__file__).parents[1] / "fixtures" / "course-five-blocks.json"
 
 
 @pytest_asyncio.fixture
@@ -81,6 +83,7 @@ async def generate(
     await saver.asetup()
     graph, context = mock_generation(
         monkeypatch, saver, client, course_id, fault_stage=fault_stage,
+        course_path=COURSE_FIXTURE,
     )
     return await invoke_or_resume(
         graph, input_data={"generation_context": context},
@@ -96,9 +99,9 @@ async def assert_complete(client: Redis, course_id: UUID) -> None:
     snapshot = await saver.aget_tuple({"configurable": {"thread_id": f"course:{course_id}"}})
     assert snapshot is not None
     result = TypeAdapter(Course).validate_python(snapshot.checkpoint["channel_values"]["course"])
-    assert course_content(result) == course_content(load_course())
+    assert course_content(result) == course_content(load_course(COURSE_FIXTURE))
     assert result.id == course_id
-    assert result.creator_id == load_course().creator_id
+    assert result.creator_id == load_course(COURSE_FIXTURE).creator_id
     for module in result.modules:
         assert module.course_id == result.id
         for lesson in module.lessons:
@@ -119,9 +122,14 @@ async def test_full_mock_course_uses_real_redis_and_all_production_stages(
     totals = Counter[str]()
     for (_thread, stage), count in calls.items():
         totals[stage] += count
+    reference = load_course(COURSE_FIXTURE)
+    expected_counts = {
+        "course": 1,
+        "module": len(reference.modules),
+        "lesson": sum(len(module.lessons) for module in reference.modules),
+    }
     for stage in STAGES:
-        expected = 1 if stage.startswith("course.") else 10 if stage.startswith("module.") else 63
-        assert totals[stage] == expected
+        assert totals[stage] == expected_counts[stage.split(".")[0]]
 
 
 @pytest.mark.asyncio
@@ -157,6 +165,7 @@ async def test_each_stage_resumes_after_forced_process_kill(
     command = [
         sys.executable, "-m", "tests.support.course_generation", "--redis-url", url,
         "--course-id", str(generation_id),
+        "--course-file", str(COURSE_FIXTURE),
     ]
     # Дочерний процесс сам устанавливает фиктивные ключи до импортов генератора.
     process = await asyncio.to_thread(
@@ -203,7 +212,7 @@ async def stage_calls(client: Redis, course_id: UUID) -> Counter[tuple[str, str]
 def generation_threads(course_id: UUID) -> dict[str, str]:
     """Возвращает отдельные потоки курса, его модулей и уроков."""
     threads = {f"course:{course_id}": "course"}
-    for module_order, module in enumerate(load_course().modules, start=1):
+    for module_order, module in enumerate(load_course(COURSE_FIXTURE).modules, start=1):
         module_thread = f"course:{course_id}:module:{module_order}"
         threads[module_thread] = "module"
         threads.update({

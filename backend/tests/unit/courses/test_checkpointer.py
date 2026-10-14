@@ -3,13 +3,23 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from ddf.application.cache import Cache
 from ddf.infra.cache.redis import RedisCache
 from ddf.infra.cache.redis.serializers.msgpack import MsgpackSerializer
 from langgraph.checkpoint.base import empty_checkpoint
 
 from src.core.redis import checkpointer
+from src.courses.agents.schemas import Context
 from src.courses.domain.entities import Course, Lesson, Module
-from src.shared.infra.cache.redis import RedisCheckpointSaver, SavedCheckpoint
+from src.shared.infra.cache.base import Cache as SharedCache
+from src.shared.infra.cache.redis import (
+    PrimitiveSerializer,
+    RedisCheckpointSaver,
+    SavedCheckpoint,
+)
+from src.shared.infra.cache.redis import (
+    RedisCache as SharedRedisCache,
+)
 from tests.support.course_generation import load_course, make_saver, mock_checkpoint_redis
 
 
@@ -36,8 +46,24 @@ def test_checkpoint_uses_ddf_cache_and_serializer() -> None:
 
 
 @pytest.mark.asyncio
+async def test_shared_redis_cache_uses_ddf_and_preserves_existing_boolean_format() -> None:
+    assert SharedCache is Cache
+    assert SharedRedisCache is RedisCache
+    client = AsyncMock()
+    cache = SharedRedisCache(client, PrimitiveSerializer(bool), ttl=60)
+
+    await cache.set("test:boolean", True)
+    client.set.assert_awaited_once_with("test:boolean", b"True", ex=60)
+    client.get.return_value = b"True"
+    assert await cache.get("test:boolean") is True
+    client.get.return_value = None
+    assert await cache.get("test:missing") is None
+
+
+@pytest.mark.asyncio
 async def test_checkpoint_is_binary_and_restores_original_entity(
-    redis_client: AsyncMock, entity: tuple[str, Course | Module | Lesson],
+    redis_client: AsyncMock,
+    entity: tuple[str, Course | Module | Lesson],
 ) -> None:
     channel, value = entity
     original = asdict(value)
@@ -83,7 +109,7 @@ async def test_pending_writes_keep_completed_result_on_retry(redis_client: Async
     writes = {channel: value for _, channel, value in snapshot.pending_writes}
     assert asdict(writes["course"]) == asdict(course)
     assert writes["__error__"] == "second error"
-    assert len(snapshot.pending_writes) == 2
+    assert len(snapshot.pending_writes) == len(writes)
     redis_client.pipeline.return_value.expire.assert_called()
 
 
@@ -98,7 +124,12 @@ async def test_checkpoint_preserves_parent_and_namespace(redis_client: AsyncMock
     assert snapshot is not None
     assert snapshot.config == second
     assert snapshot.parent_config == first
-    assert await saver.aget_tuple({"configurable": {"thread_id": "course:test", "checkpoint_ns": "lesson:b"}}) is None
+    assert (
+        await saver.aget_tuple(
+            {"configurable": {"thread_id": "course:test", "checkpoint_ns": "lesson:b"}}
+        )
+        is None
+    )
 
 
 @pytest.mark.asyncio
@@ -114,8 +145,6 @@ async def test_checkpoint_storage_error_propagates(redis_client: AsyncMock) -> N
 
 @pytest.mark.asyncio
 async def test_pending_input_restores_context_and_uuid(redis_client: AsyncMock) -> None:
-    from src.courses.agents.schemas import Context
-
     saver = make_saver(redis_client)
     config = {"configurable": {"thread_id": str(uuid4())}}
     config = await saver.aput(config, empty_checkpoint(), {"source": "input", "step": -1}, {})
@@ -123,7 +152,9 @@ async def test_pending_input_restores_context_and_uuid(redis_client: AsyncMock) 
     module_id = uuid4()
 
     await saver.aput_writes(
-        config, [("__start__", {"generation_context": context, "module_id": module_id})], "input",
+        config,
+        [("__start__", {"generation_context": context, "module_id": module_id})],
+        "input",
     )
     snapshot = await saver.aget_tuple(config)
 

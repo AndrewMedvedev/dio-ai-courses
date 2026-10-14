@@ -297,4 +297,4 @@ ignore_names = [
 typeCheckingMode = "basic"
 
 [tool.uv.sources]
-py-ddd-framework = { git = "https://github.com/Andr171p/py-ddd-framework", rev = "8aa2fea6716ba43c07e87d41d5ebf4c5bc5b7b49" }
+py-ddd-framework = { git = "https://github.com/Andr171p/py-ddd-framework", branch = "fix/critical-bugs" }

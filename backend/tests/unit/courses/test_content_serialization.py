@@ -4,14 +4,17 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic import TypeAdapter
 from ddf.infra.cache.redis.serializers.msgpack import MsgpackSerializer
+from pydantic import TypeAdapter
 
 from src.courses.domain.entities import Course, Lesson, Module
 from src.courses.domain.vo import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
+    CourseStatus,
+    DifficultyLevel,
+    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
@@ -20,13 +23,13 @@ from src.courses.domain.vo import (
     TextBlock,
     VideoBlock,
 )
-from src.courses.domain.vo import CourseStatus, DifficultyLevel
 
 
 @pytest.mark.parametrize(
     "block",
     [
         TextBlock(md_content="Текст урока", ai_generated=False),
+        ImageBlock(image_id="mock/no-real-upload.png", ai_generated=False),
         VideoBlock(url="https://example.com/video", description="Видео урока"),
         CodeBlock(language="python", code="print(1)", explanation="Пример"),
         QuizBlock(questions=[Question(question="Вопрос", answer="Ответ")]),

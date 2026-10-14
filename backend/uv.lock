@@ -432,7 +432,7 @@ requires-dist = [
     { name = "pika", specifier = ">=1.4.4" },
     { name = "playwright", specifier = ">=1.60.0" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=8.1.0" },
-    { name = "py-ddd-framework", git = "https://github.com/Andr171p/py-ddd-framework?rev=8aa2fea6716ba43c07e87d41d5ebf4c5bc5b7b49" },
+    { name = "py-ddd-framework", git = "https://github.com/Andr171p/py-ddd-framework?branch=fix%2Fcritical-bugs" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "pyjwt", specifier = ">=2.12.1" },
     { name = "pymorphy3", specifier = ">=2.0.6" },
@@ -2510,7 +2510,7 @@ wheels = [
 [[package]]
 name = "py-ddd-framework"
 version = "0.1.0"
-source = { git = "https://github.com/Andr171p/py-ddd-framework?rev=8aa2fea6716ba43c07e87d41d5ebf4c5bc5b7b49#8aa2fea6716ba43c07e87d41d5ebf4c5bc5b7b49" }
+source = { git = "https://github.com/Andr171p/py-ddd-framework?branch=fix%2Fcritical-bugs#1a1dca331dc1ebb8fa67257bc7a7ea5de74113b2" }
 dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "msgpack" },

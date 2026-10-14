@@ -1,7 +1,7 @@
 """Подмена только источников генерации; графы и сохранение в Redis настоящие."""
 
 # Поздние импорты генератора нужны, чтобы сначала запретить API и заменить ключи.
-# ruff: file-ignore[import-outside-top-level]
+# ruff: noqa: PLC0415
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Any
 import argparse
 import asyncio
 import json
-from inspect import signature
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from dataclasses import asdict
+from inspect import signature
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock
@@ -71,11 +71,12 @@ def block_external_api(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
 
-def load_course() -> Any:
+def load_course(path: Path | None = None) -> Any:
     """Собирает сущность из исторического JSON: восстанавливает связи и пары вопросов."""
     from src.courses.domain.entities import Course
 
-    data = json.loads((Path(__file__).parents[2] / "course.json").read_text(encoding="utf-8"))
+    path = path if path is not None else Path(__file__).parents[2] / "course.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
     course = data["course"]
     course["status"] = "in_generation"
     for module_order, module in enumerate(course["modules"], start=1):
@@ -125,6 +126,7 @@ def make_runtime_context(session: AsyncSession | None = None) -> RuntimeContext:
 def make_saver(client: Redis) -> BaseCheckpointSaver[int]:
     """Использует тот же бинарный saver и сериалайзеры DDF, что приложение."""
     from ddf.infra.cache.redis import RedisCache
+
     from src.core.redis import checkpointer
     from src.shared.infra.cache.redis import RedisCheckpointSaver
 
@@ -141,15 +143,19 @@ def mock_checkpoint_redis() -> AsyncMock:
     hashes: dict[str, dict[str, bytes]] = {}
     client = AsyncMock(spec=Redis)
     client.get = AsyncMock(side_effect=values.get)
-    client.set = AsyncMock(side_effect=lambda key, value, ex=None: values.__setitem__(
+    client.set = AsyncMock(side_effect=lambda key, value, **_kwargs: values.__setitem__(
         key, value.encode() if isinstance(value, str) else value,
     ))
     client.hgetall = AsyncMock(side_effect=lambda key: hashes.get(key, {}).copy())
     pipeline = MagicMock()
     pipeline.__aenter__.return_value = pipeline
     pipeline.execute = AsyncMock()
-    pipeline.hset.side_effect = lambda key, field, value: hashes.setdefault(key, {}).__setitem__(field, value)
-    pipeline.hsetnx.side_effect = lambda key, field, value: hashes.setdefault(key, {}).setdefault(field, value)
+    pipeline.hset.side_effect = lambda key, field, value: hashes.setdefault(key, {}).__setitem__(
+        field, value,
+    )
+    pipeline.hsetnx.side_effect = lambda key, field, value: hashes.setdefault(key, {}).setdefault(
+        field, value,
+    )
     client.pipeline.return_value = pipeline
     return client
 
@@ -202,6 +208,7 @@ def mock_generation(
     *,
     fault_stage: str | None = None,
     pause: bool = False,
+    course_path: Path | None = None,
 ) -> tuple[Any, Any]:
     """Подменяет LLM, SQL и векторный поиск; сохраняет реальные функции и рёбра графов."""
     block_external_api(monkeypatch)
@@ -210,7 +217,7 @@ def mock_generation(
     from src.courses.agents.course_generator.subagents.prompts import CourseStructure
     from src.courses.agents.schemas import Context
 
-    reference = load_course()
+    reference = load_course(course_path)
     context = Context(course_id=course_id, user_id=reference.creator_id, prompt="Мок курса")
     trace_key = f"course-test:{course_id}:calls"
     structure, responses, blocks = mock_responses(reference)
@@ -305,7 +312,7 @@ async def run_worker(args: argparse.Namespace) -> None:
             await saver.asetup()
             graph, context = mock_generation(
                 monkeypatch, saver, client, UUID(args.course_id),
-                fault_stage=args.pause_before, pause=True,
+                fault_stage=args.pause_before, pause=True, course_path=args.course_file,
             )
             await invoke_or_resume(
                 graph, input_data={"generation_context": context},
@@ -319,4 +326,5 @@ if __name__ == "__main__":
     parser.add_argument("--redis-url", required=True)
     parser.add_argument("--course-id", required=True)
     parser.add_argument("--pause-before")
+    parser.add_argument("--course-file", type=Path)
     asyncio.run(run_worker(parser.parse_args()))
