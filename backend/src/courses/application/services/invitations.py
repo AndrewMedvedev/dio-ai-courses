@@ -18,7 +18,6 @@ from src.shared.domain.exceptions import (
     InvalidStateError,
     NotFoundError,
 )
-from src.shared.domain.helpers import ensure_invitation_acceptable
 from src.shared.domain.repos import get_or_raise_404
 from src.shared.domain.vo import Email
 
@@ -96,11 +95,6 @@ class InvitationService:
             course_id=dto.course_id,
         )
         user = await self.iam_repo.get_user_by_email(dto.email)
-        if user is not None and await self.member_repo.exists(
-            user_id=user.id,
-            course_id=dto.course_id,
-        ):
-            raise AlreadyExistsError("User is already a member of the course.")
         if user is not None:
             membership = await self.iam_repo.get_user_membership(
                 organization_id=identity.organization_id,
@@ -134,12 +128,11 @@ class InvitationService:
         await self.transaction(invitation)
         return invitation
 
-    async def accept(self, token: str, identity: Identity) -> Member:
-        invitation = ensure_invitation_acceptable(
-            await self.invitation_repo.get_by_token(token),
-            email=identity.email,
-        )
-        user_id = identity.id
+    async def accept(self, token: str, user_id: UUID) -> Member:
+        if (
+            invitation := await self.invitation_repo.get_by_token(token)
+        ) is None or not invitation.is_valid:
+            raise NotFoundError(f"Invitation with token - '{token}' not found or invalid.")
 
         if await self.member_repo.exists(
             user_id=user_id,

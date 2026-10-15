@@ -2,26 +2,26 @@ from typing import Annotated
 
 from uuid import UUID
 
-from fastapi import Depends, Query, status
-from faststream.rabbit import RabbitExchange, RabbitQueue
-from faststream.rabbit.fastapi import RabbitRouter
+from fastapi import APIRouter, Depends, Query, status
+from faststream.rabbit import RabbitQueue
 
 from src.iam.dependencies import require_permissions
-from src.core.rabbit.config import rabbit_config
+from src.core.rabbit import events_exchange
+from src.core.rabbit import router as rabbit_router
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies.database import DBSession
 from src.shared.utils.time import current_datetime
 
 from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep, ModuleProgressRepoDep
-from ...dependencies.services import LearningProgressServiceDep, get_progress
+from ...dependencies.services import CheckCourseAccessDep, LearningProgressServiceDep, get_progress
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.events import LessonProgressUpdated
 from ...domain.permissions.courses import READ, UPDATE
 
-router = RabbitRouter(prefix="/progress", tags=["Learning Progress"])
-
-exchange = RabbitExchange(rabbit_config.exchange, durable=True)
+# HTTP-ручки — обычный APIRouter; подписчик событий висит на общем брокере приложения,
+# иначе у роутера был бы свой брокер с настройками по умолчанию (guest@localhost).
+router = APIRouter(prefix="/progress", tags=["Learning Progress"])
 progress_queue = RabbitQueue(
     "learning_progress_updated",
     durable=True,
@@ -78,15 +78,19 @@ async def update_course_progress(
 @router.get(
     "/courses/{course_id}/students",
     summary="Получить прогресс учеников курса",
-    description="Возвращает сохранённые записи прогресса всех учеников курса. Доступно только создателю курса.",
+    description="Возвращает сохранённые записи прогресса всех учеников курса. Доступно автору и преподавателям этого курса.",
     dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def get_course_students_progress(
     course_id: UUID,
-    _identity: CurrentIdentity,
+    identity: CurrentIdentity,
+    check_access: CheckCourseAccessDep,
     repo: CourseProgressRepoDep,
     pagination: Annotated[Pagination, Query()],
 ) -> Page[CourseProgress]:
+    # Право course.update есть у любого преподавателя, поэтому проверяем доступ
+    # именно к этому курсу: автор или преподаватель курса (политика UPDATE).
+    await check_access(identity=identity, permission=UPDATE, uid=course_id)
     return await repo.find_by_course(course_id, pagination)
 
 
@@ -169,7 +173,7 @@ async def mark_lesson_theory_completed(
     )
 
 
-@router.subscriber(progress_queue, exchange)
+@rabbit_router.subscriber(progress_queue, events_exchange)
 async def on_lesson_progress_updated(
     event: LessonProgressUpdated,
     repo: LessonProgressRepoDep,
