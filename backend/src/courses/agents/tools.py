@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from src.llm_service import Runtime, tool
 
 from ..infra.database.repos.document import SqlDocumentRepository
+from .course_generator.workflow import generate_course, generate_lesson, generate_module
 from .schemas import Context, GenerationContext, RuntimeContext
 
 logger = logging.getLogger(__name__)
@@ -83,8 +84,6 @@ async def send_course_for_generation(
         prompt=prompt,
     )
 
-    from .course_generator.workflow import generate_course
-
     result = await generate_course.kiq(context=context)  # pyright: ignore[reportCallIssue]
 
     runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
@@ -112,8 +111,6 @@ async def send_module_for_generation(
     runtime: Runtime[GenerationContext, State],
 ) -> str:
 
-    from .course_generator.workflow import generate_module
-
     result = await generate_module.kiq(  # pyright: ignore[reportCallIssue]
         context=runtime.context,
         audience_description=structure.audience_description,
@@ -140,8 +137,6 @@ async def send_lesson_for_generation(
     structure: GenerationInput,
     runtime: Runtime[GenerationContext, State],
 ) -> str:
-
-    from .course_generator.workflow import generate_lesson
 
     result = await generate_lesson.kiq(  # pyright: ignore[reportCallIssue]
         context=runtime.context,

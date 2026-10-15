@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.courses.domain.enums import ContentType, DifficultyLevel
+from src.courses.domain.vo import ContentType, DifficultyLevel
 
 REASONER_PROMPT = """\
 Ты — эксперт-методист по разработке образовательных курсов.

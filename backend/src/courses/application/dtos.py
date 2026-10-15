@@ -103,10 +103,6 @@ class LessonTheorySessionFilters(BaseQueryParamFilters):
     created_from: datetime | None = None
     created_to: datetime | None = None
 
-class LessonProgressUpdateSchema(BaseModel):
-    practice_completed_at: datetime | None = None
-    test_completed_at: datetime | None = None
-
 
 class InvitationCreate(BaseModel):
     course_id: UUID

@@ -15,13 +15,11 @@ from src.iam.dependencies import CurrentIdentity, require_permissions
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/modules", tags=["Modules"])
+router = APIRouter(prefix="/module", tags=["Module"])
 
 
 @router.post(
-    "",
-    summary="Создать модуль",
-    description="Создаёт модуль курса. При передаче идентификатора курса сразу связывает модуль с этим курсом.",
+    "/create",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permissions(CREATE.code))],
 )
@@ -34,9 +32,7 @@ async def create(
 
 
 @router.post(
-    "/{module_id}/courses/{course_id}",
-    summary="Привязать модуль к курсу",
-    description="Связывает существующий модуль с указанным курсом.",
+    "/assign/{module_id}/{course_id}",
     status_code=status.HTTP_200_OK,
 )
 async def assign(
@@ -55,9 +51,7 @@ async def assign(
 
 
 @router.get(
-    "/{module_id}",
-    summary="Получить информацию о модуле",
-    description="Возвращает основную информацию о модуле и входящих в него уроках.",
+    "/basic/info/{module_id}",
     status_code=status.HTTP_200_OK,
 )
 async def get_module_basic_info(
@@ -75,9 +69,7 @@ async def get_module_basic_info(
 
 
 @router.put(
-    "/{module_id}",
-    summary="Обновить модуль",
-    description="Обновляет переданные поля модуля. Неуказанные поля остаются без изменений.",
+    "/edit/{module_id}",
     status_code=status.HTTP_200_OK,
 )
 async def edit_module(
@@ -97,8 +89,6 @@ async def edit_module(
 
 @router.delete(
     "/{module_id}",
-    summary="Удалить модуль",
-    description="Удаляет модуль и его связь с курсом.",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permissions(DELETE.code))],
 )

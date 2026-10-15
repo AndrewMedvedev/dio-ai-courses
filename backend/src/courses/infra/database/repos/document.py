@@ -8,7 +8,7 @@ from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 from ....domain.entities import (
     Document,
 )
-from ....domain.enums import DocumentNodeType
+from ....domain.vo import DocumentNodeType
 from ..mappers import (
     DocumentMapper,
 )

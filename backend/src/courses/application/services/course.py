@@ -12,7 +12,7 @@ from ...application.dtos import (
     EditCourseSchema,
 )
 from ...domain.entities import Course
-from ...domain.enums import CourseStatus
+from ...domain.vo import CourseStatus
 from ..repos import (
     CourseRepository,
 )

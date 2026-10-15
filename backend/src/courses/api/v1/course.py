@@ -8,7 +8,7 @@ from src.courses.dependencies.base import CourseRepoDep
 from src.courses.dependencies.services import CheckCourseAccessDep, CourseServiceDep
 from src.courses.domain.entities import Course, CourseBasicInfo
 from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
-from src.courses.domain.enums import CourseStatus
+from src.courses.domain.vo import CourseStatus
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination

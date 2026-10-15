@@ -11,7 +11,7 @@ from ....domain.entities import (
     Course,
     CourseBasicInfo,
 )
-from ....domain.enums import CourseStatus
+from ....domain.vo import CourseStatus
 from ..mappers import (
     CourseMapper,
 )
