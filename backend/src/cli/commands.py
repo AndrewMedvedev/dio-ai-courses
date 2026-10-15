@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 ADMIN_ROLE_CODE = "admin"
 DEFAULT_ROLE_CODE = "default_role"
 PERMISSION_PACKAGES = (
+    "src.feedback.domain.permissions",
     "src.iam.domain.permissions",
     "src.organization.domain.permissions",
     "src.courses.domain.permissions",
