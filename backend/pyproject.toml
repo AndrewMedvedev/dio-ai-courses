@@ -303,3 +303,8 @@ typeCheckingMode = "basic"
 
 [tool.uv.sources]
 py-ddd-framework = { git = "https://github.com/Andr171p/py-ddd-framework", branch = "fix/critical-bugs" }
+
+[dependency-groups]
+dev = [
+    "testcontainers[postgres]>=4.14.2",
+]

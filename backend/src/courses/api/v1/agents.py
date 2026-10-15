@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Any
 
 from dataclasses import asdict
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from pydantic import TypeAdapter
 
 from src.courses.agents.schemas import AnyKnowledgeTest, Context, GenerationContext, PracticeResult
@@ -28,9 +28,10 @@ from src.courses.dependencies.agents import (
     TesterAgentDep,
 )
 from src.courses.dependencies.services import CheckCourseAccessDep
-from src.courses.domain.permissions.courses import READ, UPDATE
+from src.courses.domain.permissions.courses import CREATE, READ, UPDATE
 from src.courses.domain.vo import FileUploadAssignment
 from src.courses.utils.docs_processing import read_upload_with_limit
+from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 
 router = APIRouter(prefix="/agent", tags=["Agents"])
@@ -38,7 +39,10 @@ router = APIRouter(prefix="/agent", tags=["Agents"])
 
 @router.post(
     "/course/interviewer",
+    summary="Написать AI-интервьюеру",
+    description="Передаёт сообщение AI-интервьюеру, который помогает собрать вводные данные для создания курса.",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(CREATE.code))],
 )
 async def chat_with_course_interviewer(
     request: Chat,
@@ -122,7 +126,10 @@ async def chat_with_lesson_interviewer(
 
 @router.post(
     "/editor",
+    summary="Написать AI-редактору",
+    description="Передаёт сообщение AI-редактору для редактирования материалов курса.",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(UPDATE.code))],
 )
 async def chat_with_editor(
     request: EditorChat,
@@ -154,7 +161,10 @@ async def chat_with_editor(
 
 @router.post(
     "/mentor",
+    summary="Написать AI-наставнику",
+    description="Передаёт сообщение AI-наставнику и возвращает его ответ по материалам курса.",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def chat_with_mentor(
     request: MentorChat,
@@ -184,8 +194,11 @@ async def chat_with_mentor(
 
 
 @router.post(
-    "/test/{module_id}/{lesson_id}",
+    "/tests/{module_id}/{lesson_id}",
+    summary="Сгенерировать тест для урока",
+    description="Генерирует тест по указанному уроку с учётом контекста модуля и текущего пользователя.",
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_test(
     module_id: UUID,
@@ -207,15 +220,17 @@ async def create_test(
 
 
 @router.post(
-    "/check/test/{practice_id}",
+    "/check/tests/{practice_id}",
+    summary="Проверить ответы на тест",
+    description="Проверяет ответы пользователя на сгенерированный тест и возвращает результат проверки.",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def check_test(
     practice: AnyKnowledgeTest,
     answers: dict[str, str],
     practice_id: UUID,
     agent: TesterAgentDep,
-    _identity: CurrentIdentity,
 ) -> PracticeResult:
     return await agent.call_agent_checker(
         practice=practice.model_dump(),
@@ -225,8 +240,11 @@ async def check_test(
 
 
 @router.post(
-    "/practice/{module_id}/{lesson_id}",
+    "/practices/{module_id}/{lesson_id}",
+    summary="Сгенерировать практическое задание",
+    description="Генерирует практическое задание по указанному уроку с учётом контекста модуля.",
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def create_practice(
     module_id: UUID,
@@ -248,15 +266,17 @@ async def create_practice(
 
 
 @router.post(
-    "/check/practice/{practice_id}",
+    "/check/practices/{practice_id}",
+    summary="Проверить практическое задание",
+    description="Принимает файл с выполненным заданием, проверяет его и возвращает результат.",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permissions(READ.code))],
 )
 async def check_practice(
     practice_id: UUID,
     agent: PracticeAgentDep,
-    _identity: CurrentIdentity,
-    file: Annotated[UploadFile, File()],
-    practice: Annotated[str, Form()],
+    file: UploadFile = File(...),
+    practice: str = Form(),
 ) -> PracticeResult:
     practice_obj = TypeAdapter(FileUploadAssignment).validate_json(practice)
     content = await read_upload_with_limit(file)

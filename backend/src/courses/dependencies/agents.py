@@ -43,7 +43,7 @@ from src.courses.agents.tools import (
 from src.courses.infra.database.repos.lesson import SqlLessonRepository
 from src.courses.infra.database.repos.module import SqlModuleRepository
 from src.courses.infra.services import course_client
-from src.shared.dependencies.database import DBSession
+from src.shared.dependencies.database import DBSession, TransactionDep
 
 from .base import (
     ChatRepoDep,
@@ -136,29 +136,27 @@ def get_mentor_agent(session: DBSession, repo: ChatRepoDep) -> mentor.MentorAgen
 
 
 def get_practicer_agent(
-    session: DBSession,
     practice_repo: PracticeRepoDep,
     lesson_repo: LessonRepoDep,
+    transaction: TransactionDep,
 ) -> practicer.PracticerAgent:
-    """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
     return practicer.PracticerAgent(
         practice_repo=practice_repo,
-        session=session,
         lesson_repo=lesson_repo,
+        transaction=transaction,
         client=course_client,
     )
 
 
 def get_tester_agent(
-    session: DBSession,
     practice_repo: PracticeRepoDep,
     lesson_repo: LessonRepoDep,
+    transaction: TransactionDep,
 ) -> tester.TesterAgent:
-    """Получает document service, чтобы вызывающий код работал через единый интерфейс."""
     return tester.TesterAgent(
         practice_repo=practice_repo,
-        session=session,
         lesson_repo=lesson_repo,
+        transaction=transaction,
         client=course_client,
     )
 

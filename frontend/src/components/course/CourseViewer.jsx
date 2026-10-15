@@ -15,6 +15,7 @@ import {
   getModuleById,
 } from "../../services/courseService";
 import ContentBlocks from "./ContentBlocks";
+import CourseInviteDialog from "./CourseInviteDialog";
 import CourseBasicInfo from "./CourseBasicInfo";
 import LessonBasicInfo from "./LessonBasicInfo";
 import LessonList from "./LessonList";
@@ -155,6 +156,27 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     currentUserId && courseCreatorId && currentUserId === courseCreatorId,
   );
   const canViewWithoutEnrollment = isOwnCourse;
+  const canInviteToCourse = isOwnCourse || canUpdateCourse;
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const inviteControls = canInviteToCourse ? (
+    <>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setIsInviteOpen(true)}
+      >
+        Пригласить
+      </button>
+      <CourseInviteDialog
+        open={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
+        courseId={course?.id || effectiveCourseId}
+        courseTitle={course?.title}
+        canViewMembers={canUpdateCourse}
+        currentUserId={currentUserId}
+      />
+    </>
+  ) : null;
   const canNavigateCourseContent = isMetricsMode
     ? canUpdateCourse
     : canReadCourseContent;
@@ -224,11 +246,23 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
           throw new Error("Идентификатор курса не указан");
         }
 
-        const basicCourse = isMetricsMode
-          ? await getCourseLearningStructure(effectiveCourseId)
-          : !isUuid(effectiveCourseId) && localCourse?.id === effectiveCourseId
-            ? localCourse
-            : await getCourseBasicInfo(effectiveCourseId);
+        // Прямая ссылка или обновление страницы на модуле/уроке: в краткой информации
+        // о курсе уроков нет, поэтому догружаем структуру, иначе урок из адреса
+        // не находится и вместо него открывается обзор курса.
+        const isDeepLink =
+          isUuid(effectiveCourseId) && Boolean(blockId || lessonId);
+        let basicCourse =
+          isMetricsMode || isDeepLink
+            ? await getCourseLearningStructure(effectiveCourseId)
+            : !isUuid(effectiveCourseId) &&
+                localCourse?.id === effectiveCourseId
+              ? localCourse
+              : await getCourseBasicInfo(effectiveCourseId);
+
+        if (!isMetricsMode && isDeepLink && lessonId && isUuid(lessonId)) {
+          await getLessonById(lessonId).catch(() => null);
+          basicCourse = await getCourseBasicInfo(effectiveCourseId);
+        }
 
         if (!isMetricsMode && canReadCourseContent) {
           await loadMyCourses({ page: 1, size: 100 }).catch(() => null);
@@ -606,6 +640,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                 </button>
               </>
             )}
+            {inviteControls}
           </div>
           {enrollmentError && (
             <p className="lesson-ai-error" role="alert">
@@ -668,6 +703,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                 </button>
               </>
             )}
+            {inviteControls}
           </div>
         </article>
       </section>
@@ -840,6 +876,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                       <ContentBlocks
                         ref={theoryContentRef}
                         blocks={contentBlocks}
+                        lessonId={selectedLesson.id}
                         ownerUserId={courseCreatorId || currentUserId}
                       />
                     )}
