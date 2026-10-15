@@ -24,12 +24,12 @@ services:
     command:
       - taskiq
       - worker
-      - src.core.tkq:taskiq_broker
+      - src.core.taskiq:broker
       - src.courses.agents.course_generator.workflow
       - --workers
       - "${TASKIQ_WORKERS:-1}"
       - --max-async-tasks
-      - "${TASKIQ_MAX_ASYNC_TASKS:-25}"
+      - "${TASKIQ_MAX_ASYNC_TASKS:-4}"
       - --ack-type
       - when_saved
       - --shutdown-timeout
@@ -37,7 +37,11 @@ services:
       - --wait-tasks-timeout
       - "600"
     env_file:
-      - ../.env.prod
+      - ${BACKEND_ENV_FILE:-../.env.prod}
+    environment:
+      PROMETHEUS_MULTIPROC_DIR: /tmp/taskiq-metrics
+    tmpfs:
+      - /tmp/taskiq-metrics
     expose:
       - "9000"
     depends_on:

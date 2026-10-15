@@ -12,7 +12,7 @@ from .others import thread_executor
 from .qdrant import qdrant_client
 from .rabbit import router as rabbit_router
 from .redis import checkpointer, redis_client
-from .tkq import taskiq_broker
+from .taskiq import broker as taskiq_broker
 
 _BOOTSTRAP_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("alembic", "upgrade", "head"),
