@@ -15,14 +15,16 @@ from src.shared.utils.time import current_datetime, get_expiration_time
 
 from ...shared.domain.entities import AggregateRoot, Entity
 from .constants import INVITATION_EXPIRES_IN_DAYS
-from .events import CourseInvited
-from .vo import (
-    AnyContentBlock,
+from .enums import (
     CourseStatus,
     DifficultyLevel,
     DocumentNodeType,
-    MemberRole,
     PracticeStatus,
+)
+from .events import CourseInvited
+from .vo import (
+    AnyContentBlock,
+    MemberRole,
 )
 
 

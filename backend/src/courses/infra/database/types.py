@@ -49,7 +49,7 @@ class ContentBlockListType(TypeDecorator):
     def process_bind_param(
         self,
         value: list[AnyContentBlock] | None,
-        dialect: Dialect,
+        dialect: Dialect,  # noqa: ARG002
     ) -> list[dict] | None:
         # Python -> JSON перед записью в базу
         """Обрабатывает bind param, чтобы подготовить данные для следующего этапа."""
