@@ -7,7 +7,8 @@ import pytest
 
 from src.courses.application.dtos import EditLessonSchema, LessonSchema
 from src.courses.application.services.lesson import LessonService
-from src.courses.domain.entities import Lesson, TextBlock
+from src.courses.domain.entities import Lesson
+from src.courses.domain.vo import TextBlock
 from src.shared.domain.exceptions import NotFoundError
 
 

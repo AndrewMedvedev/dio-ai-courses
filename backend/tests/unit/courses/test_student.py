@@ -5,8 +5,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.courses.application.services.student import StudentService
-from src.courses.domain.entities import Student
+from src.courses.application.services.member import MemberService
+from src.courses.domain.entities import Member
+from src.courses.domain.vo import MemberRole
 from src.shared.application.dtos import Page, Pagination
 from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
@@ -32,8 +33,8 @@ def session():
 @pytest.fixture
 def service(student_repo, course_repo, session):
     """Создаёт сервис студентов с изолированными зависимостями."""
-    return StudentService(
-        student_repo=student_repo,
+    return MemberService(
+        member_repo=student_repo,
         course_repo=course_repo,
         session=session,
     )
@@ -78,7 +79,9 @@ class TestStudentService:
         user_id = uuid4()
         course_id = uuid4()
         course_repo.exists.return_value = True
-        student_repo.read.return_value = Student(user_id=user_id, course_id=course_id)
+        student_repo.read.return_value = Member(
+            user_id=user_id, course_id=course_id, role=MemberRole.STUDENT
+        )
 
         with pytest.raises(AlreadyExistsError, match="already signed"):
             await service.sign_course(user_id, course_id)
@@ -92,9 +95,9 @@ class TestStudentService:
         user_id = uuid4()
         pagination = Pagination(page=2, size=5)
         page = Page.create([], total=0, page=pagination.page, size=pagination.size)
-        course_repo.find_student_courses.return_value = page
+        course_repo.find_member_courses.return_value = page
 
         result = await service.get_my_courses(user_id, pagination)
 
         assert result == page
-        course_repo.find_student_courses.assert_awaited_once_with(user_id, pagination)
+        course_repo.find_member_courses.assert_awaited_once_with(user_id, pagination)
