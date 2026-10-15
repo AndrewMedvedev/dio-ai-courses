@@ -6,8 +6,8 @@ from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....domain.entities import CourseProgress
-from ...mappers import CourseProgressMapper
-from ...models import CourseProgressOrm
+from ..mappers import CourseProgressMapper
+from ..models import CourseProgressOrm
 
 
 class SqlCourseProgressRepository(

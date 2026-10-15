@@ -4,29 +4,40 @@ import logging
 
 from pydantic import TypeAdapter
 
-from src.llm_service import (
-    BaseAgentMiddleware,
-    LLMImageService,
-    LLMTextService,
-    Runtime,
-)
-from src.shared.infra.services import SrvBaseClient
-
-from ....domain.entities import (
+from src.courses.agents.deprecated_middlewares import SaveImageMiddleware
+from src.courses.agents.middlewares import ToolCallLimitMiddleware
+from src.courses.agents.schemas import Context
+from src.courses.domain.vo import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
+    ContentType,
+    ImageBlock,
     MathBlock,
     MermaidBlock,
     MusicalBlock,
     QuizBlock,
     TextBlock,
 )
-from ....domain.vo import ContentType
-from ...middlewares import SaveImageMiddleware
-from ...schemas import Context
-from ..tools import knowledge_search
+from src.courses.infra.services.client import SrvCourseClient
+from src.llm_service import (
+    BaseAgentMiddleware,
+    LLMImageService,
+    LLMTextService,
+)
+from src.llm_service.schemas import Runtime
+
+from ..few_shots import (
+    CHEMICAL_BLOCK_FEW_SHOT,
+    CODE_BLOCK_FEW_SHOT,
+    MATH_BLOCK_FEW_SHOT,
+    MERMAID_BLOCK_FEW_SHOT,
+    MUSICAL_BLOCK_FEW_SHOT,
+    QUIZ_BLOCK_FEW_SHOT,
+    TEXT_BLOCK_FEW_SHOT,
+)
 from .prompts import CONTENT_BLOCK_PROMPTS
+from .reasoner import call_researcher_agent
 
 logger = logging.getLogger(__name__)
 
@@ -35,87 +46,83 @@ THEORIST_CONFIG = {
     ContentType.PROGRAM_CODE: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.PROGRAM_CODE],
         "response_format": CodeBlock,
+        "few_shot": CODE_BLOCK_FEW_SHOT,
     },
     ContentType.TEXT: {
-        "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
         "response_format": TextBlock,
+        "few_shot": TEXT_BLOCK_FEW_SHOT,
     },
-    # ContentType.IMAGE: {
-    #     "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.IMAGE],
-    #     "response_format": ImageBlock,
-    # },
     ContentType.QUIZ: {
-        "tools": {"knowledge_search": knowledge_search},
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.QUIZ],
         "response_format": QuizBlock,
+        "few_shot": QUIZ_BLOCK_FEW_SHOT,
     },
     ContentType.MERMAID: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MERMAID],
         "response_format": MermaidBlock,
+        "few_shot": MERMAID_BLOCK_FEW_SHOT,
     },
     ContentType.MATH_FORMULA: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MATH_FORMULA],
         "response_format": MathBlock,
+        "few_shot": MATH_BLOCK_FEW_SHOT,
     },
     ContentType.CHEMICAL_FORMULA: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.CHEMICAL_FORMULA],
         "response_format": ChemicalBlock,
+        "few_shot": CHEMICAL_BLOCK_FEW_SHOT,
     },
     ContentType.MUSICAL_NOTATION: {
         "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MUSICAL_NOTATION],
         "response_format": MusicalBlock,
+        "few_shot": MUSICAL_BLOCK_FEW_SHOT,
     },
 }
 
 
 async def generate_image(
-    content_type: ContentType,
     context: Context,
     prompt: str,
-    client: SrvBaseClient,
+    client: SrvCourseClient,
     images: list[str] | None = None,
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
-) -> AnyContentBlock:
-    """Генерирует изображение, чтобы автоматически подготовить часть учебного контента."""
-    content_config = THEORIST_CONFIG.get(content_type, {})
+) -> ImageBlock:
     agent = LLMImageService(
         client=client,
-        runtime=runtime or Runtime(context=context),
+        runtime=runtime or Runtime(context=context, state=client),
         middlewares=[
             SaveImageMiddleware(),
             *(middlewares or []),
         ],
     )
-    response_format: TypeAdapter = content_config.get("response_format")
-    content_block = await agent.invoke(messages=prompt, images=images)
-    result = TypeAdapter(response_format).validate_python({"image_id": content_block.image})
-    result.content_type = content_type
-
-    return result
+    result = await agent.invoke(messages=prompt, images=images)
+    return ImageBlock(image_id=result.image)
 
 
 async def generate_text(
     content_type: ContentType,
     context: Context,
     prompt: str,
-    client: SrvBaseClient,
+    client: SrvCourseClient,
     middlewares: list[BaseAgentMiddleware] | None = None,
     runtime: Runtime | None = None,
 ) -> AnyContentBlock:
-    """Генерирует text, чтобы автоматически подготовить часть учебного контента."""
     content_config = THEORIST_CONFIG.get(content_type, {})
     agent = LLMTextService(
         client=client,
-        system_prompt=content_config.get("system_prompt", ""),
-        tools=content_config.get("tools"),
-        middlewares=middlewares,
-        runtime=runtime or Runtime(context=context),
+        runtime=runtime or Runtime(context=context, state=client),
+        system_prompt=content_config.get("system_prompt", None),
+        tools={"call_researcher_agent": call_researcher_agent},
+        middlewares=[
+            ToolCallLimitMiddleware(tool_limits={"call_researcher_agent": 1}),
+            *(middlewares or []),
+        ],
     )
     response_format: AnyContentBlock = content_config.get("response_format")
     content_block = await agent.invoke(
-        messages=[{"role": "user", "content": prompt}],
+        messages=[*content_config.get("few_shot", []), {"role": "user", "content": prompt}],
         schema=response_format,
     )
     result = TypeAdapter(response_format).validate_python(content_block.output)
@@ -128,7 +135,7 @@ async def call_theory_agent(
     content_type: ContentType,
     context: Context,
     prompt: str,
-    client: SrvBaseClient,
+    client: SrvCourseClient,
 ) -> AnyContentBlock:
     """Вызывает агента для генерации образовательного контента
 
@@ -139,16 +146,15 @@ async def call_theory_agent(
     """
 
     logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
-    # if content_type == ContentType.IMAGE:
-    #     return await generate_image(
-    #         client=client,
-    #         content_type=content_type,
-    #         context=context,
-    #         prompt=prompt,
-    #     )
+    if content_type == ContentType.IMAGE:
+        return await generate_image(
+            context=context,
+            client=client,
+            prompt=prompt,
+        )
     return await generate_text(
-        client=client,
         content_type=content_type,
         context=context,
+        client=client,
         prompt=prompt,
     )

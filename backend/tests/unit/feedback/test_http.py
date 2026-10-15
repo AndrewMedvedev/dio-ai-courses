@@ -14,7 +14,7 @@ from src.iam.application.dtos import Identity, IdentityType
 from src.iam.dependencies.identity import get_current_identity
 from src.iam.domain.vo import Email
 from src.shared.dependencies.events import get_event_publisher
-from src.shared.domain.exceptions import AppError
+from src.shared.domain.exceptions import DomainError
 
 
 def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
@@ -28,8 +28,8 @@ def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
     app.dependency_overrides[get_db] = lambda: session
     app.dependency_overrides[get_event_publisher] = lambda: publisher
 
-    @app.exception_handler(AppError)
-    def handle_app_error(_request: Request, error: AppError) -> JSONResponse:
+    @app.exception_handler(DomainError)
+    def handle_app_error(_request: Request, error: DomainError) -> JSONResponse:
         return JSONResponse(status_code=error.status_code, content={"error": error.error_code})
 
     return TestClient(app), session, publisher
@@ -38,6 +38,7 @@ def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
 def test_http_post_creates_feedback_using_token_identity() -> None:
     user_id = uuid4()
     identity = Identity(
+        organization_id=uuid4(),
         id=user_id,
         type=IdentityType.USER,
         email=Email("user@example.com"),
@@ -64,6 +65,7 @@ def test_http_post_creates_feedback_using_token_identity() -> None:
 
 def test_http_post_rejects_client_supplied_identity() -> None:
     identity = Identity(
+        organization_id=uuid4(),
         id=uuid4(),
         type=IdentityType.USER,
         email=Email("user@example.com"),
@@ -81,6 +83,7 @@ def test_http_post_rejects_client_supplied_identity() -> None:
 
 def test_http_get_allows_service_account_with_permission_and_applies_filters() -> None:
     identity = Identity(
+        organization_id=uuid4(),
         id=uuid4(),
         type=IdentityType.SERVICE_ACCOUNT,
         permissions=frozenset({READ.code}),
@@ -100,6 +103,7 @@ def test_http_get_allows_service_account_with_permission_and_applies_filters() -
 
 def test_http_get_rejects_unknown_sort_order() -> None:
     identity = Identity(
+        organization_id=uuid4(),
         id=uuid4(),
         type=IdentityType.USER,
         email=Email("admin@example.com"),
@@ -115,6 +119,7 @@ def test_http_get_rejects_unknown_sort_order() -> None:
 
 def test_http_get_denies_identity_without_permission() -> None:
     identity = Identity(
+        organization_id=uuid4(),
         id=uuid4(),
         type=IdentityType.USER,
         email=Email("user@example.com"),
@@ -131,6 +136,7 @@ def test_http_get_denies_identity_without_permission() -> None:
 @pytest.mark.parametrize("rating", [0, 6])
 def test_http_get_rejects_invalid_rating(rating: int) -> None:
     identity = Identity(
+        organization_id=uuid4(),
         id=uuid4(),
         type=IdentityType.USER,
         email=Email("admin@example.com"),

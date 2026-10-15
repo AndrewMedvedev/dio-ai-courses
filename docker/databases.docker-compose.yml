@@ -5,21 +5,22 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      PGPORT: ${POSTGRES_PORT}
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
 
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+          "pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DB}"
         ]
       interval: 5s
       timeout: 3s
@@ -35,12 +36,12 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${QDRANT_PORT}:6333"
-      - "${QDRANT_GRPC_PORT}:6334"
+      - "${QDRANT_PORT}:${QDRANT_PORT}"
+      - "${QDRANT_GRPC_PORT}:${QDRANT_GRPC_PORT}"
     volumes:
       - qdrant_storage:/qdrant/storage
     environment:
-      QDRANT__SERVICE__API_KEY: ${QDRANT_PASSWORD}
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
     healthcheck:
       test:
         [
@@ -63,8 +64,8 @@ services:
         condition: service_healthy
 
     ports:
-      - "${REDIS_PORT}:6379"
-      - "${REDIS_INSIGHT_PORT}:8001"
+      - "${REDIS_PORT}:${REDIS_PORT}"
+      - "${REDIS_INSIGHT_PORT}:${REDIS_INSIGHT_PORT}"
 
     volumes:
       - redis_data:/data

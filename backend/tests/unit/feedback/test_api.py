@@ -1,5 +1,5 @@
 from unittest.mock import AsyncMock
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -17,6 +17,7 @@ async def test_post_uses_identity_not_client_fields(
     feedback: Feedback, user_id: UUID
 ) -> None:
     identity = Identity(
+        organization_id=uuid4(),
         id=user_id,
         type=IdentityType.USER,
         email=Email("user@example.com"),

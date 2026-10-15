@@ -10,7 +10,7 @@ from src.shared.utils.time import current_datetime
 
 from ...dependencies.services import LearningProgressServiceDep
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
-from ...domain.permissions.courses import COURSE_READ, UPDATE
+from ...domain.permissions.courses import READ as COURSE_READ, UPDATE
 
 router = APIRouter(prefix="/progress", tags=["Learning Progress"])
 

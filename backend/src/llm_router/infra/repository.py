@@ -25,7 +25,6 @@ class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
 
     @staticmethod
     def to_model(entity: AIModel) -> AIModelOrm:
-        """Создаёт объект из доменную сущность, чтобы восстановить доменную модель из внешнего формата."""
         return AIModelOrm(
             id=entity.id,
             created_at=entity.created_at,

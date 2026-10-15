@@ -6,13 +6,27 @@ from ddgs import DDGS
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from src.core.qdrant import qdrant_client
+from src.courses.agents.course_generator.few_shots import (
+    COURSE_STRUCTURE_FEW_SHOT,
+    LESSON_STRUCTURE_FEW_SHOT,
+    MODULE_STRUCTURE_FEW_SHOT,
+)
+from src.courses.agents.course_generator.subagents.prompts import (
+    COURSE_STRUCTURE_PROMPT,
+    LESSON_STRUCTURE_PROMPT,
+    MODULE_STRUCTURE_PROMPT,
+    CourseStructure,
+    LessonStructure,
+    ModuleStructure,
+)
+from src.courses.agents.tools import State
+from src.courses.dependencies.base import splitter
+from src.courses.infra.database.repos.vector_repo import QdrantRepository
+from src.courses.utils.browser_automation import get_page_text
 from src.llm_service import Runtime, tool
+from src.llm_service.services import LLMTextService
 
-from ...infra.vector_repo import VectorRepository
-from ...utils.browser_automation import get_page_text
 from ..schemas import CourseContext
-
-INDEX_NAME = "main-index"
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +73,7 @@ async def save_knowledge(
         schema.text[:150],
     )
 
-    await VectorRepository(client=qdrant_client).index_document(
+    await QdrantRepository(client=qdrant_client, splitter=splitter).create(
         text=schema.text,
         metadata={
             "course_id": str(runtime.context.course_id),
@@ -98,7 +112,7 @@ async def knowledge_search(
     else:
         logger.info("Searching knowledge by query `%s`", schema.search_query[:100])
 
-    docs = await VectorRepository(client=qdrant_client).retrieve_documents(
+    docs = await QdrantRepository(client=qdrant_client, splitter=splitter).read(
         query=schema.search_query, metadata_filters=meta_filter
     )
     if not docs:
@@ -123,11 +137,11 @@ class BrowsePageInput(BaseModel):
 
 @tool(
     name="browse_page",
-    description="Открывает WEB-страницу и получает её контент в формате Markdown",
+    description="Открывает WEB-страницу и возвращает текст вместе с URL источника",
 )
-async def browse_page(schema: BrowsePageInput) -> str:
-    """Выполняет действие `browse_page`, чтобы поддержать основной сценарий модуля."""
-    return await get_page_text(schema.link)
+async def browse_page(schema: BrowsePageInput) -> dict[str, str]:
+    page_text = await get_page_text(schema.link)
+    return {"source": schema.link, "text": page_text}
 
 
 @tool(
@@ -139,6 +153,99 @@ async def browse_page(schema: BrowsePageInput) -> str:
     Используй этот инструмент экономно.
     """,
 )
-async def web_search(schema: SearchInput) -> list[dict[str, Any]]:  # ruff:ignore[unused-async]
-    """Выполняет действие `web_search`, чтобы поддержать основной сценарий модуля."""
+async def web_search(schema: SearchInput) -> list[dict[str, Any]]:
     return DDGS().text(schema.search_query, region="ru-ru", max_results=10)
+
+
+class MaterialsInput(BaseModel):
+    materials: str = Field(description="Собранные данные в ходе интервью с пользователем")
+
+
+@tool(
+    name="course_structure",
+    description="""\
+    Создает структуру курса с примерной стоимостью.
+    """,
+)
+async def course_structure(
+    schema: MaterialsInput,
+    runtime: Runtime[CourseContext, State],
+) -> dict[str, dict[str, Any] | int]:
+    agent = LLMTextService(client=runtime.state.client, system_prompt=COURSE_STRUCTURE_PROMPT)  # pyright: ignore[reportOptionalMemberAccess]
+    request = await agent.invoke(
+        messages=[
+            *COURSE_STRUCTURE_FEW_SHOT,
+            {
+                "role": "user",
+                "content": schema.materials,
+            },
+        ],
+        schema=CourseStructure,
+    )
+    result = CourseStructure.model_validate(request.output)
+    cost = len(result.module_descriptions) * 10 * 10 * 100
+
+    return {
+        "plan": result.model_dump(mode="json"),
+        "cost": cost,
+    }
+
+
+@tool(
+    name="module_structure",
+    description="""\
+    Создает структуру модуля с примерной стоимостью
+    """,
+)
+async def module_structure(
+    schema: MaterialsInput,
+    runtime: Runtime[CourseContext, State],
+) -> dict[str, dict[str, Any] | int]:
+    agent = LLMTextService(client=runtime.state.client, system_prompt=MODULE_STRUCTURE_PROMPT)  # pyright: ignore[reportOptionalMemberAccess]
+    request = await agent.invoke(
+        messages=[
+            *MODULE_STRUCTURE_FEW_SHOT,
+            {
+                "role": "user",
+                "content": schema.materials,
+            },
+        ],
+        schema=ModuleStructure,
+    )
+    result = ModuleStructure.model_validate(request.output)
+    cost = len(result.lessons_descriptions) * 10 * 100
+
+    return {
+        "plan": result.model_dump(mode="json"),
+        "cost": cost,
+    }
+
+
+@tool(
+    name="lesson_structure",
+    description="""\
+    Создает структуру урока с примерной стоимостью
+    """,
+)
+async def lesson_structure(
+    schema: MaterialsInput,
+    runtime: Runtime[CourseContext, State],
+) -> dict[str, dict[str, Any] | int]:
+    agent = LLMTextService(client=runtime.state.client, system_prompt=LESSON_STRUCTURE_PROMPT)  # pyright: ignore[reportOptionalMemberAccess]
+    request = await agent.invoke(
+        messages=[
+            *LESSON_STRUCTURE_FEW_SHOT,
+            {
+                "role": "user",
+                "content": schema.materials,
+            },
+        ],
+        schema=LessonStructure,
+    )
+    result = LessonStructure.model_validate(request.output)
+    cost = len(result.content_plan) * 100
+
+    return {
+        "plan": result.model_dump(mode="json"),
+        "cost": cost,
+    }

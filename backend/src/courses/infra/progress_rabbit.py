@@ -1,13 +1,12 @@
-from faststream.rabbit import RabbitExchange, RabbitQueue
+from faststream.rabbit import RabbitQueue
 
-from src.core.broker import rabbit_router
-from src.core.settings import settings
+from src.core.rabbit import router as rabbit_router, events_exchange
 from src.shared.dependencies.database import DBSession
 
-from courses.domain.events import LessonProgressUpdated
-from courses.infra.database.repos.lesson_progress import handle_lesson_progress_updated
+from src.courses.domain.events import LessonProgressUpdated
+from src.courses.infra.database.repos.lesson_progress import handle_lesson_progress_updated
 
-exchange = RabbitExchange(settings.rabbit.exchange, durable=True)
+exchange = events_exchange
 progress_queue = RabbitQueue(
     "learning_progress_updated",
     durable=True,

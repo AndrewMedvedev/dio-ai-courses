@@ -1,9 +1,9 @@
 from fastapi import status
 
-from src.shared.domain.exceptions import AppError
+from src.shared.domain.exceptions import DomainError
 
 
-class SrvBaseError(AppError):
+class SrvBaseError(DomainError):
     """Переопределить `error_code` в дочерних классах."""
 
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR

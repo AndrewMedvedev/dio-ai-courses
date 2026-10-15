@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from openai import AsyncOpenAI
 
-from src.core.settings import settings
+from src.core.providers import aitunnel_config, proxy_api_config
 from src.shared.dependencies.database import DBSession
 from src.shared.dependencies.events import EventPublisherDep
 
@@ -11,17 +11,18 @@ from .infra.repository import SqlAIModelRepository, SqlLLMInvocationRepository
 from .services import LLMImageRouter, LLMTextRouter
 from .utils import cache_ai_models
 
-# text_client = AsyncOpenAI(
-#     api_key=settings.aitunnel.key,
-#     base_url=settings.aitunnel.base_url,
-#     max_retries=0,
-# )
-
-client = AsyncOpenAI(
-    api_key=settings.proxy_api.key,
-    base_url=settings.proxy_api.base_url,
+text_client = AsyncOpenAI(
+    api_key=aitunnel_config.key,
+    base_url=aitunnel_config.base_url,
     max_retries=0,
-    timeout=120,
+    timeout=340,
+)
+
+image_client = AsyncOpenAI(
+    api_key=proxy_api_config.key,
+    base_url=proxy_api_config.base_url,
+    max_retries=0,
+    timeout=340,
 )
 
 
@@ -52,7 +53,8 @@ def get_llm_image_router(
     return LLMImageRouter(
         ai_model_repos=repository,
         event_publisher=event_publisher,
-        client=client,
+        client=text_client,
+        image_client=image_client,
         wrapper=cache_ai_models,
     )
 
@@ -65,7 +67,7 @@ def get_llm_text_router(
     return LLMTextRouter(
         ai_model_repos=repository,
         event_publisher=event_publisher,
-        client=client,
+        client=text_client,
         wrapper=cache_ai_models,
     )
 

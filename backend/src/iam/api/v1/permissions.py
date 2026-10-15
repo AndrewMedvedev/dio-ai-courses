@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
 
 from src.iam.application.dtos import PermissionResponse
@@ -11,12 +13,11 @@ router = APIRouter(prefix="/permissions", tags=["Разрешения | Permissi
 @router.get(
     path="",
     status_code=status.HTTP_200_OK,
-    response_model=PermissionResponse,
     dependencies=[Depends(require_permissions(acl.READ.code))],
     summary="Получить список прав",
     description="Возвращает список прав, доступных для назначения ролям.",
 )
 async def get_permissions(
-        permissions: Page[PermissionResponse] = Depends(get_permission_list),
-) -> PermissionResponse:
+    permissions: Annotated[Page[PermissionResponse], Depends(get_permission_list)],
+) -> Page[PermissionResponse]:
     return permissions

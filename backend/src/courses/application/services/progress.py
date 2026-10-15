@@ -12,7 +12,7 @@ from ...application.repos import (
     LessonRepository,
     ModuleProgressRepository,
     ModuleRepository,
-    StudentRepository,
+    MemberRepository,
 )
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 
@@ -27,7 +27,7 @@ class LearningProgressService:
         module_repo: ModuleRepository,
         module_progress_repo: ModuleProgressRepository,
         lesson_repo: LessonRepository,
-        student_repo: StudentRepository,
+        student_repo: MemberRepository,
         session: AsyncSession,
     ) -> None:
         self._progress_repo = progress_repo

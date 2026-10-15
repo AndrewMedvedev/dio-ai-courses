@@ -5,11 +5,12 @@ from typing import Any, Literal
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from src.shared.application.dtos import BaseQueryParamFilters
 
-from ..domain.vo import ContentType, DifficultyLevel
+from ..domain.enums import ContentType, DifficultyLevel
+from ..domain.vo import MemberRole
 
 
 class Chat(BaseModel):
@@ -17,6 +18,14 @@ class Chat(BaseModel):
     course_id: UUID
     role: Literal["assistant", "user"] = "user"
     content: str | dict[str, Any]
+
+
+class ModuleGenerationChat(Chat):
+    order: int
+
+
+class LessonGenerationChat(ModuleGenerationChat):
+    module_id: UUID
 
 
 class EditorChat(Chat):
@@ -97,3 +106,9 @@ class LessonTheorySessionFilters(BaseQueryParamFilters):
 class LessonProgressUpdateSchema(BaseModel):
     practice_completed_at: datetime | None = None
     test_completed_at: datetime | None = None
+
+
+class InvitationCreate(BaseModel):
+    course_id: UUID
+    email: EmailStr
+    role: MemberRole

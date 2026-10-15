@@ -6,13 +6,14 @@ import os
 import secrets
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from functools import partial
 from uuid import UUID, uuid4
 
 import jwt
 import zxcvbn_rs_py
 from passlib.context import CryptContext
 
-from src.core.settings import settings
+from src.core.settings import jwt_config, settings
 from src.iam.application.dtos import IdentityType
 from src.iam.consts import CLIENT_ID_BYTES_LENGTH, CLIENT_SECRET_BYTES_LENGTH
 from src.iam.domain.exceptions import UnauthorizedError, WeakPasswordError
@@ -71,10 +72,12 @@ async def validate_password_strength_async(
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         crypto_executor,
-        validate_password_strength,
-        password,
-        email,
-        min_score,
+        partial(
+            validate_password_strength,
+            password,
+            email,
+            min_score=min_score,
+        ),
     )
 
 
@@ -90,7 +93,7 @@ def create_authentication_token(user_id: UUID) -> str:
     """Выпускает очень короткоживущий токен для аутентификации."""
 
     now = current_datetime()
-    expires_at = now + timedelta(minutes=settings.jwt.authentication_token_expires_in_minutes)
+    expires_at = now + timedelta(minutes=jwt_config.authentication_token_expires_in_minutes)
 
     payload = {
         "sub": str(user_id),
@@ -100,7 +103,7 @@ def create_authentication_token(user_id: UUID) -> str:
         "iat": now.timestamp(),
     }
 
-    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
+    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=jwt_config.algorithm)
 
 
 def create_access_token(
@@ -115,7 +118,7 @@ def create_access_token(
 ) -> str:
 
     now = current_datetime()
-    expires_at = now + timedelta(minutes=settings.jwt.access_token_expires_in_minutes)
+    expires_at = now + timedelta(minutes=jwt_config.access_token_expires_in_minutes)
 
     payload = {
         # Базовые поля
@@ -125,7 +128,7 @@ def create_access_token(
         "typ": "access",
         "jti": str(uuid4()),
         # Кастомные поля
-        "idt": identity_type.value,
+        "idt": identity_type.name.lower(),
         "org_id": str(organization_id),
         "roles": list(roles),
         "perms": list(permissions),
@@ -138,14 +141,14 @@ def create_access_token(
     if membership_id is not None:
         payload["mid"] = str(membership_id)
 
-    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
+    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=jwt_config.algorithm)
 
 
 def create_refresh_token(user_id: UUID, membership_id: UUID) -> str:
     """Выпускает долгоживущий токен для получения новой пары access + refresh."""
 
     now = current_datetime()
-    expires_at = now + timedelta(days=settings.jwt.refresh_token_expires_in_days)
+    expires_at = now + timedelta(days=jwt_config.refresh_token_expires_in_days)
 
     payload = {
         # Базовые поля
@@ -158,7 +161,7 @@ def create_refresh_token(user_id: UUID, membership_id: UUID) -> str:
         "mid": str(membership_id),
     }
 
-    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=settings.jwt.algorithm)
+    return jwt.encode(payload=payload, key=settings.secret_key, algorithm=jwt_config.algorithm)
 
 
 def decode_token(token: str) -> dict[str, Any]:
@@ -168,7 +171,7 @@ def decode_token(token: str) -> dict[str, Any]:
         return jwt.decode(
             token,
             key=settings.secret_key,
-            algorithms=[settings.jwt.algorithm],
+            algorithms=[jwt_config.algorithm],
             options={"verify_aud": False},
         )
     except jwt.ExpiredSignatureError:
@@ -192,15 +195,21 @@ def validate_password_strength(
 
     result = zxcvbn_rs_py.zxcvbn(password, user_inputs=sanitized_inputs)
 
-    if result < min_score:
-        warning = result.feedback.warning.value if result.feedback.warning else None
-        suggestions = (
-            [suggestion.value for suggestion in result.feedback.suggestions]
-            if result.feedback.suggestions
-            else []
-        )
+    if int(result.score) < min_score:
+        feedback = result.feedback
 
-        raise WeakPasswordError("Password is too weak.", suggestions=suggestions, warning=warning)
+        warning = None
+        suggestions: list[str] = []
+
+        if feedback is not None:
+            warning = str(feedback.warning) if feedback.warning else None
+            suggestions = [str(suggestion) for suggestion in feedback.suggestions]
+
+        raise WeakPasswordError(
+            "Password is too weak.",
+            suggestions=suggestions,
+            warning=warning,
+        )
 
 
 def generate_client_id() -> str:

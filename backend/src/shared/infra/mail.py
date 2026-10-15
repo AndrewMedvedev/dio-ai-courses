@@ -8,7 +8,8 @@ import aiosmtplib
 import html2text
 import jinja2
 
-from src.core.settings import TEMPLATES_DIR, settings
+from src.core.mail import mail_config
+from src.core.settings import TEMPLATES_DIR
 from src.shared.domain.exceptions import EmailSendingFailedError
 
 logger = logging.getLogger(__name__)
@@ -23,20 +24,37 @@ jinja_env = jinja2.Environment(
 
 class MailSender(Protocol):
     async def send(
-            self,
-            to: str | list[str],
-            subject: str,
-            template_name: str | None = None,
-            context: dict[str, Any] | None = None,
-            plain_text: str | None = None,
-            from_email: str | None = None,
-            reply_to: str | None = None,
+        self,
+        to: str | list[str],
+        subject: str,
+        template_name: str | None = None,
+        context: dict[str, Any] | None = None,
+        plain_text: str | None = None,
+        from_email: str | None = None,
+        reply_to: str | None = None,
     ) -> None: ...
 
 
 class SmtpMailClient:
-    def __init__(self, smtp_host: str, smtp_port: int, use_tls: bool = True) -> None:
-        self.smtp_config = {"hostname": smtp_host, "port": smtp_port, "use_tls": use_tls}
+    def __init__(
+        self,
+        smtp_host: str,
+        smtp_port: int,
+        use_tls: bool = True,
+        username: str = "",
+        password: str = "",
+    ) -> None:
+        self.smtp_config = {
+            "hostname": smtp_host,
+            "port": smtp_port,
+            "use_tls": use_tls,
+        }
+
+        if username:
+            self.smtp_config["username"] = username
+
+        if password:
+            self.smtp_config["password"] = password
 
     async def send(
         self,
@@ -50,8 +68,8 @@ class SmtpMailClient:
     ) -> None:
         """Отправка письма на почту используя SMTP протокол."""
 
-        from_email = from_email or settings.mail.default_from_email
-        recipients = [to] if isinstance(to, list) else to
+        from_email = from_email or mail_config.default_from_email
+        recipients = to if isinstance(to, list) else [to]
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject

@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock
 
-from src.core.database import engine
+from src.core.database.connection import engine
 from src.feedback.dependencies.base import get_feedback_repo
 from src.feedback.dependencies.services import get_feedback_service
 from src.feedback.domain.permissions.feedback import READ

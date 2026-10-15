@@ -242,14 +242,16 @@ class LLMImageRouter(LLMRouter):
         ai_model_repos: SqlAIModelRepository,
         event_publisher: EventPublisher,  # ruff: ignore[unused-method-argument]
         client: AsyncOpenAI,
+        image_client: AsyncOpenAI,
         wrapper: CacheAIModelsProtocol,
-        ) -> None:
+    ) -> None:
+        self._image_client = image_client
         super().__init__(
             ai_model_repos=ai_model_repos,
             event_publisher=event_publisher,
             client=client,
-            wrapper=wrapper
-            )
+            wrapper=wrapper,
+        )
 
     @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
@@ -260,7 +262,7 @@ class LLMImageRouter(LLMRouter):
         schema: LLMImageRequest,
     ) -> LLMImageResponse:
         """Отдельный метод для генерации изображения на основе текста"""
-        result = await self._client.images.generate(
+        result = await self._image_client.images.generate(
             model=model,
             **schema.model_dump(exclude_none=True, by_alias=True),
         )
@@ -286,7 +288,7 @@ class LLMImageRouter(LLMRouter):
             by_alias=True,
             exclude={"image"},
         )
-        result = await self._client.images.edit(model=model, image=images, **request)
+        result = await self._image_client.images.edit(model=model, image=images, **request)
         return LLMImageResponse(
             size=result.size,
             image=result.data[0].b64_json,

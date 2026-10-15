@@ -3,14 +3,14 @@ services:
   # Мониторинг
   # ============================================================================
 
-  prometheus:
+  prometheus-ai:
     image: prom/prometheus:latest
-    container_name: prometheus
     restart: unless-stopped
+    container_name: prometheus-ai
 
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - prometheus-ai_data:/prometheus
 
     secrets:
       - qdrant_api_key
@@ -27,13 +27,13 @@ services:
     networks:
       - default
 
-  grafana:
+  grafana-ai:
     image: grafana/grafana:latest
-    container_name: grafana
     restart: unless-stopped
+    container_name: grafana-ai
 
     volumes:
-      - grafana_data:/var/lib/grafana
+      - grafana-ai_data:/var/lib/grafana
       - ../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -50,23 +50,24 @@ services:
       - default
 
     depends_on:
-      - prometheus
-      - loki
+      - prometheus-ai
+      - loki-ai
 
   # ============================================================================
   # Логирование и трассировка
   # ============================================================================
 
-  loki:
+  loki-ai:
     image: grafana/loki:latest
     restart: unless-stopped
+    container_name: loki-ai
 
     ports:
       - "${LOKI_PORT}:3100"
 
     volumes:
       - ../monitoring/loki/config.yml:/etc/loki/config.yml:ro
-      - loki_data:/loki
+      - loki-ai_data:/loki
 
     command:
       - "-config.file=/etc/loki/config.yml"
@@ -98,15 +99,15 @@ services:
       - /etc/alloy/config.alloy
 
     depends_on:
-      - loki
+      - loki-ai
 
 
 secrets:
   qdrant_api_key:
-    environment: QDRANT_PASSWORD
+    environment: QDRANT_API_KEY
 
 
 volumes:
-  prometheus_data:
-  grafana_data:
-  loki_data:
+  prometheus-ai_data:
+  grafana-ai_data:
+  loki-ai_data:

@@ -8,18 +8,18 @@ from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 from ....domain.entities import (
     Document,
 )
-from ....domain.vo import DocumentNodeType
-from ...mappers import (
+from ....domain.enums import DocumentNodeType
+from ..mappers import (
     DocumentMapper,
 )
-from ...models import DocumentOrm
+from ..models import DocumentOrm
 
 logger = logging.getLogger(__name__)
 
 
 class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     model = DocumentOrm
-    model_mapper = DocumentMapper  # type: ignore  # ruff:ignore[blanket-type-ignore]
+    model_mapper = DocumentMapper  # type: ignore
 
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
     async def get_tocs(self, owner_id: UUID) -> list[Document]:

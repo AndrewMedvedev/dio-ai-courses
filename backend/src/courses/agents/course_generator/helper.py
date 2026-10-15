@@ -7,17 +7,13 @@ from ..schemas import RuntimeContext
 
 
 async def invoke_or_resume(
-    graph: CompiledStateGraph[Any, RuntimeContext, Any, Any],
+    graph: CompiledStateGraph[Any, Any, Any, Any],
     *,
     input_data: dict[str, Any],
     config: RunnableConfig,
-    context: RuntimeContext,
+    context: RuntimeContext | None = None,
 ) -> dict[str, Any]:
     snapshot = await graph.aget_state(config)
-
-    print("THREAD:", config.get("configurable", {}).get("thread_id"))
-    print("NEXT:", snapshot.next)
-    print("VALUES:", snapshot.values)
 
     if snapshot.next:
         return await graph.ainvoke(

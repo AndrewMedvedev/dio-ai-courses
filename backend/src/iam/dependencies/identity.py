@@ -18,7 +18,11 @@ from .repos import get_cache
 http_bearer = HTTPBearer(auto_error=False)
 
 
-def _require_claim[T](payload: dict[str, Any], field: str, expected_type: Callable[[Any], T]) -> T:
+def _require_claim[T](
+    payload: dict[str, Any],
+    field: str,
+    expected_type: Callable[[Any], T],
+) -> T | None:
 
     if field not in payload:
         raise UnauthorizedError(f"Missing required claim '{field}'.")
@@ -30,6 +34,7 @@ def _require_claim[T](payload: dict[str, Any], field: str, expected_type: Callab
         return None if value is None else expected_type(value)
     except (ValueError, TypeError):
         raise UnauthorizedError(f"Invalid claim '{field}' value.") from None
+
 
 
 def _build_identity_from_payload(payload: dict[str, Any]) -> Identity:
@@ -59,8 +64,8 @@ def _build_identity_from_payload(payload: dict[str, Any]) -> Identity:
 
 
 async def get_current_identity(
-        credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
-        cache: Cache[bool] = Depends(get_cache),
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    cache: Cache[bool] = Depends(get_cache),
 ) -> Identity:
     if credentials is None:
         raise UnauthorizedError("Authorization header is missing.")
