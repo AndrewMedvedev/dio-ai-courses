@@ -1905,7 +1905,7 @@ function toAgentChatPayload(payload = {}) {
 export async function askInterviewerAgent(payload, options = {}) {
   return normalizeAgentResponse(
     await jsonRequest(
-      "/agent/interviewer",
+      "/agent/course/interviewer",
       "POST",
       toAgentChatPayload(payload),
       options,
