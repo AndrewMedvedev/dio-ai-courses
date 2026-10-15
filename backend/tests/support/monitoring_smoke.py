@@ -6,7 +6,6 @@ import os
 import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from unittest.mock import patch
 
 from fastapi import FastAPI
 from starlette.responses import Response
@@ -35,8 +34,7 @@ def load(relative_path):
     return module
 
 
-with patch("taskiq_fastapi.init"):
-    broker = load("tkq").taskiq_broker
+broker = load("taskiq").broker
 app = FastAPI()
 load("monitoring/prometheus").setup_prometheus(app)
 

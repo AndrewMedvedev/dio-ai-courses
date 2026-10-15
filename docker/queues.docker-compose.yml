@@ -24,12 +24,12 @@ services:
     command:
       - taskiq
       - worker
-      - src.core.tkq:taskiq_broker
+      - src.core.taskiq:broker
       - src.courses.agents.course_generator.workflow
       - --workers
       - "${TASKIQ_WORKERS:-1}"
       - --max-async-tasks
-      - "${TASKIQ_MAX_ASYNC_TASKS:-25}"
+      - "${TASKIQ_MAX_ASYNC_TASKS:-4}"
       - --ack-type
       - when_saved
       - --shutdown-timeout

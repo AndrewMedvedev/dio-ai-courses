@@ -3,7 +3,9 @@ from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 
-from src.core.tkq import taskiq_broker
+from taskiq_fastapi import init
+
+from src.core.taskiq import broker as taskiq_broker
 from src.courses.dependencies.agents import CourseAgentDep, LessonAgentDep, ModuleAgentDep
 from src.courses.dependencies.base import LessonRepoDep, VectorRepoDep
 from src.courses.utils.formatting import get_content_blocks_context
@@ -12,6 +14,8 @@ from ..schemas import Context, GenerationContext
 from .helper import invoke_or_resume
 
 logger = logging.getLogger(__name__)
+
+init(taskiq_broker, "main:app")
 
 RETRY_OPTS = {"retry_on_error": True, "max_retries": 5, "delay": 10, "timeout": 5 * 60 * 60}
 

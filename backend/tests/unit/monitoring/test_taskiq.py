@@ -8,34 +8,35 @@ from taskiq.middlewares import SmartRetryMiddleware
 from taskiq_aio_pika import AioPikaBroker
 from taskiq_redis import RedisAsyncResultBackend
 
-RESULT_TTL = 5 * 60 * 60
-RETRIES = 5
+RESULT_TTL = 600
+RETRIES = 6
 MIN_DELAY = 10
 MAX_DELAY = 100
 
 
 def test_broker_queues_results_and_metrics_are_worker_only(load_core, monkeypatch):
-    module = load_core("tkq")
-    assert isinstance(module.taskiq_broker, AioPikaBroker)
-    assert module.taskiq_broker._task_queues[0].name == "myapp_tasks"
-    assert module.taskiq_broker._delay_queue.name == "myapp_tasks.delay"
-    assert isinstance(module.taskiq_broker.result_backend, RedisAsyncResultBackend)
-    assert module.taskiq_broker.result_backend.result_ex_time == RESULT_TTL
-    assert len(module.taskiq_broker.middlewares) == 1
+    module = load_core("taskiq")
+    assert isinstance(module.broker, AioPikaBroker)
+    assert module.broker._task_queues[0].name == "courses.taskiq"
+    assert module.broker._delay_queue.name == "courses.taskiq.delay"
+    assert isinstance(module.broker.result_backend, RedisAsyncResultBackend)
+    assert module.broker.result_backend.result_ex_time == RESULT_TTL
+    assert module.broker.event_handlers[TaskiqEvents.CLIENT_STARTUP] == []
+    assert len(module.broker.middlewares) == 1
     metrics = Mock(spec=TaskiqMiddleware)
     monkeypatch.setattr(module, "PrometheusMiddleware", Mock(return_value=metrics))
     module.setup_worker_metrics(TaskiqState())
-    assert module.taskiq_broker.middlewares[-1] is metrics
+    assert module.broker.middlewares[-1] is metrics
     module.PrometheusMiddleware.assert_called_once()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("completed_retries", range(RETRIES + 1))
 async def test_retry_limit_delay_and_task_id(load_core, completed_retries):
-    module = load_core("tkq")
-    retry = module.taskiq_broker.middlewares[0]
+    module = load_core("taskiq")
+    retry = module.broker.middlewares[0]
     assert isinstance(retry, SmartRetryMiddleware)
-    module.taskiq_broker.kick = AsyncMock()
+    module.broker.kick = AsyncMock()
     message = TaskiqMessage(
         task_id="unchanged-id",
         task_name="test",
@@ -47,11 +48,11 @@ async def test_retry_limit_delay_and_task_id(load_core, completed_retries):
     result = TaskiqResult(is_err=True, error=error, return_value=None, execution_time=0.01)
     await retry.on_error(message, result, error)
     if completed_retries == RETRIES:
-        module.taskiq_broker.kick.assert_not_awaited()
+        module.broker.kick.assert_not_awaited()
         assert result.error is error
     else:
-        module.taskiq_broker.kick.assert_awaited_once()
-        sent = module.taskiq_broker.kick.call_args.args[0]
+        module.broker.kick.assert_awaited_once()
+        sent = module.broker.kick.call_args.args[0]
         assert sent.task_id == "unchanged-id"
         assert int(sent.labels["_retries"]) == completed_retries + 1
         assert MIN_DELAY <= float(sent.labels["delay"]) <= MAX_DELAY
@@ -60,10 +61,10 @@ async def test_retry_limit_delay_and_task_id(load_core, completed_retries):
 
 @pytest.mark.asyncio
 async def test_retries_disabled_for_other_tasks(load_core):
-    module = load_core("tkq")
-    module.taskiq_broker.kick = AsyncMock()
+    module = load_core("taskiq")
+    module.broker.kick = AsyncMock()
     message = TaskiqMessage(task_id="id", task_name="test", args=[], kwargs={}, labels={})
     error = RuntimeError("test")
     result = TaskiqResult(is_err=True, error=error, return_value=None, execution_time=0.01)
-    await module.taskiq_broker.middlewares[0].on_error(message, result, error)
-    module.taskiq_broker.kick.assert_not_awaited()
+    await module.broker.middlewares[0].on_error(message, result, error)
+    module.broker.kick.assert_not_awaited()
