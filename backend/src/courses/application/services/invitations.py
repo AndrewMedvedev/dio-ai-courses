@@ -11,8 +11,14 @@ from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
 from src.organization.application.dtos import InvitationCreate as OrganizationInvitationCreate
+from src.shared.application.dtos import Page, Pagination
 from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
+from src.shared.domain.exceptions import (
+    AlreadyExistsError,
+    InvalidStateError,
+    NotFoundError,
+)
+from src.shared.domain.helpers import ensure_invitation_acceptable
 from src.shared.domain.repos import get_or_raise_404
 from src.shared.domain.vo import Email
 
@@ -90,6 +96,11 @@ class InvitationService:
             course_id=dto.course_id,
         )
         user = await self.iam_repo.get_user_by_email(dto.email)
+        if user is not None and await self.member_repo.exists(
+            user_id=user.id,
+            course_id=dto.course_id,
+        ):
+            raise AlreadyExistsError("User is already a member of the course.")
         if user is not None:
             membership = await self.iam_repo.get_user_membership(
                 organization_id=identity.organization_id,
@@ -123,11 +134,12 @@ class InvitationService:
         await self.transaction(invitation)
         return invitation
 
-    async def accept(self, token: str, user_id: UUID) -> Member:
-        if (
-            invitation := await self.invitation_repo.get_by_token(token)
-        ) is None or not invitation.is_valid:
-            raise NotFoundError(f"Invitation with token - '{token}' not found or invalid.")
+    async def accept(self, token: str, identity: Identity) -> Member:
+        invitation = ensure_invitation_acceptable(
+            await self.invitation_repo.get_by_token(token),
+            email=identity.email,
+        )
+        user_id = identity.id
 
         if await self.member_repo.exists(
             user_id=user_id,
@@ -145,11 +157,31 @@ class InvitationService:
         await self.transaction(member, invitation)
         return member
 
-    async def revoke_invitation(self, invitation_id: UUID) -> None:
+    async def get_course_invitations(self, course_id: UUID, identity: Identity, pagination: Pagination) -> Page[Invitation]:
+        """
+        Приглашения курса, которые ещё ждут ответа.
+        """
+        await self._check_access(
+            identity,
+            permission=INVITE,
+            course_id=course_id,
+            role=MemberRole.MODERATOR,
+        )
+        return await self.invitation_repo.find_by_course(course_id, pagination)
+
+    async def revoke_invitation(self, invitation_id: UUID, identity: Identity) -> None:
         """
         Отзыв ошибочно отправленного приглашения.
         """
         invitation = await get_or_raise_404(self.invitation_repo.read, invitation_id, Invitation)
+        await self._check_access(
+            identity,
+            permission=INVITE,
+            course_id=invitation.course_id,
+            role=invitation.role,
+        )
+        if invitation.is_used:
+            raise InvalidStateError("Invitation is already accepted and can't be revoked.")
 
         await self.invitation_repo.delete(invitation_id)
         await self.transaction(invitation)

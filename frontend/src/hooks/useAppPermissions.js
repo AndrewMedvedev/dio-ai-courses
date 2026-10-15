@@ -1,6 +1,7 @@
 import {
   AI_MODEL_PERMISSIONS,
   COURSE_PERMISSIONS,
+  INVITATION_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   usePermissionStore,
 } from "../stores/permissionStore";
@@ -24,10 +25,15 @@ export function useAppPermissions() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(COURSE_PERMISSIONS.CREATE);
+  // На бэке чтение курса теперь называется course.course_read (course.read остался
+  // только у роли user), поэтому принимаем любое из двух — иначе админ не может открыть курс.
   const canReadCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasPermission(COURSE_PERMISSIONS.READ);
+    hasAnyPermission([
+      COURSE_PERMISSIONS.READ,
+      COURSE_PERMISSIONS.COURSE_READ,
+    ]);
   const canOpenCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
@@ -66,10 +72,22 @@ export function useAppPermissions() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(ORGANIZATION_PERMISSIONS.DELETE);
+  const canInviteToSystem =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(INVITATION_PERMISSIONS.SYSTEM_INVITE);
+  const canInviteToOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(INVITATION_PERMISSIONS.ORGANIZATION_INVITE);
+  // Раздел «Организации» нужен и тем, у кого есть только права на приглашения.
   const canManageOrganizations =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasAnyPermission(Object.values(ORGANIZATION_PERMISSIONS));
+    hasAnyPermission([
+      ...Object.values(ORGANIZATION_PERMISSIONS),
+      ...Object.values(INVITATION_PERMISSIONS),
+    ]);
   const canCreateModel =
     isAuthenticated &&
     arePermissionsLoaded &&
@@ -97,6 +115,8 @@ export function useAppPermissions() {
     canReadOwnOrganization,
     canUpdateOrganization,
     canDeleteOrganization,
+    canInviteToSystem,
+    canInviteToOrganization,
     canManageOrganizations,
     canCreateModel,
     canDeleteModel,
