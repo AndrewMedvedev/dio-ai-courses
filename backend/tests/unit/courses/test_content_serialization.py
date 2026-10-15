@@ -8,12 +8,11 @@ from ddf.infra.cache.redis.serializers.msgpack import MsgpackSerializer
 from pydantic import TypeAdapter
 
 from src.courses.domain.entities import Course, Lesson, Module
+from src.courses.domain.enums import CourseStatus, DifficultyLevel
 from src.courses.domain.vo import (
     AnyContentBlock,
     ChemicalBlock,
     CodeBlock,
-    CourseStatus,
-    DifficultyLevel,
     ImageBlock,
     MathBlock,
     MermaidBlock,

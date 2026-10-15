@@ -10,13 +10,14 @@ from typing import TYPE_CHECKING, Any
 import argparse
 import asyncio
 import json
+import sys
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from copy import deepcopy
 from dataclasses import asdict
 from inspect import signature
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock
 from uuid import UUID
 
@@ -45,6 +46,10 @@ def pytest_load_initial_conftests(early_config: pytest.Config) -> None:
 
 def block_external_api(monkeypatch: pytest.MonkeyPatch) -> None:
     """Запрещает HTTP-запросы и заменяет ключи только в тестовом процессе."""
+    if "src" not in sys.modules:
+        package = ModuleType("src")
+        package.__path__ = [str(Path(__file__).parents[2] / "src")]
+        monkeypatch.setitem(sys.modules, "src", package)
     for name in (
         "OPENAI_API_KEY", "PROXY_API_KEY", "AITUNNEL_KEY", "YANDEX_CLOUD_API_KEY",
         "LANGSMITH_API_KEY", "LANGCHAIN_API_KEY", "SRV_COURSE_CLIENT_SECRET",
@@ -142,6 +147,7 @@ def mock_checkpoint_redis() -> AsyncMock:
     values: dict[str, bytes] = {}
     hashes: dict[str, dict[str, bytes]] = {}
     client = AsyncMock(spec=Redis)
+    client.rpush = AsyncMock()
     client.get = AsyncMock(side_effect=values.get)
     client.set = AsyncMock(side_effect=lambda key, value, **_kwargs: values.__setitem__(
         key, value.encode() if isinstance(value, str) else value,
@@ -212,7 +218,7 @@ def mock_generation(
 ) -> tuple[Any, Any]:
     """Подменяет LLM, SQL и векторный поиск; сохраняет реальные функции и рёбра графов."""
     block_external_api(monkeypatch)
-    from src.courses.agents.course_generator import nodes
+    from src.courses.agents.course_generator.subagents import course_builder as nodes
     from src.courses.agents.course_generator.subagents import lesson_builder, module_builder
     from src.courses.agents.course_generator.subagents.prompts import CourseStructure
     from src.courses.agents.schemas import Context
@@ -246,57 +252,65 @@ def mock_generation(
         monkeypatch.setattr(module, "LLMTextService", Mock(
             return_value=SimpleNamespace(invoke=AsyncMock(side_effect=invoke)),
         ))
-    monkeypatch.setattr(nodes, "reasoner_agent", Mock(return_value=SimpleNamespace(
-        invoke=AsyncMock(return_value=SimpleNamespace(raw_text="Мок размышления")),
-    )))
-    monkeypatch.setattr(lesson_builder, "call_theory_agent", AsyncMock(side_effect=theory))
-    monkeypatch.setattr(nodes, "session_factory", session_factory)
     monkeypatch.setattr(module_builder, "session_factory", session_factory)
-    monkeypatch.setattr(nodes, "SqlCourseRepository", Mock(return_value=AsyncMock()))
-    monkeypatch.setattr(module_builder, "SqlModuleRepository", Mock(return_value=AsyncMock()))
-    monkeypatch.setattr(lesson_builder, "SqlLessonRepository", Mock(return_value=AsyncMock()))
-    monkeypatch.setattr(lesson_builder, "VectorRepository", Mock(return_value=AsyncMock()))
+    monkeypatch.setattr(lesson_builder, "session_factory", session_factory)
+    workflow = ModuleType("src.courses.agents.course_generator.workflow")
+    workflow.index_lesson = SimpleNamespace(kiq=AsyncMock())
+    monkeypatch.setitem(sys.modules, workflow.__name__, workflow)
 
-    def compile_graph(module: Any, prefix: str) -> Any:
+    def compile_graph(agent: Any, graph: Any, prefix: str) -> Any:
         return compile_test_graph(
-            module, prefix, saver, client, trace_key, fault_stage=fault_stage, pause=pause,
+            agent, graph, prefix, saver, client, trace_key,
+            fault_stage=fault_stage, pause=pause,
         )
 
-    monkeypatch.setattr(module_builder, "lesson_builder_agent", compile_graph(
-        lesson_builder, "lesson",
-    ))
-    monkeypatch.setattr(nodes, "module_builder_agent", compile_graph(module_builder, "module"))
-    return compile_graph(nodes, "course"), context
+    course_client = Mock()
+    lesson = lesson_builder.LessonAgent(
+        client=course_client, lesson_repo=Mock(return_value=AsyncMock()),
+        vector_repo=AsyncMock(), theory_agent=AsyncMock(side_effect=theory),
+    )
+    lesson_graph = compile_graph(
+        lesson, lesson_builder.build_lesson_graph(lesson, saver), "lesson",
+    )
+    module = module_builder.ModuleAgent(
+        client=course_client, module_repo=Mock(return_value=AsyncMock()),
+        lesson_agent=lesson_graph,
+    )
+    module_graph = compile_graph(
+        module, module_builder.build_module_graph(module, saver), "module",
+    )
+    course = nodes.CourseAgent(
+        session=AsyncMock(spec=AsyncSession), client=course_client, repo=AsyncMock(),
+        module_agent=module_graph,
+        reasoner_agent=Mock(return_value=SimpleNamespace(
+            invoke=AsyncMock(return_value=SimpleNamespace(raw_text="Мок размышления")),
+        )),
+    )
+    return compile_graph(course, nodes.build_course_graph(course, saver), "course"), context
 
 
 def compile_test_graph(
-    module: Any, prefix: str, saver: Any, client: Redis, trace_key: str,
+    agent: Any, graph: Any, prefix: str, saver: Any, client: Redis, trace_key: str,
     *, fault_stage: str | None, pause: bool,
 ) -> Any:
-    """Оборачивает реальные этапы наблюдением и тестовым сбоем, сохраняя их рёбра."""
-    from src.courses.agents.schemas import RuntimeContext
-
-    def track(name: str, function: Callable, *, has_runtime: bool) -> Callable:
-        async def wrapper(state: Any, runtime: Any, config: RunnableConfig) -> Any:
+    """Оборачивает реальные методы и рёбра графов, добавляя только наблюдение и тестовый сбой."""
+    def track(name: str, function: Callable) -> Callable:
+        async def wrapper(state: Any, config: RunnableConfig) -> Any:
             thread_id = config.get("configurable", {})["thread_id"]
-            await client.rpush(  # pyright: ignore[reportGeneralTypeIssues]
-                trace_key, f"{thread_id}|{name}",
-            )
+            await client.rpush(trace_key, f"{thread_id}|{name}")
             if name == fault_stage:
                 if pause:
                     await client.set(trace_key.removesuffix("calls") + "paused", name)
                     await asyncio.Event().wait()
                 raise RuntimeError(f"Мок падения: {name}")
-            return await function(state, runtime) if has_runtime else await function(state)
+            return await function(state)
         return wrapper
 
-    workflow = StateGraph(module.AgentState, context_schema=RuntimeContext)
-    for name in module.graph.nodes:
-        workflow.add_node(name, track(
-            f"{prefix}.{name}", getattr(module, name),
-            has_runtime="runtime" in signature(getattr(module, name)).parameters,
-        ))
-    for source, target in module.graph.edges:
+    original = graph.builder
+    workflow = StateGraph(original.state_schema)
+    for name in original.nodes:
+        workflow.add_node(name, track(f"{prefix}.{name}", getattr(agent, name)))
+    for source, target in original.edges:
         workflow.add_edge(source, target)
     return workflow.compile(checkpointer=saver)
 

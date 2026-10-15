@@ -9,7 +9,7 @@ from ...courses.agents.course_generator.subagents.prompts import (
     LessonStructure,
     ModuleStructure,
 )
-from ...courses.agents.schemas import Context
+from ...courses.agents.schemas import Context, GenerationContext
 from ...courses.domain.entities import Course, Lesson, Module
 from ...shared.infra.cache.redis import RedisCheckpointSaver, SavedCheckpoint, SavedWrite
 from .config import redis_config
@@ -30,7 +30,7 @@ checkpointer = RedisCheckpointSaver(  # ruff: ignore[non-empty-init-module]
         "course": Course,
         "module": Module,
         "lesson": Lesson,
-        "generation_context": Context,
+        "generation_context": Context | GenerationContext,
         "course_structure": CourseStructure,
         "module_structure": ModuleStructure,
         "lesson_structure": LessonStructure,

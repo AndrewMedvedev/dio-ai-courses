@@ -2,6 +2,7 @@ from typing import cast
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from types import UnionType
 from urllib.parse import quote
 
 from ddf.infra.cache.redis import RedisCache
@@ -43,7 +44,7 @@ class RedisCheckpointSaver(BaseCheckpointSaver[int]):
         self,
         cache: RedisCache[SavedCheckpoint],
         writes_serializer: Serializer[SavedWrite],
-        state_types: dict[str, type],
+        state_types: dict[str, type | UnionType],
     ) -> None:
         super().__init__()
         self.cache = cache

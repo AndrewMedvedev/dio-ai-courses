@@ -1,16 +1,23 @@
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 
-from src.courses.agents.course_generator import nodes
+from src.courses.agents.course_generator.helper import invoke_or_resume
+from src.courses.agents.course_generator.subagents import course_builder as nodes
 from src.courses.agents.course_generator.subagents.prompts import CourseStructure
 from src.courses.agents.schemas import Context
-from langgraph.runtime import Runtime
-from tests.support.course_generation import make_runtime_context
 from src.courses.domain.entities import Course, Module
-from src.courses.domain.vo import DifficultyLevel
+from src.courses.domain.enums import DifficultyLevel
+from tests.support.course_generation import (
+    course_content,
+    load_course,
+    make_saver,
+    mock_checkpoint_redis,
+    mock_generation,
+)
 
 
 @pytest.mark.asyncio
@@ -42,14 +49,17 @@ async def test_planner_output_can_be_used_to_generate_modules(
         for order, description in enumerate(structure.module_descriptions, start=1)
     ]
     build_module = AsyncMock(side_effect=[(1, modules[0]), (2, modules[1])])
-    monkeypatch.setattr(nodes, "build_module", build_module)
-    state: nodes.AgentState = {"generation_context": context, "thinks": "План курса"}
+    agent = nodes.CourseAgent(
+        session=AsyncMock(), client=Mock(), repo=AsyncMock(),
+        module_agent=Mock(), reasoner_agent=Mock(),
+    )
+    monkeypatch.setattr(agent, "build_module", build_module)
+    state: nodes.CourseAgentState = {"generation_context": context, "thinks": "План курса"}
 
-    runtime = Runtime(context=make_runtime_context())
-    planned = await nodes.plan_course_structure(state, runtime)
+    planned = await agent.plan_course_structure(state)
     assert planned["course_structure"] == structure
     state.update(planned)
-    generated = await nodes.generate_modules(state, runtime)
+    generated = await agent.generate_modules(state)
 
     course = generated["course"]
     assert isinstance(course, Course)
@@ -67,5 +77,22 @@ async def test_planner_output_can_be_used_to_generate_modules(
             "module_description": structure.module_descriptions[order - 1],
             "audience_description": structure.audience_description,
             "learning_objectives": structure.learning_objectives,
-            "client": runtime.context.client,
         }
+
+
+@pytest.mark.asyncio
+async def test_new_generation_classes_complete_all_stages_without_external_calls(monkeypatch):
+    path = Path(__file__).parents[2] / "fixtures" / "course-five-blocks.json"
+    client = mock_checkpoint_redis()
+    course_id = uuid4()
+    graph, context = mock_generation(
+        monkeypatch, make_saver(client), client, course_id, course_path=path,
+    )
+    result = await invoke_or_resume(
+        graph, input_data={"generation_context": context},
+        config={"configurable": {"thread_id": f"course:{course_id}"}},
+    )
+    assert course_content(result["course"]) == course_content(load_course(path))
+    stages = [call.args[1].split("|", 1)[1] for call in client.rpush.await_args_list]
+    assert len(stages) == 11
+    assert len(set(stages)) == 11

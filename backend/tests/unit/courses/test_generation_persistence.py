@@ -1,80 +1,91 @@
-from typing import Any
-
-from unittest.mock import AsyncMock, Mock
+import sys
+from contextlib import asynccontextmanager
 from dataclasses import asdict
+from types import ModuleType, SimpleNamespace
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from langgraph.runtime import Runtime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.courses.agents.course_generator import nodes
-from src.courses.agents.course_generator.subagents import lesson_builder, module_builder
+from src.courses.agents.course_generator.subagents import (
+    course_builder,
+    lesson_builder,
+    module_builder,
+)
 from src.courses.agents.schemas import Context
-from tests.support.course_generation import load_course, make_runtime_context
+from tests.support.course_generation import load_course
 
 
 @pytest.fixture(params=["course", "module", "lesson"])
-def persistence(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> Any:
+def persistence(request, monkeypatch):
     reference = load_course()
-    targets = {
-        "course": (nodes, "SqlCourseRepository", reference),
-        "module": (module_builder, "SqlModuleRepository", reference.modules[0]),
-        "lesson": (lesson_builder, "SqlLessonRepository", reference.modules[0].lessons[0]),
-    }
     source = request.param
-    module, repository_name, entity = targets[source]
     session = AsyncMock(spec=AsyncSession)
     repository = AsyncMock()
-    monkeypatch.setattr(module, repository_name, Mock(return_value=repository))
-    monkeypatch.setattr(lesson_builder, "VectorRepository", Mock(return_value=AsyncMock()))
-    state: Any = {
+
+    @asynccontextmanager
+    async def session_factory():
+        yield session
+
+    monkeypatch.setattr(module_builder, "session_factory", session_factory)
+    monkeypatch.setattr(lesson_builder, "session_factory", session_factory)
+    workflow = ModuleType("src.courses.agents.course_generator.workflow")
+    workflow.index_lesson = SimpleNamespace(kiq=AsyncMock())
+    monkeypatch.setitem(sys.modules, workflow.__name__, workflow)
+    agents = {
+        "course": course_builder.CourseAgent(
+            session=session, client=Mock(), repo=repository,
+            module_agent=Mock(), reasoner_agent=Mock(),
+        ),
+        "module": module_builder.ModuleAgent(
+            client=Mock(), module_repo=Mock(return_value=repository), lesson_agent=Mock(),
+        ),
+        "lesson": lesson_builder.LessonAgent(
+            client=Mock(), lesson_repo=Mock(return_value=repository),
+            vector_repo=AsyncMock(), theory_agent=AsyncMock(),
+        ),
+    }
+    entity = {
+        "course": reference,
+        "module": reference.modules[0],
+        "lesson": reference.modules[0].lessons[0],
+    }[source]
+    state = {
         "generation_context": Context(
             course_id=reference.id, user_id=reference.creator_id, prompt="Мок",
         ),
         source: entity,
     }
-    return (
-        getattr(module, f"save_{source}"), state,
-        Runtime(context=make_runtime_context(session)), repository, session, entity,
-    )
+    operation = repository.create if source == "course" else repository.create_at
+    return getattr(agents[source], f"save_{source}"), state, operation, session, entity
 
 
 @pytest.mark.asyncio
-async def test_repeated_generation_write_uses_shared_upsert(persistence: Any) -> None:
-    """При возобновлении сохраняется та же сущность, а не создаётся новая запись."""
-    save, state, runtime, repository, session, entity = persistence
-
-    attempts = 2
-    for _ in range(attempts):
-        await save(state, runtime)
-
-    assert repository.upsert.await_count == attempts
-    for invocation in repository.upsert.await_args_list:
-        assert asdict(invocation.args[0]) == asdict(entity)
-    repository.create.assert_not_awaited()
-    assert session.commit.await_count == attempts
+async def test_generation_passes_domain_entity_to_repository(persistence):
+    save, state, operation, session, entity = persistence
+    await save(state)
+    operation.assert_awaited_once()
+    assert asdict(operation.await_args.args[0]) == asdict(entity)
+    session.commit.assert_awaited_once()
     session.rollback.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("failed_operation", ["upsert", "commit"])
-async def test_database_error_does_not_mark_generation_stage_complete(
-    persistence: Any, failed_operation: str,
-) -> None:
-    """Ошибка БД выходит из этапа, чтобы граф мог повторить его после сбоя."""
-    save, state, runtime, repository, session, _ = persistence
-    error = IntegrityError("INSERT", {}, ValueError("constraint violation"))
-    operation = repository.upsert if failed_operation == "upsert" else session.commit
-    operation.side_effect = error
-
-    with pytest.raises(IntegrityError) as caught:
-        await save(state, runtime)
-
+@pytest.mark.parametrize("failed_operation", ["write", "commit"])
+async def test_storage_failure_is_not_marked_complete(persistence, failed_operation):
+    save, state, operation, session, _ = persistence
+    error = ConnectionError("Database unavailable")
+    (operation if failed_operation == "write" else session.commit).side_effect = error
+    with pytest.raises(ConnectionError) as caught:
+        await save(state)
     assert caught.value is error
-    repository.upsert.assert_awaited_once()
-    repository.create.assert_not_awaited()
-    if failed_operation == "upsert":
-        session.commit.assert_not_awaited()
-    else:
-        session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_integrity_error_keeps_main_rollback_behavior(persistence):
+    save, state, operation, session, _ = persistence
+    operation.side_effect = IntegrityError("INSERT", {}, ValueError("constraint"))
+    await save(state)
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()

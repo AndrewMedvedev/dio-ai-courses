@@ -1,66 +1,13 @@
 # pyright: reportAssignmentType=false
 from __future__ import annotations
 
-from abc import ABC
 from typing import Literal
+
+from abc import ABC
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
-
-class ContentType(StrEnum):
-    """Тип контента внутри блока."""
-
-    TEXT = auto()  # Текстовый контент / лекция
-    IMAGE = auto()  # Изображение
-    PROGRAM_CODE = auto()  # Пример кода
-    MERMAID = auto()  # Mermaid диаграмма
-    QUIZ = auto()  # Вопросы для самопроверки
-    MATH_FORMULA = auto()  # Математическая, физическая, логическая формула
-    CHEMICAL_FORMULA = auto()  # Химическая формула
-    MUSICAL_NOTATION = auto()  # Нотная запись
-
-
-class ExtendedContentType(StrEnum):
-    TEXT = auto()  # Текстовый контент / лекция
-    VIDEO = auto()  # Видео блок
-    IMAGE = auto()  # Изображение
-    PROGRAM_CODE = auto()  # Пример кода
-    MERMAID = auto()  # Mermaid диаграмма
-    QUIZ = auto()  # Вопросы для самопроверки
-    MATH_FORMULA = auto()  # Математическая, физическая, логическая формула
-    CHEMICAL_FORMULA = auto()  # Химическая формула
-    MUSICAL_NOTATION = auto()  # Нотная запись
-
-
-class PracticeStatus(StrEnum):
-    NOT_STARTED = auto()
-    FAILED = auto()
-    COMPLETED = auto()
-
-
-class CourseStatus(StrEnum):
-    """Статусы жизненного цикла курса."""
-
-    IN_GENERATION = auto()
-    DRAFT = auto()
-    INVITE_ONLY = auto()
-    PUBLISHED = auto()
-    ARCHIVED = auto()
-
-
-class DifficultyLevel(StrEnum):
-    """Уровни сложности для образовательной платформы."""
-
-    BEGINNER = auto()  # Начальный
-    INTERMEDIATE = auto()  # Средний
-    ADVANCED = auto()  # Продвинутый
-    EXPERT = auto()  # Экспертный
-
-
-class DocumentNodeType(StrEnum):
-    TOC = auto()
-    HEADING = auto()
-    TEXT = auto()
+from src.courses.domain.enums import ContentType, ExtendedContentType
 
 
 class MemberRole(StrEnum):
@@ -105,6 +52,7 @@ class ContentBlock(ABC):
 
     content_type: ContentType | ExtendedContentType
     ai_generated: bool = True
+    sources: list[str] = field(default_factory=list)
 
 
 @dataclass(kw_only=True, slots=True)

@@ -7,11 +7,11 @@ from ..schemas import RuntimeContext
 
 
 async def invoke_or_resume[State](
-    graph: CompiledStateGraph[State, RuntimeContext, State, State],
+    graph: CompiledStateGraph[State],
     *,
     input_data: State,
     config: RunnableConfig,
-    context: RuntimeContext,
+    context: RuntimeContext | None = None,
 ) -> State:
     snapshot = await graph.aget_state(config)
 

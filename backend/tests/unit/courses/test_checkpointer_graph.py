@@ -7,7 +7,7 @@ import pytest
 from langgraph.graph import END, START, StateGraph
 
 from src.courses.domain.entities import Course
-from src.courses.domain.vo import CourseStatus
+from src.courses.domain.enums import CourseStatus
 from tests.support.course_generation import load_course, make_saver, mock_checkpoint_redis
 
 
