@@ -5,15 +5,22 @@ from typing import TYPE_CHECKING, Any, Literal
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from ddf.application.dtos import QueryDTO, Sort
 from pydantic import BaseModel, EmailStr, Field
 
-from src.shared.application.dtos import BaseQueryParamFilters
+from src.shared.application.dtos import BaseQueryParamFilters, Pagination
 
 from ..domain.enums import ContentType, DifficultyLevel
 from ..domain.vo import MemberRole
 
 if TYPE_CHECKING:
     from ..domain.entities import Invitation
+
+
+class SearchParams(Pagination):
+    query: QueryDTO | None = None
+    sort: Sort | None = None
+    search: str | None = None
 
 
 class Chat(BaseModel):
@@ -105,6 +112,7 @@ class EditLessonSchema(BaseModel):
 class LessonTheorySessionFilters(BaseQueryParamFilters):
     created_from: datetime | None = None
     created_to: datetime | None = None
+    query: str | None = None
 
 
 class InvitationCreate(BaseModel):

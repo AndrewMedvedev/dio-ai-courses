@@ -11,6 +11,7 @@ from ....domain.entities import (
 )
 from ..mappers import LessonTheorySessionMapper
 from ..models import LessonTheorySessionOrm
+from ..search import apply_search
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,13 @@ class SqlLessonTheorySessionRepository(
         )
 
         if filters:
+            stmt = apply_search(
+                self.model,
+                stmt,
+                filters.query,
+                ("id", "createdAt", "completedAt", "activeTimeSeconds", "maxScrollDepthPercent"),
+                search=filters.search,
+            )
             if filters.created_from:
                 stmt = stmt.where(
                     self.model.created_at >= filters.created_from,

@@ -1,12 +1,17 @@
 from typing import Annotated
 
+from ddf.application.dtos import QueryDTO
+from ddf.application.dtos.sorting import parse_sort_query_param
 from fastapi import Depends
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pydantic import TypeAdapter
 
 from src.core.qdrant import qdrant_client
 from src.courses.infra.database.repos.vector_repo import QdrantRepository
 from src.shared.dependencies.database import DBSession
+from src.shared.dependencies.params import PaginationDep
 
+from ..application.dtos import SearchParams
 from ..infra.database.repos.chat import SqlChatRepository
 from ..infra.database.repos.course import SqlCourseRepository
 from ..infra.database.repos.course_progress import SqlCourseProgressRepository
@@ -21,6 +26,23 @@ from ..infra.database.repos.practice import SqlPracticeRepository
 from ..infra.database.repos.theory_session import SqlLessonTheorySessionRepository
 
 splitter = RecursiveCharacterTextSplitter(chunk_size=3072, chunk_overlap=150, length_function=len)
+
+
+def get_search_params(
+    pagination: PaginationDep,
+    query: str | None = None,
+    sort: str | None = None,
+    search: str | None = None,
+) -> SearchParams:
+    return SearchParams(
+        **pagination.model_dump(),
+        query=TypeAdapter(QueryDTO).validate_json(query) if query is not None else None,
+        sort=parse_sort_query_param(sort) if sort is not None else None,
+        search=search,
+    )
+
+
+SearchParamsDep = Annotated[SearchParams, Depends(get_search_params)]
 
 
 def get_lesson_repo(session: DBSession) -> SqlLessonRepository:

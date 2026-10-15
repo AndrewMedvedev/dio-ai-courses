@@ -10,6 +10,7 @@ from src.shared.utils.time import current_datetime
 from ....domain.entities import Invitation
 from ..mappers import InvitationMapper
 from ..models import InvitationOrm
+from ..search import search_page
 
 
 class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
@@ -34,7 +35,15 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
             self.model.is_used.is_(False),
             self.model.expires_at > current_datetime(),
         )
-        return await self._paginate(stmt, pagination)
+        return await search_page(
+            session=self.session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            mapper=self.model_mapper.to_entity,
+            fields=("id", "email", "title", "role", "createdAt", "expiresAt"),
+            text_fields=("title", "email"),
+        )
 
     async def get_active(
         self,
