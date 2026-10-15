@@ -27,7 +27,7 @@ async def add_request_id_to_outgoing_request(  # ruff: ignore[unused-async]
     """Добавляет ID текущего HTTP-запроса во внутренний запрос."""
     request_id = get_request_id()
     if request_id is not None:
-        params.headers.setdefault("X-Request-ID", str(request_id))
+        params.headers.setdefault("X-Request-ID", request_id)
 
 
 class RequestIdFilter(logging.Filter):
@@ -53,7 +53,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         try:
             response = await call_next(request)
-            response.headers["X-Request-ID"] = str(request_id)
+            response.headers["X-Request-ID"] = request_id
             return response
         finally:
             for handler in root_logger.handlers:

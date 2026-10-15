@@ -1,7 +1,7 @@
 """create llm invocations
 
 Revision ID: c94a9e12d5f7
-Revises:
+Revises: 50f609846fb3
 Create Date: 2026-09-04 00:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "c94a9e12d5f7"
-down_revision: str | Sequence[str] | None = None
+down_revision: str | Sequence[str] | None = "50f609846fb3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

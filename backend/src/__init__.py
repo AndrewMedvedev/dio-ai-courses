@@ -5,6 +5,7 @@
 from fastapi import APIRouter
 
 from .courses.api.v1 import router as courses_router
+from .courses.infra import progress_rabbit as progress_events  # noqa: F401
 from .iam.api.v1 import router as iam_router
 from .llm_router.api.v1 import router as llm_router
 from .llm_router.infra import invocation_rabbit as llm_invocation_events  # noqa: F401
