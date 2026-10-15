@@ -518,15 +518,10 @@ export async function inviteToSystem({ email, organizationId, grantedRoles }) {
   return jsonRequest("/invitations", "POST", body);
 }
 
-// Приглашение в текущую организацию; роли — массив UUID.
-export async function inviteToOrganization({
-  email,
-  organizationId,
-  grantedRoles = [],
-}) {
+// Приглашение в текущую организацию (бэкенд берёт её из токена); роли — массив UUID.
+export async function inviteToOrganization({ email, grantedRoles = [] }) {
   return jsonRequest("/organizations/invitations", "POST", {
     email,
-    organizationId,
     grantedRoles,
   });
 }

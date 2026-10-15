@@ -4,11 +4,15 @@ import { getErrorMessage } from "./errors";
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Понятные названия системных ролей; остальные показываем как назвали на бэке.
+const USER_ROLE_TEXT = {
+  label: "Пользователь",
+  hint: "Проходит курсы, видит свой прогресс и профиль.",
+};
+
 const ROLE_TEXT = {
-  user: {
-    label: "Пользователь",
-    hint: "Проходит курсы, видит свой прогресс и профиль.",
-  },
+  // На бэке базовая роль переименована user → default_role, поддерживаем обе.
+  default_role: USER_ROLE_TEXT,
+  user: USER_ROLE_TEXT,
   admin: {
     label: "Администратор",
     hint: "Полный доступ: курсы, организации, участники и настройки.",
