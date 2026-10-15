@@ -73,4 +73,4 @@ async def accept_invitation(
     token: Annotated[str, Path(description="Токен из пригласительного письма")],
     service: InvitationServiceDep,
 ) -> Member:
-    return await service.accept(token=token, identity=identity)
+    return await service.accept(token=token, user_id=identity.id)

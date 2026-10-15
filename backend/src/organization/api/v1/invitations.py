@@ -41,7 +41,7 @@ async def accept_invitation(
     service: InvitationServiceDep,
     identity: CurrentIdentity,
 ) -> Membership:
-    return await service.accept(token=token, identity=identity)
+    return await service.accept(token=token, user_id=identity.id)
 
 
 @router.delete(

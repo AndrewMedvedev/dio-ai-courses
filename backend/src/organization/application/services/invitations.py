@@ -9,8 +9,7 @@ from src.organization.application.dtos import InvitationCreate
 from src.organization.domain.entities import Invitation
 from src.organization.infra.services.client import SrvOrganizationClient
 from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError
-from src.shared.domain.helpers import ensure_invitation_acceptable
+from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 from src.shared.domain.repos import get_or_raise_404
 from src.shared.domain.vo import Email
 
@@ -78,20 +77,14 @@ class InvitationService:
         await self.transaction(invitation)
         return invitation
 
-    async def accept(self, token: str, identity: Identity) -> Membership:
-        invitation = ensure_invitation_acceptable(
-            await self.invitation_repo.get_by_token(token),
-            email=identity.email,
-        )
-        existing_membership = await self.membership_repo.get_user_membership(
-            organization_id=invitation.organization_id,
-            user_id=identity.id,
-        )
-        if existing_membership is not None:
-            raise AlreadyExistsError("User is already a member of the organization.")
+    async def accept(self, token: str, user_id: UUID) -> Membership:
+        if (
+            invitation := await self.invitation_repo.get_by_token(token)
+        ) is None or not invitation.is_valid:
+            raise NotFoundError(f"Invitation with token - '{token}' not found or invalid.")
         membership = await self.membership_repo.create_membership(
             CreateMembershipDTO(
-                user_id=identity.id,
+                user_id=user_id,
                 organization_id=invitation.organization_id,
                 roles=invitation.granted_roles,
             )
