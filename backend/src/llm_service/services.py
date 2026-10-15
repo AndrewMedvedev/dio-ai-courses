@@ -1,8 +1,6 @@
-# ruff: file-ignore[no-self-use, unused-method-argument]
 # pyright: reportOptionalSubscript=false, reportArgumentType=false, reportGeneralTypeIssues=false, reportOptionalIterable=false
 from typing import Any, Literal
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
@@ -15,10 +13,10 @@ from src.shared.infra.services import SrvBaseClient
 
 from .dataclasses import StructuredTool
 from .middleware import BaseAgentMiddleware
+from .protocols import LLMServiceProtocol
 from .schemas import (
     LLMImageRequest,
     LLMImageResponse,
-    LLMServiceProtocol,
     LLMTextRequest,
     LLMTextResponse,
     Runtime,
@@ -107,7 +105,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         reasoning: Literal["low", "medium", "high"] | None = None,
         temperature: float | None = None,
         runtime: Runtime | None = None,
-        maximum_number_of_parallel_executions: int = 4,
+        max_parallel: int = 4,
     ) -> None:
         super().__init__(client=client, runtime=runtime, middlewares=middlewares)
         self.model = model
@@ -115,7 +113,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         self.tools = tools
         self.reasoning: Literal["low", "medium", "high"] | None = reasoning
         self.temperature = temperature
-        self.semaphore = Semaphore(maximum_number_of_parallel_executions)
+        self.semaphore = Semaphore(max_parallel)
 
     @execute_once_per_loop
     async def invoke(
@@ -123,7 +121,6 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        await asyncio.sleep(15)
         return await self._run_loop(messages=messages, schema=schema)
 
     @execute_each_invoke

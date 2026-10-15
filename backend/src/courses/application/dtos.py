@@ -9,7 +9,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 from src.shared.application.dtos import BaseQueryParamFilters
 
-from ..domain.vo import ContentType, DifficultyLevel, MemberRole
+from ..domain.enums import ContentType, DifficultyLevel
+from ..domain.vo import MemberRole
 
 
 class Chat(BaseModel):
@@ -17,6 +18,14 @@ class Chat(BaseModel):
     course_id: UUID
     role: Literal["assistant", "user"] = "user"
     content: str | dict[str, Any]
+
+
+class ModuleGenerationChat(Chat):
+    order: int
+
+
+class LessonGenerationChat(ModuleGenerationChat):
+    module_id: UUID
 
 
 class EditorChat(Chat):

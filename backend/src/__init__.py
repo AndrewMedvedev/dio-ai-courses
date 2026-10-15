@@ -4,8 +4,6 @@
 
 from fastapi import APIRouter
 
-from src.core import dramatiq
-
 from .courses.api.v1 import router as courses_router
 from .courses.infra import progress_rabbit as progress_events  # noqa: F401
 from .iam.api.v1 import router as iam_router
@@ -25,4 +23,4 @@ router.include_router(courses_router)
 router.include_router(llm_router)
 
 
-__all__ = ["dramatiq", "router"]
+__all__ = ["router"]

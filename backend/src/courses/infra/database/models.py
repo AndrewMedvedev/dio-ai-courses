@@ -19,17 +19,17 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-
-from ...domain.entities import (
+from src.courses.domain.entities import (
     AnyContentBlock,
 )
-from ...domain.vo import (
+from src.courses.domain.enums import (
     CourseStatus,
     DifficultyLevel,
     DocumentNodeType,
-    MemberRole,
     PracticeStatus,
 )
+from src.courses.domain.vo import MemberRole
+
 from .types import ContentBlockListType
 
 
@@ -48,7 +48,7 @@ class CourseOrm(Base):
 
     modules: Mapped[list[ModuleOrm]] = relationship(
         back_populates="course",
-        order_by="ModuleOrm.id",
+        order_by="ModuleOrm.order",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -68,13 +68,13 @@ class ModuleOrm(Base):
     )
     title: Mapped[str]
     description: Mapped[str] = mapped_column(TEXT)
-    order: Mapped[int | None] = mapped_column(nullable=True)
+    order: Mapped[int]
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     course: Mapped[CourseOrm | None] = relationship(back_populates="modules")
     lessons: Mapped[list[LessonOrm]] = relationship(
         back_populates="module",
-        order_by="LessonOrm.id",
+        order_by="LessonOrm.order",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -83,7 +83,16 @@ class ModuleOrm(Base):
         passive_deletes=True,
     )
 
-    __table_args__ = (Index("ix_modules_course_id", "course_id"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "course_id",
+            "order",
+            name="uq_module_course_order",
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        CheckConstraint('"order" >= 1', name="ck_module_order_positive"),
+    )
 
 
 class LessonOrm(Base):
@@ -94,7 +103,7 @@ class LessonOrm(Base):
     )
     title: Mapped[str]
     description: Mapped[str] = mapped_column(TEXT)
-    order: Mapped[int | None] = mapped_column(nullable=True)
+    order: Mapped[int]
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
     estimated_time_minutes: Mapped[int | None] = mapped_column(nullable=True)
     content_blocks: Mapped[list[AnyContentBlock]] = mapped_column(
@@ -108,7 +117,16 @@ class LessonOrm(Base):
         passive_deletes=True,
     )
 
-    __table_args__ = (Index("ix_lessons_module_id", "module_id"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "module_id",
+            "order",
+            name="uq_lesson_module_order",
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        CheckConstraint('"order" >= 1', name="ck_lesson_order_positive"),
+    )
 
 
 class LessonTheorySessionOrm(Base):
@@ -231,7 +249,7 @@ class ChatOrm(Base):
 class MemberOrm(Base):
     __tablename__ = "members"
 
-    course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id"))
+    course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
     role: Mapped[MemberRole] = mapped_column(TEXT)
 
     user_id: Mapped[UUID]

@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import Depends
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from src.core.qdrant import qdrant_client
+from src.courses.infra.database.repos.vector_repo import QdrantRepository
 from src.shared.dependencies.database import DBSession
 
 from ..infra.database.repos.chat import SqlChatRepository
@@ -81,6 +83,10 @@ def get_invitation_repo(session: DBSession) -> SqlInvitationRepository:
     return SqlInvitationRepository(session)
 
 
+def get_vector_repo() -> QdrantRepository:
+    return QdrantRepository(qdrant_client, splitter)
+
+
 LessonRepoDep = Annotated[SqlLessonRepository, Depends(get_lesson_repo)]
 LessonProgressRepoDep = Annotated[
     SqlLessonProgressRepository, Depends(get_lesson_progress_repo)
@@ -101,3 +107,4 @@ TheorySessionRepoDep = Annotated[
 ]
 MemberRepoDep = Annotated[SqlMemberRepository, Depends(get_member_repo)]
 InvitationRepoDep = Annotated[SqlInvitationRepository, Depends(get_invitation_repo)]
+VectorRepoDep = Annotated[QdrantRepository, Depends(get_vector_repo)]

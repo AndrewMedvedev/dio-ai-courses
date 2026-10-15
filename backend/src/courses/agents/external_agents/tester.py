@@ -1,7 +1,7 @@
 from typing import Any
 
 import json
-import random
+import secrets
 from uuid import UUID
 
 from pydantic import TypeAdapter
@@ -16,7 +16,8 @@ from ...application.dtos import LessonProgressUpdateSchema
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
 from ...domain.events import LessonProgressUpdated
-from ...domain.vo import PracticeStatus, TestType
+from ...domain.enums import PracticeStatus
+from ...domain.vo import TestType
 from ...infra.services.client import SrvCourseClient
 from ..prompts import ASSIGNMENT_PROMPT, KNOWLEDGE_CONFIG, TEST_CHECKER_PROMPT
 from ..schemas import AnyKnowledgeTest, PracticeResult
@@ -45,7 +46,7 @@ class TesterAgent:
         lesson_id: UUID,
     ) -> dict[str, Any]:
         """Создает тест для студента на основе теории урока и его предыдущих практик."""
-        random_type = random.choice(list(TestType))
+        random_type = secrets.choice(list(TestType))
         config = KNOWLEDGE_CONFIG.get(random_type, {})
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:

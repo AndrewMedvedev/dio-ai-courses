@@ -2,7 +2,11 @@ import logging
 
 from pydantic import BaseModel, Field
 
-from src.courses.agents.middlewares import LemmatizationMiddleware, ToolCallLimitMiddleware
+from src.courses.agents.middlewares import (
+    LemmatizationMiddleware,
+    ToolCallLimitMiddleware,
+    ToolOutputCompressionMiddleware,
+)
 from src.courses.agents.schemas import Context
 from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService, Runtime, tool
@@ -29,6 +33,15 @@ class ResearchInput(BaseModel):
     task: str = Field(description="Задача для исследования")
 
 
+class ResearchFact(BaseModel):
+    fact: str = Field(description="Найденная информация")
+    source: str = Field(description="URL или имя файла, откуда взята информация")
+
+
+class ResearchResult(BaseModel):
+    facts: list[ResearchFact]
+
+
 @tool(name="call_researcher_agent", description="Вызвать агента исследователя")
 async def call_researcher_agent(
     runtime: Runtime[Context, SrvCourseClient],
@@ -46,14 +59,24 @@ async def call_researcher_agent(
         },
         runtime=Runtime(context=runtime.context, state=runtime.state),
         middlewares=[
+            ToolOutputCompressionMiddleware(),
             ToolCallLimitMiddleware(
-                tool_limits={"web_search": 4, "browse_page": 5, "knowledge_search": 5}
+                tool_limits={
+                    "web_search": 4,
+                    "browse_page": 5,
+                    "knowledge_search": 5,
+                }
             ),
             LemmatizationMiddleware(),
         ],
     )
-    result = await researcher_agent.invoke(messages=[{"role": "user", "content": schema.task}])
-    return {"role": "assistant", "content": result.raw_text}
+    result = await researcher_agent.invoke(
+        messages=[{"role": "user", "content": schema.task}],
+        schema=ResearchResult,
+    )
+    research = ResearchResult.model_validate(result.output)
+    content = "\n\n".join(f"{f.fact}\n(Источник: {f.source})" for f in research.facts)
+    return {"role": "assistant", "content": content}
 
 
 def reasoner_agent(runtime: Runtime[Context, SrvCourseClient]) -> LLMTextService:
@@ -66,6 +89,7 @@ def reasoner_agent(runtime: Runtime[Context, SrvCourseClient]) -> LLMTextService
             "call_critique_agent": call_critique_agent,
         },
         middlewares=[
+            ToolOutputCompressionMiddleware(),
             LemmatizationMiddleware(),
             ToolCallLimitMiddleware(tool_limits={"call_researcher_agent": 2}),
         ],
