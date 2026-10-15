@@ -231,6 +231,7 @@ async def check_test(
     answers: dict[str, str],
     practice_id: UUID,
     agent: TesterAgentDep,
+    _identity: CurrentIdentity,
 ) -> PracticeResult:
     return await agent.call_agent_checker(
         practice=practice.model_dump(),
@@ -275,6 +276,7 @@ async def create_practice(
 async def check_practice(
     practice_id: UUID,
     agent: PracticeAgentDep,
+    _identity: CurrentIdentity,
     file: UploadFile = File(...),
     practice: str = Form(),
 ) -> PracticeResult:

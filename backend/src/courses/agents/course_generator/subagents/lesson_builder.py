@@ -4,10 +4,9 @@ import logging
 import time
 from asyncio import Semaphore, TaskGroup
 from collections.abc import Callable
-from copy import deepcopy
 from uuid import UUID
 
-from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import session_factory
 from src.courses.agents.course_generator.subagents.repos import TheoryAgent
 from src.courses.agents.schemas import Context
+from src.courses.application.domain_dtos import (
+    LessonDict,
+    LessonStructureDict,
+)
+from src.courses.application.mappers import dict_to_lesson, lesson_to_dict, model_to_typed_dict
 from src.courses.application.repos import LessonRepository, VectorRepository
 from src.courses.domain.entities import Lesson
 from src.courses.domain.vo import AnyContentBlock, ContentType
@@ -38,8 +42,8 @@ class LessonAgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер урока
     lesson_description: str  # Описание урока из структуры модуля
-    lesson_structure: NotRequired[LessonStructure]  # Структура/сценарий урока
-    lesson: NotRequired[Lesson]  # Сгенерированный урок
+    lesson_structure: NotRequired[LessonStructureDict]  # Структура/сценарий урока
+    lesson: NotRequired[LessonDict]  # Сгенерированный урок
 
 
 class LessonAgent:
@@ -63,7 +67,7 @@ class LessonAgent:
     async def plan_lesson_structure(
         self,
         state: LessonAgentState,
-    ) -> dict[str, LessonStructure | Lesson]:
+    ) -> dict[str, LessonStructureDict | LessonDict]:
         """Планирование структуры урока"""
         lesson_structure_planner = LLMTextService(
             client=self._client,
@@ -151,8 +155,8 @@ class LessonAgent:
             order=state["order"],
         )
         return {
-            "lesson_structure": lesson_structure,
-            "lesson": lesson,
+            "lesson_structure": model_to_typed_dict(lesson_structure),
+            "lesson": lesson_to_dict(lesson),
         }
 
     async def build_content_block(
@@ -199,16 +203,16 @@ class LessonAgent:
     async def generate_content_blocks(
         self,
         state: LessonAgentState,
-    ) -> dict[str, Lesson]:
+    ) -> dict[str, LessonDict]:
         """Генерация контент блоков с помощью субагента - теоретика,
         используя сгенерированный план
         """
 
         lesson_structure_data = state["lesson_structure"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
-        lesson = deepcopy(state["lesson"])  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        lesson = dict_to_lesson(state["lesson"])  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
-        lesson_structure = lesson_structure_data
+        lesson_structure = LessonStructure.model_validate(lesson_structure_data)
         logger.info("Starting generate %s content blocks ...", len(lesson_structure.content_plan))
 
         async with TaskGroup() as tg:
@@ -234,11 +238,11 @@ class LessonAgent:
             lesson.title,
         )
 
-        return {"lesson": lesson}
+        return {"lesson": lesson_to_dict(lesson)}
 
     async def save_lesson(self, state: LessonAgentState) -> None:
         """Сохраняет урок, чтобы результат был доступен после завершения операции."""
-        lesson = state["lesson"]  # type: ignore
+        lesson = dict_to_lesson(state["lesson"])  # type: ignore
         async with session_factory() as session:
             try:
                 repo = self._lesson_repo(session)
@@ -258,7 +262,7 @@ class LessonAgent:
 
 def build_lesson_graph(
     agent: LessonAgent,
-    checkpointer: BaseCheckpointSaver,
+    checkpointer: AsyncRedisSaver,
 ) -> CompiledStateGraph[LessonAgentState]:
 
     graph = StateGraph(LessonAgentState)

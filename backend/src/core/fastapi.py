@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.shared.infra.middlewares import LoggingMiddleware
 
 from .lifespan import lifespan
-from .monitoring import health, setup_prometheus
+from .monitoring import health
 from .settings import app_config
 
 app = FastAPI(
@@ -17,6 +18,12 @@ app = FastAPI(
     version=app_config.version,
     lifespan=lifespan,
 )
+Instrumentator(
+    should_group_status_codes=True,
+    should_group_untemplated=True,
+    excluded_handlers=["/health", "/metrics"],
+).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+
 app.add_middleware(LoggingMiddleware)
 
 
@@ -27,7 +34,5 @@ app.add_middleware(
     allow_methods=app_config.cors_allow_methods,
     allow_headers=app_config.cors_allow_headers,
 )
-
-setup_prometheus(app)
 
 app.include_router(health.router)

@@ -23,6 +23,7 @@ dependencies = [
     "json-repair>=0.63.4",
     "langchain>=1.3.1",
     "langchain-text-splitters>=1.1.2",
+    "langgraph-checkpoint-redis>=0.5.0",
     "langsmith>=0.9.1",
     "lxml>=6.1.1",
     "markitdown[all]>=0.1.5",
@@ -39,7 +40,6 @@ dependencies = [
     "pytest-asyncio>=1.3.0",
     "python-docx>=1.2.0",
     "python-json-logger>=4.1.0",
-    "py-ddd-framework",
     "pytz>=2026.2",
     "qdrant-client[fastembed]>=1.18.0",
     "redis>=7.4.1",
@@ -300,9 +300,6 @@ ignore_names = [
 
 [tool.basedpyright]
 typeCheckingMode = "basic"
-
-[tool.uv.sources]
-py-ddd-framework = { git = "https://github.com/Andr171p/py-ddd-framework", branch = "fix/critical-bugs" }
 
 [dependency-groups]
 dev = [

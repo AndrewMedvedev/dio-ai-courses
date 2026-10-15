@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -6,17 +6,16 @@ from langgraph.graph.state import CompiledStateGraph
 from ..schemas import RuntimeContext
 
 
-async def invoke_or_resume[State](
-    graph: CompiledStateGraph[State],
+async def invoke_or_resume(
+    graph: CompiledStateGraph[Any, Any, Any, Any],
     *,
-    input_data: State,
+    input_data: dict[str, Any],
     config: RunnableConfig,
     context: RuntimeContext | None = None,
-) -> State:
+) -> dict[str, Any]:
     snapshot = await graph.aget_state(config)
 
-    # Завершённая задача может иметь pending writes без следующей контрольной точки.
-    if snapshot.next or snapshot.tasks:
+    if snapshot.next:
         return await graph.ainvoke(
             None,
             config=config,
@@ -25,7 +24,7 @@ async def invoke_or_resume[State](
         )
 
     if snapshot.values:
-        return cast(State, snapshot.values)
+        return dict(snapshot.values)
 
     return await graph.ainvoke(
         input_data,

@@ -37,11 +37,7 @@ services:
       - --wait-tasks-timeout
       - "600"
     env_file:
-      - ${BACKEND_ENV_FILE:-../.env.prod}
-    environment:
-      PROMETHEUS_MULTIPROC_DIR: /tmp/taskiq-metrics
-    tmpfs:
-      - /tmp/taskiq-metrics
+      - ../.env.prod
     expose:
       - "9000"
     depends_on:

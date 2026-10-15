@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 from langgraph.graph.state import CompiledStateGraph
 
-from src.core.redis import checkpointer
+from src.courses.agents.course_generator.serializer import checkpointer
 from src.courses.agents.course_generator.subagents.course_builder import (
     CourseAgent,
     CourseAgentState,

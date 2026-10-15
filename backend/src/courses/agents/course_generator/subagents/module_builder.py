@@ -4,11 +4,10 @@ import logging
 import time
 from asyncio import Semaphore, TaskGroup
 from collections.abc import Callable
-from copy import deepcopy
 from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.exc import IntegrityError
@@ -16,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import session_factory
 from src.courses.agents.schemas import Context
+from src.courses.application.domain_dtos import LessonDict, ModuleDict, ModuleStructureDict
+from src.courses.application.mappers import dict_to_module, model_to_typed_dict, module_to_dict
 from src.courses.application.repos import ModuleRepository
-from src.courses.domain.entities import Lesson, Module
+from src.courses.domain.entities import Module
 from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService
 
@@ -37,8 +38,8 @@ class ModuleAgentState(TypedDict):
     learning_objectives: list[str]  # Цели обучения курса
     order: int  # Порядковый номер модуля
     module_description: str  # Описание модуля из структуры курса
-    module_structure: NotRequired[ModuleStructure]  # Структура/сценарий модуля
-    module: NotRequired[Module]  # Сгенерированный модуль
+    module_structure: NotRequired[ModuleStructureDict]  # Структура/сценарий модуля
+    module: NotRequired[ModuleDict]  # Сгенерированный модуль
 
 
 class ModuleAgent:
@@ -60,7 +61,7 @@ class ModuleAgent:
     async def plan_module_structure(
         self,
         state: ModuleAgentState,
-    ) -> dict[str, ModuleStructure | Module]:
+    ) -> dict[str, ModuleStructureDict | ModuleDict]:
         """Планирование структуры модуля"""
 
         module_structure_planner = LLMTextService(
@@ -134,14 +135,14 @@ class ModuleAgent:
             order=state["order"],
         )
         return {
-            "module_structure": module_structure,
-            "module": module,
+            "module_structure": model_to_typed_dict(module_structure),
+            "module": module_to_dict(module),
         }
 
     async def save_module(self, state: ModuleAgentState) -> None:
         """Сохраняет модуль, чтобы результат был доступен после завершения операции."""
 
-        module = state["module"]  # type: ignore
+        module = dict_to_module(state["module"])  # type: ignore
         async with session_factory() as session:
             try:
                 repo = self._module_repo(session)
@@ -161,7 +162,7 @@ class ModuleAgent:
         module_id: UUID,
         audience_description: str,
         learning_objectives: list[str],
-    ) -> tuple[int, Lesson]:
+    ) -> tuple[int, LessonDict]:
         async with self.semaphore:
             lesson_thread_id = (
                 f"course:{generation_context.course_id}:module:{module_id}:lesson:{order}"
@@ -186,13 +187,12 @@ class ModuleAgent:
     async def generate_lessons(
         self,
         state: ModuleAgentState,
-    ) -> dict[str, Module]:
+    ) -> dict[str, ModuleDict]:
         """Генерация уроков по структуре модуля"""
 
         module_structure, module = state["module_structure"], state["module"]  # type: ignore
-        module = deepcopy(module)
         start_time = time.monotonic()
-        total_lessons = len(module_structure.lessons_descriptions)
+        total_lessons = len(module_structure["lessons_descriptions"])
 
         logger.info("Start generate %s lessons ...", total_lessons)
         async with TaskGroup() as tg:
@@ -202,18 +202,18 @@ class ModuleAgent:
                         order=order,
                         lesson_description=desc,
                         generation_context=state["generation_context"],
-                        module_id=module.id,
+                        module_id=module["id"],
                         audience_description=state["audience_description"],
-                        learning_objectives=module_structure.learning_objectives,
+                        learning_objectives=module_structure["learning_objectives"],
                     )
                 )
-                for order, desc in enumerate(module_structure.lessons_descriptions, start=1)
+                for order, desc in enumerate(module_structure["lessons_descriptions"], start=1)
             ]
 
         # Собираем результаты в правильном порядке
         lessons_by_order = sorted(task.result() for task in tasks)
         for _, lesson in lessons_by_order:
-            module.lessons.append(lesson)
+            module["lessons"].append(lesson)
 
         logger.info(
             "Successfully generated %s lessons, spent time %s seconds",
@@ -225,7 +225,7 @@ class ModuleAgent:
 
 def build_module_graph(
     agent: ModuleAgent,
-    checkpointer: BaseCheckpointSaver,
+    checkpointer: AsyncRedisSaver,
 ) -> CompiledStateGraph[ModuleAgentState]:
     graph = StateGraph(ModuleAgentState)
 

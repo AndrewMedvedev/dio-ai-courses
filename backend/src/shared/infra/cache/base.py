@@ -1,3 +1,12 @@
-from ddf.application.cache import Cache
+from typing import Protocol
 
-__all__ = ["Cache"]
+
+class Cache[T](Protocol):
+
+    async def get(self, key: str) -> T | None: ...
+
+    async def set(self, key: str, value: T, ttl: int | None = None) -> None: ...
+
+    async def delete(self, key: str) -> None: ...
+
+    async def exists(self, key: str) -> bool: ...

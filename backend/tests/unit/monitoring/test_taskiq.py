@@ -1,8 +1,7 @@
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
-from taskiq import TaskiqEvents, TaskiqMessage, TaskiqResult, TaskiqState
-from taskiq.abc.middleware import TaskiqMiddleware
+from taskiq import TaskiqMessage, TaskiqResult
 from taskiq.exceptions import NoResultError
 from taskiq.middlewares import SmartRetryMiddleware
 from taskiq_aio_pika import AioPikaBroker
@@ -14,19 +13,16 @@ MIN_DELAY = 10
 MAX_DELAY = 100
 
 
-def test_broker_queues_results_and_metrics_are_worker_only(load_core, monkeypatch):
+def test_broker_queues_results_and_metrics(load_core):
     module = load_core("tkq")
     assert isinstance(module.taskiq_broker, AioPikaBroker)
     assert module.taskiq_broker._task_queues[0].name == "myapp_tasks"
     assert module.taskiq_broker._delay_queue.name == "myapp_tasks.delay"
     assert isinstance(module.taskiq_broker.result_backend, RedisAsyncResultBackend)
     assert module.taskiq_broker.result_backend.result_ex_time == RESULT_TTL
-    assert len(module.taskiq_broker.middlewares) == 1
-    metrics = Mock(spec=TaskiqMiddleware)
-    monkeypatch.setattr(module, "PrometheusMiddleware", Mock(return_value=metrics))
-    module.setup_worker_metrics(TaskiqState())
-    assert module.taskiq_broker.middlewares[-1] is metrics
-    module.PrometheusMiddleware.assert_called_once()
+    assert len(module.taskiq_broker.middlewares) == 2
+    assert module.taskiq_broker.middlewares[-1] is module.PrometheusMiddleware.return_value
+    module.PrometheusMiddleware.assert_called_once_with(server_port=9000)
 
 
 @pytest.mark.asyncio

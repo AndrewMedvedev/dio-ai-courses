@@ -23,6 +23,7 @@ redis.__path__ = []
 sys.modules[redis.__name__] = redis
 redis_config = ModuleType("smoke_core.redis.config")
 redis_config.redis_config = SimpleNamespace(url=os.environ["TEST_REDIS_URL"])
+redis.redis_config = redis_config.redis_config
 sys.modules[redis_config.__name__] = redis_config
 
 

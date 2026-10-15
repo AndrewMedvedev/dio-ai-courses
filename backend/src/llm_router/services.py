@@ -204,6 +204,20 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
 
 
 class LLMTextRouter(LLMRouter):
+    def __init__(
+        self,
+        ai_model_repos: SqlAIModelRepository,
+        event_publisher: EventPublisher,
+        client: AsyncOpenAI,
+        wrapper: CacheAIModelsProtocol,
+    ) -> None:
+        super().__init__(
+            ai_model_repos=ai_model_repos,
+            event_publisher=event_publisher,
+            client=client,
+            wrapper=wrapper,
+        )
+
     @traceable(run_type="chain", name="CallTextLLM")
     async def call_llm(
         self,

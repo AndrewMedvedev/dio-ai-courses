@@ -12,8 +12,8 @@ def test_api_connects_instrumentation_once():
     source = ast.parse((CORE / "fastapi.py").read_text(encoding="utf-8"))
     calls = [node for node in ast.walk(source) if isinstance(node, ast.Call)]
     names = [node.func.id for node in calls if isinstance(node.func, ast.Name)]
-    assert names.count("setup_prometheus") == 1
-    assert "Instrumentator" not in names
+    assert names.count("Instrumentator") == 1
+    assert "setup_prometheus" not in names
 
 
 def test_single_metrics_route_and_middleware(metrics_app):

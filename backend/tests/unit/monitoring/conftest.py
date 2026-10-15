@@ -3,6 +3,7 @@ import sys
 from functools import partial
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from fastapi import FastAPI
@@ -26,6 +27,7 @@ def load_core(monkeypatch):
     monkeypatch.setitem(sys.modules, redis.__name__, redis)
     redis_config = ModuleType("monitoring_test_core.redis.config")
     redis_config.redis_config = SimpleNamespace(url="redis://localhost:6379/15")
+    redis.redis_config = redis_config.redis_config
     monkeypatch.setitem(sys.modules, redis_config.__name__, redis_config)
 
     def load(relative_path):
@@ -33,7 +35,14 @@ def load_core(monkeypatch):
         spec = importlib.util.spec_from_file_location(name, CORE / f"{relative_path}.py")
         module = importlib.util.module_from_spec(spec)
         monkeypatch.setitem(sys.modules, name, module)
-        spec.loader.exec_module(module)
+        if relative_path == "tkq":
+            from taskiq.abc.middleware import TaskiqMiddleware
+
+            with monkeypatch.context() as isolated:
+                isolated.setattr("taskiq.PrometheusMiddleware", Mock(return_value=Mock(spec=TaskiqMiddleware)))
+                spec.loader.exec_module(module)
+        else:
+            spec.loader.exec_module(module)
         return module
 
     return load
