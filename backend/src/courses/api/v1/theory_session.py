@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.courses.application.dtos import LessonTheorySessionEditSchema, LessonTheorySessionFilters
 from src.courses.dependencies.base import DBSession, TheorySessionRepoDep
-from src.courses.dependencies.services import CheckAccessDep
+from src.courses.dependencies.services import CheckLessonAccessDep
 from src.courses.domain.entities import LessonTheorySession
 from src.courses.domain.permissions.courses import READ as READ_COURSE
 from src.courses.domain.permissions.theory_session import READ
@@ -25,15 +25,15 @@ router = APIRouter(prefix="/theory/session", tags=["Theory Session"])
 )
 async def create(
     identity: CurrentIdentity,
-    check_access: CheckAccessDep,
+    check_access: CheckLessonAccessDep,
     repo: TheorySessionRepoDep,
     session: DBSession,
     lesson_id: UUID,
 ) -> LessonTheorySession:
-    await check_access.lesson(
+    await check_access(
         identity=identity,
         permission=READ_COURSE,
-        lesson_id=lesson_id,
+        uid=lesson_id,
     )
     result = await repo.create(LessonTheorySession(lesson_id=lesson_id, user_id=identity.id))
     await session.commit()
@@ -67,14 +67,14 @@ async def update(
 async def get(
     user_id: UUID,
     repo: TheorySessionRepoDep,
-    check_access: CheckAccessDep,
+    check_access: CheckLessonAccessDep,
     identity: CurrentIdentity,
     lesson_id: UUID,
     filters: Annotated[LessonTheorySessionFilters, Query()],
 ) -> list[LessonTheorySession]:
-    await check_access.lesson(
+    await check_access(
         identity=identity,
         permission=READ,
-        lesson_id=lesson_id,
+        uid=lesson_id,
     )
     return await repo.find(lesson_id=lesson_id, user_id=user_id, filters=filters)

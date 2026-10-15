@@ -117,6 +117,10 @@ def test_metric_legends_are_explicit_and_loki_uses_supported_interval(path):
             "src.courses.agents.course_generator.workflow:generate_course",
             "Генерация курса",
         ),
+        ("taskiq", "courses.generate_course", "Генерация курса"),
+        ("taskiq", "courses.generate_module", "Генерация модуля"),
+        ("taskiq", "courses.generate_lesson", "Генерация урока"),
+        ("taskiq", "courses.index_lesson", "Индексация урока"),
     ],
 )
 def test_operation_legends_are_readable(dashboard_name, original, expected):

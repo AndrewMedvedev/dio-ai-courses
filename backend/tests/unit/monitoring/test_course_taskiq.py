@@ -41,6 +41,7 @@ def course_tools(monkeypatch):
     sdk.tool = lambda **_kwargs: lambda function: function
     schemas = ModuleType("isolated_courses.agents.schemas")
     schemas.Context = GenerationContext
+    schemas.GenerationContext = GenerationContext
     schemas.RuntimeContext = Runtime
     monkeypatch.setitem(sys.modules, schemas.__name__, schemas)
     repository = ModuleType("isolated_courses.infra.database.repos.document")
@@ -53,6 +54,7 @@ def course_tools(monkeypatch):
     spec = importlib.util.spec_from_file_location("isolated_courses.agents.tools", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    module.generate_course = workflow.generate_course
     return module
 
 
@@ -64,13 +66,9 @@ async def test_complete_interview_awaits_taskiq_and_returns_task_id(course_tools
         state=SimpleNamespace(task_id=None),
     )
     course_tools.generate_course.kiq.return_value = SimpleNamespace(task_id="taskiq-id")
-    result = await course_tools.complete_interview("prompt", runtime)
+    result = await course_tools.send_course_for_generation("prompt", runtime)
     course_tools.generate_course.kiq.assert_awaited_once_with(
-        generation_context={
-            "user_id": str(user_id),
-            "course_id": str(course_id),
-            "prompt": "prompt",
-        },
+        context=GenerationContext(user_id=user_id, course_id=course_id, prompt="prompt"),
     )
     assert runtime.state.task_id == "taskiq-id"
     assert "task_id=taskiq-id" in result
@@ -84,5 +82,5 @@ async def test_queue_failure_does_not_report_success(course_tools):
     )
     course_tools.generate_course.kiq.side_effect = ConnectionError("Test broker failure")
     with pytest.raises(ConnectionError, match="Test broker failure"):
-        await course_tools.complete_interview("prompt", runtime)
+        await course_tools.send_course_for_generation("prompt", runtime)
     assert runtime.state.task_id is None

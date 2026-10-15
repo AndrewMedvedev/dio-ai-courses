@@ -10,7 +10,6 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ../monitoring/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
@@ -21,15 +20,30 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    command: >
-      sh -c 'mkdir -p /tmp/taskiq-metrics && exec taskiq worker
-      src.core.taskiq:broker src.courses.agents.course_generator.workflow
-      --workers 1 --max-async-tasks 4 --ack-type when_saved'
     restart: unless-stopped
+    command:
+      - taskiq
+      - worker
+      - src.core.tkq:taskiq_broker
+      - src.courses.agents.course_generator.workflow
+      - --workers
+      - "${TASKIQ_WORKERS:-1}"
+      - --max-async-tasks
+      - "${TASKIQ_MAX_ASYNC_TASKS:-25}"
+      - --ack-type
+      - when_saved
+      - --shutdown-timeout
+      - "600"
+      - --wait-tasks-timeout
+      - "600"
+    env_file:
+      - ${BACKEND_ENV_FILE:-../.env.prod}
     environment:
       PROMETHEUS_MULTIPROC_DIR: /tmp/taskiq-metrics
     tmpfs:
       - /tmp/taskiq-metrics
+    expose:
+      - "9000"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -38,9 +52,9 @@ services:
       postgres:
         condition: service_healthy
       qdrant:
-        condition: service_started
-    env_file:
-      - ${BACKEND_ENV_FILE:-../.env.prod}
+        condition: service_healthy
+    stop_grace_period: 10m
+
 
 
 volumes:

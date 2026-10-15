@@ -116,9 +116,10 @@ docker compose up -d --no-deps rabbitmq taskiq prometheus-ai loki-ai alloy alert
 
 При переносе с Dramatiq сначала завершите его текущие задачи и разберите старую
 очередь: формат сообщений Taskiq другой, автоматического переноса нет.
-Рабочая очередь Taskiq — `courses.taskiq`, максимальная параллельность — 4,
+Рабочая очередь Taskiq — `myapp_tasks`, параллельность задаётся TASKIQ_MAX_ASYNC_TASKS (по умолчанию 25),
 результаты Redis хранятся 10 минут. Таймаут генерации — 5 часов, при ошибке
-допускается 6 повторов. Логика генерации и её контрольных точек не менялась.
+параметры повторов берутся из нового main (src/core/tkq.py и workflow.py).
+Логика генерации и её контрольных точек не менялась.
 
 В Compose нужны `POSTGRES_USERNAME`, `POSTGRES_PASSWORD`, `POSTGRES_DB`,
 `POSTGRES_PORT`, `REDIS_PASSWORD`, `RABBIT_USERNAME`, `RABBIT_PASSWORD`,

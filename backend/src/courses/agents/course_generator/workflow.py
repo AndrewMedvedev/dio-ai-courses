@@ -1,40 +1,138 @@
-from typing import Any
-
 import logging
+from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 
-from src.core.database import session_factory
-from src.core.taskiq import broker
+from src.core.tkq import taskiq_broker
+from src.courses.dependencies.agents import CourseAgentDep, LessonAgentDep, ModuleAgentDep
+from src.courses.dependencies.base import LessonRepoDep, VectorRepoDep
+from src.courses.utils.formatting import get_content_blocks_context
 
-from ...infra.services import course_client
-from ..schemas import RuntimeContext
+from ..schemas import Context, GenerationContext
 from .helper import invoke_or_resume
-from .nodes import Context, agent
 
 logger = logging.getLogger(__name__)
 
+RETRY_OPTS = {"retry_on_error": True, "max_retries": 5, "delay": 10, "timeout": 5 * 60 * 60}
 
-@broker.task(retry_on_error=True, timeout=5 * 60 * 60)
-async def generate_course(generation_context: dict[str, Any]) -> dict[str, str]:
-    """Генерирует курс, чтобы автоматически подготовить часть учебного контента."""
-    context = Context(**generation_context)
+
+@taskiq_broker.task(
+    task_name="courses.index_lesson",
+    retry_on_error=True,
+    max_retries=2,
+    delay=5,
+    timeout=60,
+)
+async def index_lesson(
+    course_id: UUID,
+    lesson_id: UUID,
+    lesson_repo: LessonRepoDep,
+    vector_repo: VectorRepoDep,
+) -> None:
+    lesson = await lesson_repo.read(lesson_id)
+    if lesson is None:
+        return
+    await vector_repo.create(
+        text=get_content_blocks_context(lesson.content_blocks),
+        metadata={
+            "course_id": f"{course_id}",
+            "lesson_id": f"{lesson.id}",
+            "source": f"{lesson.title}",
+            "category": "theory",
+        },
+    )
+
+
+@taskiq_broker.task(task_name="courses.generate_course", **RETRY_OPTS)
+async def generate_course(context: Context, agent: CourseAgentDep) -> dict[str, UUID]:
     try:
-        async with session_factory() as session:
-            await invoke_or_resume(
-                graph=agent,
-                input_data={"generation_context": context},
-                config=RunnableConfig(
-                    configurable={
-                        "thread_id": f"course:{context.course_id}",
-                    }
-                ),
-                context=RuntimeContext(db_session=session, client=course_client),
-            )
-            return {"course_id": str(context.course_id)}
+        await invoke_or_resume(
+            graph=agent,
+            input_data={"generation_context": context},
+            config=RunnableConfig(
+                configurable={
+                    "thread_id": f"course:{context.course_id}",
+                }
+            ),
+        )
     except Exception:
         logger.exception(
             "Course generation failed: course_id=%s",
             context.course_id,
         )
         raise
+    return {"course_id": context.course_id}
+
+
+@taskiq_broker.task(task_name="courses.generate_module", **RETRY_OPTS)
+async def generate_module(
+    context: GenerationContext,
+    audience_description: str,
+    learning_objectives: list[str],
+    description: str,
+    agent: ModuleAgentDep,
+) -> dict[str, UUID | int]:
+    try:
+        await invoke_or_resume(
+            graph=agent,
+            input_data={
+                "generation_context": context,
+                "audience_description": audience_description,
+                "learning_objectives": learning_objectives,
+                "order": context.order,
+                "module_description": description,
+            },
+            config=RunnableConfig(
+                configurable={
+                    "thread_id": f"course:{context.course_id}:module:{context.order}",
+                }
+            ),
+        )
+    except Exception:
+        logger.exception(
+            "Module generation failed: course_id=%s order=%s",
+            context.course_id,
+            context.order,
+        )
+        raise
+    return {"course_id": context.course_id, "module_order": context.order}
+
+
+@taskiq_broker.task(task_name="courses.generate_lesson", **RETRY_OPTS)
+async def generate_lesson(
+    context: GenerationContext,
+    audience_description: str,
+    learning_objectives: list[str],
+    description: str,
+    agent: LessonAgentDep,
+) -> dict[str, UUID | int]:
+    try:
+        await invoke_or_resume(
+            graph=agent,
+            input_data={
+                "generation_context": context,
+                "module_id": context.module_id,
+                "audience_description": audience_description,
+                "learning_objectives": learning_objectives,
+                "order": context.order,
+                "lesson_description": description,
+            },
+            config=RunnableConfig(
+                configurable={
+                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{context.order}",  # noqa: E501
+                }
+            ),
+        )
+    except Exception:
+        logger.exception(
+            "Lesson generation failed: course_id=%s module_id=%s order=%s",
+            context.course_id,
+            context.module_id,
+            context.order,
+        )
+        raise
+    return {
+        "course_id": context.course_id,
+        "module_id": context.module_id,  # pyright: ignore[reportReturnType]
+        "lesson_order": context.order,
+    }

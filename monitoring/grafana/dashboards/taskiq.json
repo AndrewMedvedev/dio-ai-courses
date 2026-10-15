@@ -436,8 +436,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -530,8 +551,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -607,7 +649,7 @@
             "type": "prometheus",
             "uid": "prometheus_main"
           },
-          "expr": "sum(rabbitmq_queue_messages_ready{job=\"rabbitmq\",queue=\"courses.taskiq\"})",
+          "expr": "sum(rabbitmq_queue_messages_ready{job=\"rabbitmq\",queue=\"myapp_tasks\"})",
           "refId": "A",
           "instant": true,
           "range": false,
@@ -652,7 +694,7 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "expr": "sum(rabbitmq_queue_messages_unacked{job=\"rabbitmq\",queue=\"courses.taskiq\"})",
+          "expr": "sum(rabbitmq_queue_messages_unacked{job=\"rabbitmq\",queue=\"myapp_tasks\"})",
           "refId": "A",
           "legendFormat": "Задачи без подтверждения",
           "instant": false,
@@ -704,7 +746,7 @@
             "uid": "prometheus_main"
           },
           "editorMode": "code",
-          "expr": "sum(rabbitmq_queue_consumers{job=\"rabbitmq\",queue=\"courses.taskiq\"})",
+          "expr": "sum(rabbitmq_queue_consumers{job=\"rabbitmq\",queue=\"myapp_tasks\"})",
           "refId": "A",
           "legendFormat": "Получатели рабочей очереди",
           "instant": false,
@@ -795,8 +837,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -930,8 +993,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -1012,8 +1096,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -1094,8 +1199,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -1176,8 +1302,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
@@ -1271,8 +1418,29 @@
         {
           "id": "renameByRegex",
           "options": {
-            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course/",
+            "regex": "/src\\.courses\\.agents\\.course_generator\\.workflow:generate_course|courses\\.generate_course/",
             "renamePattern": "Генерация курса"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_module/",
+            "renamePattern": "Генерация модуля"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.generate_lesson/",
+            "renamePattern": "Генерация урока"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "/courses\\.index_lesson/",
+            "renamePattern": "Индексация урока"
           }
         }
       ]
