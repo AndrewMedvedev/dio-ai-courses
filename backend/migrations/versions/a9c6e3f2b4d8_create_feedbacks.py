@@ -1,7 +1,7 @@
 """Создать таблицу отзывов о платформе.
 
 Revision ID: a9c6e3f2b4d8
-Revises:
+Revises: h4c9f2b6e1a7
 """
 
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = "a9c6e3f2b4d8"
-down_revision = None
+down_revision = "h4c9f2b6e1a7"
 branch_labels = None
 depends_on = None
 

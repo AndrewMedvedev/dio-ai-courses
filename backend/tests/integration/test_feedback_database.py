@@ -13,7 +13,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
-from src.core.database import get_db, postgres_config
+from src.core.database import get_db
+from src.core.settings import settings
 from src.feedback.api.v1.feedback import router as feedback_router
 from src.feedback.application.dtos import FeedbackFilters
 from src.feedback.application.services import FeedbackService
@@ -35,10 +36,10 @@ from src.shared.utils.time import current_datetime
 async def feedback_engine() -> AsyncIterator[AsyncEngine]:
     if os.getenv("RUN_FEEDBACK_DB_TESTS") != "1":
         pytest.skip("Установите RUN_FEEDBACK_DB_TESTS=1 для тестов с PostgreSQL")
-    if postgres_config.host not in {"localhost", "127.0.0.1"}:
+    if settings.postgres.host not in {"localhost", "127.0.0.1"}:
         pytest.fail("Интеграционные тесты feedback разрешены только на локальной PostgreSQL")
 
-    engine = create_async_engine(postgres_config.uri, hide_parameters=True)
+    engine = create_async_engine(settings.postgres.sqlalchemy_url, hide_parameters=True)
     try:
         async with engine.connect() as connection:
             assert await connection.scalar(text("SELECT to_regclass('public.feedbacks')")) == "feedbacks"
@@ -108,7 +109,6 @@ async def test_feedback_http_round_trip_uses_postgres(feedback_session: AsyncSes
     user_id = uuid4()
     publisher = AsyncMock()
     identity = Identity(
-        organization_id=uuid4(),
         id=user_id,
         type=IdentityType.USER,
         email=Email("test@example.com"),

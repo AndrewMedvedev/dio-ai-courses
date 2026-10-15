@@ -1,6 +1,7 @@
 # pyright: reportOptionalSubscript=false, reportArgumentType=false, reportGeneralTypeIssues=false, reportOptionalIterable=false
 from typing import Any, Literal
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
@@ -81,7 +82,7 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
         self.runtime = runtime
 
     async def _send_request(self, request: RequestT, path: str) -> ResponseT:
-        async with self._client._get_token_session() as session:
+        async with self._client._get_token_session() as session:  # ruff: ignore[private-member-access]
             response = await session.post(url=path, json=request.model_dump(exclude_none=True))
             return self.response_model.model_validate(await response.json())
 

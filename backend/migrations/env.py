@@ -9,6 +9,8 @@ from src.core.database import Base, import_all_models, postgres_config
 from src.core.settings import settings
 from src.core.settings import INSTALLED_MODULES
 import_all_models(INSTALLED_MODULES)
+from src.feedback.infra.database import models as feedback_models  # noqa: F401, E402
+from src.llm_router.infra import models as llm_router_models  # noqa: F401, E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
