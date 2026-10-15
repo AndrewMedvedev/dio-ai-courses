@@ -40,7 +40,7 @@ async def test_get_models_returns_models(
 
     try:
         response = await client.post(
-            "/api/v1/ai/models/search",
+            "/api/v1/ai-models/search",
             json={
                 "page": 1,
                 "size": 50,
@@ -85,7 +85,7 @@ async def test_add_model_creates_model_and_commits(
 
     try:
         response = await client.post(
-            "/api/v1/ai/models",
+            "/api/v1/ai-models",
             json={
                 "name": "gpt-5-mini",
                 "description": "Test model",
@@ -132,7 +132,7 @@ async def test_delete_model_deletes_model_and_commits(
 
     try:
         response = await client.delete(
-            f"/api/v1/ai/models/{uid}",
+            f"/api/v1/ai-models/{uid}",
         )
     finally:
         app.dependency_overrides.clear()
@@ -158,7 +158,7 @@ async def test_delete_model_returns_422_for_invalid_uuid(
 
     try:
         response = await client.delete(
-            "/api/v1/ai/models/not-a-uuid",
+            "/api/v1/ai-models/not-a-uuid",
         )
     finally:
         app.dependency_overrides.clear()

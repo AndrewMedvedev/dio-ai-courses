@@ -19,7 +19,8 @@ def _create_app() -> FastAPI:
 
     @app.get("/request-id")
     async def read_request_id(_: Request) -> dict[str, str | None]:
-        return {"context": get_request_id()}
+        request_id = get_request_id()
+        return {"context": str(request_id) if request_id else None}
 
     return app
 

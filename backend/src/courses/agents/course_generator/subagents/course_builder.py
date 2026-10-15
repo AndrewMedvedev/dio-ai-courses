@@ -18,7 +18,7 @@ from src.courses.application.domain_dtos import CourseDict, CourseStructureDict,
 from src.courses.application.mappers import course_to_dict, dict_to_course, model_to_typed_dict
 from src.courses.application.repos import CourseRepository
 from src.courses.domain.entities import Course
-from src.courses.domain.enums import CourseStatus
+from src.courses.domain.vo import CourseStatus
 from src.courses.infra.services.client import SrvCourseClient
 from src.llm_service import LLMTextService, Runtime
 
