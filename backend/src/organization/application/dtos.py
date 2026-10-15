@@ -38,4 +38,3 @@ class InvitationCreate(BaseModel):
 
     email: EmailStr
     granted_roles: set[RoleId]
-    organization_id: UUID
