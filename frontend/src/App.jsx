@@ -10,11 +10,14 @@ import {
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Breadcrumbs from "./components/Breadcrumbs";
+import Toaster from "./components/Toaster";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import CoursePage from "./pages/CoursePage";
-import CourseInvitationAcceptPage from "./pages/CourseInvitationAcceptPage";
+import InvitationAcceptPage, {
+  InvitationLinkRedirect,
+} from "./pages/InvitationAcceptPage";
 import CourseViewer from "./components/course/CourseViewer";
 import BlockPage from "./pages/BlockPage";
 import LessonPage from "./pages/LessonPage";
@@ -34,6 +37,7 @@ import { useRouteScrollRestoration } from "./hooks/useRouteScrollRestoration";
 import { useTeacherGroups } from "./hooks/useTeacherGroups";
 import {
   COURSE_PERMISSIONS,
+  INVITATION_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   usePermissionStore,
 } from "./stores/permissionStore";
@@ -117,6 +121,8 @@ function AppContent() {
     canReadOwnOrganization,
     canUpdateOrganization,
     canDeleteOrganization,
+    canInviteToSystem,
+    canInviteToOrganization,
     canManageOrganizations,
     canCreateModel,
     canDeleteModel,
@@ -1557,8 +1563,22 @@ function AppContent() {
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/register" element={<AuthPage mode="register" />} />
               <Route
+                path="/invitations/:type/accept/:token"
+                element={<InvitationAcceptPage />}
+              />
+              {/* Адреса из писем бэкенда. /auth/invite/accept — ссылка из письма
+                  о приглашении в организацию для уже зарегистрированных. */}
+              <Route
                 path="/courses/invitations/accept/:token"
-                element={<CourseInvitationAcceptPage />}
+                element={<InvitationLinkRedirect type="course" />}
+              />
+              <Route
+                path="/organizations/invitations/accept/:token"
+                element={<InvitationLinkRedirect type="organization" />}
+              />
+              <Route
+                path="/auth/invite/accept/:token"
+                element={<InvitationLinkRedirect type="organization" />}
               />
               <Route
                 path="/course/:courseId"
@@ -1579,7 +1599,10 @@ function AppContent() {
               <Route
                 element={
                   <ProtectedRoute
-                    permissions={Object.values(ORGANIZATION_PERMISSIONS)}
+                    permissions={[
+                      ...Object.values(ORGANIZATION_PERMISSIONS),
+                      ...Object.values(INVITATION_PERMISSIONS),
+                    ]}
                     requireAll={false}
                   />
                 }
@@ -1593,6 +1616,8 @@ function AppContent() {
                       canReadOwnOrganization={canReadOwnOrganization}
                       canUpdateOrganization={canUpdateOrganization}
                       canDeleteOrganization={canDeleteOrganization}
+                      canInviteToSystem={canInviteToSystem}
+                      canInviteToOrganization={canInviteToOrganization}
                     />
                   }
                 />
@@ -1665,6 +1690,7 @@ function AppContent() {
         )}
       </main>
       <Footer canCreateCourse={canCreateCourse} canReadCourse={canReadCourse} />
+      <Toaster />
     </div>
   );
 }

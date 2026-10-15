@@ -25,7 +25,7 @@
 }
 
 .course-invite-modal {
-    width: min(620px, 100%);
+    width: min(760px, 100%);
     max-height: calc(100dvh - min(10vh, 96px) - 24px);
     display: flex;
     flex-direction: column;
@@ -45,14 +45,14 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 22px 24px 14px;
+    padding: 28px 32px 16px;
 }
 
 .course-invite-eyebrow {
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     color: var(--eyebrow);
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -61,14 +61,14 @@
 .course-invite-head h2 {
     margin: 0;
     color: var(--heading, var(--text));
-    font-size: 1.45rem;
+    font-size: 1.85rem;
     line-height: 1.2;
 }
 
 .course-invite-head p {
-    margin: 6px 0 0;
+    margin: 8px 0 0;
     color: var(--muted);
-    font-size: 0.92rem;
+    font-size: 1.02rem;
     overflow-wrap: anywhere;
 }
 
@@ -77,21 +77,21 @@
     flex: none;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border: 1px solid var(--invite-border);
     border-radius: 999px;
     background: transparent;
     color: var(--muted);
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     line-height: 1;
     cursor: pointer;
 }
 
 .course-invite-remove {
-    width: 30px;
-    height: 30px;
-    font-size: 1.1rem;
+    width: 34px;
+    height: 34px;
+    font-size: 1.25rem;
 }
 
 .course-invite-close:hover:not(:disabled),
@@ -103,8 +103,8 @@
 .course-invite-tabs {
     display: flex;
     gap: 6px;
-    margin: 0 24px;
-    padding: 4px;
+    margin: 0 32px;
+    padding: 5px;
     border: 1px solid var(--invite-border);
     border-radius: 999px;
     width: max-content;
@@ -113,9 +113,10 @@
 .course-invite-tabs button {
     border: 0;
     border-radius: 999px;
-    padding: 7px 16px;
+    padding: 9px 20px;
     background: transparent;
     color: var(--muted);
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
 }
@@ -127,8 +128,8 @@
 
 .course-invite-body {
     display: grid;
-    gap: 18px;
-    padding: 18px 24px;
+    gap: 22px;
+    padding: 22px 32px;
     overflow-y: auto;
     overscroll-behavior: contain;
 }
@@ -142,7 +143,7 @@
 .course-invite-roles legend {
     padding: 0;
     color: var(--text);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 800;
 }
 
@@ -150,7 +151,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 6px 6px 16px;
+    padding: 7px 7px 7px 20px;
     border: 1px solid var(--invite-border);
     border-radius: 999px;
     background: var(--invite-row);
@@ -160,6 +161,10 @@
 .course-invite-input:focus-within {
     border-color: rgba(var(--accent-rgb), 0.85);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
+.course-invite-input.is-plain {
+    padding: 13px 20px;
 }
 
 .course-invite-input.has-error {
@@ -174,16 +179,17 @@
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 0.98rem;
+    font-size: 1.08rem;
 }
 
 .course-invite-add {
     flex: none;
     border: 1px solid rgba(var(--accent-rgb), 0.7);
     border-radius: 999px;
-    padding: 8px 14px;
+    padding: 10px 18px;
     background: rgba(var(--accent-rgb), 0.16);
     color: var(--ink-accent);
+    font-size: 0.98rem;
     font-weight: 700;
     cursor: pointer;
 }
@@ -196,8 +202,8 @@
 .course-invite-hint,
 .course-invite-error {
     margin: 0;
-    font-size: 0.82rem;
-    line-height: 1.45;
+    font-size: 0.92rem;
+    line-height: 1.5;
 }
 
 .course-invite-hint {
@@ -214,7 +220,7 @@
 
 .course-invite-list {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -222,10 +228,10 @@
 
 .course-invite-row {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 12px 14px;
     border: 1px solid var(--invite-border);
     border-radius: 16px;
     background: var(--invite-row);
@@ -242,10 +248,11 @@
 .course-invite-avatar {
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border-radius: 999px;
     background: rgba(var(--accent-rgb), 0.24);
+    font-size: 1.05rem;
     color: var(--ink-accent);
     font-weight: 800;
 }
@@ -260,13 +267,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
 }
 
 .course-invite-who small {
     color: var(--muted);
-    font-size: 0.8rem;
-    line-height: 1.35;
+    font-size: 0.9rem;
+    line-height: 1.4;
 }
 
 .course-invite-row.is-new .course-invite-who small {
@@ -286,10 +293,10 @@
 }
 
 .course-invite-badge {
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 999px;
     border: 1px solid var(--invite-border);
-    font-size: 0.76rem;
+    font-size: 0.86rem;
     font-weight: 800;
     white-space: nowrap;
 }
@@ -329,10 +336,10 @@
     position: relative;
     display: grid;
     align-content: start;
-    gap: 6px;
-    padding: 14px;
+    gap: 8px;
+    padding: 18px;
     border: 1px solid var(--invite-border);
-    border-radius: 16px;
+    border-radius: 18px;
     background: var(--invite-row);
     cursor: pointer;
     transition:
@@ -347,13 +354,13 @@
 }
 
 .course-invite-role strong {
-    font-size: 0.95rem;
+    font-size: 1.08rem;
 }
 
 .course-invite-role small {
     color: var(--muted);
-    font-size: 0.78rem;
-    line-height: 1.4;
+    font-size: 0.88rem;
+    line-height: 1.45;
 }
 
 .course-invite-role:hover {
@@ -384,19 +391,20 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 14px 24px 20px;
+    gap: 12px;
+    padding: 18px 32px 26px;
     border-top: 1px solid var(--invite-border);
 }
 
 .course-invite-summary {
     margin-right: auto;
     color: var(--muted);
-    font-size: 0.86rem;
+    font-size: 0.95rem;
 }
 
 .course-invite-foot .btn {
-    padding: 10px 18px;
+    padding: 13px 24px;
+    font-size: 1.02rem;
 }
 
 .course-invite-foot .btn:disabled {
@@ -443,6 +451,20 @@
     .course-invite-tabs {
         margin-inline: 16px;
     }
+
+    .course-invite-head h2 {
+        font-size: 1.5rem;
+    }
+
+    /* на телефоне счётчик уже виден на кнопке «Пригласить (N)» */
+    .course-invite-summary {
+        display: none;
+    }
+
+    .course-invite-foot .btn {
+        padding: 12px 18px;
+        white-space: nowrap;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -454,30 +476,38 @@
 
 /* ───── страница принятия приглашения ───── */
 .course-invite-accept-card {
-    width: min(560px, 100%);
-    margin: 32px auto 0;
+    width: min(680px, 100%);
+    margin: 40px auto 0;
     display: grid;
-    gap: 14px;
-    padding: 28px;
+    gap: 18px;
+    padding: 44px 40px;
     text-align: center;
 }
 
 .course-invite-accept-card h2 {
     margin: 0;
+    font-size: clamp(1.6rem, 2.6vw, 2.15rem);
+    line-height: 1.2;
 }
 
 .course-invite-accept-card p {
     margin: 0;
     color: var(--muted);
-    line-height: 1.55;
+    font-size: 1.1rem;
+    line-height: 1.6;
 }
 
 .course-invite-accept-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
-    margin-top: 6px;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.course-invite-accept-actions .btn {
+    padding: 14px 26px;
+    font-size: 1.05rem;
 }
 
 /* ───── ожидающие приглашения и отзыв ───── */
@@ -489,7 +519,7 @@
 .course-invite-subtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 0.78rem;
+    font-size: 0.86rem;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -505,10 +535,10 @@
     flex: none;
     border: 1px solid var(--invite-border);
     border-radius: 999px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     background: transparent;
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
@@ -549,5 +579,73 @@
 @media (max-width: 640px) {
     .course-invite-actions .course-invite-badge {
         display: none;
+    }
+}
+
+/* ───── статус на странице принятия приглашения ───── */
+.invite-accept-icon {
+    justify-self: center;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb), 0.22);
+    color: var(--success-text);
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.invite-accept-icon.is-error {
+    background: rgba(199, 82, 74, 0.14);
+    color: #b8443c;
+}
+
+.page[data-theme="dark"] .invite-accept-icon.is-error {
+    color: #f0978f;
+}
+
+.invite-accept-icon.is-pending {
+    border: 3px solid rgba(var(--accent-rgb), 0.3);
+    border-top-color: rgba(var(--accent-rgb), 0.95);
+    background: transparent;
+    width: 48px;
+    height: 48px;
+    animation: invite-accept-spin 0.9s linear infinite;
+}
+
+.course-invite-accept-card .invite-accept-identity {
+    font-size: 1rem;
+}
+
+.course-invite-accept-card .invite-accept-identity strong {
+    color: var(--text);
+}
+
+@keyframes invite-accept-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .invite-accept-icon.is-pending {
+        animation-duration: 2.4s;
+    }
+}
+
+/* Выбор ролей в приглашении в систему/организацию: карточки как у ролей курса,
+   но число ролей заранее неизвестно — раскладываем по две в ряд. */
+.invite-roles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.invite-roles > p {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+    .invite-roles {
+        grid-template-columns: 1fr;
     }
 }

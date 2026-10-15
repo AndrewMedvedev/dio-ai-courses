@@ -17,6 +17,12 @@ export const ORGANIZATION_PERMISSIONS = {
   DELETE: "organization:delete",
 };
 
+// Приглашения: invitations.invite — в систему, organization-invitations.invite — в организацию.
+export const INVITATION_PERMISSIONS = {
+  SYSTEM_INVITE: "invitations:invite",
+  ORGANIZATION_INVITE: "organization-invitations:invite",
+};
+
 export const AI_MODEL_PERMISSIONS = {
   CREATE: "ai_model:create",
   DELETE: "ai_model:delete",

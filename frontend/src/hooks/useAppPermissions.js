@@ -1,6 +1,7 @@
 import {
   AI_MODEL_PERMISSIONS,
   COURSE_PERMISSIONS,
+  INVITATION_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   usePermissionStore,
 } from "../stores/permissionStore";
@@ -71,10 +72,22 @@ export function useAppPermissions() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(ORGANIZATION_PERMISSIONS.DELETE);
+  const canInviteToSystem =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(INVITATION_PERMISSIONS.SYSTEM_INVITE);
+  const canInviteToOrganization =
+    isAuthenticated &&
+    arePermissionsLoaded &&
+    hasPermission(INVITATION_PERMISSIONS.ORGANIZATION_INVITE);
+  // Раздел «Организации» нужен и тем, у кого есть только права на приглашения.
   const canManageOrganizations =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasAnyPermission(Object.values(ORGANIZATION_PERMISSIONS));
+    hasAnyPermission([
+      ...Object.values(ORGANIZATION_PERMISSIONS),
+      ...Object.values(INVITATION_PERMISSIONS),
+    ]);
   const canCreateModel =
     isAuthenticated &&
     arePermissionsLoaded &&
@@ -102,6 +115,8 @@ export function useAppPermissions() {
     canReadOwnOrganization,
     canUpdateOrganization,
     canDeleteOrganization,
+    canInviteToSystem,
+    canInviteToOrganization,
     canManageOrganizations,
     canCreateModel,
     canDeleteModel,

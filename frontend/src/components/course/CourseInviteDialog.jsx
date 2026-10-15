@@ -7,11 +7,13 @@ import {
   fetchCourseInvitationsPage,
   fetchCourseMembersPage,
   fetchUserById,
-  findUserByEmail,
   inviteToCourse,
   revokeCourseInvitation,
 } from "../../utils/api";
 import { getErrorMessage } from "../../utils/errors";
+import { notify } from "../../stores/toastStore";
+import EmailRowsField from "../invite/EmailRowsField";
+import { useEmailRows } from "../invite/useEmailRows";
 import "./course-invite.css";
 
 export const COURSE_ROLES = [
@@ -53,19 +55,10 @@ function formatDate(value) {
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_EMAILS = 20;
 const MEMBERS_PAGE_SIZE = 20;
 
 const fullNameOf = (user) => user?.full_name || user?.fullName || "";
 const memberUserId = (member) => member?.user_id || member?.userId || "";
-
-function userTitle(user) {
-  if (!user) return "";
-  const name = fullNameOf(user);
-  const username = user.username ? `@${user.username}` : "";
-  return [name, username].filter(Boolean).join(" · ");
-}
 
 function inviteErrorMessage(error, roleLabel) {
   if (error?.status === 403) {
@@ -88,12 +81,10 @@ export default function CourseInviteDialog({
   const titleId = useId();
   const inputId = useId();
   const inputRef = useRef(null);
-  const lookupCache = useRef(new Map());
   const userCache = useRef(new Map());
   const [tab, setTab] = useState("invite");
-  const [draft, setDraft] = useState("");
-  const [draftError, setDraftError] = useState("");
-  const [rows, setRows] = useState([]);
+  const emails = useEmailRows();
+  const { draft, rows, reset: resetEmails, sendAll } = emails;
   const [role, setRole] = useState("student");
   const [isSending, setIsSending] = useState(false);
   const [members, setMembers] = useState({
@@ -109,83 +100,6 @@ export default function CourseInviteDialog({
   const [revokingId, setRevokingId] = useState("");
   const [revokeError, setRevokeError] = useState("");
   const [, forceUsersRender] = useState(0);
-
-  const updateRow = useCallback((email, patch, onlyIfStatus = null) => {
-    setRows((current) =>
-      current.map((row) =>
-        row.email === email && (!onlyIfStatus || row.status === onlyIfStatus)
-          ? { ...row, ...patch }
-          : row,
-      ),
-    );
-  }, []);
-
-  const checkEmail = useCallback(
-    async (email) => {
-      if (lookupCache.current.has(email)) {
-        const user = lookupCache.current.get(email);
-        updateRow(email, { status: user ? "found" : "new", user }, "checking");
-        return;
-      }
-      try {
-        const user = await findUserByEmail(email);
-        lookupCache.current.set(email, user);
-        updateRow(email, { status: user ? "found" : "new", user }, "checking");
-      } catch {
-        // Проверка — только подсказка: приглашение всё равно можно отправить.
-        updateRow(email, { status: "unknown", user: null }, "checking");
-      }
-    },
-    [updateRow],
-  );
-
-  const addEmails = useCallback(
-    (raw) => {
-      const parts = String(raw || "")
-        .split(/[\s,;]+/)
-        .map((part) => part.trim().toLowerCase())
-        .filter(Boolean);
-      if (!parts.length) return [];
-
-      const invalid = parts.filter((part) => !EMAIL_RE.test(part));
-      const valid = parts.filter((part) => EMAIL_RE.test(part));
-      const existing = new Set(rows.map((row) => row.email));
-      const fresh = [...new Set(valid)].filter((email) => !existing.has(email));
-      const room = Math.max(0, MAX_EMAILS - rows.length);
-      const accepted = fresh.slice(0, room);
-
-      if (accepted.length) {
-        setRows((current) => [
-          ...current,
-          ...accepted.map((email) => ({
-            email,
-            status: "checking",
-            user: null,
-            message: "",
-          })),
-        ]);
-        accepted.forEach(checkEmail);
-      }
-
-      if (invalid.length) {
-        setDraftError(`Некорректный email: ${invalid.join(", ")}`);
-        setDraft(invalid.join(", "));
-        return false;
-      }
-      if (fresh.length > room) {
-        setDraftError(`За один раз можно пригласить до ${MAX_EMAILS} человек.`);
-      } else {
-        setDraftError("");
-      }
-      setDraft("");
-      return accepted;
-    },
-    [checkEmail, rows],
-  );
-
-  const removeRow = (email) => {
-    setRows((current) => current.filter((row) => row.email !== email));
-  };
 
   const loadMembers = useCallback(
     async (page) => {
@@ -304,9 +218,7 @@ export default function CourseInviteDialog({
     setPending(EMPTY_LIST);
     setConfirmRevokeId("");
     setRevokeError("");
-    setRows([]);
-    setDraft("");
-    setDraftError("");
+    resetEmails();
     setRole("student");
     setMembers({
       items: [],
@@ -348,46 +260,33 @@ export default function CourseInviteDialog({
     }
   }, [canViewMembers, loadPending, open, pending.page, tab]);
 
-  const pendingRows = rows.filter(
-    (row) => row.status !== "sent" && row.status !== "revoked",
-  );
-  const sentCount = rows.filter((row) => row.status === "sent").length;
   const roleLabel = COURSE_ROLE_LABEL[role];
 
   const send = async () => {
     if (isSending) return;
-    let added = [];
-    if (draft.trim()) {
-      const result = addEmails(draft);
-      if (result === false) return;
-      added = result;
-    }
-    const targets = [...pendingRows.map((row) => row.email), ...added];
-    if (!targets.length) {
-      setDraftError("Добавьте хотя бы один email.");
+    setIsSending(true);
+    const result = await sendAll(
+      (email) => inviteToCourse({ courseId, email, role }),
+      (error) => inviteErrorMessage(error, roleLabel),
+    );
+    setIsSending(false);
+    if (!result) {
       inputRef.current?.focus();
       return;
     }
-    setIsSending(true);
-    for (const email of targets) {
-      updateRow(email, { status: "sending", message: "" });
-      try {
-        const created = await inviteToCourse({ courseId, email, role });
-        updateRow(email, {
-          status: "sent",
-          invitationId: created?.id || "",
-          message: `Приглашение отправлено · ${roleLabel}`,
-        });
-      } catch (error) {
-        updateRow(email, {
-          status: "error",
-          message: inviteErrorMessage(error, roleLabel),
-        });
-      }
-    }
-    setIsSending(false);
     if (members.page > 0) setMembers((current) => ({ ...current, page: 0 }));
     setPending((current) => (current.page > 0 ? { ...current, page: 0 } : current));
+    const { sent, total } = result;
+    if (!sent.length) return;
+
+    notify(
+      sent.length === 1
+        ? `Приглашение отправлено на ${sent[0]} · ${roleLabel}`
+        : `Отправлено приглашений: ${sent.length} · ${roleLabel}`,
+    );
+    // Всё ушло — закрываем окно, форма очистится при следующем открытии.
+    // Если часть адресов с ошибкой — в списке остаются только они.
+    if (sent.length === total) onClose();
   };
 
   const memberRows = members.items.map((member) => {
@@ -467,126 +366,12 @@ export default function CourseInviteDialog({
 
         {tab === "invite" ? (
           <div className="course-invite-body">
-            <div className="course-invite-field">
-              <label htmlFor={inputId}>Email</label>
-              <div className={`course-invite-input ${draftError ? "has-error" : ""}`}>
-                <input
-                  ref={inputRef}
-                  id={inputId}
-                  type="text"
-                  inputMode="email"
-                  autoComplete="off"
-                  placeholder="name@example.com"
-                  value={draft}
-                  disabled={isSending}
-                  onChange={(event) => {
-                    setDraft(event.target.value);
-                    if (draftError) setDraftError("");
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === "," || event.key === ";") {
-                      event.preventDefault();
-                      addEmails(draft);
-                    } else if (event.key === "Backspace" && !draft && rows.length && !isSending) {
-                      removeRow(rows[rows.length - 1].email);
-                    }
-                  }}
-                  onBlur={() => draft.trim() && addEmails(draft)}
-                  onPaste={(event) => {
-                    const text = event.clipboardData.getData("text");
-                    if (/[\s,;]/.test(text.trim())) {
-                      event.preventDefault();
-                      addEmails(`${draft} ${text}`);
-                    }
-                  }}
-                  aria-describedby={`${inputId}-hint`}
-                  aria-invalid={Boolean(draftError)}
-                />
-                <button
-                  type="button"
-                  className="course-invite-add"
-                  onClick={() => addEmails(draft)}
-                  disabled={!draft.trim() || isSending}
-                >
-                  Добавить
-                </button>
-              </div>
-              <small
-                id={`${inputId}-hint`}
-                className={draftError ? "course-invite-error" : "course-invite-hint"}
-                role={draftError ? "alert" : undefined}
-              >
-                {draftError ||
-                  "Enter или запятая — добавить. Можно вставить сразу несколько адресов."}
-              </small>
-            </div>
-
-            {rows.length ? (
-              <ul className="course-invite-list" aria-live="polite">
-                {rows.map((row) => (
-                  <li key={row.email} className={`course-invite-row is-${row.status}`}>
-                    <span className="course-invite-avatar" aria-hidden="true">
-                      {(fullNameOf(row.user) || row.email).slice(0, 1).toUpperCase()}
-                    </span>
-                    <span className="course-invite-who">
-                      <strong>{row.email}</strong>
-                      <small>
-                        {row.status === "checking"
-                          ? "Проверяем…"
-                          : row.status === "found"
-                            ? userTitle(row.user) || "Есть в системе"
-                            : row.status === "new"
-                              ? "Нет в системе — получит ещё и приглашение на регистрацию"
-                              : row.status === "unknown"
-                                ? "Не удалось проверить — приглашение всё равно можно отправить"
-                                : row.status === "sending"
-                                  ? "Отправляем…"
-                                  : row.message}
-                      </small>
-                    </span>
-                    {row.status === "sent" ? (
-                      <span className="course-invite-actions">
-                        <span className="course-invite-badge is-ok">Отправлено</span>
-                        {row.invitationId ? (
-                          <button
-                            type="button"
-                            className={`course-invite-revoke ${confirmRevokeId === row.invitationId ? "is-confirm" : ""}`}
-                            onClick={() =>
-                              revoke(row.invitationId, () =>
-                                updateRow(row.email, {
-                                  status: "revoked",
-                                  message: "Приглашение отозвано",
-                                }),
-                              )
-                            }
-                            disabled={Boolean(revokingId) || isSending}
-                          >
-                            {revokingId === row.invitationId
-                              ? "Отзываем…"
-                              : confirmRevokeId === row.invitationId
-                                ? "Точно отозвать?"
-                                : "Отозвать"}
-                          </button>
-                        ) : null}
-                      </span>
-                    ) : row.status === "revoked" ? (
-                      <span className="course-invite-badge">Отозвано</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="course-invite-remove"
-                        onClick={() => removeRow(row.email)}
-                        disabled={isSending}
-                        aria-label={`Убрать ${row.email}`}
-                        title="Убрать"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <EmailRowsField
+              id={inputId}
+              inputRef={inputRef}
+              emails={emails}
+              disabled={isSending}
+            />
 
             <fieldset className="course-invite-roles" disabled={isSending}>
               <legend>Роль в курсе</legend>
@@ -725,7 +510,7 @@ export default function CourseInviteDialog({
         {tab === "invite" ? (
           <footer className="course-invite-foot">
             <span className="course-invite-summary" aria-live="polite">
-              {sentCount ? `Отправлено: ${sentCount}` : ""}
+              {rows.length > 1 ? `Адресов: ${rows.length}` : ""}
             </span>
             <button
               type="button"
@@ -733,18 +518,21 @@ export default function CourseInviteDialog({
               onClick={onClose}
               disabled={isSending}
             >
-              {sentCount && !pendingRows.length ? "Готово" : "Отмена"}
+              Отмена
             </button>
             <button
               type="button"
               className="btn btn-solid"
+              // Не уводим фокус из поля: иначе blur добавит строку, окно вырастет
+              // и кнопка «уедет» из-под курсора до того, как сработает click.
+              onMouseDown={(event) => event.preventDefault()}
               onClick={send}
-              disabled={isSending || (!pendingRows.length && !draft.trim())}
+              disabled={isSending || (!rows.length && !draft.trim())}
             >
               {isSending
                 ? "Отправляем…"
-                : pendingRows.length > 1
-                  ? `Пригласить (${pendingRows.length})`
+                : rows.length > 1
+                  ? `Пригласить (${rows.length})`
                   : "Пригласить"}
             </button>
           </footer>
