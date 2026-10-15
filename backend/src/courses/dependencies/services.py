@@ -1,12 +1,15 @@
 # pyright: reportArgumentType=false
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends
 
 from src.courses.application.repos import IAMRepository, OrganizationRepository
 from src.courses.infra.external_apis import IAMClient, invite_user_in_organization
 from src.shared.dependencies.database import DBSession, TransactionDep
+from src.shared.domain.exceptions import NotFoundError
 
+from ..application.repos import ProgressRepository
 from ..application.check_access import CheckAccess
 from ..application.services.course import CourseService
 from ..application.services.document import DocumentService
@@ -14,14 +17,19 @@ from ..application.services.invitations import InvitationService
 from ..application.services.lesson import LessonService
 from ..application.services.member import MemberService
 from ..application.services.module import ModuleService
+from ..application.services.progress import LearningProgressService
+from ..domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ..infra.services import course_client
 from .base import (
     CourseRepoDep,
+    CourseProgressRepoDep,
     DocumentRepoDep,
     InvitationRepoDep,
     LessonRepoDep,
-    MemberRepoDep,
+    LessonProgressRepoDep,
     ModuleRepoDep,
+    ModuleProgressRepoDep,
+    MemberRepoDep,
 )
 
 
@@ -129,6 +137,32 @@ def get_invitation_service(
     )
 
 
+def get_learning_progress_service(
+    session: DBSession,
+    progress_repo: LessonProgressRepoDep,
+    course_progress_repo: CourseProgressRepoDep,
+    module_progress_repo: ModuleProgressRepoDep,
+) -> LearningProgressService:
+    """Возвращает сервис для управления прогрессом по урокам."""
+    return LearningProgressService(
+        progress_repo=progress_repo,
+        course_progress_repo=course_progress_repo,
+        module_progress_repo=module_progress_repo,
+        session=session,
+    )
+
+
+async def get_progress[ProgressT: CourseProgress | ModuleProgress | LessonProgress](
+    user_id: UUID,
+    resource_id: UUID,
+    repo: ProgressRepository[ProgressT],
+) -> ProgressT:
+    progress = await repo.get_by_user(user_id, resource_id)
+    if progress is None:
+        raise NotFoundError("Progress was not found")
+    return progress
+
+
 LessonServiceDep = Annotated[LessonService, Depends(get_lesson_service)]
 ModuleServiceDep = Annotated[ModuleService, Depends(get_module_service)]
 CourseServiceDep = Annotated[CourseService, Depends(get_course_service)]
@@ -138,3 +172,6 @@ CheckCourseAccessDep = Annotated[CheckAccess, Depends(get_check_course_access)]
 CheckModuleAccessDep = Annotated[CheckAccess, Depends(get_check_module_access)]
 CheckLessonAccessDep = Annotated[CheckAccess, Depends(get_check_lesson_access)]
 InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
+LearningProgressServiceDep = Annotated[
+    LearningProgressService, Depends(get_learning_progress_service)
+]
