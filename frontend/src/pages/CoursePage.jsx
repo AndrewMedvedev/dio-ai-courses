@@ -1,7 +1,9 @@
 // Страница деталей выбранного курса с описанием, блоками и лидербордом
 import { Fragment, useState } from "react";
 import SectionTop from "../components/SectionTop";
+import CourseInviteDialog from "../components/course/CourseInviteDialog";
 import { useGoBack } from "../hooks/useGoBack";
+import { useSessionStore } from "../stores/sessionStore";
 
 export default function CoursePage({
   selectedCourse,
@@ -24,6 +26,10 @@ export default function CoursePage({
 }) {
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [statusAction, setStatusAction] = useState("");
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const currentUserId = useSessionStore(
+    (state) => state.identity?.id || state.user?.id || "",
+  );
   const goBack = useGoBack({ fallbackPath: "/courses" });
 
   if (!canReadCourse) {
@@ -97,6 +103,16 @@ export default function CoursePage({
   return (
     <section className="container section course-details-view">
       <SectionTop label="Курс" title={selectedCourse.title} />
+      {canUpdateCourse ? (
+        <CourseInviteDialog
+          open={isInviteOpen}
+          onClose={() => setIsInviteOpen(false)}
+          courseId={selectedCourse.id}
+          courseTitle={selectedCourse.title}
+          canViewMembers
+          currentUserId={currentUserId}
+        />
+      ) : null}
       <button
         type="button"
         className="btn btn-outline back-btn"
@@ -107,6 +123,15 @@ export default function CoursePage({
         &lt;
       </button>
       <div className="course-page-actions">
+        {canUpdateCourse && selectedCourse.status !== "archived" && (
+          <button
+            type="button"
+            className="btn btn-outline course-invite-toggle"
+            onClick={() => setIsInviteOpen(true)}
+          >
+            Пригласить
+          </button>
+        )}
         {canUpdateCourse && !isCourseEditMode && (
           <button
             type="button"

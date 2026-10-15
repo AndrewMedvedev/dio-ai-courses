@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import session_factory
 from src.courses.agents.course_generator.subagents.repos import TheoryAgent
-from src.courses.agents.course_generator.workflow import index_lesson
 from src.courses.agents.schemas import Context
 from src.courses.application.domain_dtos import (
     LessonDict,
@@ -253,6 +252,8 @@ class LessonAgent:
             except IntegrityError:
                 await session.rollback()
                 logger.info("Lesson %s alredy exsists", lesson.title)
+        from src.courses.agents.course_generator.workflow import index_lesson
+
         await index_lesson.kiq(  # pyright: ignore[reportCallIssue]
             course_id=state["generation_context"].course_id,
             lesson_id=lesson.id,

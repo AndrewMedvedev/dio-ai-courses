@@ -57,8 +57,8 @@ class InvitationService:
             )
         else:
             membership = await self.membership_repo.get_user_membership(
-                user.id,
-                identity.organization_id,
+                organization_id=identity.organization_id,
+                user_id=user.id,
             )
             if membership is not None:
                 raise AlreadyExistsError("User already has a membership in this organization")

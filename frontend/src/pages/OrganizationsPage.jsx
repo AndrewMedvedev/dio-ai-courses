@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTop from "../components/SectionTop";
+import InviteDialog from "../components/invite/InviteDialog";
 import { useSessionStore } from "../stores/sessionStore";
 import {
   createOrganization,
@@ -197,6 +198,7 @@ function OrganizationDetails({
   onEditChange,
   onUpdate,
   onDelete,
+  headerActions = null,
 }) {
   if (!organization) return null;
 
@@ -207,14 +209,19 @@ function OrganizationDetails({
           <span className="organization-kicker">{title}</span>
           <h3>{organization.name}</h3>
         </div>
-        {canUpdateOrganization && !isEditing && (
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={onStartEdit}
-          >
-            Редактировать
-          </button>
+        {(headerActions || (canUpdateOrganization && !isEditing)) && (
+          <div className="organization-panel-actions">
+            {headerActions}
+            {canUpdateOrganization && !isEditing && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={onStartEdit}
+              >
+                Редактировать
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -290,8 +297,12 @@ export default function OrganizationsPage({
   canReadOwnOrganization = false,
   canUpdateOrganization = false,
   canDeleteOrganization = false,
+  canInviteToSystem = false,
+  canInviteToOrganization = false,
 }) {
   const organizationId = useSessionStore((state) => state.organizationId);
+  // { kind: "organization" | "system", organization } — открытое окно приглашения.
+  const [inviteTarget, setInviteTarget] = useState(null);
   const [activeSection, setActiveSection] = useState("current");
   const [currentOrganization, setCurrentOrganization] = useState(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState(null);
@@ -622,6 +633,38 @@ export default function OrganizationsPage({
     }
   };
 
+  // В организацию приглашаем только в текущую (из контекста сессии),
+  // в систему — в ту организацию, которая сейчас открыта.
+  const renderInviteActions = (organization) => {
+    const targetId = organization?.id || organizationId;
+    if (!targetId) return null;
+    const canInviteHere = canInviteToOrganization && targetId === organizationId;
+    if (!canInviteHere && !canInviteToSystem) return null;
+    const target = organization || { id: targetId, name: "" };
+    return (
+      <>
+        {canInviteHere && (
+          <button
+            type="button"
+            className="btn btn-solid"
+            onClick={() => setInviteTarget({ kind: "organization", organization: target })}
+          >
+            Пригласить в организацию
+          </button>
+        )}
+        {canInviteToSystem && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setInviteTarget({ kind: "system", organization: target })}
+          >
+            Пригласить в систему
+          </button>
+        )}
+      </>
+    );
+  };
+
   const renderDetails = (organization, title) => (
     <OrganizationDetails
       organization={organization}
@@ -639,6 +682,7 @@ export default function OrganizationsPage({
       }
       onUpdate={handleUpdate}
       onDelete={handleDelete}
+      headerActions={renderInviteActions(organization)}
     />
   );
 
@@ -765,6 +809,11 @@ export default function OrganizationsPage({
                     В сессии нет organization_id или данные организации
                     недоступны.
                   </p>
+                  {organizationId && renderInviteActions(null) && (
+                    <div className="organization-panel-actions">
+                      {renderInviteActions(null)}
+                    </div>
+                  )}
                 </article>
               )}
             </>
@@ -908,6 +957,14 @@ export default function OrganizationsPage({
           )}
         </div>
       </div>
+
+      <InviteDialog
+        open={Boolean(inviteTarget)}
+        kind={inviteTarget?.kind}
+        organizationId={inviteTarget?.organization?.id}
+        organizationName={inviteTarget?.organization?.name}
+        onClose={() => setInviteTarget(null)}
+      />
     </section>
   );
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -11,6 +11,9 @@ from src.shared.application.dtos import BaseQueryParamFilters
 
 from ..domain.enums import ContentType, DifficultyLevel
 from ..domain.vo import MemberRole
+
+if TYPE_CHECKING:
+    from ..domain.entities import Invitation
 
 
 class Chat(BaseModel):
@@ -108,3 +111,29 @@ class InvitationCreate(BaseModel):
     course_id: UUID
     email: EmailStr
     role: MemberRole
+
+
+class InvitationResponse(BaseModel):
+    """Приглашение на курс для списков — без токена из письма."""
+
+    id: UUID
+    course_id: UUID
+    email: EmailStr
+    role: MemberRole
+    user_id: UUID | None = None
+    invited_by: UUID
+    created_at: datetime
+    expires_at: datetime
+
+    @classmethod
+    def from_entity(cls, invitation: Invitation) -> InvitationResponse:
+        return cls(
+            id=invitation.id,
+            course_id=invitation.course_id,
+            email=invitation.email.value,
+            role=invitation.role,
+            user_id=invitation.user_id,
+            invited_by=invitation.invited_by,
+            created_at=invitation.created_at,
+            expires_at=invitation.expires_at,
+        )
