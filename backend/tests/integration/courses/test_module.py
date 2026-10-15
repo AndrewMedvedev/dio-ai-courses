@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.courses.domain.vo import CourseStatus, DifficultyLevel
+from src.courses.domain.enums import CourseStatus, DifficultyLevel
 from src.courses.infra.database.repos.module import SqlModuleRepository
 from src.courses.infra.models import CourseOrm, LessonOrm, ModuleOrm
 

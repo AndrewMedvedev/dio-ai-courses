@@ -16,11 +16,18 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from uuid import UUID
 
 from src.courses.domain.vo import MemberRole
+from src.courses.infra.services.client import SrvCourseClient
+from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
+from src.iam.application.dtos import UserResponse
+from src.iam.domain.entities import Invitation as IAMInvitation
+from src.iam.domain.entities import Membership
+from src.organization.application.dtos import InvitationCreate as OrganizationInvitationCreate
+from src.organization.domain.entities import Invitation as OrganizationInvitation
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.repos import Repository
 from src.shared.domain.vo import Email
@@ -62,6 +69,11 @@ class BasicInfoProtocol[EntityT: Entity, BasicInfoT](Repository[EntityT]):
     async def get_by_id_basic_info(self, uid: UUID) -> BasicInfoT | None:
         """Возвращает краткую информацию о сущности без загрузки всех данных."""
 
+    async def read_course_ownership(
+        self,
+        uid: UUID,
+    ) -> tuple[UUID, UUID] | None: ...
+
 
 class LessonRepository(BasicInfoProtocol[Lesson, LessonBasicInfo]):
     """
@@ -73,6 +85,10 @@ class LessonRepository(BasicInfoProtocol[Lesson, LessonBasicInfo]):
     (`get_content_blocks_by_id`, `replace_content_block`) и привязку
     списка уроков к модулю (`assign_module`).
     """
+
+    async def create_at(self, lesson: Lesson) -> Lesson: ...
+
+    async def delete_and_compact(self, lesson_id: UUID) -> None: ...
 
     async def get_content_blocks_by_id(self, lesson_id: UUID) -> list[AnyContentBlock] | None:
         """Получает контент-блоки урока для отображения или редактирования."""
@@ -101,6 +117,10 @@ class ModuleRepository(BasicInfoProtocol[Module, ModuleBasicInfo]):
     принадлежащим модулю (`select_lessons_by_id_module`).
     """
 
+    async def create_at(self, module: Module) -> Module: ...
+
+    async def delete_and_compact(self, module_id: UUID) -> None: ...
+
     async def assign_course(self, module_id: UUID, course_id: UUID) -> None:
         """Привязывает модуль к курсу и сохраняет структуру курса."""
 
@@ -126,7 +146,7 @@ class CourseRepository(BasicInfoProtocol[Course, CourseBasicInfo]):
         pagination: Pagination,
     ) -> Page[Course]: ...
 
-    async def find_user_courses(
+    async def find_member_courses(
         self,
         user_id: UUID,
         pagination: Pagination,
@@ -135,7 +155,7 @@ class CourseRepository(BasicInfoProtocol[Course, CourseBasicInfo]):
         """Выбирает краткие данные модулей, входящих в указанный курс."""
         ...
 
-    async def find_student_courses(
+    async def find_members(
         self,
         user_id: UUID,
         pagination: Pagination,
@@ -264,3 +284,41 @@ class InvitationRepository(Repository[Invitation]):
         email: Email,
         course_id: UUID,
     ) -> Invitation | None: ...
+
+
+class VectorRepository(Protocol):
+    async def create(self, text: str, metadata: dict[str, Any] | None = None) -> None: ...
+
+    async def read(
+        self,
+        query: str,
+        limit: int = 5,
+        prefetch_limit: int = 25,
+        metadata_filters: dict[str, Any] | None = None,
+    ) -> list[str]: ...
+
+
+class IAMRepository(Protocol):
+    async def get_user_by_email(
+        self,
+        email: str,
+    ) -> UserResponse | None: ...
+
+    async def invite_user_in_system(
+        self,
+        dto: IAMInvitationCreate,
+    ) -> IAMInvitation | None: ...
+
+    async def get_user_membership(
+        self,
+        organization_id: UUID,
+        user_id: UUID,
+    ) -> Membership | None: ...
+
+
+class OrganizationRepository(Protocol):
+    async def __call__(
+        self,
+        client: SrvCourseClient,
+        dto: OrganizationInvitationCreate,
+    ) -> OrganizationInvitation | None: ...

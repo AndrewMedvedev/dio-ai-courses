@@ -5,7 +5,7 @@ import pytest
 from langchain_core.documents import Document
 
 from src.courses.application.services.document import DocumentService
-from src.courses.domain.vo import DocumentNodeType
+from src.courses.domain.enums import DocumentNodeType
 
 
 @pytest.fixture

@@ -28,7 +28,7 @@ async def create_invitations(
     service: InvitationServiceDep,
     identity: CurrentIdentity,
 ) -> Invitation:
-    return await service.create(dto=dto, invited_by=identity.id)
+    return await service.create(dto=dto, identity=identity)
 
 
 @router.post(

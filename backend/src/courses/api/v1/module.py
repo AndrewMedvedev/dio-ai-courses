@@ -4,7 +4,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 
 from src.courses.application.dtos import EditModuleSchema, ModuleSchema
-from src.courses.dependencies.services import CheckAccessDep, ModuleServiceDep
+from src.courses.dependencies.services import (
+    CheckCourseAccessDep,
+    CheckModuleAccessDep,
+    ModuleServiceDep,
+)
 from src.courses.domain.entities import Module
 from src.courses.domain.permissions.courses import CREATE, DELETE, READ, UPDATE
 from src.iam.dependencies import CurrentIdentity, require_permissions
@@ -37,15 +41,15 @@ async def create(
 )
 async def assign(
     service: ModuleServiceDep,
-    check_access: CheckAccessDep,
+    check_access: CheckCourseAccessDep,
     identity: CurrentIdentity,
     module_id: UUID,
     course_id: UUID,
 ) -> None:
-    await check_access.course(
+    await check_access(
         identity=identity,
         permission=UPDATE,
-        course_id=course_id,
+        uid=course_id,
     )
     await service.assign_course(module_id=module_id, course_id=course_id)
 
@@ -58,14 +62,14 @@ async def assign(
 )
 async def get_module_basic_info(
     service: ModuleServiceDep,
-    check_access: CheckAccessDep,
+    check_access: CheckModuleAccessDep,
     identity: CurrentIdentity,
     module_id: UUID,
 ):
-    await check_access.module(
+    await check_access(
         identity=identity,
         permission=READ,
-        module_id=module_id,
+        uid=module_id,
     )
     return await service.get_basic_info(module_id)
 
@@ -77,16 +81,16 @@ async def get_module_basic_info(
     status_code=status.HTTP_200_OK,
 )
 async def edit_module(
-    check_access: CheckAccessDep,
+    check_access: CheckModuleAccessDep,
     identity: CurrentIdentity,
     service: ModuleServiceDep,
     module_id: UUID,
     schema: EditModuleSchema,
 ) -> Module:
-    await check_access.module(
+    await check_access(
         identity=identity,
         permission=UPDATE,
-        module_id=module_id,
+        uid=module_id,
     )
     return await service.edit(module_id=module_id, schema=schema)
 
@@ -99,14 +103,14 @@ async def edit_module(
     dependencies=[Depends(require_permissions(DELETE.code))],
 )
 async def delete(
-    check_access: CheckAccessDep,
+    check_access: CheckModuleAccessDep,
     identity: CurrentIdentity,
     service: ModuleServiceDep,
     module_id: UUID,
 ) -> None:
-    await check_access.module(
+    await check_access(
         identity=identity,
         permission=DELETE,
-        module_id=module_id,
+        uid=module_id,
     )
     return await service.delete(module_id=module_id)

@@ -8,7 +8,7 @@ import pytest
 from src.courses.application.dtos import CourseSchema, EditCourseSchema
 from src.courses.application.services.course import CourseService
 from src.courses.domain.entities import Course
-from src.courses.domain.vo import CourseStatus, DifficultyLevel
+from src.courses.domain.enums import CourseStatus, DifficultyLevel
 from src.shared.domain.exceptions import NotFoundError
 
 

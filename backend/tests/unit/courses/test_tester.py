@@ -7,7 +7,7 @@ import pytest
 from src.courses.agents.external_agents.tester import TesterAgent as KnowledgeTesterAgent
 from src.courses.domain.entities import Practice
 from src.courses.domain.events import LessonProgressUpdated
-from src.courses.domain.vo import PracticeStatus
+from src.courses.domain.enums import PracticeStatus
 from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import NotFoundError
 

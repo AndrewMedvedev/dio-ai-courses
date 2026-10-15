@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.courses.domain.vo import DocumentNodeType
+from src.courses.domain.enums import DocumentNodeType
 from src.courses.infra.database.repos.document import SqlDocumentRepository
 from src.courses.infra.models import DocumentOrm
 

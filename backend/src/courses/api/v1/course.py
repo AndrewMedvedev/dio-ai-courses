@@ -3,12 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ...application.dtos import CourseSchema, EditCourseSchema
-from ...dependencies.base import CourseRepoDep
-from ...dependencies.services import CheckAccessDep, CourseServiceDep
-from ...domain.entities import Course, CourseBasicInfo
-from ...domain.permissions.courses import CREATE, DELETE, UPDATE
-from ...domain.vo import CourseStatus
+from src.courses.application.dtos import CourseSchema, EditCourseSchema
+from src.courses.dependencies.base import CourseRepoDep
+from src.courses.dependencies.services import CheckCourseAccessDep, CourseServiceDep
+from src.courses.domain.entities import Course, CourseBasicInfo
+from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
+from src.courses.domain.vo import CourseStatus
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
@@ -101,7 +101,14 @@ async def edit_course(
     service: CourseServiceDep,
     course_id: UUID,
     schema: EditCourseSchema,
+    check_access: CheckCourseAccessDep,
+    identity: CurrentIdentity,
 ) -> Course:
+    await check_access(
+        identity=identity,
+        permission=UPDATE,
+        uid=course_id,
+    )
     return await service.edit(course_id, schema)
 
 
@@ -114,8 +121,15 @@ async def edit_course(
 )
 async def publish_course(
     service: CourseServiceDep,
+    check_access: CheckCourseAccessDep,
+    identity: CurrentIdentity,
     course_id: UUID,
 ) -> None:
+    await check_access(
+        identity=identity,
+        permission=UPDATE,
+        uid=course_id,
+    )
     await service.change_status(course_id=course_id, status=CourseStatus.PUBLISHED)
 
 
@@ -127,9 +141,16 @@ async def publish_course(
     dependencies=[Depends(require_permissions(DELETE.code))],
 )
 async def delete_course(
+    check_access: CheckCourseAccessDep,
+    identity: CurrentIdentity,
     service: CourseServiceDep,
     course_id: UUID,
 ) -> None:
+    await check_access(
+        identity=identity,
+        permission=DELETE,
+        uid=course_id,
+    )
     await service.change_status(course_id=course_id, status=CourseStatus.ARCHIVED)
 
 
@@ -140,12 +161,12 @@ async def delete_course(
 async def invite_only_course(
     service: CourseServiceDep,
     course_id: UUID,
-    check_access: CheckAccessDep,
+    check_access: CheckCourseAccessDep,
     identity: CurrentIdentity,
 ) -> None:
-    await check_access.course(
+    await check_access(
         identity=identity,
         permission=UPDATE,
-        course_id=course_id,
+        uid=course_id,
     )
     await service.change_status(course_id=course_id, status=CourseStatus.INVITE_ONLY)

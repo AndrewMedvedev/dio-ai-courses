@@ -13,8 +13,9 @@ from src.shared.utils.time import current_datetime
 
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
+from ...domain.enums import PracticeStatus
 from ...domain.events import LessonProgressUpdated, LessonProgressUpdate
-from ...domain.vo import FileUploadAssignment, PracticeStatus
+from ...domain.vo import FileUploadAssignment
 from ...infra.services.client import SrvCourseClient
 from ..course_generator.subagents.prompts import FILE_UPLOAD_PROMPT
 from ..prompts import ASSIGNMENT_PROMPT, PRACTICE_FILE_CHECKER_PROMPT
@@ -41,7 +42,6 @@ class PracticerAgent:
         module_id: UUID,
         lesson_id: UUID,
     ) -> dict[str, Any]:
-        """Создает практическое задание для студента на основе теории урока и его предыдущих практик."""
         lesson = await self.lesson_repo.read(lesson_id)
         if lesson is None:
             raise NotFoundError(message="Урок не найден")
