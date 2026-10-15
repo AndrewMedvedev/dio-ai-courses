@@ -471,7 +471,7 @@ requires-dist = [
     { name = "taskiq-aio-pika", specifier = ">=0.6.1" },
     { name = "taskiq-fastapi", specifier = ">=0.5.0" },
     { name = "taskiq-faststream", specifier = ">=0.1.6" },
-    { name = "taskiq-redis", specifier = ">=1.2.4" },
+    { name = "taskiq-redis", specifier = ">=1.2.2" },
     { name = "tiktoken", specifier = ">=0.13.0" },
     { name = "types-passlib", specifier = ">=1.7.7.20260211" },
     { name = "types-pytz", specifier = ">=2026.2.0.20260506" },

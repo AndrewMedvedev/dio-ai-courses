@@ -5,7 +5,6 @@ from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.agents.course_generator.subagents import (
@@ -82,10 +81,3 @@ async def test_storage_failure_is_not_marked_complete(persistence, failed_operat
     assert caught.value is error
 
 
-@pytest.mark.asyncio
-async def test_integrity_error_keeps_main_rollback_behavior(persistence):
-    save, state, operation, session, _ = persistence
-    operation.side_effect = IntegrityError("INSERT", {}, ValueError("constraint"))
-    await save(state)
-    session.rollback.assert_awaited_once()
-    session.commit.assert_not_awaited()

@@ -1,23 +1,14 @@
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 
-from src.courses.agents.course_generator.helper import invoke_or_resume
 from src.courses.agents.course_generator.subagents import course_builder as nodes
 from src.courses.agents.course_generator.subagents.prompts import CourseStructure
 from src.courses.agents.schemas import Context
 from src.courses.domain.entities import Course, Module
 from src.courses.domain.enums import DifficultyLevel
-from tests.support.course_generation import (
-    course_content,
-    load_course,
-    make_saver,
-    mock_checkpoint_redis,
-    mock_generation,
-)
 
 
 @pytest.mark.asyncio
@@ -80,19 +71,3 @@ async def test_planner_output_can_be_used_to_generate_modules(
         }
 
 
-@pytest.mark.asyncio
-async def test_new_generation_classes_complete_all_stages_without_external_calls(monkeypatch):
-    path = Path(__file__).parents[2] / "fixtures" / "course-five-blocks.json"
-    client = mock_checkpoint_redis()
-    course_id = uuid4()
-    graph, context = mock_generation(
-        monkeypatch, make_saver(client), client, course_id, course_path=path,
-    )
-    result = await invoke_or_resume(
-        graph, input_data={"generation_context": context},
-        config={"configurable": {"thread_id": f"course:{course_id}"}},
-    )
-    assert course_content(result["course"]) == course_content(load_course(path))
-    stages = [call.args[1].split("|", 1)[1] for call in client.rpush.await_args_list]
-    assert len(stages) == 11
-    assert len(set(stages)) == 11

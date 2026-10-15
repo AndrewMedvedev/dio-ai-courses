@@ -147,7 +147,6 @@ def mock_checkpoint_redis() -> AsyncMock:
     values: dict[str, bytes] = {}
     hashes: dict[str, dict[str, bytes]] = {}
     client = AsyncMock(spec=Redis)
-    client.rpush = AsyncMock()
     client.get = AsyncMock(side_effect=values.get)
     client.set = AsyncMock(side_effect=lambda key, value, **_kwargs: values.__setitem__(
         key, value.encode() if isinstance(value, str) else value,

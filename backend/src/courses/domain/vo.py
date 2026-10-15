@@ -1,9 +1,8 @@
 # pyright: reportAssignmentType=false
 from __future__ import annotations
 
-from typing import Literal
-
 from abc import ABC
+from typing import Literal
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
