@@ -5,15 +5,15 @@ import time
 from uuid import uuid4
 
 from fastembed.sparse import SparseTextEmbedding
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from qdrant_client import AsyncQdrantClient, models
 
 from src.core.retrieval import embed, rerank
-from src.courses.dependencies.base import splitter
 
 logger = logging.getLogger(__name__)
 
 
-class VectorRepository:
+class QdrantRepository:
     """
     Async RAG repository:
 
@@ -23,14 +23,16 @@ class VectorRepository:
     def __init__(
         self,
         client: AsyncQdrantClient,
+        splitter: RecursiveCharacterTextSplitter,
         collection_name: str = "MAIN_COLLECTION",
     ):
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
         self.client = client
+        self.splitter = splitter
         self.collection_name = collection_name
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
 
-    async def index_document(self, text: str, metadata: dict[str, Any] | None = None) -> None:
+    async def create(self, text: str, metadata: dict[str, Any] | None = None) -> None:
         """Асинхронная индексация"""
 
         if not text.strip():
@@ -39,7 +41,7 @@ class VectorRepository:
 
         start_time = time.monotonic()
         logger.info("Starting index document text, length %s characters", len(text))
-        chunks = splitter.split_text(text)
+        chunks = self.splitter.split_text(text)
         points = []
         for chunk in chunks:
             dense_vector = await embed(inputs=[chunk])
@@ -56,7 +58,10 @@ class VectorRepository:
                             values=values,
                         ),
                     },
-                    payload=metadata or {},
+                    payload={
+                        **(metadata or {}),
+                        "text": chunk,
+                    },
                 )
             )
 
@@ -69,7 +74,7 @@ class VectorRepository:
             "Finished indexing text, time %s seconds", round(time.monotonic() - start_time, 2)
         )
 
-    async def retrieve_documents(
+    async def read(
         self,
         query: str,
         limit: int = 5,

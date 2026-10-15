@@ -1,15 +1,16 @@
+# pyright: reportArgumentType=false
 import logging
 from uuid import UUID
 
 from src.courses.application.policies import InviteCourseOptions
 from src.courses.domain.permissions.invitations import INVITE
 from src.courses.domain.vo import MemberRole
-from src.courses.infra.external_apis import get_user_by_email, invite_user_in_system
 from src.courses.infra.services.client import SrvCourseClient
 from src.iam.application.dtos import Identity
 from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
+from src.organization.application.dtos import InvitationCreate as OrganizationInvitationCreate
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import (
@@ -23,7 +24,13 @@ from src.shared.domain.vo import Email
 
 from ...domain.entities import Course, Invitation, Member
 from ..dtos import InvitationCreate
-from ..repos import CourseRepository, InvitationRepository, MemberRepository
+from ..repos import (
+    CourseRepository,
+    IAMRepository,
+    InvitationRepository,
+    MemberRepository,
+    OrganizationRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +42,16 @@ class InvitationService:
         invitation_repo: InvitationRepository,
         course_repo: CourseRepository,
         member_repo: MemberRepository,
+        iam_repo: IAMRepository,
+        organization_repo: OrganizationRepository,
         client: SrvCourseClient,
     ) -> None:
         self.transaction = transaction
         self.invitation_repo = invitation_repo
         self.course_repo = course_repo
         self.member_repo = member_repo
+        self.iam_repo = iam_repo
+        self.organization_repo = organization_repo
         self.client = client
 
     async def _check_access(
@@ -84,16 +95,28 @@ class InvitationService:
             email=Email(dto.email),
             course_id=dto.course_id,
         )
-        user = await get_user_by_email(dto.email, self.client)
+        user = await self.iam_repo.get_user_by_email(dto.email)
         if user is not None and await self.member_repo.exists(
             user_id=user.id,
             course_id=dto.course_id,
         ):
             raise AlreadyExistsError("User is already a member of the course.")
-        if user is None:
-            await invite_user_in_system(
-                dto=IAMInvitationCreate(email=dto.email),
-                client=self.client,
+        if user is not None:
+            membership = await self.iam_repo.get_user_membership(
+                organization_id=identity.organization_id,
+                user_id=user.id,
+            )
+            if membership is None:
+                await self.organization_repo(
+                    client=self.client,
+                    dto=OrganizationInvitationCreate(
+                        email=dto.email,
+                        granted_roles=set(),
+                    ),
+                )
+        else:
+            await self.iam_repo.invite_user_in_system(
+                dto=IAMInvitationCreate(email=dto.email, organization_id=identity.organization_id),
             )
         if invitation is None:
             logger.info("Invitation is not found for email - `%s`, start creating new", dto.email)

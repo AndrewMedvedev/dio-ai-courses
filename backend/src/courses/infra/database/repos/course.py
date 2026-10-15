@@ -80,7 +80,12 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             )
             .where(
                 MemberOrm.user_id == user_id,
-                self.model.status.notin_([CourseStatus.ARCHIVED, CourseStatus.DRAFT]),
+                self.model.status.notin_(
+                    [
+                        CourseStatus.ARCHIVED,
+                        CourseStatus.DRAFT,
+                    ]
+                ),
             )
         )
 
@@ -172,8 +177,11 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             mapper=self.model_mapper.from_model,
         )
 
-    async def read_creator_id(self, course_id: UUID) -> UUID | None:
+    async def read_course_ownership(self, uid: UUID) -> tuple[UUID, UUID] | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
-        stmt = select(self.model.creator_id).where(self.model.id == course_id)
-        result = await self._session.execute(stmt)
-        return result.scalar_one_or_none()
+        stmt = select(self.model.creator_id).where(self.model.id == uid)
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
+
+        if result is None:
+            return None
+        return uid, result

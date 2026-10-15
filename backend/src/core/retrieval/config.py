@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ..settings import ENV_FILE  # noqa: F401
+
 
 class EmbeddingsConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_")
