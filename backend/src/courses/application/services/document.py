@@ -4,7 +4,7 @@ from langchain_core.documents import Document
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...domain.entities import Document as EntityDocument
-from ...domain.vo import DocumentNodeType
+from ...domain.enums import DocumentNodeType
 from ...utils.docs_processing import (
     get_header_order,
     get_heading_chain,

@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from src.llm_service import Runtime, tool
 
 from ..infra.database.repos.document import SqlDocumentRepository
-from .course_generator.workflow import generate_course, generate_lesson, generate_module
 from .schemas import Context, GenerationContext, RuntimeContext
 
 logger = logging.getLogger(__name__)
@@ -84,10 +83,12 @@ async def send_course_for_generation(
         prompt=prompt,
     )
 
+    from .course_generator.workflow import generate_course
+
     result = await generate_course.kiq(context=context)  # pyright: ignore[reportCallIssue]
 
-    runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Курс поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
+    runtime.state.task_id = result.task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Курс поставлен в очередь на генерацию, task_id={result.task_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
 
 
 class GenerationInput(BaseModel):
@@ -111,6 +112,8 @@ async def send_module_for_generation(
     runtime: Runtime[GenerationContext, State],
 ) -> str:
 
+    from .course_generator.workflow import generate_module
+
     result = await generate_module.kiq(  # pyright: ignore[reportCallIssue]
         context=runtime.context,
         audience_description=structure.audience_description,
@@ -118,8 +121,8 @@ async def send_module_for_generation(
         description=structure.description,
     )
 
-    runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Модуль поставлен в очередь на генерацию, task_id={result.message_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
+    runtime.state.task_id = result.task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Модуль поставлен в очередь на генерацию, task_id={result.task_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
 
 
 @tool(
@@ -138,6 +141,8 @@ async def send_lesson_for_generation(
     runtime: Runtime[GenerationContext, State],
 ) -> str:
 
+    from .course_generator.workflow import generate_lesson
+
     result = await generate_lesson.kiq(  # pyright: ignore[reportCallIssue]
         context=runtime.context,
         audience_description=structure.audience_description,
@@ -145,5 +150,5 @@ async def send_lesson_for_generation(
         description=structure.description,
     )
 
-    runtime.state.task_id = result.message_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Урок поставлен в очередь на генерацию, task_id={result.message_id},   больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
+    runtime.state.task_id = result.task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Урок поставлен в очередь на генерацию, task_id={result.task_id},   больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
