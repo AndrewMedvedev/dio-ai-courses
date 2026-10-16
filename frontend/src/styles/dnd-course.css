@@ -1440,6 +1440,11 @@
   color: #1d1d1d;
 }
 
+/* Подсказка о допустимом действии: урок на урок → новый модуль. */
+.page .dnd-builder .dnd-drop-reason.is-ok {
+  background: var(--dnd-ok);
+}
+
 .page .dnd-builder .dnd-file-over {
   position: absolute;
   inset: 12px;

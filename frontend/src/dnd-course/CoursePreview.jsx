@@ -180,14 +180,14 @@ export default function CoursePreview({ courseId }) {
 
   return (
     <div className="dnd-preview-page">
-      <section className="dnd-builder dnd-preview" aria-label="Предпросмотр курса">
+      <section className="dnd-builder dnd-preview" aria-label="Просмотр курса">
         <header className="dnd-preview-bar">
           <button type="button" className="dnd-btn dnd-btn--ghost" onClick={backToBuilder} disabled={action === "builder"}>
             {action === "builder" ? <Spinner size={14} /> : <Icon name="arrowLeft" size={16} />}
             Вернуться в конструктор
           </button>
           <div className="dnd-preview-bar-title">
-            <span className="dnd-eyebrow">Предпросмотр курса</span>
+            <span className="dnd-eyebrow">Просмотр курса</span>
             {statusInfo ? (
               <StatusPill tone={statusInfo.tone} icon={status === "published" ? "check" : null}>
                 {statusInfo.label}
