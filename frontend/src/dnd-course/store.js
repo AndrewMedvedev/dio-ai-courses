@@ -1594,7 +1594,7 @@ export const useDndCourseStore = create((set, get) => {
         set({
           finishError: getApiErrorMessage(
             error,
-            "Курс сохранён, но открыть предпросмотр не удалось. Попробуйте ещё раз.",
+            "Курс сохранён, но открыть просмотр курса не удалось. Попробуйте ещё раз.",
           ),
         });
       }
