@@ -1154,7 +1154,7 @@
 }
 
 .profile-course-progress.is-in_progress .profile-course-progress-row b {
-    color: var(--profile-progress-active);
+    color: var(--profile-progress-done);
 }
 
 .profile-course-progress.is-completed .profile-course-progress-row b {
@@ -1178,7 +1178,7 @@
 }
 
 .profile-course-progress.is-in_progress .profile-course-progress-bar > span {
-    background: var(--profile-progress-active);
+    background: var(--profile-progress-done);
 }
 
 .profile-course-progress.is-loading {

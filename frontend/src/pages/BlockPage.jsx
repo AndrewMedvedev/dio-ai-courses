@@ -1,7 +1,14 @@
 // Страница выбранного блока курса с уроками и практикой
 import { useState } from "react";
 import SectionTop from "../components/SectionTop";
+import AgentInterviewDialog from "../components/editor/AgentInterviewDialog";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { useGoBack } from "../hooks/useGoBack";
+import {
+  generationJobKey,
+  useGenerationJobsStore,
+} from "../stores/generationJobsStore";
+import { isUuid } from "../utils/api";
 
 export default function BlockPage({
   selectedCourse,
@@ -31,6 +38,16 @@ export default function BlockPage({
     : 0;
   const blockLearningObjectives = selectedBlock.learningObjectives || [];
   const [isAddingLesson, setIsAddingLesson] = useState(false);
+  const [isLessonAgentOpen, setIsLessonAgentOpen] = useState(false);
+  const [lessonToDelete, setLessonToDelete] = useState(null);
+  const lessonJob = useGenerationJobsStore(
+    (state) =>
+      state.jobs[
+        generationJobKey("lesson", selectedCourse.id, selectedBlock.id)
+      ] || null,
+  );
+  const canGenerateLesson =
+    isCourseEditMode && isUuid(selectedCourse.id) && isUuid(selectedBlock.id);
   const goBack = useGoBack({
     fallbackPath: isCourseEditMode
       ? `/course/${selectedCourse.id}/edit`
@@ -219,14 +236,29 @@ export default function BlockPage({
           <div className="block-lessons-head">
             <h3>Уроки</h3>
             {isCourseEditMode && (
-              <button
-                type="button"
-                className="btn btn-solid"
-                onClick={addLesson}
-                disabled={isAddingLesson}
-              >
-                {isAddingLesson ? "Создаём урок..." : "Добавить урок"}
-              </button>
+              <div className="block-lessons-actions">
+                {canGenerateLesson && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setIsLessonAgentOpen(true)}
+                  >
+                    {lessonJob?.status === "running"
+                      ? "Урок генерируется..."
+                      : lessonJob?.status === "done"
+                        ? "Урок готов — открыть диалог"
+                        : "Сгенерировать урок с ИИ"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={addLesson}
+                  disabled={isAddingLesson}
+                >
+                  {isAddingLesson ? "Создаём урок..." : "Добавить урок"}
+                </button>
+              </div>
             )}
           </div>
           {selectedBlock.lessons.length === 0 && (
@@ -325,9 +357,7 @@ export default function BlockPage({
                       <button
                         type="button"
                         className="btn btn-flat editor-danger-btn"
-                        onClick={() =>
-                          deleteLesson(selectedBlock.id, lesson.id)
-                        }
+                        onClick={() => setLessonToDelete(lesson)}
                         disabled={selectedBlock.lessons.length <= 1}
                       >
                         Удалить
@@ -389,6 +419,39 @@ export default function BlockPage({
           </article>
         )}
       </div>
+
+      {canGenerateLesson && (
+        <AgentInterviewDialog
+          open={isLessonAgentOpen}
+          onClose={() => setIsLessonAgentOpen(false)}
+          kind="lesson"
+          courseId={selectedCourse.id}
+          moduleId={selectedBlock.id}
+          order={selectedBlock.lessons.length + 1}
+          knownIds={selectedBlock.lessons.map((lesson) => lesson.id)}
+          contextTitle={`Модуль «${selectedBlock.title}» · урок добавится в конец модуля`}
+          onOpenResult={(job) => {
+            setIsLessonAgentOpen(false);
+            if (job.resultId) openLesson(job.resultId);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={Boolean(lessonToDelete)}
+        danger
+        eyebrow="Необратимое действие"
+        title="Удалить урок?"
+        description={`Урок «${lessonToDelete?.title || ""}» и его содержимое будут удалены. Отменить удаление нельзя.`}
+        confirmLabel="Удалить"
+        busyLabel="Удаляем..."
+        onCancel={() => setLessonToDelete(null)}
+        onConfirm={async () => {
+          if (!lessonToDelete) return;
+          await deleteLesson(selectedBlock.id, lessonToDelete.id);
+          setLessonToDelete(null);
+        }}
+      />
     </section>
   );
 }

@@ -267,7 +267,22 @@ export function normalizeContentBlock(block, ensureId = false) {
     normalized.explanation = String(source.explanation ?? "");
   }
 
+  // Источники блока не редактируются в форме, но не должны теряться при сохранении.
+  const sources = normalizeBlockSources(source.sources);
+  if (sources) normalized.sources = sources;
+
   return normalized;
+}
+
+function normalizeBlockSources(value) {
+  if (!Array.isArray(value)) return null;
+  return value
+    .map((item) =>
+      item && typeof item === "object"
+        ? String(item.url || item.href || item.title || "").trim()
+        : String(item ?? "").trim(),
+    )
+    .filter(Boolean);
 }
 
 export function normalizeContentBlocks(blocks, fallbackMarkdown = "") {
@@ -304,6 +319,10 @@ export function stripUiFields(block) {
   } else {
     payload.formula = normalized.formula;
     payload.explanation = normalized.explanation;
+  }
+
+  if (Array.isArray(normalized.sources)) {
+    payload.sources = normalized.sources;
   }
 
   return payload;

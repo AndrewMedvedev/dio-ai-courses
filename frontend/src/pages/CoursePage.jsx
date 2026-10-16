@@ -2,8 +2,15 @@
 import { Fragment, useState } from "react";
 import SectionTop from "../components/SectionTop";
 import CourseInviteDialog from "../components/course/CourseInviteDialog";
+import AgentInterviewDialog from "../components/editor/AgentInterviewDialog";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { useGoBack } from "../hooks/useGoBack";
+import {
+  generationJobKey,
+  useGenerationJobsStore,
+} from "../stores/generationJobsStore";
 import { useSessionStore } from "../stores/sessionStore";
+import { isUuid } from "../utils/api";
 
 export default function CoursePage({
   selectedCourse,
@@ -27,8 +34,15 @@ export default function CoursePage({
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [statusAction, setStatusAction] = useState("");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isModuleAgentOpen, setIsModuleAgentOpen] = useState(false);
+  // { type: "module" | "course", id, title } — что пользователь хочет удалить.
+  const [pendingDelete, setPendingDelete] = useState(null);
   const currentUserId = useSessionStore(
     (state) => state.identity?.id || state.user?.id || "",
+  );
+  const moduleJob = useGenerationJobsStore(
+    (state) =>
+      state.jobs[generationJobKey("module", selectedCourse.id, "")] || null,
   );
   const goBack = useGoBack({ fallbackPath: "/courses" });
 
@@ -175,15 +189,13 @@ export default function CoursePage({
             <button
               type="button"
               className="btn btn-outline course-delete-btn"
-              onClick={async () => {
-                if (statusAction) return;
-                setStatusAction("archive");
-                try {
-                  await deleteCourse(selectedCourse.id);
-                } finally {
-                  setStatusAction("");
-                }
-              }}
+              onClick={() =>
+                setPendingDelete({
+                  type: "course",
+                  id: selectedCourse.id,
+                  title: selectedCourse.title,
+                })
+              }
               disabled={statusAction === "archive"}
             >
               {statusAction === "archive" ? "Удаляем..." : "Удалить курс"}
@@ -418,7 +430,13 @@ export default function CoursePage({
                           <button
                             type="button"
                             className="btn btn-flat editor-danger-btn"
-                            onClick={() => deleteBlock(block.id)}
+                            onClick={() =>
+                              setPendingDelete({
+                                type: "module",
+                                id: block.id,
+                                title: block.title,
+                              })
+                            }
                             disabled={selectedCourse.blocks.length <= 1}
                           >
                             Удалить
@@ -463,6 +481,26 @@ export default function CoursePage({
               );
             })}
           </ul>
+          {isCourseEditMode && isUuid(selectedCourse.id) && (
+            <div className="course-ai-generate">
+              <button
+                type="button"
+                className="btn btn-solid"
+                onClick={() => setIsModuleAgentOpen(true)}
+              >
+                {moduleJob?.status === "running"
+                  ? "Модуль генерируется..."
+                  : moduleJob?.status === "done"
+                    ? "Модуль готов — открыть диалог"
+                    : "Сгенерировать модуль с ИИ"}
+              </button>
+              <span>
+                Агент уточнит требования, покажет структуру и стоимость и
+                запустит генерацию после вашего подтверждения. Модуль добавится
+                в конец курса.
+              </span>
+            </div>
+          )}
         </article>
 
         {!isCourseEditMode && (
@@ -487,6 +525,55 @@ export default function CoursePage({
           </article>
         )}
       </div>
+
+      {isCourseEditMode && isUuid(selectedCourse.id) && (
+        <AgentInterviewDialog
+          open={isModuleAgentOpen}
+          onClose={() => setIsModuleAgentOpen(false)}
+          kind="module"
+          courseId={selectedCourse.id}
+          order={selectedCourse.blocks.length + 1}
+          knownIds={selectedCourse.blocks.map((block) => block.id)}
+          contextTitle={`Курс «${selectedCourse.title}»`}
+          onOpenResult={(job) => {
+            setIsModuleAgentOpen(false);
+            if (job.resultId) openBlock(job.resultId);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        danger
+        eyebrow="Необратимое действие"
+        title={
+          pendingDelete?.type === "course" ? "Удалить курс?" : "Удалить модуль?"
+        }
+        description={
+          pendingDelete?.type === "course"
+            ? `Курс «${pendingDelete?.title || ""}» будет перенесён в архив и пропадёт из каталога.`
+            : `Модуль «${pendingDelete?.title || ""}» и все его уроки будут удалены. Отменить удаление нельзя.`
+        }
+        confirmLabel="Удалить"
+        busyLabel="Удаляем..."
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          const target = pendingDelete;
+          if (!target) return;
+          if (target.type === "course") {
+            setStatusAction("archive");
+            try {
+              await deleteCourse(target.id);
+            } finally {
+              setStatusAction("");
+            }
+          } else {
+            const deleted = await deleteBlock(target.id);
+            if (deleted === false) return false;
+          }
+          setPendingDelete(null);
+        }}
+      />
     </section>
   );
 }

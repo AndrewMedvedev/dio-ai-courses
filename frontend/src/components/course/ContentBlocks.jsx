@@ -2,6 +2,7 @@ import { forwardRef, useId, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ContentPreviewModal from "../ContentPreviewModal";
+import ContentBlockSources, { hasSources } from "./ContentBlockSources";
 import MermaidDiagram from "../MermaidDiagram";
 import SyntaxHighlightedCode from "../SyntaxHighlightedCode";
 import { getMediaUrl, MEDIA_FOLDERS } from "../../utils/media";
@@ -452,7 +453,20 @@ const ContentBlocks = forwardRef(function ContentBlocks(
       <h2 id="theory-title">Теория урока</h2>
       <div ref={ref} className="content-blocks-list">
         {blocks.map((block, index) =>
-          renderContentBlock(block, index, setPreview, ownerUserId, lessonId),
+          hasSources(block?.sources) ? (
+            <div key={`content-${index}`} className="content-block-with-sources">
+              {renderContentBlock(
+                block,
+                index,
+                setPreview,
+                ownerUserId,
+                lessonId,
+              )}
+              <ContentBlockSources sources={block.sources} />
+            </div>
+          ) : (
+            renderContentBlock(block, index, setPreview, ownerUserId, lessonId)
+          ),
         )}
       </div>
       <ContentPreviewModal preview={preview} onClose={() => setPreview(null)} />
