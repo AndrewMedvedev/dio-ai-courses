@@ -8,6 +8,7 @@ import {
 } from "../stores/agentStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { convertDocumentToMarkdown } from "../utils/api";
+import ConfirmDialog from "./ui/ConfirmDialog";
 import { attachmentsApi } from "../utils/attachments";
 import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 import {
@@ -98,6 +99,7 @@ export default function LessonContentEditor({
   const [proposal, setProposal] = useState(null);
   const [proposalError, setProposalError] = useState("");
   const [blockLimitError, setBlockLimitError] = useState("");
+  const [blockToDelete, setBlockToDelete] = useState(null);
   const aiConversationKey = createAgentConversationKey(
     "editor",
     courseId,
@@ -1202,7 +1204,7 @@ export default function LessonContentEditor({
                             </button>
                             <button
                               type="button"
-                              onClick={() => deleteBlock(block.id)}
+                              onClick={() => setBlockToDelete(block)}
                             >
                               Удалить
                             </button>
@@ -1274,6 +1276,24 @@ export default function LessonContentEditor({
           })}
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(blockToDelete)}
+        danger
+        eyebrow="Удаление блока"
+        title="Удалить блок?"
+        description={
+          blockToDelete
+            ? `Блок «${getBlockTitle(blockToDelete)}» пропадёт из урока. Изменение сохранится на сервере только после кнопки «Сохранить».`
+            : ""
+        }
+        confirmLabel="Удалить блок"
+        busyLabel="Удаляем..."
+        onCancel={() => setBlockToDelete(null)}
+        onConfirm={() => {
+          if (blockToDelete) deleteBlock(blockToDelete.id);
+          setBlockToDelete(null);
+        }}
+      />
     </div>
   );
 }
