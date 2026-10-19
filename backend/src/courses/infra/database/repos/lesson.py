@@ -6,14 +6,14 @@ from uuid import UUID
 from sqlalchemy import func, literal, select, text, update
 from sqlalchemy.dialects.postgresql import JSONB
 
+from src.courses.application.dtos import LessonBasicInfo
+from src.courses.domain.entities import (
+    AnyContentBlock,
+    Lesson,
+)
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
-from ....domain.entities import (
-    AnyContentBlock,
-    Lesson,
-    LessonBasicInfo,
-)
 from ..mappers import (
     LessonMapper,
 )

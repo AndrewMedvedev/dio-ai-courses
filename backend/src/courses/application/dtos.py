@@ -1,16 +1,49 @@
+# pyright: reportAssignmentType=false
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, EmailStr, Field
 
+from src.courses.domain.enums import ContentType, DifficultyLevel
+from src.courses.domain.vo import MemberRole
 from src.shared.application.dtos import BaseQueryParamFilters
 
-from ..domain.enums import ContentType, DifficultyLevel
-from ..domain.vo import MemberRole
+
+@dataclass(kw_only=True, slots=True)
+class BasicInfo:
+    id: UUID
+    title: str
+    order: int
+
+
+@dataclass(kw_only=True, slots=True)
+class LessonBasicInfo(BasicInfo):
+    description: str
+    learning_objectives: list[str] = field(default_factory=list)
+    estimated_time_minutes: int | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class ModuleBasicInfo(BasicInfo):
+    description: str
+    learning_objectives: list[str] = field(default_factory=list)
+    lessons: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
+
+
+@dataclass(kw_only=True, slots=True)
+class CourseBasicInfo:
+    id: UUID
+    title: str
+    description: str
+    difficulty: DifficultyLevel
+    tags: list[str]
+    learning_objectives: list[str] = field(default_factory=list)
+    modules: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
 
 if TYPE_CHECKING:
     from ..domain.entities import Invitation

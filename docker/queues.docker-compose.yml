@@ -25,7 +25,7 @@ services:
       - taskiq
       - worker
       - src.core.tkq:taskiq_broker
-      - src.courses.agents.course_generator.workflow
+      - src.courses.infra.tasks
       - --workers
       - "${TASKIQ_WORKERS:-1}"
       - --max-async-tasks

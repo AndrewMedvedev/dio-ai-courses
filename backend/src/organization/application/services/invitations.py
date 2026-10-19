@@ -4,6 +4,9 @@ from uuid import UUID
 from src.iam.application.dtos import Identity
 from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.dtos.membership import CreateMembershipDTO
+from src.iam.domain.entities import (
+    Invitation as IAMInvitation,
+)
 from src.iam.domain.entities import Membership
 from src.organization.application.dtos import InvitationCreate
 from src.organization.domain.entities import Invitation
@@ -41,27 +44,26 @@ class InvitationService:
         self,
         dto: InvitationCreate,
         identity: Identity,
-    ) -> Invitation:
+    ) -> Invitation | IAMInvitation:
         invitation = await self.invitation_repo.get_active_by_email_and_organization(
             email=Email(dto.email),
             organization_id=identity.organization_id,
         )
         user = await self.iam_repo.get_user_by_email(dto.email)
         if user is None:
-            await self.iam_repo.invite_user_in_system(
+            return await self.iam_repo.invite_user_in_system(
                 IAMInvitationCreate(
                     email=dto.email,
                     granted_roles=dto.granted_roles,
                     organization_id=identity.organization_id,
                 ),
             )
-        else:
-            membership = await self.membership_repo.get_user_membership(
-                organization_id=identity.organization_id,
-                user_id=user.id,
-            )
-            if membership is not None:
-                raise AlreadyExistsError("User already has a membership in this organization")
+        membership = await self.membership_repo.get_user_membership(
+            user_id=user.id,
+            organization_id=identity.organization_id,
+        )
+        if membership is not None:
+            raise AlreadyExistsError("User already has a membership in this organization")
         if invitation is None or not invitation.is_valid:
             invitation = Invitation.create(
                 email=Email(dto.email),
@@ -78,10 +80,19 @@ class InvitationService:
         return invitation
 
     async def accept(self, token: str, user_id: UUID) -> Membership:
-        if (
-            invitation := await self.invitation_repo.get_by_token(token)
-        ) is None or not invitation.is_valid:
+        invitation = await self.invitation_repo.get_by_token(token)
+
+        if invitation is None or not invitation.is_valid:
             raise NotFoundError(f"Invitation with token - '{token}' not found or invalid.")
+
+        membership = await self.membership_repo.get_user_membership(
+            organization_id=invitation.organization_id,
+            user_id=user_id,
+        )
+
+        if membership is not None:
+            raise AlreadyExistsError("User already has a membership in this organization.")
+
         membership = await self.membership_repo.create_membership(
             CreateMembershipDTO(
                 user_id=user_id,
@@ -89,8 +100,10 @@ class InvitationService:
                 roles=invitation.granted_roles,
             )
         )
+
         invitation.mark_as_used()
         await self.transaction(invitation)
+
         return membership
 
     async def revoke_invitation(self, invitation_id: UUID) -> None:

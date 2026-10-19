@@ -2,7 +2,8 @@ import asyncio
 
 from faststream.rabbit import RabbitQueue
 
-from src.core.rabbit import events_exchange as exchange, router as rabbit_router
+from src.core.rabbit import events_exchange as exchange
+from src.core.rabbit import router as rabbit_router
 from src.shared.dependencies.database import DBSession
 
 from ..dependencies import LLMInvocationRepoDep, MediaClientDep

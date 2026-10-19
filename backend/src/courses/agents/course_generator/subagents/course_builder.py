@@ -13,7 +13,7 @@ from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.courses.agents.course_generator.subagents.repos import ReasonerAgent
+from src.courses.agents.course_generator.subagents.protocols import ReasonerAgent
 from src.courses.application.domain_dtos import CourseDict, CourseStructureDict, ModuleDict
 from src.courses.application.mappers import course_to_dict, dict_to_course, model_to_typed_dict
 from src.courses.application.repos import CourseRepository

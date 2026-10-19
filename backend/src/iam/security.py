@@ -128,7 +128,7 @@ def create_access_token(
         "typ": "access",
         "jti": str(uuid4()),
         # Кастомные поля
-        "idt": identity_type.name.lower(),
+        "idt": identity_type.value,
         "org_id": str(organization_id),
         "roles": list(roles),
         "perms": list(permissions),

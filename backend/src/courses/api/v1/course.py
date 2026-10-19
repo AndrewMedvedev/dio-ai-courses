@@ -3,12 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.courses.application.dtos import CourseSchema, EditCourseSchema
+from src.courses.application.dtos import CourseBasicInfo, CourseSchema, EditCourseSchema
 from src.courses.dependencies.base import CourseRepoDep
 from src.courses.dependencies.services import CheckCourseAccessDep, CourseServiceDep
-from src.courses.domain.entities import Course, CourseBasicInfo
-from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
+from src.courses.domain.entities import Course
 from src.courses.domain.enums import CourseStatus
+from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination

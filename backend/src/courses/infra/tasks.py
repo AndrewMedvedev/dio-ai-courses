@@ -4,43 +4,15 @@ from uuid import UUID
 from langchain_core.runnables import RunnableConfig
 
 from src.core.tkq import taskiq_broker
+from src.courses.agents.course_generator.helper import invoke_or_resume
+from src.courses.agents.schemas import Context, GenerationContext
 from src.courses.dependencies.agents import CourseAgentDep, LessonAgentDep, ModuleAgentDep
 from src.courses.dependencies.base import LessonRepoDep, VectorRepoDep
-from src.courses.utils.formatting import get_content_blocks_context
-
-from ..schemas import Context, GenerationContext
-from .helper import invoke_or_resume
+from src.courses.utils.formatting import get_lesson_context
 
 logger = logging.getLogger(__name__)
 
 RETRY_OPTS = {"retry_on_error": True, "max_retries": 5, "delay": 10, "timeout": 5 * 60 * 60}
-
-
-@taskiq_broker.task(
-    task_name="courses.index_lesson",
-    retry_on_error=True,
-    max_retries=2,
-    delay=5,
-    timeout=60,
-)
-async def index_lesson(
-    course_id: UUID,
-    lesson_id: UUID,
-    lesson_repo: LessonRepoDep,
-    vector_repo: VectorRepoDep,
-) -> None:
-    lesson = await lesson_repo.read(lesson_id)
-    if lesson is None:
-        return
-    await vector_repo.create(
-        text=get_content_blocks_context(lesson.content_blocks),
-        metadata={
-            "course_id": f"{course_id}",
-            "lesson_id": f"{lesson.id}",
-            "source": f"{lesson.title}",
-            "category": "theory",
-        },
-    )
 
 
 @taskiq_broker.task(task_name="courses.generate_course", **RETRY_OPTS)
@@ -136,3 +108,58 @@ async def generate_lesson(
         "module_id": context.module_id,  # pyright: ignore[reportReturnType]
         "lesson_order": context.order,
     }
+
+
+@taskiq_broker.task(
+    task_name="courses.index_lesson",
+    retry_on_error=True,
+    max_retries=2,
+    delay=5,
+    timeout=60,
+)
+async def index_lesson(
+    course_id: UUID,
+    lesson_id: UUID,
+    lesson_repo: LessonRepoDep,
+    vector_repo: VectorRepoDep,
+) -> None:
+    logger.info(
+        "Starting lesson indexing: course_id=%s lesson_id=%s",
+        course_id,
+        lesson_id,
+    )
+    lesson = await lesson_repo.read(lesson_id)
+    if lesson is None:
+        logger.warning("Cannot index lesson %s: lesson not found", lesson_id)
+        return
+    try:
+        lesson_text = get_lesson_context(lesson)
+        document_id = f"lesson:{course_id}:{lesson.id}"
+
+        await vector_repo.create(
+            text=lesson_text,
+            document_id=document_id,
+            metadata={
+                "course_id": str(course_id),
+                "lesson_id": str(lesson.id),
+                "document_id": document_id,
+                "source": lesson.title,
+                "category": "theory",
+                "document_type": "lesson",
+                "lesson_order": lesson.order,
+            },
+        )
+
+        logger.info(
+            "Indexed lesson %s for course %s as document %s",
+            lesson.id,
+            course_id,
+            document_id,
+        )
+    except Exception:
+        logger.exception(
+            "Lesson indexing failed: course_id=%s lesson_id=%s",
+            course_id,
+            lesson_id,
+        )
+        raise
