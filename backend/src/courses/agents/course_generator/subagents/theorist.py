@@ -4,7 +4,6 @@ import logging
 
 from pydantic import TypeAdapter
 
-from src.courses.agents.deprecated_middlewares import SaveImageMiddleware
 from src.courses.agents.middlewares import ToolCallLimitMiddleware
 from src.courses.agents.schemas import Context
 from src.courses.domain.vo import (
@@ -93,7 +92,6 @@ async def generate_image(
         client=client,
         runtime=runtime or Runtime(context=context, state=client),
         middlewares=[
-            SaveImageMiddleware(),
             *(middlewares or []),
         ],
     )
