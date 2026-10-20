@@ -297,11 +297,10 @@ export default function OrganizationsPage({
   canReadOwnOrganization = false,
   canUpdateOrganization = false,
   canDeleteOrganization = false,
-  canInviteToSystem = false,
   canInviteToOrganization = false,
 }) {
   const organizationId = useSessionStore((state) => state.organizationId);
-  // { kind: "organization" | "system", organization } — открытое окно приглашения.
+  // { organization } — открытое окно приглашения в организацию.
   const [inviteTarget, setInviteTarget] = useState(null);
   const [activeSection, setActiveSection] = useState("current");
   const [currentOrganization, setCurrentOrganization] = useState(null);
@@ -633,35 +632,21 @@ export default function OrganizationsPage({
     }
   };
 
-  // В организацию приглашаем только в текущую (из контекста сессии),
-  // в систему — в ту организацию, которая сейчас открыта.
+  // Приглашаем только в текущую организацию (из контекста сессии):
+  // бэкенд берёт её из токена.
   const renderInviteActions = (organization) => {
     const targetId = organization?.id || organizationId;
     if (!targetId) return null;
-    const canInviteHere = canInviteToOrganization && targetId === organizationId;
-    if (!canInviteHere && !canInviteToSystem) return null;
+    if (!canInviteToOrganization || targetId !== organizationId) return null;
     const target = organization || { id: targetId, name: "" };
     return (
-      <>
-        {canInviteHere && (
-          <button
-            type="button"
-            className="btn btn-solid"
-            onClick={() => setInviteTarget({ kind: "organization", organization: target })}
-          >
-            Пригласить в организацию
-          </button>
-        )}
-        {canInviteToSystem && (
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setInviteTarget({ kind: "system", organization: target })}
-          >
-            Пригласить в систему
-          </button>
-        )}
-      </>
+      <button
+        type="button"
+        className="btn btn-solid"
+        onClick={() => setInviteTarget({ organization: target })}
+      >
+        Пригласить в организацию
+      </button>
     );
   };
 
@@ -960,7 +945,6 @@ export default function OrganizationsPage({
 
       <InviteDialog
         open={Boolean(inviteTarget)}
-        kind={inviteTarget?.kind}
         organizationId={inviteTarget?.organization?.id}
         organizationName={inviteTarget?.organization?.name}
         onClose={() => setInviteTarget(null)}

@@ -33,7 +33,7 @@ export function buildGraph(state) {
   const free = resolveFreePositions(state);
   const assigned = new Set(state.modules.flatMap((module) => module.lessonIds));
 
-  modulesColumn(state.modules).forEach((rect) => {
+  modulesColumn(state.modules, state.positions || {}).forEach((rect) => {
     const module = state.modules.find((item) => item.id === rect.id);
     const id = nodeId.module(module.id);
     nodes.push({

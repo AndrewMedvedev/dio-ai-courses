@@ -10,6 +10,7 @@ import Palette from "../dnd-course/Palette";
 import StartScreen from "../dnd-course/StartScreen";
 import { useDndCourseStore } from "../dnd-course/store";
 import TopBar from "../dnd-course/TopBar";
+import DndTooltipLayer from "../dnd-course/Tooltip";
 import { ConfirmDialog, DndActionsContext, LiveRegion, Toasts } from "../dnd-course/ui";
 import "../styles/dnd-course.css";
 
@@ -279,6 +280,7 @@ export default function DragAndDropCoursePage() {
         <ConfirmDialog />
         <Toasts />
         <LiveRegion />
+        <DndTooltipLayer />
         <Celebration />
       </section>
     </DndActionsContext.Provider>

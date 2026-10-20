@@ -17,9 +17,9 @@ export const ORGANIZATION_PERMISSIONS = {
   DELETE: "organization:delete",
 };
 
-// Приглашения: invitations.invite — в систему, organization-invitations.invite — в организацию.
+// Приглашения в организацию. Отдельного приглашения в систему в интерфейсе нет:
+// новых пользователей бэкенд регистрирует через приглашение в организацию.
 export const INVITATION_PERMISSIONS = {
-  SYSTEM_INVITE: "invitations:invite",
   ORGANIZATION_INVITE: "organization-invitations:invite",
 };
 

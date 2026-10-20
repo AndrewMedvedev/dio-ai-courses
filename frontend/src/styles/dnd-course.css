@@ -3416,3 +3416,192 @@ body.is-dnd-resizing * {
     animation: none;
   }
 }
+
+/* ───── крупные карточки на холсте ─────
+   Курсы собирают в основном взрослые пользователи: текст, иконки и кнопки на карточках
+   крупнее. Размеры карточек заданы в dnd-course/constants.js (NODE_SIZE, MODULE_LAYOUT). */
+.page .dnd-builder .dnd-node {
+  gap: 10px;
+  padding: 20px 20px 16px;
+}
+
+.page .dnd-builder .dnd-node--course {
+  padding: 22px;
+}
+
+/* У модуля отступы задают шапка и зона «перетащите сюда», у загрузки — свой ряд. */
+.page .dnd-builder .dnd-node--module {
+  padding: 0;
+  gap: 0;
+}
+
+.page .dnd-builder .dnd-node--upload {
+  gap: 16px;
+}
+
+.page .dnd-builder .dnd-node-kicker {
+  min-height: 28px;
+  gap: 8px;
+  font-size: 1.02rem;
+}
+
+.page .dnd-builder .dnd-node-kicker .dnd-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.page .dnd-builder .dnd-node-title {
+  font-size: 1.5rem;
+}
+
+.page .dnd-builder .dnd-node-title--sm {
+  font-size: 1.36rem;
+}
+
+.page .dnd-builder .dnd-node-meta,
+.page .dnd-builder .dnd-node-excerpt,
+.page .dnd-builder .dnd-node-error,
+.page .dnd-builder .dnd-node-status {
+  font-size: 1.1rem;
+}
+
+.page .dnd-builder .dnd-node-meta .dnd-icon,
+.page .dnd-builder .dnd-node-excerpt .dnd-icon,
+.page .dnd-builder .dnd-node-status .dnd-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.page .dnd-builder .dnd-node .dnd-chip {
+  padding: 2px 9px;
+  font-size: 0.92rem;
+}
+
+.page .dnd-builder .dnd-node .dnd-pill {
+  padding: 3px 10px;
+  font-size: 0.95rem;
+}
+
+.page .dnd-builder .dnd-node .dnd-pill .dnd-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.page .dnd-builder .dnd-node-size {
+  font-size: 0.92rem;
+}
+
+.page .dnd-builder .dnd-course-progress strong {
+  font-size: 1.1rem;
+}
+
+.page .dnd-builder .dnd-course-progress-track {
+  height: 12px;
+}
+
+.page .dnd-builder .dnd-node .dnd-fill {
+  height: 8px;
+}
+
+.page .dnd-builder .dnd-node--course .dnd-btn--sm {
+  min-height: 46px;
+  padding: 0 16px;
+  font-size: 1.05rem;
+}
+
+.page .dnd-builder .dnd-node--upload strong {
+  font-size: 1.22rem;
+}
+
+.page .dnd-builder .dnd-node--upload small {
+  font-size: 1rem;
+}
+
+.page .dnd-builder .dnd-node--upload .dnd-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.page .dnd-builder .dnd-module-head {
+  gap: 10px;
+  padding: 20px 20px 14px;
+  min-height: 160px;
+}
+
+.page .dnd-builder .dnd-module-drop {
+  left: 20px;
+  right: 20px;
+  bottom: 16px;
+  height: 50px;
+  font-size: 1.04rem;
+}
+
+.page .dnd-builder .dnd-module-drop .dnd-icon {
+  width: 19px;
+  height: 19px;
+}
+
+/* Кнопки действий на карточках и во всплывающей панели под ними. */
+.page .dnd-builder .dnd-node-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+}
+
+.page .dnd-builder .dnd-node-btn .dnd-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.page .dnd-builder .dnd-node-toolbar {
+  top: calc(100% + 8px);
+  padding: 6px;
+  gap: 4px;
+  border-radius: 14px;
+}
+
+.page .dnd-builder .dnd-node-toolbar::before {
+  top: -11px;
+  height: 11px;
+}
+
+.page .dnd-builder .dnd-module-buttons {
+  gap: 4px;
+}
+
+/* Крупная подсказка вместо системной (dnd-course/Tooltip.jsx). Окно живёт в .page,
+   вне холста, поэтому не уменьшается вместе с масштабом. */
+.page .dnd-tooltip {
+  position: fixed;
+  z-index: 3000;
+  max-width: 300px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #2b2724;
+  color: #fbf8f2;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+  animation: dnd-tooltip-in 0.12s ease-out;
+}
+
+.page .dnd-tooltip.is-bottom {
+  transform: translate(-50%, 10px);
+}
+
+.page[data-theme="dark"] .dnd-tooltip {
+  background: #f2e7d4;
+  color: #1f1d1a;
+}
+
+@keyframes dnd-tooltip-in {
+  from {
+    opacity: 0;
+  }
+}

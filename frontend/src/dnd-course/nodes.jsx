@@ -50,7 +50,7 @@ function chromeClass({ dimmed, highlighted, dropState, active, pending }, select
 
 function FillBar({ value, label }) {
   return (
-    <div className="dnd-fill" title={`${label}: ${value}%`}>
+    <div className="dnd-fill" data-tip={`${label}: ${value}%`}>
       <span className="dnd-visually-hidden">
         {label}: {value}%
       </span>
@@ -70,9 +70,9 @@ function NodeButton({ icon, label, onClick, disabled, tone }) {
       }}
       disabled={disabled}
       aria-label={label}
-      title={label}
+      data-tip={label}
     >
-      <Icon name={icon} size={16} />
+      <Icon name={icon} size={20} />
     </button>
   );
 }
@@ -99,7 +99,7 @@ export const CourseNode = memo(function CourseNode({ id, selected }) {
         Курс
         <span className="dnd-node-kicker-end">{DIFFICULTY_LABEL[course.difficulty] || "—"}</span>
       </div>
-      <h3 className="dnd-node-title" title={course.title}>
+      <h3 className="dnd-node-title" data-tip={course.title}>
         {course.title}
       </h3>
       <p className="dnd-node-meta">
@@ -237,11 +237,11 @@ export const MaterialNode = memo(function MaterialNode({ id, data, selected }) {
             busy={material.status === "uploading"}
             icon={status === "error" ? "alert" : status === "used" ? "link" : status === "ready" ? "check" : null}
           >
-            <span title={statusInfo?.label}>{statusInfo?.short}</span>
+            <span data-tip={statusInfo?.label}>{statusInfo?.short}</span>
           </StatusPill>
         </span>
       </div>
-      <h3 className="dnd-node-title dnd-node-title--sm" title={material.fileName}>
+      <h3 className="dnd-node-title dnd-node-title--sm" data-tip={material.fileName}>
         {material.fileName}
       </h3>
       {material.status === "error" ? (
@@ -288,6 +288,7 @@ export const MaterialNode = memo(function MaterialNode({ id, data, selected }) {
             icon="lesson"
             items={lessonItems}
             disabled={!isReady}
+            iconSize={20}
           />
         )}
         <span className="dnd-node-actions-gap" />
@@ -379,13 +380,13 @@ export const LessonNode = memo(function LessonNode({ id, data, selected }) {
         <Icon name="lesson" size={15} />
         Урок
         {placement.moduleId ? (
-          <span className="dnd-chip" title={`Позиция в модуле: ${placement.index + 1}`}>
+          <span className="dnd-chip" data-tip={`Позиция в модуле: ${placement.index + 1}`}>
             №{placement.index + 1}
           </span>
         ) : null}
         <span className="dnd-node-kicker-end">
           {placement.moduleId ? null : (
-            <span title="Черновик: урок сохранится на сервере, когда вы добавите его в модуль">
+            <span data-tip="Черновик: урок сохранится на сервере, когда вы добавите его в модуль">
               <StatusPill tone="warn" icon="alert">
                 Черновик
               </StatusPill>
@@ -394,11 +395,11 @@ export const LessonNode = memo(function LessonNode({ id, data, selected }) {
           {contentStatus === "saving" ? <Spinner size={12} label="Сохраняем контент" /> : null}
         </span>
       </div>
-      <h3 className="dnd-node-title dnd-node-title--sm" title={lesson.title}>
+      <h3 className="dnd-node-title dnd-node-title--sm" data-tip={lesson.title}>
         {lesson.title}
       </h3>
       <p className="dnd-node-meta">
-        <span title="Контентные блоки">
+        <span data-tip="Контентные блоки">
           {blocks}/{MAX_CONTENT_BLOCKS} {WORDS.block[2]}
         </span>
         <span>
@@ -406,7 +407,7 @@ export const LessonNode = memo(function LessonNode({ id, data, selected }) {
           {lesson.estimatedTimeMinutes ? `${lesson.estimatedTimeMinutes} мин` : "—"}
         </span>
         {(lesson.materialIds || []).length ? (
-          <span title="Материалы, из которых собран урок">
+          <span data-tip="Материалы, из которых собран урок">
             <Icon name="file" size={13} />
             {countLabel(lesson.materialIds.length, WORDS.material)}
           </span>
@@ -430,7 +431,7 @@ export const LessonNode = memo(function LessonNode({ id, data, selected }) {
           onClick={() => previewLesson?.(lesson.id)}
           disabled={lesson.isLocal}
         />
-        <ActionMenu label="Переместить в модуль" icon="module" items={moduleItems} />
+        <ActionMenu label="Переместить в модуль" icon="module" items={moduleItems} iconSize={20} />
         {placement.moduleId ? (
           <>
             <NodeButton
@@ -501,7 +502,7 @@ export const ModuleNode = memo(function ModuleNode({ id, data, selected }) {
             {countLabel(lessons, WORDS.lesson)}
           </span>
         </div>
-        <h3 className="dnd-node-title dnd-node-title--sm" title={module.title}>
+        <h3 className="dnd-node-title dnd-node-title--sm" data-tip={module.title}>
           {module.title}
         </h3>
         <div className="dnd-module-toolbar">

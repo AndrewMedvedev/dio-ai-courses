@@ -26,26 +26,27 @@ export const EMPTY_COURSE_FORM = {
 };
 
 // Размеры узлов на холсте. Модуль растягивается по числу уроков внутри.
+// Узлы крупные: курсы собирают в основном взрослые пользователи, текст должен легко читаться.
 export const NODE_SIZE = {
-  course: { width: 280, height: 226 },
-  material: { width: 248, height: 120 },
-  lesson: { width: 264, height: 112 },
-  upload: { width: 248, height: 96 },
+  course: { width: 400, height: 330 },
+  material: { width: 350, height: 178 },
+  lesson: { width: 372, height: 162 },
+  upload: { width: 350, height: 134 },
 };
 
 export const MODULE_LAYOUT = {
-  width: 300,
-  header: 118,
-  lessonGap: 10,
-  padding: 18,
-  footer: 58,
+  width: 420,
+  header: 172,
+  lessonGap: 14,
+  padding: 24,
+  footer: 82,
 };
 
 export const COLUMN_X = {
   material: 0,
-  lesson: 340,
-  module: 690,
-  course: 1090,
+  lesson: 460,
+  module: 950,
+  course: 1500,
 };
 
 export const COLUMN_GAP = 18;

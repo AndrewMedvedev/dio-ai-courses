@@ -13,7 +13,7 @@ import {
   normalizeModule,
 } from "./helpers";
 
-const DEFAULT_VIEWPORT = { x: 40, y: 40, zoom: 0.9 };
+const DEFAULT_VIEWPORT = { x: 40, y: 40, zoom: 1 };
 
 export const EMPTY_DRAFT = {
   course: null,
