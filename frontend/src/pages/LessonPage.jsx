@@ -309,6 +309,7 @@ export default function LessonPage({
                         key={`${selectedLesson.id}:${contentBlocksLessonId}:${draftRevision}`}
                         courseId={selectedCourse.id}
                         lesson={editorLesson}
+                        floatingAiEditor
                         onChange={(changes) =>
                           updateLesson(selectedLesson.id, changes, {
                             originalContentBlocks: visibleContentBlocks,

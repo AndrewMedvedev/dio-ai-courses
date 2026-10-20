@@ -97,9 +97,12 @@ export const upsertModule = (course, nextModule) => {
   const index = Number.isFinite(order)
     ? Math.min(Math.max(order - 1, 0), blocks.length)
     : blocks.length;
+  // Порядок остальных модулей сдвигается так же, как на backend.
   return {
     ...course,
-    blocks: [...blocks.slice(0, index), block, ...blocks.slice(index)],
+    blocks: [...blocks.slice(0, index), block, ...blocks.slice(index)].map(
+      (item, itemIndex) => ({ ...item, order: itemIndex + 1 }),
+    ),
   };
 };
 
@@ -123,7 +126,11 @@ export const upsertLesson = (course, moduleId, nextLesson) => ({
       : lessons.length;
     return {
       ...block,
-      lessons: [...lessons.slice(0, index), nextLesson, ...lessons.slice(index)],
+      lessons: [
+        ...lessons.slice(0, index),
+        nextLesson,
+        ...lessons.slice(index),
+      ].map((item, itemIndex) => ({ ...item, order: itemIndex + 1 })),
     };
   }),
 });

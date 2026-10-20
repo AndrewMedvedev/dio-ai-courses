@@ -34,7 +34,9 @@ export default function CoursePage({
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [statusAction, setStatusAction] = useState("");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [isModuleAgentOpen, setIsModuleAgentOpen] = useState(false);
+  // Позиция в списке модулей, где открыт чат генерации модуля (null — закрыт).
+  const [moduleAgentIndex, setModuleAgentIndex] = useState(null);
+  const [isModuleChatVisible, setIsModuleChatVisible] = useState(true);
   // { type: "module" | "course", id, title } — что пользователь хочет удалить.
   const [pendingDelete, setPendingDelete] = useState(null);
   const currentUserId = useSessionStore(
@@ -105,14 +107,94 @@ export default function CoursePage({
     }
   };
 
-  const renderInsertControl = (index) =>
-    isCourseEditMode ? (
+  const canGenerateModule = isCourseEditMode && isUuid(selectedCourse.id);
+  // Пока идёт генерация, чат держим в месте, куда вставится модуль.
+  const moduleAgentAt =
+    moduleJob && Number.isFinite(Number(moduleJob.order))
+      ? Number(moduleJob.order) - 1
+      : moduleAgentIndex;
+
+  const describeModulePosition = (index) => {
+    const blocks = selectedCourse.blocks;
+    if (!blocks.length) return "Модуль станет первым в курсе.";
+    if (index <= 0)
+      return `Модуль встанет в начало, перед «${blocks[0].title}».`;
+    if (index >= blocks.length) {
+      return `Модуль встанет в конец, после «${blocks[blocks.length - 1].title}».`;
+    }
+    return `Модуль встанет между «${blocks[index - 1].title}» и «${blocks[index].title}».`;
+  };
+
+  const openModuleAgent = (index) => {
+    setModuleAgentIndex(index);
+    setIsModuleChatVisible(true);
+  };
+
+  // Пока генерация идёт, окно только прячется: метка в списке остаётся.
+  const closeModuleAgent = () => {
+    const currentJob =
+      useGenerationJobsStore.getState().jobs[
+        generationJobKey("module", selectedCourse.id, "")
+      ];
+    if (currentJob) {
+      setIsModuleChatVisible(false);
+      return;
+    }
+    setModuleAgentIndex(null);
+  };
+
+  const renderInsertControl = (index) => {
+    if (!isCourseEditMode) return null;
+    if (canGenerateModule && moduleAgentAt === index) {
+      // Кнопки стоят на месте, а сюда встанет модуль из плавающего окна чата.
+      return (
+        <li className="course-agent-marker" key={`insert-${index}`}>
+          <span>
+            {moduleJob?.status === "running"
+              ? moduleJob.resultId
+                ? `✦ Модуль «${moduleJob.resultTitle || "без названия"}» генерируется — ниже`
+                : "✦ Здесь появится модуль — генерация идёт"
+              : moduleJob?.status === "done"
+                ? "✦ Модуль сгенерирован — ниже"
+                : "✦ Сюда встанет модуль из чата с ИИ"}
+          </span>
+          <div>
+            {!isModuleChatVisible && (
+              <button
+                type="button"
+                onClick={() => setIsModuleChatVisible(true)}
+              >
+                Показать чат
+              </button>
+            )}
+            {!moduleJob && (
+              <button type="button" onClick={() => setModuleAgentIndex(null)}>
+                Отменить
+              </button>
+            )}
+          </div>
+        </li>
+      );
+    }
+    return (
       <li className="course-block-insert" key={`insert-${index}`}>
-        <button type="button" onClick={() => insertBlock(index)}>
-          Вставить здесь
-        </button>
+        <div className="course-insert-actions">
+          <button type="button" onClick={() => insertBlock(index)}>
+            Вставить пустой модуль
+          </button>
+          {canGenerateModule && moduleAgentAt === null && (
+            <button
+              type="button"
+              className="is-ai"
+              onClick={() => openModuleAgent(index)}
+            >
+              ✦ Сгенерировать модуль с ИИ
+            </button>
+          )}
+        </div>
       </li>
-    ) : null;
+    );
+  };
 
   return (
     <section className="container section course-details-view">
@@ -481,26 +563,6 @@ export default function CoursePage({
               );
             })}
           </ul>
-          {isCourseEditMode && isUuid(selectedCourse.id) && (
-            <div className="course-ai-generate">
-              <button
-                type="button"
-                className="btn btn-solid"
-                onClick={() => setIsModuleAgentOpen(true)}
-              >
-                {moduleJob?.status === "running"
-                  ? "Модуль генерируется..."
-                  : moduleJob?.status === "done"
-                    ? "Модуль готов — открыть диалог"
-                    : "Сгенерировать модуль с ИИ"}
-              </button>
-              <span>
-                Агент уточнит требования, покажет структуру и стоимость и
-                запустит генерацию после вашего подтверждения. Модуль добавится
-                в конец курса.
-              </span>
-            </div>
-          )}
         </article>
 
         {!isCourseEditMode && (
@@ -526,17 +588,22 @@ export default function CoursePage({
         )}
       </div>
 
-      {isCourseEditMode && isUuid(selectedCourse.id) && (
+      {canGenerateModule && moduleAgentAt !== null && (
         <AgentInterviewDialog
-          open={isModuleAgentOpen}
-          onClose={() => setIsModuleAgentOpen(false)}
+          variant="floating"
+          open={isModuleChatVisible}
           kind="module"
           courseId={selectedCourse.id}
-          order={selectedCourse.blocks.length + 1}
+          order={moduleAgentAt + 1}
           knownIds={selectedCourse.blocks.map((block) => block.id)}
-          contextTitle={`Курс «${selectedCourse.title}»`}
+          contextTitle={
+            moduleJob?.resultId
+              ? `Модуль «${moduleJob.resultTitle || "без названия"}» уже в списке.`
+              : describeModulePosition(moduleAgentAt)
+          }
+          onClose={closeModuleAgent}
           onOpenResult={(job) => {
-            setIsModuleAgentOpen(false);
+            setModuleAgentIndex(null);
             if (job.resultId) openBlock(job.resultId);
           }}
         />

@@ -339,9 +339,10 @@
 }
 
 .agent-chat-form textarea {
-    min-height: 54px;
+    min-height: 44px;
     max-height: 180px;
-    resize: vertical;
+    resize: none;
+    line-height: 1.45;
     padding: 10px 12px;
     border: 1px solid var(--app-modal-border);
     border-radius: 14px;
@@ -547,5 +548,97 @@
     color: var(--text);
     font-size: 0.86rem;
     font-weight: 700;
+}
+
+/* Встроенный чат генерации — прямо в списке модулей/уроков, в месте вставки. */
+.course-insert-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.course-insert-actions button {
+    flex: 1 1 180px;
+}
+
+.course-block-insert button.is-ai,
+.lesson-insert-slot button.is-ai {
+    border-color: rgba(47, 125, 79, 0.45);
+    color: #2f7d4f;
+}
+
+.page[data-theme="dark"] .course-block-insert button.is-ai,
+.page[data-theme="dark"] .lesson-insert-slot button.is-ai {
+    border-color: rgba(127, 209, 155, 0.45);
+    color: #7fd19b;
+}
+
+/* Метка в списке: сюда встанет модуль или урок из плавающего чата. */
+.course-agent-marker,
+.lesson-agent-marker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 2px 0;
+    padding: 8px 12px;
+    border: 1.5px dashed rgba(47, 125, 79, 0.55);
+    border-radius: 14px;
+    background: rgba(47, 125, 79, 0.08);
+    color: #2f7d4f;
+    font-size: 0.84rem;
+    font-weight: 800;
+    list-style: none;
+}
+
+.course-agent-marker > div,
+.lesson-agent-marker > div {
+    display: flex;
+    gap: 6px;
+}
+
+.course-agent-marker button,
+.lesson-agent-marker button {
+    border: 1px solid rgba(47, 125, 79, 0.45);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    padding: 4px 12px;
+    font: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.course-agent-marker button:hover,
+.lesson-agent-marker button:hover {
+    background: rgba(47, 125, 79, 0.12);
+}
+
+.page[data-theme="dark"] .course-agent-marker,
+.page[data-theme="dark"] .lesson-agent-marker {
+    border-color: rgba(127, 209, 155, 0.5);
+    background: rgba(127, 209, 155, 0.08);
+    color: #7fd19b;
+}
+
+.lesson-insert-slot {
+    list-style: none;
+}
+
+.lesson-insert-slot button {
+    width: 100%;
+    border: 1px dashed rgba(47, 125, 79, 0.4);
+    border-radius: 999px;
+    background: transparent;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.lesson-insert-slot button:hover {
+    background: rgba(47, 125, 79, 0.08);
 }
 

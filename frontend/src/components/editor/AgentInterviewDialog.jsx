@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AppModal from "../ui/AppModal";
+import FloatingWindow from "../ui/FloatingWindow";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import AgentMarkdown from "./AgentMarkdown";
+import { autosizeTextarea } from "../../utils/autosizeTextarea";
 import { isAgentMockEnabled } from "../../services/agentMockHook";
 import {
   CONFIRM_LAUNCH_MESSAGE,
@@ -70,6 +72,9 @@ export default function AgentInterviewDialog({
   knownIds = [],
   contextTitle = "",
   onOpenResult,
+  // "modal" — модальное окно, "floating" — плавающее окно, которое можно
+  // перетаскивать и растягивать, не закрывая доступ к редактору.
+  variant = "modal",
 }) {
   const texts = TEXTS[kind] || TEXTS.module;
   const contextId = kind === "lesson" ? moduleId : "new-module";
@@ -104,6 +109,7 @@ export default function AgentInterviewDialog({
   const [isResetOpen, setIsResetOpen] = useState(false);
   const messagesRef = useRef(null);
   const inputRef = useRef(null);
+  const isFloating = variant === "floating";
 
   const messages = conversation?.messages || [];
   const isThinking = conversation?.status === "loading";
@@ -131,6 +137,17 @@ export default function AgentInterviewDialog({
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [messages.length, isThinking, open, job?.status]);
+
+  useEffect(() => {
+    if (!open || !isFloating) return;
+    window.requestAnimationFrame(() =>
+      inputRef.current?.focus({ preventScroll: true }),
+    );
+  }, [isFloating, open]);
+
+  useEffect(() => {
+    autosizeTextarea(inputRef.current, 180);
+  }, [input, open]);
 
   const send = async (text) => {
     const content = String(text || "").trim();
@@ -203,6 +220,12 @@ export default function AgentInterviewDialog({
     setIsResetOpen(false);
   };
 
+  const finishAndClose = () => {
+    clearConversation(conversationKey);
+    removeJob(jobKey);
+    onClose?.();
+  };
+
   const finishAndOpen = () => {
     if (!job) return;
     const result = job;
@@ -212,162 +235,193 @@ export default function AgentInterviewDialog({
     onOpenResult?.(result);
   };
 
+  const chatBody = (
+    <div className="agent-chat">
+      {isAgentMockEnabled() ? (
+        <p className="agent-mock-badge">
+          Демо-режим: ответы ИИ имитируются, модель не вызывается. Модуль и
+          уроки создаются настоящими запросами к backend.
+        </p>
+      ) : null}
+      <div className="agent-chat-messages" ref={messagesRef} aria-live="polite">
+        {messages.length === 0 ? (
+          <p className="agent-chat-empty">{texts.intro}</p>
+        ) : (
+          messages.map((message) => (
+            <div
+              key={message.id}
+              className={`agent-chat-message is-${message.role}`}
+            >
+              {message.role === "assistant" ? (
+                <AgentMarkdown>{message.text}</AgentMarkdown>
+              ) : (
+                message.text
+              )}
+            </div>
+          ))
+        )}
+        {isThinking ? (
+          <span className="agent-chat-thinking">Агент думает...</span>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="agent-chat-status is-error" role="alert">
+          <span>{error}</span>
+          {lastSent ? (
+            <div>
+              <button type="button" className="btn btn-outline" onClick={retry}>
+                Отправить ещё раз
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {awaitingConfirmation ? (
+        <div className="agent-chat-launch">
+          <span>
+            Агент подготовил описание и цели. Проверьте их перед запуском —
+            после запуска генерацию нельзя отменить.
+          </span>
+          <button
+            type="button"
+            className="btn btn-solid"
+            onClick={() => setConfirmText(CONFIRM_LAUNCH_MESSAGE)}
+          >
+            Проверить и запустить
+          </button>
+        </div>
+      ) : null}
+
+      {isRunning ? (
+        <div className="agent-chat-status" role="status">
+          <strong>{texts.running(job)}</strong>
+          <span>Новые данные появятся в редакторе автоматически.</span>
+        </div>
+      ) : null}
+      {isDone ? (
+        <div className="agent-chat-status is-done" role="status">
+          <strong>{texts.done(job)}</strong>
+          <div>
+            <button
+              type="button"
+              className="btn btn-solid"
+              onClick={finishAndOpen}
+            >
+              {texts.open}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={finishAndClose}
+            >
+              Готово
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {isFailed ? (
+        <div className="agent-chat-status is-error" role="alert">
+          <span>{job.error || "Генерация не завершилась."}</span>
+          <div>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={resetDialog}
+            >
+              Начать заново
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {!job ? (
+        <form className="agent-chat-form" onSubmit={submit}>
+          <textarea
+            ref={(element) => {
+              inputRef.current = element;
+              autosizeTextarea(element, 180);
+            }}
+            rows={1}
+            value={input}
+            placeholder={texts.placeholder}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit();
+              }
+            }}
+            disabled={isThinking || !canWrite}
+            maxLength={10000}
+            aria-label="Сообщение агенту"
+          />
+          <button
+            type="submit"
+            className="btn btn-solid"
+            disabled={isThinking || !input.trim() || !canWrite}
+          >
+            {isThinking ? "Ждём ответ..." : "Отправить"}
+          </button>
+        </form>
+      ) : null}
+    </div>
+  );
+
+  const resetButton =
+    messages.length > 0 || job ? (
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setIsResetOpen(true)}
+        disabled={isThinking}
+      >
+        Начать новый диалог
+      </button>
+    ) : null;
+
+  if (isFloating && !open) return null;
+
   return (
     <>
-      <AppModal
-        open={open}
-        onClose={onClose}
-        size="lg"
-        eyebrow={texts.eyebrow}
-        title={texts.title}
-        description={contextTitle}
-        footer={
-          <>
-            {messages.length > 0 || job ? (
+      {isFloating ? (
+        <FloatingWindow
+          open={open}
+          onClose={onClose}
+          eyebrow={texts.eyebrow}
+          title={texts.title}
+          subtitle={contextTitle}
+          storageKey={`agent-${kind}`}
+          defaultSize={{ width: 460, height: 620 }}
+          headerActions={resetButton}
+        >
+          {chatBody}
+        </FloatingWindow>
+      ) : (
+        <AppModal
+          open={open}
+          onClose={onClose}
+          size="lg"
+          eyebrow={texts.eyebrow}
+          title={texts.title}
+          description={contextTitle}
+          footer={
+            <>
+              {resetButton}
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={() => setIsResetOpen(true)}
-                disabled={isThinking}
+                onClick={onClose}
               >
-                Начать новый диалог
+                Закрыть
               </button>
-            ) : null}
-            <button type="button" className="btn btn-outline" onClick={onClose}>
-              Закрыть
-            </button>
-          </>
-        }
-      >
-        <div className="agent-chat">
-          {isAgentMockEnabled() ? (
-            <p className="agent-mock-badge">
-              Демо-режим: ответы ИИ имитируются, модель не вызывается. Модуль и
-              уроки создаются настоящими запросами к backend.
-            </p>
-          ) : null}
-          <div
-            className="agent-chat-messages"
-            ref={messagesRef}
-            aria-live="polite"
-          >
-            {messages.length === 0 ? (
-              <p className="agent-chat-empty">{texts.intro}</p>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`agent-chat-message is-${message.role}`}
-                >
-                  {message.role === "assistant" ? (
-                    <AgentMarkdown>{message.text}</AgentMarkdown>
-                  ) : (
-                    message.text
-                  )}
-                </div>
-              ))
-            )}
-            {isThinking ? (
-              <span className="agent-chat-thinking">Агент думает...</span>
-            ) : null}
-          </div>
-
-          {error ? (
-            <div className="agent-chat-status is-error" role="alert">
-              <span>{error}</span>
-              {lastSent ? (
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={retry}
-                  >
-                    Отправить ещё раз
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {awaitingConfirmation ? (
-            <div className="agent-chat-launch">
-              <span>
-                Агент подготовил описание и цели. Проверьте их перед запуском —
-                после запуска генерацию нельзя отменить.
-              </span>
-              <button
-                type="button"
-                className="btn btn-solid"
-                onClick={() => setConfirmText(CONFIRM_LAUNCH_MESSAGE)}
-              >
-                Проверить и запустить
-              </button>
-            </div>
-          ) : null}
-
-          {isRunning ? (
-            <div className="agent-chat-status" role="status">
-              <strong>{texts.running(job)}</strong>
-              <span>Новые данные появятся в редакторе автоматически.</span>
-            </div>
-          ) : null}
-          {isDone ? (
-            <div className="agent-chat-status is-done" role="status">
-              <strong>{texts.done(job)}</strong>
-              <div>
-                <button
-                  type="button"
-                  className="btn btn-solid"
-                  onClick={finishAndOpen}
-                >
-                  {texts.open}
-                </button>
-              </div>
-            </div>
-          ) : null}
-          {isFailed ? (
-            <div className="agent-chat-status is-error" role="alert">
-              <span>{job.error || "Генерация не завершилась."}</span>
-              <div>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={resetDialog}
-                >
-                  Начать заново
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {!job ? (
-            <form className="agent-chat-form" onSubmit={submit}>
-              <textarea
-                ref={inputRef}
-                value={input}
-                placeholder={texts.placeholder}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    submit();
-                  }
-                }}
-                disabled={isThinking || !canWrite}
-                maxLength={10000}
-                aria-label="Сообщение агенту"
-              />
-              <button
-                type="submit"
-                className="btn btn-solid"
-                disabled={isThinking || !input.trim() || !canWrite}
-              >
-                {isThinking ? "Ждём ответ..." : "Отправить"}
-              </button>
-            </form>
-          ) : null}
-        </div>
-      </AppModal>
+            </>
+          }
+        >
+          {chatBody}
+        </AppModal>
+      )}
 
       <ConfirmDialog
         open={confirmText !== null}
