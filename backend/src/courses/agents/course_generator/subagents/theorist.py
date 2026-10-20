@@ -4,7 +4,6 @@ import logging
 
 from pydantic import TypeAdapter
 
-from src.courses.agents.deprecated_middlewares import SaveImageMiddleware
 from src.courses.agents.middlewares import ToolCallLimitMiddleware
 from src.courses.agents.schemas import Context
 from src.courses.domain.vo import (
@@ -36,7 +35,7 @@ from ..few_shots import (
     QUIZ_BLOCK_FEW_SHOT,
     TEXT_BLOCK_FEW_SHOT,
 )
-from .prompts import CONTENT_BLOCK_PROMPTS
+from .prompts import CONTENT_BLOCK_PROMPTS, SOURCES_URL_ONLY_INSTRUCTION
 from .reasoner import call_researcher_agent
 
 logger = logging.getLogger(__name__)
@@ -93,7 +92,6 @@ async def generate_image(
         client=client,
         runtime=runtime or Runtime(context=context, state=client),
         middlewares=[
-            SaveImageMiddleware(),
             *(middlewares or []),
         ],
     )
@@ -113,7 +111,11 @@ async def generate_text(
     agent = LLMTextService(
         client=client,
         runtime=runtime or Runtime(context=context, state=client),
-        system_prompt=content_config.get("system_prompt", None),
+        system_prompt=(
+            f"{content_config['system_prompt']}\n\n{SOURCES_URL_ONLY_INSTRUCTION}"
+            if content_config.get("system_prompt")
+            else SOURCES_URL_ONLY_INSTRUCTION
+        ),
         tools={"call_researcher_agent": call_researcher_agent},
         middlewares=[
             ToolCallLimitMiddleware(tool_limits={"call_researcher_agent": 1}),

@@ -1665,3 +1665,193 @@
         background: var(--glass-fallback-bg);
     }
 }
+
+
+/* ===== Прогресс прохождения курса (SGK-042) =====
+   Зелёный — пройдено, янтарный — в процессе, приглушённый — не начато. */
+.page {
+    --progress-done: #2f7d4f;
+    --progress-done-bg: rgba(47, 125, 79, 0.14);
+    --progress-active: #a86a00;
+    --progress-active-bg: rgba(212, 150, 30, 0.18);
+    --progress-idle: rgba(114, 121, 156, 0.38);
+    --progress-idle-bg: rgba(114, 121, 156, 0.1);
+    --progress-track: rgba(var(--accent-rgb), 0.2);
+}
+
+.page[data-theme="dark"] {
+    --progress-done: #7fd19b;
+    --progress-done-bg: rgba(127, 209, 155, 0.16);
+    --progress-active: #f0c060;
+    --progress-active-bg: rgba(240, 192, 96, 0.16);
+    --progress-idle: rgba(255, 255, 255, 0.26);
+    --progress-idle-bg: rgba(255, 255, 255, 0.06);
+    --progress-track: rgba(255, 255, 255, 0.12);
+}
+
+/* Сводка курса: шапка дерева и карточка «Продолжить обучение». */
+.course-nav-progress,
+.course-progress-summary {
+    display: grid;
+    gap: 6px;
+}
+
+.course-progress-summary {
+    margin-top: 14px;
+    max-width: 420px;
+}
+
+.course-nav-progress-row,
+.course-progress-summary-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.86rem;
+}
+
+.course-nav-progress-row b,
+.course-progress-summary-row b {
+    color: var(--progress-done);
+    font-weight: 800;
+}
+
+.course-nav-progress-bar {
+    position: relative;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--progress-track);
+}
+
+.course-nav-progress-bar > span {
+    display: block;
+    height: 100%;
+    min-width: 0;
+    border-radius: inherit;
+    background: var(--progress-done);
+    transition: width 0.4s ease;
+}
+
+/* Модули в дереве. */
+.course-nav-block.has-progress {
+    border-left-color: var(--progress-idle);
+}
+
+.course-nav-block.has-progress.is-in_progress {
+    border-left-color: var(--progress-active);
+}
+
+.course-nav-block.has-progress.is-completed {
+    border-left-color: var(--progress-done);
+}
+
+.course-nav-block.has-progress.is-active {
+    border-radius: 0 10px 10px 0;
+    background: rgba(var(--accent-rgb), 0.07);
+}
+
+.course-nav-block-btn.has-progress {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.course-nav-block-progress {
+    align-self: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--progress-idle-bg);
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-style: normal;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.course-nav-block-progress.is-in_progress {
+    background: var(--progress-active-bg);
+    color: var(--progress-active);
+}
+
+.course-nav-block-progress.is-completed {
+    background: var(--progress-done-bg);
+    color: var(--progress-done);
+}
+
+/* Уроки в дереве. */
+.course-nav-item-btn.has-progress {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+}
+
+.course-nav-item-btn.has-progress.is-completed .course-nav-item-number {
+    color: var(--progress-done);
+}
+
+.course-nav-item-btn.has-progress.is-in_progress .course-nav-item-number {
+    color: var(--progress-active);
+}
+
+.course-nav-progress-dot {
+    width: 9px;
+    height: 9px;
+    justify-self: end;
+    border-radius: 50%;
+    background: var(--progress-idle);
+}
+
+.course-nav-progress-dot.is-in_progress {
+    background: var(--progress-active);
+}
+
+.course-nav-progress-dot.is-completed {
+    background: var(--progress-done);
+}
+
+/* Списки модулей и уроков на обзорных страницах. */
+.course-pick-item.has-progress {
+    grid-template-columns: auto 1fr auto;
+}
+
+.course-pick-item.has-progress.is-in_progress {
+    border-color: var(--progress-active);
+}
+
+.course-pick-item.has-progress.is-completed {
+    border-color: var(--progress-done);
+}
+
+.course-pick-progress {
+    align-self: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--progress-idle-bg);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.course-pick-progress.is-in_progress {
+    background: var(--progress-active-bg);
+    color: var(--progress-active);
+}
+
+.course-pick-progress.is-completed {
+    background: var(--progress-done-bg);
+    color: var(--progress-done);
+}
+
+/* Отметки на вкладках урока: теория / проверочные вопросы / практика. */
+.lesson-mode-progress {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 7px;
+    border-radius: 50%;
+    background: var(--progress-idle);
+    vertical-align: middle;
+}
+
+.lesson-mode-progress.is-done {
+    background: var(--progress-done);
+}

@@ -262,7 +262,7 @@ export const MaterialNode = memo(function MaterialNode({ id, data, selected }) {
       <div className="dnd-node-actions dnd-node-toolbar" role="toolbar" aria-label="Действия с материалом">
         <NodeButton
           icon="eye"
-          label="Открыть предпросмотр"
+          label="Открыть материал"
           onClick={() => openInspector(nodeId.material(material.id), "content")}
           disabled={material.status === "uploading"}
         />

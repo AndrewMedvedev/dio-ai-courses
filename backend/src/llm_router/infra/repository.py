@@ -19,6 +19,7 @@ class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
             created_at=model.created_at,
             updated_at=model.updated_at,
             name=model.name,
+            complexity=model.complexity,
             description=model.description,
             context=model.context,
         )
@@ -30,6 +31,7 @@ class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
             created_at=entity.created_at,
             updated_at=entity.updated_at,
             name=entity.name,
+            complexity=entity.complexity,
             description=entity.description,
             context=entity.context,
         )
@@ -41,9 +43,9 @@ class SqlAIModelRepository(SqlAlchemyRepository[AIModel, AIModelOrm]):
 
     async def read_fields(self, params: Pagination) -> Page:
         # 1. Основной запрос — выбираем только нужные поля, без служебных
-        """Выполняет операцию репозитория `read_fields` для доступа к постоянному хранилищу."""
         stmt = select(
             self.model.name,
+            self.model.complexity,
             self.model.description,
             self.model.context,
         ).order_by(self.model.created_at.desc())
@@ -117,8 +119,6 @@ class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
         )
 
 
-class SqlLLMInvocationRepository(
-    SqlAlchemyRepository[LLMInvocation, LLMInvocationOrm]
-):
+class SqlLLMInvocationRepository(SqlAlchemyRepository[LLMInvocation, LLMInvocationOrm]):
     model = LLMInvocationOrm
     model_mapper = LLMInvocationMapper  # type: ignore  # ruff: ignore[blanket-type-ignore]

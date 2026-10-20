@@ -1,11 +1,10 @@
 # pyright: reportOptionalMemberAccess=false,reportArgumentType=false, reportOptionalSubscript=false,reportAttributeAccessIssue=false
 
-from typing import Any
 
 import base64
 import logging
-import operator
 
+from aiohttp import ClientSession
 from langsmith import traceable
 from openai import (
     AsyncOpenAI,
@@ -17,8 +16,9 @@ from tenacity import (
     retry_if_exception,
 )
 
-from src.core.others import tokens_encoder
+from src.core.providers import aitunnel_config
 from src.core.settings import settings
+from src.llm_router.domain.enums import Complexity
 from src.llm_service.schemas import (
     LLMImageRequest,
     LLMImageResponse,
@@ -32,8 +32,7 @@ from .decorators import track_image_invocation, track_text_invocation
 from .domain.events import LLMInvocationCreated
 from .infra.media_client import MediaClient
 from .infra.repository import SqlAIModelRepository
-from .prompts import PROMPT_CHOOSE_MODEL, PROMPT_RETRY, build_model_selection_text
-from .schemas import CacheAIModelsProtocol
+from .schemas import CacheAIModelsProtocol, ClassificationInput, ClassificationState
 from .utils import (
     is_retryable_error,
     parse_llm_response,
@@ -61,7 +60,7 @@ LLM_RETRY = {
 }
 
 
-class LLMRouter:  # ruff: ignore[class-as-data-structure]
+class LLMRouter:
     def __init__(
         self,
         ai_model_repos: SqlAIModelRepository,
@@ -104,6 +103,31 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             )
 
     @retry(**LLM_RETRY)
+    @traceable(run_type="chain", name="CallClassification")
+    async def _classification_task(self, request: ClassificationInput) -> str:
+        async with ClientSession() as session:
+            response = await session.post(
+                url="https://api.aitunnel.ru/v1/decisions",
+                headers={
+                    "Authorization": f"Bearer {aitunnel_config.key}",
+                    "Content-Type": "application/json",
+                },
+                json=request.model_dump(
+                    exclude_none=True,
+                ),
+            )
+            # result = await self._client.post(
+            #     path="/decisions",
+            #     cast_to=dict,
+            #     body=request.model_dump(
+            #         exclude_none=True,
+            #     ),
+            # )
+            response.raise_for_status()
+            result = await response.json()
+            return result["answers"]["complexity"]["choice"]
+
+    @retry(**LLM_RETRY)
     @traceable(run_type="llm", process_outputs=to_langsmith_llm_output)
     @track_text_invocation
     async def _invoke(
@@ -120,87 +144,6 @@ class LLMRouter:  # ruff: ignore[class-as-data-structure]
             input_messages=schema.messages,
             text_format=schema.text,
         )
-
-    @traceable(run_type="chain", name="ResolveModel")
-    async def _resolve_model(
-        self,
-        schema: dict[str, Any],
-        models: list[dict[str, Any]],
-        selected_model: str,
-        requested_model: str | None = None,
-    ) -> str:
-        """
-        Определяет итоговую модель для запроса.
-
-        Логика:
-        - если пользователь передал модель — проверяет её и при необходимости выбирает fallback;
-        - если пользователь не передал модель и auto_choose=True — выбирает модель автоматически;
-        - если пользователь не передал модель и есть default_model — использует default_model.
-        """
-        if requested_model is not None:
-            return await self._fallback_model(
-                model=requested_model,
-                schema=schema,
-                models=models,
-                selected_model=selected_model,
-            )
-
-        return await self._choose_model(
-            schema=schema,
-            models=models,
-            selected_model=selected_model,
-        )
-
-    @staticmethod
-    async def _select_model_by_length(
-        input_messages: str,
-        models: list[dict[str, Any]],
-    ) -> tuple[str, list[dict[str, Any]]]:
-
-        count_tokens = len(tokens_encoder.encode(text=input_messages))
-        if count_tokens >= BASE_MODEL_CONTEXT:
-            filtered_models = [model for model in models if model["context"] > count_tokens]
-            min_model = min(filtered_models, key=operator.itemgetter("context"))
-            return min_model["name"], filtered_models
-        return settings.text_ai_model, models
-
-    @traceable(run_type="chain", name="FallbackModel")
-    async def _fallback_model(
-        self,
-        model: str,
-        schema: dict[str, Any],
-        models: list[dict[str, Any]],
-        selected_model: str,
-    ) -> str:
-        if model not in {i["name"] for i in models}:
-            result = await self._invoke(
-                model=selected_model,
-                schema=LLMTextRequest(
-                    input=[{"content": f"## AVAILABLE MODELS\n{models} \n## MESSAGES\n{schema}\n### USER REQUESTED MODEL\n{model}",}],  # ruff: ignore[line-too-long]
-                    instructions=PROMPT_RETRY,
-                    text=build_model_selection_text(models),
-                ),
-            )
-            return result.output.get("model_name", selected_model)
-        return model
-
-    @traceable(run_type="chain", name="ChooseModel")
-    async def _choose_model(
-        self,
-        schema: dict[str, Any],
-        models: list[dict[str, Any]],
-        selected_model: str,
-    ) -> str:
-
-        result = await self._invoke(
-            model=selected_model,
-            schema=LLMTextRequest(
-                input=[{"content": f"## МОДЕЛИ\n{models} \n## ЗАПРОС\n{schema}",}],
-                instructions=PROMPT_CHOOSE_MODEL,
-                text=build_model_selection_text(models),
-            ),
-        )
-        return result.output.get("model_name", selected_model)
 
 
 class LLMTextRouter(LLMRouter):
@@ -229,25 +172,32 @@ class LLMTextRouter(LLMRouter):
                 func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
             )
         ).items
-        input_messages = schema.model_dump_json(
-            exclude_none=True,
-            by_alias=True,
-        )
+        if model is None:
+            classification = await self._classification_task(
+                ClassificationInput(
+                    model="gpt-6-luna-decisions",
+                    state=ClassificationState(
+                        messages=schema.messages,
+                        instructions=schema.instructions,
+                        tools=schema.tools,
+                        output=schema.text,
+                    ),
+                )
+            )
+            selected_model = [
+                item["name"] for item in models if item["complexity"] == classification
+            ]
 
-        min_model, models = await self._select_model_by_length(
-            input_messages=input_messages,
-            models=models,
-        )
-        selected_model = await self._resolve_model(
-            schema=schema,
-            models=models,
-            selected_model=min_model,
-            requested_model=model,
-        )
-
+            return await self._invoke(
+                model=selected_model[0],
+                **schema.model_dump(exclude_none=True, by_alias=True),
+            )
+        selected_model = [
+            model["name"] for model in models.items if model["complexity"] == Complexity.MEDIUM
+        ]
         return await self._invoke(
-            model=selected_model,
-            schema=schema,
+            model=selected_model[0],
+            **schema.model_dump(exclude_none=True, by_alias=True),
         )
 
 
@@ -318,31 +268,12 @@ class LLMImageRouter(LLMRouter):
         schema: LLMImageRequest,
         model: str | None = None,
     ) -> LLMImageResponse:
-        models = (
-            await self._wrapper(
-                func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
-            )
-        ).items
-        input_messages = schema.model_dump_json(
-            exclude_none=True,
-            by_alias=True,
-        )
-        min_model, models = await self._select_model_by_length(
-            input_messages=input_messages,
-            models=models,
-        )
-        selected_model = await self._resolve_model(
-            schema=schema,
-            models=models,
-            selected_model=min_model,
-            requested_model=model,
-        )
         if schema.image is not None:
             return await self._invoke_image_based(
-                model=selected_model,
-                schema=schema,
+                model=settings.image_ai_model,
+                **schema.model_dump(exclude_none=True, by_alias=True),
             )
         return await self._invoke_image(
-            model=selected_model,
-            schema=schema,
+            model=settings.image_ai_model,
+            **schema.model_dump(exclude_none=True, by_alias=True),
         )

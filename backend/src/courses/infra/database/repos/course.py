@@ -3,15 +3,15 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from src.courses.application.dtos import (
+    BasicInfo,
+    CourseBasicInfo,
+)
+from src.courses.domain.entities import Course
+from src.courses.domain.enums import CourseStatus
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
-from ....domain.entities import (
-    BasicInfo,
-    Course,
-    CourseBasicInfo,
-)
-from ....domain.enums import CourseStatus
 from ..mappers import (
     CourseMapper,
 )

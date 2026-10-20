@@ -59,18 +59,11 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         service: LLMServiceProtocol,
         response: LLMTextResponse,
     ) -> LLMTextResponse:
-        """Обновляет сообщения после ответа модели."""
-        messages = []
-
-        for message in response.messages:
-            role = message.get("role")
-            if role in {"user", "assistant"}:
-                messages.append(message)
-
+        """Сохраняет историю вместе с вызовами и результатами инструментов."""
         await self._update(
             chat_id=service.runtime.state.chat_id,
             user_id=service.runtime.context.user_id,
             course_id=service.runtime.context.course_id,
-            messages=messages,
+            messages=response.messages,
         )
         return response

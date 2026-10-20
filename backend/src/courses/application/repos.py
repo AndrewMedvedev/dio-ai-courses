@@ -20,6 +20,22 @@ from typing import Any, Protocol
 
 from uuid import UUID
 
+from src.courses.domain.entities import (
+    AnyContentBlock,
+    Chat,
+    Course,
+    CourseProgress,
+    Document,
+    Entity,
+    Invitation,
+    Lesson,
+    LessonProgress,
+    Member,
+    Module,
+    ModuleProgress,
+    Practice,
+)
+from src.courses.domain.events import LessonProgressUpdated
 from src.courses.domain.vo import MemberRole
 from src.courses.infra.services.client import SrvCourseClient
 from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
@@ -32,26 +48,7 @@ from src.shared.application.dtos import Page, Pagination
 from src.shared.application.repos import Repository
 from src.shared.domain.vo import Email
 
-from ..domain.entities import (
-    AnyContentBlock,
-    BasicInfo,
-    Chat,
-    Course,
-    CourseBasicInfo,
-    CourseProgress,
-    Document,
-    Entity,
-    Invitation,
-    Lesson,
-    LessonBasicInfo,
-    LessonProgress,
-    Member,
-    Module,
-    ModuleBasicInfo,
-    ModuleProgress,
-    Practice,
-)
-from ..domain.events import LessonProgressUpdated
+from .dtos import BasicInfo, CourseBasicInfo, LessonBasicInfo, ModuleBasicInfo
 
 
 class BasicInfoProtocol[EntityT: Entity, BasicInfoT](Repository[EntityT]):
@@ -265,7 +262,9 @@ class ModuleProgressRepository(ProgressRepository[ModuleProgress]): ...
 class CourseProgressRepository(ProgressRepository[CourseProgress]):
     async def count_completed_lessons(self, course_progress_id: UUID) -> int: ...
 
-    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]: ...
+    async def find_by_course(
+        self, course_id: UUID, pagination: Pagination
+    ) -> Page[CourseProgress]: ...
 
 
 class MemberRepository(Repository[Member]):
@@ -293,7 +292,12 @@ class InvitationRepository(Repository[Invitation]):
 
 
 class VectorRepository(Protocol):
-    async def create(self, text: str, metadata: dict[str, Any] | None = None) -> None: ...
+    async def create(
+        self,
+        text: str,
+        metadata: dict[str, Any] | None = None,
+        document_id: str | None = None,
+    ) -> None: ...
 
     async def read(
         self,

@@ -2,19 +2,12 @@ from typing import Any
 
 from uuid import UUID
 
-from sqlalchemy import (
-    CheckConstraint,
-    Enum,
-    Index,
-    Integer,
-    String,
-    Text,
-    text,
-)
+from sqlalchemy import CheckConstraint, Enum, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
+from src.llm_router.domain.enums import Complexity
 
 from ..domain.dataclass import LLMInvocationStatus
 
@@ -24,6 +17,7 @@ class AIModelOrm(Base):
 
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
     description: Mapped[str] = mapped_column(nullable=False)
+    complexity: Mapped[Complexity] = mapped_column(Enum(Complexity))
     context: Mapped[int] = mapped_column(nullable=False)
 
 

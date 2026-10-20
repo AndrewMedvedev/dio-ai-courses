@@ -7,7 +7,11 @@ from src.iam.domain.types import RoleId
 
 
 class InvitationCreate(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel)
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
 
     email: EmailStr
     granted_roles: set[RoleId] | None = None
