@@ -1,6 +1,9 @@
+from typing import cast
+
 from collections.abc import Callable
 
 from ddf.application.dsl import Condition, Expression, Group, Negation, Search
+from ddf.infra.database.sqlalchemy.base import Base as DdfBase
 from ddf.infra.database.sqlalchemy.filters import compile_filter
 from ddf.utils.cases import camel_to_snake_case
 from pydantic import TypeAdapter
@@ -44,7 +47,7 @@ def apply_search[ModelT: Base](
     search: str | None = None,
 ) -> Select[tuple[ModelT]]:
     if isinstance(query, str):
-        query = TypeAdapter(Expression).validate_json(query)
+        query = TypeAdapter[Expression](Expression).validate_json(query)
     if search and search.strip():
         keywords = Search(query=search.strip())
         query = Group(op="$and", filters=(query, keywords)) if query is not None else keywords
@@ -59,7 +62,8 @@ def apply_search[ModelT: Base](
 
     return stmt.where(
         compile_filter(
-            model,
+            # DDF использует колонки SQLAlchemy, а не наследование от своего Base.
+            cast(type[DdfBase], model),
             _typed_query(model, query, fields),
             fields,
             full_text if text_fields else None,
