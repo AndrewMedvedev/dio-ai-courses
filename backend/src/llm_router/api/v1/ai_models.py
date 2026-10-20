@@ -30,9 +30,7 @@ async def add_model(
     session: DBSession,
 ) -> AIModel:
     """Обрабатывает HTTP-запрос `add_model` и связывает API с сервисным слоем."""
-    result = await repository.create(
-        AIModel(name=schema.name, description=schema.description, context=schema.context)
-    )
+    result = await repository.create(AIModel(**schema.model_dump()))
     await session.commit()
     return result
 

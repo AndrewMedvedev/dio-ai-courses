@@ -3,17 +3,17 @@ from typing import Any
 from dataclasses import dataclass
 from uuid import UUID
 
-from .vo import LLMInvocationStatus
-
 from src.shared.domain.entities import Entity
+
+from .enums import Complexity
+from .vo import LLMInvocationStatus
 
 
 @dataclass(kw_only=True)
 class AIModel(Entity):
-    """Хранит структурированные данные `AIModel`, чтобы передавать их между слоями без словарей."""
-
     name: str
     description: str
+    complexity: Complexity
     context: int
 
 

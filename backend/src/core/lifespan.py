@@ -12,15 +12,14 @@ from .others import thread_executor
 from .qdrant import qdrant_client
 from .rabbit import router as rabbit_router
 from .redis import checkpointer, redis_client
+from .retrieval import embeddings_config
 from .tkq import taskiq_broker
 
 _BOOTSTRAP_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("alembic", "upgrade", "head"),
     ("src.cli", "create-permissions"),
     ("src.cli", "create-first-admin"),
-    ("src.cli", "create-super-admin"),
     ("src.cli", "create-default-organization"),
-    # ("src.cli", "init-s3-buckets"),
 )
 
 
@@ -49,7 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 collection_name="MAIN_COLLECTION",
                 vectors_config={
                     "dense": models.VectorParams(
-                        size=1024,
+                        size=embeddings_config.dimensions,
                         distance=models.Distance.COSINE,
                     )
                 },

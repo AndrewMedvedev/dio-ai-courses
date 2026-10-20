@@ -10,10 +10,10 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from src.core.settings import settings
+from src.shared.domain.entities import AggregateRoot, Entity
 from src.shared.domain.vo import Email
 from src.shared.utils.time import current_datetime, get_expiration_time
 
-from ...shared.domain.entities import AggregateRoot, Entity
 from .constants import INVITATION_EXPIRES_IN_DAYS
 from .enums import (
     CourseStatus,
@@ -34,52 +34,6 @@ def _generate_invite_token(length: int = 32) -> str:
     """
 
     return secrets.token_urlsafe(length)
-
-
-@dataclass(kw_only=True, slots=True)
-class LessonBasicInfo:
-    """Описывает доменную сущность `LessonBasicInfo` и её данные для бизнес-логики."""
-
-    id: UUID
-    title: str
-    description: str
-    order: int
-    learning_objectives: list[str] = field(default_factory=list)
-    estimated_time_minutes: int | None = None
-
-
-@dataclass(kw_only=True, slots=True)
-class BasicInfo:
-    """Описывает доменную сущность `BasicInfo` и её данные для бизнес-логики."""
-
-    id: UUID
-    title: str
-    order: int
-
-
-@dataclass(kw_only=True, slots=True)
-class ModuleBasicInfo:
-    """Описывает доменную сущность `ModuleBasicInfo` и её данные для бизнес-логики."""
-
-    id: UUID
-    title: str
-    description: str
-    order: int
-    learning_objectives: list[str] = field(default_factory=list)
-    lessons: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
-
-
-@dataclass(kw_only=True, slots=True)
-class CourseBasicInfo:
-    """Описывает доменную сущность `CourseBasicInfo` и её данные для бизнес-логики."""
-
-    id: UUID
-    title: str
-    description: str
-    difficulty: DifficultyLevel
-    tags: list[str]
-    learning_objectives: list[str] = field(default_factory=list)
-    modules: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
 
 
 @dataclass(kw_only=True, slots=True)

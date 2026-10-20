@@ -84,7 +84,7 @@ class Crud[
     async def read(self, uid: UUID, options: ReadOptionsT | None = None) -> ResponseT:
         entity = await get_or_raise_404(self._repository.read, uid, type[EntityT])
 
-        async def _base_read(entity_: EntityT, options_: ReadOptionsT | None = None) -> EntityT:  # ruff: ignore[unused-async, unused-function-argument]
+        async def _base_read(entity_: EntityT, options_: ReadOptionsT | None = None) -> EntityT:
             return entity_
 
         read = (

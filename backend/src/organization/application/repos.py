@@ -44,7 +44,7 @@ class IAMRepository(Protocol):
     async def invite_user_in_system(
         self,
         dto: InvitationCreate,
-    ) -> IAMInvitation | None: ...
+    ) -> IAMInvitation: ...
 
 
 class MembershipRepository(Protocol):
