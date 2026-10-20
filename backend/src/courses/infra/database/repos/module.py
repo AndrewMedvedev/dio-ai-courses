@@ -3,14 +3,14 @@ from uuid import UUID
 
 from sqlalchemy import func, select, update
 
-from src.courses.application.dtos import (
-    BasicInfo,
-    ModuleBasicInfo,
-)
-from src.courses.domain.entities import Module
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
+from ....domain.entities import (
+    BasicInfo,
+    Module,
+    ModuleBasicInfo,
+)
 from ..mappers import (
     ModuleMapper,
 )
@@ -24,9 +24,8 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
     model_mapper = ModuleMapper  # type: ignore
 
     async def create_at(self, module: Module) -> Module:
-        if module.order < 0:
-            raise ValueError("Module order must be non-negative")
-
+        if module.order < 1:
+            raise ValueError("Module order must be greater than 0")
         if module.course_id is None:
             raise ValueError("course_id is required")
 

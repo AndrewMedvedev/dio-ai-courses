@@ -14,7 +14,6 @@ serializer = JsonPlusRedisSerializer(
             "schemas",
             "Context",
         ),
-        ("src", "courses", "agents", "schemas", "GenerationContext"),
         (
             "src",
             "courses",
@@ -57,7 +56,6 @@ serializer = JsonPlusRedisSerializer(
             "src.courses.agents.schemas",
             "Context",
         ),
-        ("src.courses.agents.schemas", "GenerationContext"),
         (
             "src.courses.agents.course_generator.subagents.prompts",
             "CourseStructure",

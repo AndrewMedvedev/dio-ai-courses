@@ -81,9 +81,8 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
         self.runtime = runtime
 
     async def _send_request(self, request: RequestT, path: str) -> ResponseT:
-        async with self._client._get_token_session() as session:  # noqa: SLF001
+        async with self._client._get_token_session() as session:  # ruff: ignore[private-member-access]
             response = await session.post(url=path, json=request.model_dump(exclude_none=True))
-
             return self.response_model.model_validate(await response.json())
 
     @abstractmethod
@@ -144,7 +143,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
             request.format_schema(schema)
         return await self._send_request(
             request=request,
-            path=f"/api/v1/responses/text{f'?model={self.model}' if self.model is not None else ''}",  # noqa: E501
+            path=f"/api/v1/responses/text{f'?model={self.model}' if self.model is not None else ''}",
         )
         # return await self._send_request(
         #     request=request,
@@ -176,17 +175,9 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
     async def _process_tool(self, tool: ToolCallParsed) -> dict:
 
         logger.info("tool call %s", tool.name)
-        callable_func = (self.tools or {}).get(tool.name)
+        callable_func = self.tools.get(tool.name)  # pyright: ignore[reportOptionalMemberAccess]
         if callable_func is None:
-            logger.warning(
-                "Unknown tool requested: name=%s, call_id=%s",
-                tool.name,
-                tool.call_id,
-            )
-            return StructuredTool.to_tool_result(
-                call_id=tool.call_id,
-                result={"error": f"Unknown tool '{tool.name}'. Use only available tools."},
-            )
+            return {}
         async with self.semaphore:
             try:
                 result = await callable_func.run_tool(
@@ -250,7 +241,7 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
             self.runtime.messages = messages
         return await self._send_request(
             request=request,
-            path=f"/api/v1/responses/image{f'?model={self.model}' if self.model is not None else ''}",  # noqa: E501
+            path=f"/api/v1/responses/image{f'?model={self.model}' if self.model is not None else ''}",
         )
         # return await self._send_request(
         #     request=request,

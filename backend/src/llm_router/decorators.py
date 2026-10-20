@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable
 from functools import wraps
 from time import perf_counter
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from src.llm_service.schemas import (
     LLMImageRequest,

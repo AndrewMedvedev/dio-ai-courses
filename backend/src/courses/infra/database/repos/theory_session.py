@@ -3,12 +3,12 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from src.courses.application.dtos import LessonTheorySessionFilters
-from src.courses.domain.entities import (
-    LessonTheorySession,
-)
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, apply_sorting
 
+from ....application.dtos import LessonTheorySessionFilters
+from ....domain.entities import (
+    LessonTheorySession,
+)
 from ..mappers import LessonTheorySessionMapper
 from ..models import LessonTheorySessionOrm
 from ..search import apply_search

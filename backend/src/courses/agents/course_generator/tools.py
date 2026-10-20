@@ -1,8 +1,6 @@
 from typing import Any, Literal
 
-import hashlib
 import logging
-from datetime import UTC, datetime
 
 from ddgs import DDGS
 from pydantic import BaseModel, Field, NonNegativeFloat
@@ -34,80 +32,56 @@ logger = logging.getLogger(__name__)
 
 
 class SaveKnowledgeInput(BaseModel):
-    category: Literal["data", "web_research", "theory"] = "web_research"
+    """Аргументы для сохранения знаний"""
 
-    claim: str = Field(description="Проверенное утверждение")
-    evidence: str = Field(description="Подтверждение утверждения, полученное из источника")
-
-    source_title: str = Field(description="Название документа или страницы")
-    source_organization: str = Field(description="Организация — автор или издатель источника")
-    source_url: str = Field(description="URL, полученный от инструмента")
-    date_publication: datetime | None = Field(
-        default=None,
-        description="Дата публикации или обновления, если она найдена",
+    category: Literal["data", "web_research", "theory"] = Field(
+        default="web_research",
+        description="""\
+            Тип знаний:
+             - data - информация полученная из материалов преподавателя
+             - web_research - информация полученная в ходе изучения предметной области
+             - theory - сгенерированный теоретический материал уже созданного курса
+            """,
+    )
+    source: str = Field(
+        ...,
+        description="Источник полученных знаний, например имя файла, URL адрес, название ресурса",
+    )
+    text: str = Field(..., description="Полезная информация, которую необходимо запомнить")
+    score: NonNegativeFloat = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Насколько полезна информация, где 1 максимально релевантная информация",
     )
 
-    quality_score: NonNegativeFloat | None = Field(
-        default=None,
-        ge=0,
-        le=1,
-        description="Оценка полезности записи; не является оценкой релевантности поиска",
-    )
 
-
-@tool(name="save_knowledge", description="Сохраняет проверенное знание курса")
+@tool(
+    name="save_knowledge",
+    description="Сохраняет информацию в базу знаний курса",
+)
 async def save_knowledge(
     runtime: Runtime[CourseContext, list[dict[str, Any]]],
     schema: SaveKnowledgeInput,
 ) -> str:
-    source_identity = schema.source_url.strip()
-    if not source_identity:
-        return "Знание не сохранено: отсутствует URL источника."
-
-    normalized_claim = " ".join(schema.claim.split())
-    document_id = hashlib.sha256(
-        (
-            f"{runtime.context.course_id}|{schema.category}|{source_identity}|{normalized_claim}"
-        ).encode()
-    ).hexdigest()
-
-    indexed_text = "\n".join(
-        [
-            f"Утверждение: {schema.claim}",
-            f"Подтверждение: {schema.evidence}",
-            f"Источник: {schema.source_title}",
-            f"Организация: {schema.source_organization}",
-            f"URL: {schema.source_url}",
-            (
-                f"Дата публикации/обновления: {schema.date_publication.isoformat()}"
-                if schema.date_publication
-                else "Дата публикации/обновления: не установлена"
-            ),
-        ]
+    """Сохраняет знания курса, чтобы результат был доступен после завершения операции."""
+    logger.info(
+        "Saving `%s` knowledge from %s, score %s%%, text: '%s ...'",
+        schema.category,
+        schema.source,
+        schema.score,
+        schema.text[:150],
     )
-
-    metadata = {
-        "course_id": str(runtime.context.course_id),
-        "category": schema.category,
-        "document_id": document_id,
-        "claim": schema.claim,
-        "evidence": schema.evidence,
-        "source_title": schema.source_title,
-        "source_organization": schema.source_organization,
-        "source_url": schema.source_url,
-        "date_publication": (
-            schema.date_publication.isoformat() if schema.date_publication else None
-        ),
-        "date_indexed": datetime.now(UTC).isoformat(),
-        "quality_score": schema.quality_score,
-    }
 
     await QdrantRepository(client=qdrant_client, splitter=splitter).create(
-        text=indexed_text,
-        metadata=metadata,
-        document_id=document_id,
+        text=schema.text,
+        metadata={
+            "course_id": str(runtime.context.course_id),
+            "source": schema.source,
+            "category": schema.category,
+            "score": schema.score,
+        },
     )
-
     return "Данные успешно сохранены в базу знаний курса"
 
 
@@ -126,6 +100,7 @@ async def knowledge_search(
     runtime: Runtime[CourseContext, list[dict[str, Any]]],
     schema: KnowledgeSearchInput,
 ) -> str:
+    """Выполняет действие `knowledge_search`, чтобы поддержать основной сценарий модуля."""
     meta_filter = {"course_id": str(runtime.context.course_id)}
     if schema.category is not None:
         logger.info(
@@ -137,22 +112,17 @@ async def knowledge_search(
     else:
         logger.info("Searching knowledge by query `%s`", schema.search_query[:100])
 
-    try:
-        docs = await QdrantRepository(client=qdrant_client, splitter=splitter).read(
-            query=schema.search_query, metadata_filters=meta_filter
+    docs = await QdrantRepository(client=qdrant_client, splitter=splitter).read(
+        query=schema.search_query, metadata_filters=meta_filter
+    )
+    if not docs:
+        return (
+            f"По запросу '{schema.search_query}' (категория: {schema.category or 'любая'}) "
+            "в базе знаний ничего не найдено. Не повторяй этот запрос с похожей "
+            "формулировкой — либо измени категорию, либо переходи к следующему "
+            "шагу плана без этой информации."
         )
-        if not docs:
-            return (
-                f"По запросу '{schema.search_query}' (категория: {schema.category or 'любая'}) "
-                "в базе знаний ничего не найдено. Не повторяй этот запрос с похожей "
-                "формулировкой — либо измени категорию, либо переходи к следующему "
-                "шагу плана без этой информации."
-            )
-        return "\n\n".join(docs)
-    except Exception:
-        logger.exception("Knowledge search failed for query %r", schema.search_query)
-
-        return f"Поиск по запросу {schema.search_query}, завершился непредвиденной ошибкой, не повторяй этот запрос"  # noqa: E501
+    return "\n\n".join(docs)
 
 
 class SearchInput(BaseModel):
@@ -192,15 +162,15 @@ class MaterialsInput(BaseModel):
 
 
 @tool(
-    name="generate_course_structure",
+    name="course_structure",
     description="""\
-    Создает структуру курса с примерной стоимостью в рублях.
+    Создает структуру курса с примерной стоимостью.
     """,
 )
-async def generate_course_structure(
+async def course_structure(
     schema: MaterialsInput,
     runtime: Runtime[CourseContext, State],
-) -> dict[str, dict[str, Any] | str]:
+) -> dict[str, dict[str, Any] | int]:
     agent = LLMTextService(client=runtime.state.client, system_prompt=COURSE_STRUCTURE_PROMPT)  # pyright: ignore[reportOptionalMemberAccess]
     request = await agent.invoke(
         messages=[
@@ -213,23 +183,24 @@ async def generate_course_structure(
         schema=CourseStructure,
     )
     result = CourseStructure.model_validate(request.output)
+    cost = len(result.module_descriptions) * 10 * 10 * 100
 
     return {
         "plan": result.model_dump(mode="json"),
-        "cost": f"{len(result.module_descriptions) * 10 * 10 * 4} рублей",
+        "cost": cost,
     }
 
 
 @tool(
-    name="generate_module_structure",
+    name="module_structure",
     description="""\
-    Создает структуру модуля с примерной стоимостью в рублях.
+    Создает структуру модуля с примерной стоимостью
     """,
 )
-async def generate_module_structure(
+async def module_structure(
     schema: MaterialsInput,
     runtime: Runtime[CourseContext, State],
-) -> dict[str, dict[str, Any] | str]:
+) -> dict[str, dict[str, Any] | int]:
     agent = LLMTextService(client=runtime.state.client, system_prompt=MODULE_STRUCTURE_PROMPT)  # pyright: ignore[reportOptionalMemberAccess]
     request = await agent.invoke(
         messages=[
@@ -242,23 +213,24 @@ async def generate_module_structure(
         schema=ModuleStructure,
     )
     result = ModuleStructure.model_validate(request.output)
+    cost = len(result.lessons_descriptions) * 10 * 100
 
     return {
         "plan": result.model_dump(mode="json"),
-        "cost": f"{len(result.lessons_descriptions) * 10 * 4} рублей",
+        "cost": cost,
     }
 
 
 @tool(
-    name="generate_lesson_structure",
+    name="lesson_structure",
     description="""\
-    Создает структуру урока с примерной стоимостью в рублях.
+    Создает структуру урока с примерной стоимостью
     """,
 )
-async def generate_lesson_structure(
+async def lesson_structure(
     schema: MaterialsInput,
     runtime: Runtime[CourseContext, State],
-) -> dict[str, dict[str, Any] | str]:
+) -> dict[str, dict[str, Any] | int]:
     agent = LLMTextService(client=runtime.state.client, system_prompt=LESSON_STRUCTURE_PROMPT)  # pyright: ignore[reportOptionalMemberAccess]
     request = await agent.invoke(
         messages=[
@@ -271,8 +243,9 @@ async def generate_lesson_structure(
         schema=LessonStructure,
     )
     result = LessonStructure.model_validate(request.output)
+    cost = len(result.content_plan) * 100
 
     return {
         "plan": result.model_dump(mode="json"),
-        "cost": f"{len(result.content_plan) * 4} рублей",
+        "cost": cost,
     }

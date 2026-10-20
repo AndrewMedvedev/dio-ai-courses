@@ -81,7 +81,7 @@ function normalizeAssignmentText(value) {
     .trim();
 }
 
-export function LessonTestAgent({ moduleId, lessonId, onChecked }) {
+export function LessonTestAgent({ moduleId, lessonId }) {
   const [test, setTest] = useState(null);
   const [practiceId, setPracticeId] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -139,7 +139,6 @@ export function LessonTestAgent({ moduleId, lessonId, onChecked }) {
     try {
       const response = await checkLessonTest(practiceId, payload);
       setResult(response);
-      onChecked?.(response);
     } catch (error) {
       setError(
         getErrorMessage(
@@ -281,7 +280,7 @@ export function LessonTestAgent({ moduleId, lessonId, onChecked }) {
   );
 }
 
-export function LessonPracticeAgent({ moduleId, lessonId, onChecked }) {
+export function LessonPracticeAgent({ moduleId, lessonId }) {
   const [assignment, setAssignment] = useState(null);
   const [practiceId, setPracticeId] = useState(null);
   const [file, setFile] = useState(null);
@@ -360,7 +359,6 @@ export function LessonPracticeAgent({ moduleId, lessonId, onChecked }) {
     try {
       const response = await checkLessonPractice(practiceId, assignment, file);
       setResult(response);
-      onChecked?.(response);
     } catch (error) {
       setError(
         getErrorMessage(error, "Не удалось проверить практическое задание."),

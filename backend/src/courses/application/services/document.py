@@ -3,14 +3,13 @@ from uuid import UUID
 from langchain_core.documents import Document
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.courses.domain.entities import Document as EntityDocument
-from src.courses.domain.enums import DocumentNodeType
-from src.courses.utils.docs_processing import (
+from ...domain.entities import Document as EntityDocument
+from ...domain.enums import DocumentNodeType
+from ...utils.docs_processing import (
     get_header_order,
     get_heading_chain,
     is_heading_only,
 )
-
 from ..repos import (
     DocumentRepository,
 )

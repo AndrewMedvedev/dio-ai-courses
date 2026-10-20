@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 class ToolCallLimitMiddleware(BaseAgentMiddleware):
     def __init__(self, tool_limits: dict[str, int]) -> None:
-        self.tool_limits = dict(tool_limits)
+        """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
+        self.tool_limits = tool_limits
 
     @staticmethod
     def _is_tool_error(result: dict[str, Any]) -> bool:

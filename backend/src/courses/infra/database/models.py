@@ -83,7 +83,7 @@ class ModuleOrm(Base):
             deferrable=True,
             initially="DEFERRED",
         ),
-        CheckConstraint('"order" >= 0', name="ck_module_order_positive"),
+        CheckConstraint('"order" >= 1', name="ck_module_order_positive"),
     )
 
 
@@ -113,7 +113,7 @@ class LessonOrm(Base):
             deferrable=True,
             initially="DEFERRED",
         ),
-        CheckConstraint('"order" >= 0', name="ck_lesson_order_positive"),
+        CheckConstraint('"order" >= 1', name="ck_lesson_order_positive"),
     )
 
 

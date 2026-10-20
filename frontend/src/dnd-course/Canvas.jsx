@@ -118,14 +118,6 @@ function DropDock() {
 
 function DropReason() {
   const hint = useDndCourseStore((state) => state.dropHint);
-  if (hint?.valid && hint.label) {
-    return (
-      <Panel position="bottom-center" className="dnd-drop-reason is-ok" role="status">
-        <Icon name="module" size={16} />
-        {hint.label}
-      </Panel>
-    );
-  }
   if (!hint || hint.valid || !hint.reason) return null;
   return (
     <Panel position="bottom-center" className="dnd-drop-reason" role="status">
@@ -277,17 +269,7 @@ function CanvasInner() {
         const base = module?.lessonIds.indexOf(targetEntity) ?? 0;
         index = hit.point.y > hit.abs.y + hit.height / 2 ? base + 1 : base;
       } else if (targetType === "lesson") {
-        // Урок положили на свободный урок — предлагаем собрать из них новый модуль.
-        return {
-          targetId: target.id,
-          valid: true,
-          action: "merge-module",
-          lessonIds: [targetEntity, ...entityIds.filter((id) => id !== targetEntity)],
-          label:
-            entityIds.length > 1
-              ? "Отпустите, чтобы создать модуль из этих уроков"
-              : "Отпустите, чтобы создать модуль из двух уроков",
-        };
+        return { targetId: target.id, valid: false, reason: "Урок нельзя вложить в другой урок." };
       } else if (targetType === "course") {
         return { targetId: target.id, valid: false, reason: "Сначала добавьте урок в модуль — модули связаны с курсом." };
       }
@@ -338,13 +320,7 @@ function CanvasInner() {
         const result = evaluate(drag.kind, drag.entityIds, hitTest(clientX, clientY, drag.ids));
         const next =
           result.targetId || result.zone
-            ? {
-                targetId: result.targetId || null,
-                zone: result.zone || null,
-                valid: Boolean(result.valid),
-                reason: result.reason || "",
-                label: result.label || "",
-              }
+            ? { targetId: result.targetId || null, zone: result.zone || null, valid: Boolean(result.valid), reason: result.reason || "" }
             : result.action === "revert"
               ? { targetId: null, zone: null, valid: false, reason: result.reason }
               : null;
@@ -429,8 +405,6 @@ function CanvasInner() {
         store.addMaterialsToLesson(result.lessonId, drag.entityIds);
       } else if (result.action === "new-module") {
         store.openModuleDialog(drag.entityIds);
-      } else if (result.action === "merge-module") {
-        store.openModuleDialog(result.lessonIds);
       } else if (result.action === "to-module") {
         (async () => {
           let index = result.index;
@@ -468,13 +442,6 @@ function CanvasInner() {
       const module = state.modules.find((item) => item.id === target.entityId);
       return Boolean(module) && !module.lessonIds.includes(source.entityId);
     }
-    // Линия от урока к уроку: свободный урок — новый модуль из двух уроков,
-    // урок в модуле — переносим исходный урок в этот модуль.
-    if (source.type === "lesson" && target.type === "lesson") {
-      if (source.entityId === target.entityId) return false;
-      const targetModule = state.modules.find((item) => item.lessonIds.includes(target.entityId));
-      return !targetModule || !targetModule.lessonIds.includes(source.entityId);
-    }
     return false;
   }, []);
 
@@ -486,17 +453,6 @@ function CanvasInner() {
       store.addMaterialsToLesson(target.entityId, [source.entityId]);
     } else if (source.type === "lesson" && target.type === "module") {
       store.moveLessonToModule(source.entityId, target.entityId);
-    } else if (source.type === "lesson" && target.type === "lesson") {
-      const targetModule = store.modules.find((item) => item.lessonIds.includes(target.entityId));
-      if (targetModule) {
-        store.moveLessonToModule(
-          source.entityId,
-          targetModule.id,
-          targetModule.lessonIds.indexOf(target.entityId) + 1,
-        );
-      } else {
-        store.openModuleDialog([source.entityId, target.entityId]);
-      }
     }
   }, []);
 

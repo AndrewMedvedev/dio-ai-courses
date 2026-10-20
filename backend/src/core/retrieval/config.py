@@ -7,15 +7,15 @@ class EmbeddingsConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="EMBEDDINGS_")
 
     base_url: str = "http://localhost:7997/"
-    model_name: str = "qwen3-embedding-8b"
-    dimensions: int = 4096
+    model_name: str = "deepvk/USER-bge-m3"
+    dimensions: int = 1024
 
 
 class RerankersConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="RERANKERS_")
 
     base_url: str = "http://localhost:7998"
-    model_name: str = "rerank-3-lite"
+    model_name: str = "BAAI/bge-reranker-v2-m3"
 
 
 embeddings_config = EmbeddingsConfig()

@@ -150,9 +150,7 @@ class InvitationService:
         await self.transaction(member, invitation)
         return member
 
-    async def get_course_invitations(
-        self, course_id: UUID, identity: Identity, pagination: Pagination
-    ) -> Page[Invitation]:
+    async def get_course_invitations(self, course_id: UUID, identity: Identity, pagination: Pagination) -> Page[Invitation]:
         """
         Приглашения курса, которые ещё ждут ответа.
         """
