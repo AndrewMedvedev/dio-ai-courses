@@ -1001,6 +1001,7 @@ function sanitizeContentBlock(block) {
       ai_generated:
         typeof source.ai_generated === "boolean" ? source.ai_generated : false,
       md_content: String(source.md_content ?? source.content ?? block ?? ""),
+      ...(Array.isArray(source.sources) ? { sources: source.sources } : {}),
     };
   }
 
@@ -2095,6 +2096,38 @@ export async function askInterviewerAgent(payload, options = {}) {
       "/agent/course/interviewer",
       "POST",
       toAgentChatPayload(payload),
+      options,
+    ),
+  );
+}
+
+// Интервьюер модуля: собирает требования к новому модулю курса и по подтверждению
+// пользователя сам ставит генерацию в очередь (в ответе content = { task_id }).
+export async function askModuleInterviewerAgent(payload, options = {}) {
+  return normalizeAgentResponse(
+    await jsonRequest(
+      "/agent/module/interviewer",
+      "POST",
+      {
+        ...toAgentChatPayload(payload),
+        order: Math.max(1, Number(payload.order) || 1),
+      },
+      options,
+    ),
+  );
+}
+
+// Интервьюер урока: то же для нового урока внутри модуля.
+export async function askLessonInterviewerAgent(payload, options = {}) {
+  return normalizeAgentResponse(
+    await jsonRequest(
+      "/agent/lesson/interviewer",
+      "POST",
+      {
+        ...toAgentChatPayload(payload),
+        module_id: payload.module_id || payload.moduleId,
+        order: Math.max(1, Number(payload.order) || 1),
+      },
       options,
     ),
   );

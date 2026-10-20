@@ -1,7 +1,14 @@
 // Страница выбранного блока курса с уроками и практикой
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import SectionTop from "../components/SectionTop";
+import AgentInterviewDialog from "../components/editor/AgentInterviewDialog";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { useGoBack } from "../hooks/useGoBack";
+import {
+  generationJobKey,
+  useGenerationJobsStore,
+} from "../stores/generationJobsStore";
+import { isUuid } from "../utils/api";
 
 export default function BlockPage({
   selectedCourse,
@@ -31,6 +38,96 @@ export default function BlockPage({
     : 0;
   const blockLearningObjectives = selectedBlock.learningObjectives || [];
   const [isAddingLesson, setIsAddingLesson] = useState(false);
+  // Позиция в списке уроков, где открыт чат генерации урока (null — закрыт).
+  const [lessonAgentIndex, setLessonAgentIndex] = useState(null);
+  const [isLessonChatVisible, setIsLessonChatVisible] = useState(true);
+  const [lessonToDelete, setLessonToDelete] = useState(null);
+  const lessonJob = useGenerationJobsStore(
+    (state) =>
+      state.jobs[
+        generationJobKey("lesson", selectedCourse.id, selectedBlock.id)
+      ] || null,
+  );
+  const canGenerateLesson =
+    isCourseEditMode && isUuid(selectedCourse.id) && isUuid(selectedBlock.id);
+  // Пока идёт генерация, чат остаётся в месте, куда вставится урок.
+  const lessonAgentAt =
+    lessonJob && Number.isFinite(Number(lessonJob.order))
+      ? Number(lessonJob.order) - 1
+      : lessonAgentIndex;
+
+  const describeLessonPosition = (index) => {
+    const lessons = selectedBlock.lessons;
+    if (!lessons.length) return "Урок станет первым в модуле.";
+    if (index <= 0)
+      return `Урок встанет в начало, перед «${lessons[0].title}».`;
+    if (index >= lessons.length) {
+      return `Урок встанет в конец, после «${lessons[lessons.length - 1].title}».`;
+    }
+    return `Урок встанет между «${lessons[index - 1].title}» и «${lessons[index].title}».`;
+  };
+
+  const openLessonAgent = (index) => {
+    setLessonAgentIndex(index);
+    setIsLessonChatVisible(true);
+  };
+
+  // Пока генерация идёт, окно только прячется: метка в списке остаётся.
+  const closeLessonAgent = () => {
+    const currentJob =
+      useGenerationJobsStore.getState().jobs[
+        generationJobKey("lesson", selectedCourse.id, selectedBlock.id)
+      ];
+    if (currentJob) {
+      setIsLessonChatVisible(false);
+      return;
+    }
+    setLessonAgentIndex(null);
+  };
+
+  const renderLessonSlot = (index) => {
+    if (!canGenerateLesson) return null;
+    if (lessonAgentAt === index) {
+      return (
+        <li className="lesson-agent-marker" key={`lesson-agent-${index}`}>
+          <span>
+            {lessonJob?.status === "running"
+              ? "✦ Здесь появится урок — генерация идёт"
+              : lessonJob?.status === "done"
+                ? "✦ Урок сгенерирован — ниже"
+                : "✦ Сюда встанет урок из чата с ИИ"}
+          </span>
+          <div>
+            {!isLessonChatVisible && (
+              <button
+                type="button"
+                onClick={() => setIsLessonChatVisible(true)}
+              >
+                Показать чат
+              </button>
+            )}
+            {!lessonJob && (
+              <button type="button" onClick={() => setLessonAgentIndex(null)}>
+                Отменить
+              </button>
+            )}
+          </div>
+        </li>
+      );
+    }
+    if (lessonAgentAt !== null) return null;
+    return (
+      <li className="lesson-insert-slot" key={`lesson-slot-${index}`}>
+        <button
+          type="button"
+          className="is-ai"
+          onClick={() => openLessonAgent(index)}
+        >
+          ✦ Сгенерировать урок с ИИ здесь
+        </button>
+      </li>
+    );
+  };
   const goBack = useGoBack({
     fallbackPath: isCourseEditMode
       ? `/course/${selectedCourse.id}/edit`
@@ -219,14 +316,27 @@ export default function BlockPage({
           <div className="block-lessons-head">
             <h3>Уроки</h3>
             {isCourseEditMode && (
-              <button
-                type="button"
-                className="btn btn-solid"
-                onClick={addLesson}
-                disabled={isAddingLesson}
-              >
-                {isAddingLesson ? "Создаём урок..." : "Добавить урок"}
-              </button>
+              <div className="block-lessons-actions">
+                {canGenerateLesson && lessonAgentAt === null && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() =>
+                      openLessonAgent(selectedBlock.lessons.length)
+                    }
+                  >
+                    Сгенерировать урок с ИИ
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-solid"
+                  onClick={addLesson}
+                  disabled={isAddingLesson}
+                >
+                  {isAddingLesson ? "Создаём урок..." : "Добавить урок"}
+                </button>
+              </div>
             )}
           </div>
           {selectedBlock.lessons.length === 0 && (
@@ -250,111 +360,115 @@ export default function BlockPage({
           )}
           <ul className="lessons-progress-list">
             {selectedBlock.lessons.map((lesson, index) => (
-              <li key={lesson.id}>
-                {isCourseEditMode ? (
-                  <div className="course-editor-panel content-editor-panel lesson-basic-editor-panel">
-                    <div className="lesson-content-editor-head">
-                      <div>
-                        <span>Урок {index + 1}</span>
-                        <strong>{lesson.title || "Урок без названия"}</strong>
+              <Fragment key={lesson.id}>
+                {renderLessonSlot(index)}
+                <li>
+                  {isCourseEditMode ? (
+                    <div className="course-editor-panel content-editor-panel lesson-basic-editor-panel">
+                      <div className="lesson-content-editor-head">
+                        <div>
+                          <span>Урок {index + 1}</span>
+                          <strong>{lesson.title || "Урок без названия"}</strong>
+                        </div>
+                      </div>
+                      <div className="course-editor-grid">
+                        <label className="course-editor-field">
+                          <span>Название урока</span>
+                          <input
+                            value={lesson.title || ""}
+                            onChange={(event) =>
+                              updateLesson(lesson.id, {
+                                title: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="course-editor-field">
+                          <span>Длительность</span>
+                          <input
+                            value={lesson.duration || ""}
+                            onChange={(event) =>
+                              updateLesson(lesson.id, {
+                                duration: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="course-editor-field course-editor-field-wide">
+                          <span>Краткое описание</span>
+                          <textarea
+                            value={lesson.summary || ""}
+                            onChange={(event) =>
+                              updateLesson(lesson.id, {
+                                summary: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
+                      <div className="course-editor-actions">
+                        <button
+                          type="button"
+                          className="btn btn-solid"
+                          onClick={() => openLesson(lesson.id)}
+                        >
+                          Перейти в урок
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() =>
+                            moveLesson(selectedBlock.id, lesson.id, -1)
+                          }
+                          disabled={index === 0}
+                        >
+                          Выше
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() =>
+                            moveLesson(selectedBlock.id, lesson.id, 1)
+                          }
+                          disabled={index === selectedBlock.lessons.length - 1}
+                        >
+                          Ниже
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-flat editor-danger-btn"
+                          onClick={() => setLessonToDelete(lesson)}
+                          disabled={selectedBlock.lessons.length <= 1}
+                        >
+                          Удалить
+                        </button>
                       </div>
                     </div>
-                    <div className="course-editor-grid">
-                      <label className="course-editor-field">
-                        <span>Название урока</span>
-                        <input
-                          value={lesson.title || ""}
-                          onChange={(event) =>
-                            updateLesson(lesson.id, {
-                              title: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                      <label className="course-editor-field">
-                        <span>Длительность</span>
-                        <input
-                          value={lesson.duration || ""}
-                          onChange={(event) =>
-                            updateLesson(lesson.id, {
-                              duration: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                      <label className="course-editor-field course-editor-field-wide">
-                        <span>Краткое описание</span>
-                        <textarea
-                          value={lesson.summary || ""}
-                          onChange={(event) =>
-                            updateLesson(lesson.id, {
-                              summary: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="course-editor-actions">
-                      <button
-                        type="button"
-                        className="btn btn-solid"
-                        onClick={() => openLesson(lesson.id)}
-                      >
-                        Перейти в урок
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() =>
-                          moveLesson(selectedBlock.id, lesson.id, -1)
-                        }
-                        disabled={index === 0}
-                      >
-                        Выше
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() =>
-                          moveLesson(selectedBlock.id, lesson.id, 1)
-                        }
-                        disabled={index === selectedBlock.lessons.length - 1}
-                      >
-                        Ниже
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-flat editor-danger-btn"
-                        onClick={() =>
-                          deleteLesson(selectedBlock.id, lesson.id)
-                        }
-                        disabled={selectedBlock.lessons.length <= 1}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="lesson-progress-item"
-                    onClick={() => openLesson(lesson.id)}
-                  >
-                    <span className="lesson-progress-title">
-                      {lesson.title}
-                    </span>
-                    <span className="lesson-progress-meta">
-                      {lesson.duration}
-                    </span>
-                    <span
-                      className={`lesson-status ${completedLessons[lesson.id] ? "is-done" : "is-pending"}`}
+                  ) : (
+                    <button
+                      type="button"
+                      className="lesson-progress-item"
+                      onClick={() => openLesson(lesson.id)}
                     >
-                      {completedLessons[lesson.id] ? "Пройдено" : "Не пройден"}
-                    </span>
-                  </button>
-                )}
-              </li>
+                      <span className="lesson-progress-title">
+                        {lesson.title}
+                      </span>
+                      <span className="lesson-progress-meta">
+                        {lesson.duration}
+                      </span>
+                      <span
+                        className={`lesson-status ${completedLessons[lesson.id] ? "is-done" : "is-pending"}`}
+                      >
+                        {completedLessons[lesson.id]
+                          ? "Пройдено"
+                          : "Не пройден"}
+                      </span>
+                    </button>
+                  )}
+                </li>
+              </Fragment>
             ))}
+            {renderLessonSlot(selectedBlock.lessons.length)}
           </ul>
         </article>
 
@@ -389,6 +503,44 @@ export default function BlockPage({
           </article>
         )}
       </div>
+
+      {canGenerateLesson && lessonAgentAt !== null && (
+        <AgentInterviewDialog
+          variant="floating"
+          open={isLessonChatVisible}
+          kind="lesson"
+          courseId={selectedCourse.id}
+          moduleId={selectedBlock.id}
+          order={lessonAgentAt + 1}
+          knownIds={selectedBlock.lessons.map((lesson) => lesson.id)}
+          contextTitle={
+            lessonJob?.resultId
+              ? `Урок «${lessonJob.resultTitle || "без названия"}» уже в списке.`
+              : `Модуль «${selectedBlock.title}». ${describeLessonPosition(lessonAgentAt)}`
+          }
+          onClose={closeLessonAgent}
+          onOpenResult={(job) => {
+            setLessonAgentIndex(null);
+            if (job.resultId) openLesson(job.resultId);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={Boolean(lessonToDelete)}
+        danger
+        eyebrow="Необратимое действие"
+        title="Удалить урок?"
+        description={`Урок «${lessonToDelete?.title || ""}» и его содержимое будут удалены. Отменить удаление нельзя.`}
+        confirmLabel="Удалить"
+        busyLabel="Удаляем..."
+        onCancel={() => setLessonToDelete(null)}
+        onConfirm={async () => {
+          if (!lessonToDelete) return;
+          await deleteLesson(selectedBlock.id, lessonToDelete.id);
+          setLessonToDelete(null);
+        }}
+      />
     </section>
   );
 }
