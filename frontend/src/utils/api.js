@@ -504,21 +504,6 @@ export async function acceptInvitation({
   );
 }
 
-// Роли для выбора при приглашении. GET /roles на бэке пока заглушка —
-// при ошибке форма покажет, что список недоступен.
-export async function fetchRoles({ page = 1, size = 100 } = {}) {
-  const data = await requestJson(`/roles?${buildQuery({ page, size })}`);
-  return Array.isArray(data) ? data : data?.items || [];
-}
-
-// Приглашение в систему: на email уходит письмо со ссылкой на регистрацию.
-// Тело в camelCase — так его ждёт InvitationCreate (alias_generator=to_camel).
-export async function inviteToSystem({ email, organizationId, grantedRoles }) {
-  const body = { email, organizationId };
-  if (grantedRoles?.length) body.grantedRoles = grantedRoles;
-  return jsonRequest("/invitations", "POST", body);
-}
-
 // Приглашение в текущую организацию (бэкенд берёт её из токена); роли — массив UUID.
 export async function inviteToOrganization({ email, grantedRoles = [] }) {
   return jsonRequest("/organizations/invitations", "POST", {

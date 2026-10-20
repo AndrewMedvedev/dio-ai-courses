@@ -38,21 +38,35 @@ export function findFreeSlot(desired, size, rects) {
   return { x: candidate.x, y: candidate.y };
 }
 
-export function modulesColumn(modules) {
+/**
+ * Прямоугольники модулей. Модуль, который пользователь перетащил, стоит там, где его
+ * оставили (positions["module:<id>"]); остальные идут колонкой по порядку и не ложатся
+ * поверх перенесённых.
+ */
+export function modulesColumn(modules, positions = {}) {
   const ordered = [...modules].sort((a, b) => a.order - b.order);
-  let y = 0;
-  return ordered.map((module) => {
-    const height = moduleHeight((module.lessonIds || []).length);
-    const rect = {
-      id: module.id,
-      x: COLUMN_X.module,
-      y,
-      width: MODULE_LAYOUT.width,
-      height,
-    };
-    y += height + COLUMN_GAP * 2;
-    return rect;
+  const sizeOf = (module) => ({
+    width: MODULE_LAYOUT.width,
+    height: moduleHeight((module.lessonIds || []).length),
   });
+  const savedOf = (module) => {
+    const saved = positions?.[`module:${module.id}`];
+    return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : null;
+  };
+  const placed = ordered
+    .filter((module) => savedOf(module))
+    .map((module) => ({ id: module.id, ...savedOf(module), ...sizeOf(module) }));
+  const rects = new Map(placed.map((rect) => [rect.id, rect]));
+  let y = 0;
+  ordered.forEach((module) => {
+    if (rects.has(module.id)) return;
+    const size = sizeOf(module);
+    const spot = findFreeSlot({ x: COLUMN_X.module, y }, size, [...rects.values()]);
+    const rect = { id: module.id, ...spot, ...size };
+    rects.set(module.id, rect);
+    y = spot.y + size.height + COLUMN_GAP * 2;
+  });
+  return ordered.map((module) => rects.get(module.id));
 }
 
 /**
@@ -68,7 +82,7 @@ export function resolveFreePositions(state) {
     (state.modules || []).flatMap((module) => module.lessonIds || []),
   );
 
-  modulesColumn(state.modules || []).forEach((rect) => rects.push(rect));
+  modulesColumn(state.modules || [], positions).forEach((rect) => rects.push(rect));
 
   const place = (id, size, fallback) => {
     const saved = positions[id];
@@ -125,5 +139,5 @@ export function freeRects(state, excludeIds = []) {
       ...position,
       ...(sizes[id.split(":")[0]] || NODE_SIZE.material),
     }));
-  return [...rects, ...modulesColumn(state.modules || [])];
+  return [...rects, ...modulesColumn(state.modules || [], state.positions || {})];
 }

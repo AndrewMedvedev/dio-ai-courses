@@ -8,6 +8,10 @@ import {
 import { useSessionStore } from "../stores/sessionStore";
 import { useStudentStore } from "../stores/studentStore";
 import { useMyCoursesProgress } from "../hooks/useMyCoursesProgress";
+import {
+  formatModulesCount,
+  useCoursesModulesCount,
+} from "../hooks/useCoursesModulesCount";
 import { fetchMyCoursesPage } from "../utils/api";
 import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 
@@ -226,6 +230,13 @@ export default function ProfilePage({
   // Реальный прогресс ученика с backend по курсам, на которые он записан.
   const myCoursesProgress = useMyCoursesProgress(myCourses, {
     enabled: activeProfileTab === "overview",
+  });
+  // Списки курсов приходят без модулей — число модулей дочитываем по каждому курсу.
+  const myCoursesModules = useCoursesModulesCount(myCourses, {
+    enabled: activeProfileTab === "overview",
+  });
+  const authoredCoursesModules = useCoursesModulesCount(authoredCourses, {
+    enabled: activeProfileTab === "teacher",
   });
   const progressTotals = myCoursesProgress.hasData
     ? myCoursesProgress.totals
@@ -751,6 +762,10 @@ export default function ProfilePage({
                       {myCourses.map((course) => {
                         const courseProgress =
                           myCoursesProgress.byCourseId[course.id];
+                        const modulesCount =
+                          courseProgress?.modulesCount ??
+                          myCoursesModules[course.id] ??
+                          (course.blocks?.length || null);
                         return (
                           <li
                             key={course.id}
@@ -786,12 +801,11 @@ export default function ProfilePage({
                                   <span>
                                     {getCourseStatusLabel(course.status)}
                                   </span>
-                                  <span>
-                                    {courseProgress?.modulesCount ??
-                                      course.blocks?.length ??
-                                      0}{" "}
-                                    модулей
-                                  </span>
+                                  {modulesCount !== null && (
+                                    <span>
+                                      {formatModulesCount(modulesCount)}
+                                    </span>
+                                  )}
                                 </span>
                                 {courseProgress && (
                                   <CourseProgressLine
@@ -987,6 +1001,9 @@ export default function ProfilePage({
                       )}
                     <ul className="teacher-authored-course-list profile-my-course-list">
                       {authoredCourses.map((course) => {
+                        const modulesCount =
+                          authoredCoursesModules[course.id] ??
+                          (course.blocks?.length || null);
                         return (
                           <li
                             key={course.id}
@@ -1022,9 +1039,11 @@ export default function ProfilePage({
                                   <span>
                                     {getCourseStatusLabel(course.status)}
                                   </span>
-                                  <span>
-                                    {course.blocks?.length || 0} модулей
-                                  </span>
+                                  {modulesCount !== null && (
+                                    <span>
+                                      {formatModulesCount(modulesCount)}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                               {!canUpdateOwnCourses && !canDeleteOwnCourses && (

@@ -191,6 +191,7 @@ export function ActionMenu({
   showLabel = false,
   disabled = false,
   align = "start",
+  iconSize = 16,
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -245,14 +246,14 @@ export function ActionMenu({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={showLabel ? undefined : label}
-        title={label}
+        data-tip={showLabel || open ? undefined : label}
         disabled={disabled}
         onClick={(event) => {
           event.stopPropagation();
           setOpen((value) => !value);
         }}
       >
-        <Icon name={icon} size={16} />
+        <Icon name={icon} size={iconSize} />
         {showLabel ? <span>{label}</span> : null}
       </button>
       {open ? (

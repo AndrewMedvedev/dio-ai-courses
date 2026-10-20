@@ -72,10 +72,6 @@ export function useAppPermissions() {
     isAuthenticated &&
     arePermissionsLoaded &&
     hasPermission(ORGANIZATION_PERMISSIONS.DELETE);
-  const canInviteToSystem =
-    isAuthenticated &&
-    arePermissionsLoaded &&
-    hasPermission(INVITATION_PERMISSIONS.SYSTEM_INVITE);
   const canInviteToOrganization =
     isAuthenticated &&
     arePermissionsLoaded &&
@@ -115,7 +111,6 @@ export function useAppPermissions() {
     canReadOwnOrganization,
     canUpdateOrganization,
     canDeleteOrganization,
-    canInviteToSystem,
     canInviteToOrganization,
     canManageOrganizations,
     canCreateModel,

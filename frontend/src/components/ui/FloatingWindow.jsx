@@ -255,6 +255,8 @@ export default function FloatingWindow({
         </>
       ) : null}
     </section>,
-    document.body,
+    // Внутрь .page, как и модальные окна: там действуют цвета и стили темы
+    // (.page[data-theme="dark"] …) — иначе поле ввода в тёмной теме было нечитаемым.
+    document.querySelector(".page") || document.body,
   );
 }

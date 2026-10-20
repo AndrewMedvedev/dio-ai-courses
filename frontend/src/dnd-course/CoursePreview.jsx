@@ -16,6 +16,7 @@ import Icon, { Spinner } from "./icons";
 import { fetchCourseStructure, fetchLessonBlocks } from "./serverCourse";
 import { useDndCourseStore } from "./store";
 import { ActionMenu, ConfirmDialog, StatusPill, Toasts } from "./ui";
+import DndTooltipLayer from "./Tooltip";
 
 const STATUS = {
   draft: { label: "Черновик", tone: "muted" },
@@ -238,6 +239,7 @@ export default function CoursePreview({ courseId }) {
         ) : null}
         <ConfirmDialog />
         <Toasts />
+        <DndTooltipLayer />
       </section>
 
       {data && !error ? (

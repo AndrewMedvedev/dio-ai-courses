@@ -132,7 +132,6 @@ function AppContent() {
     canReadOwnOrganization,
     canUpdateOrganization,
     canDeleteOrganization,
-    canInviteToSystem,
     canInviteToOrganization,
     canManageOrganizations,
     canCreateModel,
@@ -437,6 +436,63 @@ function AppContent() {
     selectedCourse,
     selectedLessonId,
   ]);
+
+  // В редакторе дерево курса слева показывает уроки всех модулей, как в обучении:
+  // догружаем уроки модулей, которые ещё не открывали. Уже загруженные модули
+  // (и правки в них) не трогаем.
+  useEffect(() => {
+    if (
+      !canViewCourseInfo ||
+      !selectedCourse.id ||
+      !location.pathname.startsWith(`/course/${selectedCourse.id}/edit`)
+    ) {
+      return;
+    }
+
+    const modulesToLoad = selectedCourse.blocks.filter(
+      (block) =>
+        isUuid(block.id) &&
+        !block.lessons?.length &&
+        !loadedModuleDetailsRef.current.has(block.id),
+    );
+    if (modulesToLoad.length === 0) return;
+
+    modulesToLoad.forEach((block) =>
+      loadedModuleDetailsRef.current.add(block.id),
+    );
+    const courseId = selectedCourse.id;
+
+    Promise.allSettled(
+      modulesToLoad.map((block) => getModuleBasicInfo(block.id)),
+    ).then((results) => {
+      const loadedBlocks = results
+        .filter((result) => result.status === "fulfilled" && result.value)
+        .map((result) => result.value);
+      if (!loadedBlocks.length) return;
+      setEditableCourses((prev) =>
+        prev.map((course) =>
+          course.id !== courseId
+            ? course
+            : {
+                ...course,
+                blocks: course.blocks.map((block) => {
+                  const loaded = loadedBlocks.find(
+                    (item) => item.id === block.id,
+                  );
+                  if (!loaded || block.lessons?.length) return block;
+                  return {
+                    ...block,
+                    lessons: loaded.lessons || [],
+                    practice: block.practice?.length
+                      ? block.practice
+                      : loaded.practice || [],
+                  };
+                }),
+              },
+        ),
+      );
+    });
+  }, [canViewCourseInfo, location.pathname, selectedCourse]);
 
   useEffect(() => {
     if (!canViewCourseInfo || !selectedCourse.id || !selectedLessonId) {
@@ -1634,6 +1690,7 @@ function AppContent() {
                       completedLessons={completedLessons}
                       completedPractices={completedPractices}
                       openCourse={openCourseInEditMode}
+                      openBlock={openBlockInEditMode}
                       openLesson={openLessonInEditMode}
                       openPractice={openPracticeInEditMode}
                       isCourseEditMode={isCourseEditMode}
@@ -1760,7 +1817,6 @@ function AppContent() {
                       canReadOwnOrganization={canReadOwnOrganization}
                       canUpdateOrganization={canUpdateOrganization}
                       canDeleteOrganization={canDeleteOrganization}
-                      canInviteToSystem={canInviteToSystem}
                       canInviteToOrganization={canInviteToOrganization}
                     />
                   }

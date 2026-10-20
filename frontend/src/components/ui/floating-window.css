@@ -237,6 +237,13 @@
     min-height: 80px;
 }
 
+/* Подсказка в полях ввода окна должна читаться в обеих темах. */
+.floating-window textarea::placeholder,
+.floating-window input::placeholder {
+    color: var(--muted);
+    opacity: 0.9;
+}
+
 @keyframes floating-window-in {
     from {
         opacity: 0;

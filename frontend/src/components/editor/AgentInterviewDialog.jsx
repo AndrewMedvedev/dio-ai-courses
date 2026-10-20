@@ -40,6 +40,9 @@ const TEXTS = {
     done: (job) =>
       `Модуль «${job.resultTitle || "без названия"}» готов: ${job.lessonsCount} урок(ов).`,
     open: "Открыть модуль",
+    another: "Сгенерировать ещё модуль",
+    anotherHint:
+      "Новый модуль встанет сразу после этого. Другое место можно выбрать в списке модулей — кнопка «Сгенерировать модуль здесь».",
   },
   lesson: {
     agent: "lesson_interviewer",
@@ -54,8 +57,35 @@ const TEXTS = {
       "Урок генерируется. Это может занять несколько минут — окно можно закрыть.",
     done: (job) => `Урок «${job.resultTitle || "без названия"}» готов.`,
     open: "Открыть урок",
+    another: "Сгенерировать ещё урок",
+    anotherHint:
+      "Новый урок встанет сразу после этого. Другое место можно выбрать в списке уроков — кнопка «Сгенерировать урок здесь».",
   },
 };
+
+const conversationKeyFor = (kind, courseId, moduleId = "") =>
+  createAgentConversationKey(
+    (TEXTS[kind] || TEXTS.module).agent,
+    courseId,
+    kind === "lesson" ? moduleId : "new-module",
+  );
+
+const jobKeyFor = (kind, courseId, moduleId = "") =>
+  generationJobKey(kind, courseId, kind === "lesson" ? moduleId : "");
+
+/**
+ * Начинает генерацию заново: удаляет переписку (следующий запрос уйдёт с новым chat_id)
+ * и завершённую или упавшую генерацию. Окно чата при этом остаётся открытым.
+ */
+export function resetAgentInterview({ kind, courseId, moduleId = "" }) {
+  const key = conversationKeyFor(kind, courseId, moduleId);
+  const agentState = useAgentStore.getState();
+  agentState.cancelRequest(key);
+  agentState.clearConversation(key);
+  useGenerationJobsStore
+    .getState()
+    .removeJob(jobKeyFor(kind, courseId, moduleId));
+}
 
 /**
  * Диалог с ИИ-интервьюером модуля или урока.
@@ -72,21 +102,18 @@ export default function AgentInterviewDialog({
   knownIds = [],
   contextTitle = "",
   onOpenResult,
+  // Вызывается по кнопке «Сгенерировать ещё»: родитель выбирает место для следующего.
+  onStartAnother,
   // "modal" — модальное окно, "floating" — плавающее окно, которое можно
   // перетаскивать и растягивать, не закрывая доступ к редактору.
   variant = "modal",
 }) {
   const texts = TEXTS[kind] || TEXTS.module;
-  const contextId = kind === "lesson" ? moduleId : "new-module";
   const conversationKey = useMemo(
-    () => createAgentConversationKey(texts.agent, courseId, contextId),
-    [contextId, courseId, texts.agent],
+    () => conversationKeyFor(kind, courseId, moduleId),
+    [courseId, kind, moduleId],
   );
-  const jobKey = generationJobKey(
-    kind,
-    courseId,
-    kind === "lesson" ? moduleId : "",
-  );
+  const jobKey = jobKeyFor(kind, courseId, moduleId);
 
   const conversation = useAgentStore(
     (state) => state.conversations[conversationKey],
@@ -220,10 +247,11 @@ export default function AgentInterviewDialog({
     setIsResetOpen(false);
   };
 
-  const finishAndClose = () => {
-    clearConversation(conversationKey);
-    removeJob(jobKey);
-    onClose?.();
+  // Готовый результат остаётся в редакторе, а чат сразу готов к следующей генерации.
+  const startAnother = () => {
+    const result = job;
+    resetDialog();
+    onStartAnother?.(result);
   };
 
   const finishAndOpen = () => {
@@ -303,20 +331,21 @@ export default function AgentInterviewDialog({
       {isDone ? (
         <div className="agent-chat-status is-done" role="status">
           <strong>{texts.done(job)}</strong>
+          <span>{texts.anotherHint}</span>
           <div>
             <button
               type="button"
               className="btn btn-solid"
-              onClick={finishAndOpen}
+              onClick={startAnother}
             >
-              {texts.open}
+              {texts.another}
             </button>
             <button
               type="button"
               className="btn btn-outline"
-              onClick={finishAndClose}
+              onClick={finishAndOpen}
             >
-              Готово
+              {texts.open}
             </button>
           </div>
         </div>

@@ -12,7 +12,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useShallow } from "zustand/react/shallow";
-import { COLUMN_GAP, DRAG_MIME, NODE_SIZE } from "./constants";
+import { COLUMN_GAP, DRAG_MIME, MODULE_LAYOUT, NODE_SIZE } from "./constants";
 import { buildGraph, structureSignature } from "./graph";
 import { parseNodeId } from "./helpers";
 import { findFreeSlot, freeRects } from "./layout";
@@ -270,7 +270,7 @@ function CanvasInner() {
       if (targetType === "module") {
         moduleId = targetEntity;
         const module = state.modules.find((item) => item.id === moduleId);
-        index = hit.point.y < hit.abs.y + 118 ? 0 : module?.lessonIds.length ?? 0;
+        index = hit.point.y < hit.abs.y + MODULE_LAYOUT.header ? 0 : module?.lessonIds.length ?? 0;
       } else if (targetType === "lesson" && target.parentId) {
         moduleId = parseNodeId(target.parentId).entityId;
         const module = state.modules.find((item) => item.id === moduleId);
@@ -413,6 +413,17 @@ function CanvasInner() {
         return;
       }
 
+      // Модуль остаётся там, куда его перетащили (уроки внутри едут вместе с ним).
+      // Остальные модули фиксируем на их текущих местах, чтобы они не перестраивались.
+      if (drag.kind === "module" && result.action === "reorder-module") {
+        const patch = {};
+        rf.getNodes().forEach((item) => {
+          if (item.type !== "module") return;
+          const position = item.id === node.id ? node.position : item.position;
+          patch[item.id] = { x: Math.round(position.x), y: Math.round(position.y) };
+        });
+        store.setPositions(patch);
+      }
       revert();
       if (!result.valid && result.reason && result.action !== "reorder-module") {
         store.toast("warning", result.reason, { timeout: 3200 });

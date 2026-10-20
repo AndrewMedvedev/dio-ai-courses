@@ -475,7 +475,6 @@
 }
 
 .lesson-view.has-lesson-chat,
-.lesson-view.is-course-edit-layout,
 .lesson-view.is-learning-layout {
     width: min(1600px, 98vw);
 }
@@ -503,8 +502,66 @@
     column-gap: 10px;
 }
 
-.lesson-view-grid.is-course-edit-layout {
-    grid-template-columns: 320px minmax(0, 1fr);
+/* Редактор готового курса (курс, модуль, урок) — та же сетка, что в режиме обучения:
+   ширина страницы, дерево 300px слева, отступ 18px и запас справа, как под панель ИИ. */
+.lesson-view.is-course-edit-layout,
+.block-view.is-course-edit-layout,
+.course-details-view.is-course-edit-layout {
+    position: relative;
+    width: min(1720px, 98vw);
+}
+
+.lesson-view-grid.is-course-edit-layout,
+.course-edit-grid {
+    grid-template-columns: 300px minmax(0, 1fr) 68px;
+    gap: 18px;
+}
+
+.course-edit-grid {
+    margin-top: 16px;
+    display: grid;
+    align-items: start;
+}
+
+.course-edit-grid > * {
+    min-width: 0;
+}
+
+.course-edit-main {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+}
+
+.course-edit-main > .course-page-actions,
+.course-edit-main > .block-view-grid,
+.course-edit-main > .course-details-grid {
+    margin-top: 0;
+}
+
+/* Курс: сначала описание курса, под ним модули — как на странице курса в обучении. */
+.course-edit-main .course-details-grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.course-edit-main .course-details-main {
+    order: 1;
+}
+
+.course-edit-main .course-details-modules {
+    order: 2;
+}
+
+/* «Назад» стоит в строке заголовка, чтобы сетка начиналась на той же высоте, что в обучении. */
+.is-course-edit-layout > .section-top {
+    padding-right: 56px;
+}
+
+.is-course-edit-layout > .back-btn {
+    position: absolute;
+    top: 18px;
+    right: 0;
+    margin: 0;
 }
 
 .lesson-view-grid > *,

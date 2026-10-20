@@ -381,6 +381,18 @@
     background: rgba(47, 125, 79, 0.12);
 }
 
+.agent-chat-status.is-done > span {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.agent-chat-status > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
 .agent-chat-status.is-error {
     background: rgba(180, 35, 24, 0.1);
     color: var(--app-modal-danger);
@@ -571,6 +583,12 @@
 .page[data-theme="dark"] .lesson-insert-slot button.is-ai {
     border-color: rgba(127, 209, 155, 0.45);
     color: #7fd19b;
+}
+
+.course-block-insert button.is-ai:disabled,
+.lesson-insert-slot button.is-ai:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Метка в списке: сюда встанет модуль или урок из плавающего чата. */
