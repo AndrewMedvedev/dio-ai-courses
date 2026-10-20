@@ -766,64 +766,6 @@ export async function fetchCourseMembersPage(
   };
 }
 
-// Прогресс прохождения курса текущим учеником (backend: /progress/*).
-export async function fetchCourseProgress(courseId, options = {}) {
-  return requestJson(
-    `/progress/courses/${encodeURIComponent(courseId)}`,
-    options,
-  );
-}
-
-export async function createCourseProgress(courseId) {
-  return requestJson(`/progress/courses/${encodeURIComponent(courseId)}`, {
-    method: "POST",
-  });
-}
-
-export async function recalculateCourseProgress(courseId, totalLessons) {
-  const query = new URLSearchParams({
-    total_lessons: String(Math.max(0, Number(totalLessons) || 0)),
-  });
-  return requestJson(
-    `/progress/courses/${encodeURIComponent(courseId)}?${query.toString()}`,
-    { method: "PATCH" },
-  );
-}
-
-export async function fetchModuleProgress(moduleId, options = {}) {
-  return requestJson(
-    `/progress/modules/${encodeURIComponent(moduleId)}`,
-    options,
-  );
-}
-
-export async function createModuleProgress(courseId, moduleId) {
-  return requestJson(
-    `/progress/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`,
-    { method: "POST" },
-  );
-}
-
-export async function fetchLessonProgress(lessonId, options = {}) {
-  return requestJson(
-    `/progress/lessons/${encodeURIComponent(lessonId)}`,
-    options,
-  );
-}
-
-export async function createLessonProgress(moduleId, lessonId) {
-  return requestJson(
-    `/progress/module/${encodeURIComponent(moduleId)}/lessons/${encodeURIComponent(lessonId)}`,
-    { method: "POST" },
-  );
-}
-
-export async function completeLessonTheory(lessonId) {
-  return requestJson(`/progress/lessons/${encodeURIComponent(lessonId)}`, {
-    method: "PATCH",
-  });
-}
-
 export async function fetchUsers(params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {

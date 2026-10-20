@@ -21,13 +21,13 @@ from src.courses.agents.course_generator.subagents.module_builder import (
     ModuleAgentState,
     build_module_graph,
 )
-from src.courses.agents.course_generator.subagents.protocols import ReasonerAgent, TheoryAgent
 from src.courses.agents.course_generator.subagents.reasoner import reasoner_agent
+from src.courses.agents.course_generator.subagents.repos import ReasonerAgent, TheoryAgent
 from src.courses.agents.course_generator.subagents.theorist import call_theory_agent
 from src.courses.agents.course_generator.tools import (
-    generate_course_structure,
-    generate_lesson_structure,
-    generate_module_structure,
+    course_structure,
+    lesson_structure,
+    module_structure,
 )
 from src.courses.agents.external_agents import editor, interviewer, mentor, practicer, tester
 from src.courses.agents.prompts import (
@@ -64,11 +64,11 @@ def get_course_interviewer_agent(
         client=course_client,
         system_prompt=COURSE_INTERVIEWER_PROMPT,
         tools={
-            "generate_course_structure": generate_course_structure,
+            "course_structure": course_structure,
             "send_course_for_generation": send_course_for_generation,
         },
         tool_limits={
-            "generate_course_structure": 1,
+            "course_structure": 1,
             "send_course_for_generation": 1,
         },
     )
@@ -84,11 +84,11 @@ def get_module_interviewer_agent(
         client=course_client,
         system_prompt=MODULE_INTERVIEWER_PROMPT,
         tools={
-            "generate_module_structure": generate_module_structure,
+            "module_structure": module_structure,
             "send_module_for_generation": send_module_for_generation,
         },
         tool_limits={
-            "generate_module_structure": 1,
+            "module_structure": 1,
             "send_module_for_generation": 1,
         },
     )
@@ -104,11 +104,11 @@ def get_lesson_interviewer_agent(
         client=course_client,
         system_prompt=LESSON_INTERVIEWER_PROMPT,
         tools={
-            "generate_lesson_structure": generate_lesson_structure,
+            "lesson_structure": lesson_structure,
             "send_lesson_for_generation": send_lesson_for_generation,
         },
         tool_limits={
-            "generate_lesson_structure": 1,
+            "lesson_structure": 1,
             "send_lesson_for_generation": 1,
         },
     )
@@ -177,14 +177,11 @@ def get_lesson_agent(
     vector_repo: VectorRepoDep,
     theory_agent: TheoryAgentDep,
 ) -> CompiledStateGraph[LessonAgentState]:
-    from src.courses.infra.tasks import index_lesson  # noqa: PLC0415
-
     agent = LessonAgent(
         client=course_client,
         lesson_repo=SqlLessonRepository,
         vector_repo=vector_repo,
         theory_agent=theory_agent,
-        index_lesson=index_lesson,
     )
     return build_lesson_graph(agent=agent, checkpointer=checkpointer)
 

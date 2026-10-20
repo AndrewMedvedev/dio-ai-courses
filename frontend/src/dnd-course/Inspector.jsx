@@ -349,7 +349,7 @@ function MaterialInspector({ material, tab }) {
         <>
           <div className="dnd-segmented" role="group" aria-label="Режим просмотра">
             <button type="button" aria-pressed={!editing} className={!editing ? "is-on" : ""} onClick={() => setEditing(false)}>
-              <Icon name="eye" size={15} /> Просмотр
+              <Icon name="eye" size={15} /> Предпросмотр
             </button>
             <button type="button" aria-pressed={editing} className={editing ? "is-on" : ""} onClick={() => setEditing(true)}>
               <Icon name="edit" size={15} /> Markdown

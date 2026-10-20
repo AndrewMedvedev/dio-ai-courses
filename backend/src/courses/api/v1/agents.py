@@ -74,13 +74,7 @@ async def chat_with_module_interviewer(
     request: ModuleGenerationChat,
     agent: ModuleInterviewerAgentDep,
     identity: CurrentIdentity,
-    check_access: CheckCourseAccessDep,
 ) -> ModuleGenerationChat:
-    await check_access(
-        identity=identity,
-        permission=UPDATE,
-        uid=request.course_id,
-    )
     result = await agent.call_agent(
         chat_id=request.chat_id,
         context=GenerationContext(
@@ -108,13 +102,7 @@ async def chat_with_lesson_interviewer(
     request: LessonGenerationChat,
     agent: LessonInterviewerAgentDep,
     identity: CurrentIdentity,
-    check_access: CheckCourseAccessDep,
 ) -> LessonGenerationChat:
-    await check_access(
-        identity=identity,
-        permission=UPDATE,
-        uid=request.course_id,
-    )
     result = await agent.call_agent(
         chat_id=request.chat_id,
         context=GenerationContext(

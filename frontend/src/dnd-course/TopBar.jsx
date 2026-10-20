@@ -52,7 +52,7 @@ export default function TopBar({ isMobile, onPreview }) {
       onSelect: () => setViewMode(effectiveMode === "canvas" ? "list" : "canvas"),
     },
     ...(isMobile && course?.id
-      ? [{ key: "preview", icon: "eye", label: "Просмотр курса", onSelect: () => onPreview?.({ courseId: course.id }) }]
+      ? [{ key: "preview", icon: "eye", label: "Предпросмотр курса", onSelect: () => onPreview?.({ courseId: course.id }) }]
       : []),
     { key: "help", icon: "help", label: "Показать обучение", onSelect: restartOnboarding },
     { key: "sep", type: "separator" },
@@ -158,10 +158,10 @@ export default function TopBar({ isMobile, onPreview }) {
             className="dnd-btn dnd-btn--ghost dnd-topbar-settings"
             onClick={() => onPreview?.({ courseId: course.id })}
             title="Посмотреть, как курс выглядит для студента"
-            aria-label="Просмотр курса"
+            aria-label="Предпросмотр курса"
           >
             <Icon name="eye" size={16} />
-            <span>Просмотр курса</span>
+            <span>Предпросмотр</span>
           </button>
         ) : null}
         <button

@@ -1,19 +1,22 @@
-from typing import Annotated
-
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, status
 from faststream.rabbit import RabbitQueue
 
-from src.iam.dependencies import require_permissions
 from src.core.rabbit import events_exchange
 from src.core.rabbit import router as rabbit_router
+from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
+from src.shared.application.dtos import Page
 from src.shared.dependencies.database import DBSession
 from src.shared.utils.time import current_datetime
 
-from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep, ModuleProgressRepoDep
+from ...dependencies.base import (
+    CourseProgressRepoDep,
+    LessonProgressRepoDep,
+    ModuleProgressRepoDep,
+    SearchParamsDep,
+)
 from ...dependencies.services import CheckCourseAccessDep, LearningProgressServiceDep, get_progress
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.events import LessonProgressUpdated
@@ -86,7 +89,7 @@ async def get_course_students_progress(
     identity: CurrentIdentity,
     check_access: CheckCourseAccessDep,
     repo: CourseProgressRepoDep,
-    pagination: Annotated[Pagination, Query()],
+    pagination: SearchParamsDep,
 ) -> Page[CourseProgress]:
     # Право course.update есть у любого преподавателя, поэтому проверяем доступ
     # именно к этому курсу: автор или преподаватель курса (политика UPDATE).

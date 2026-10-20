@@ -7,7 +7,6 @@ import {
 } from "../stores/permissionStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { useStudentStore } from "../stores/studentStore";
-import { useMyCoursesProgress } from "../hooks/useMyCoursesProgress";
 import { fetchMyCoursesPage } from "../utils/api";
 import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 
@@ -119,39 +118,6 @@ function validateAvatarFile(file) {
   }
 }
 
-function CourseProgressLine({ summary }) {
-  const status =
-    summary.totalLessons > 0 &&
-    summary.completedLessons === summary.totalLessons
-      ? "completed"
-      : summary.startedLessons > 0
-        ? "in_progress"
-        : "not_started";
-
-  return (
-    <span className={`profile-course-progress is-${status}`}>
-      <span className="profile-course-progress-row">
-        <span>
-          {summary.startedLessons > 0
-            ? `Пройдено уроков: ${summary.completedLessons} из ${summary.totalLessons}`
-            : `Не начат · ${summary.totalLessons} уроков`}
-        </span>
-        <b>{summary.percent}%</b>
-      </span>
-      <span
-        className="profile-course-progress-bar"
-        role="progressbar"
-        aria-label="Прогресс курса"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={summary.percent}
-      >
-        <span style={{ width: `${summary.percent}%` }} />
-      </span>
-    </span>
-  );
-}
-
 export default function ProfilePage({
   profileTabItems,
   activeProfileTab,
@@ -223,18 +189,6 @@ export default function ProfilePage({
   );
   const myCoursesError = useStudentStore((state) => state.myCoursesError);
   const loadMyCourses = useStudentStore((state) => state.loadMyCourses);
-  // Реальный прогресс ученика с backend по курсам, на которые он записан.
-  const myCoursesProgress = useMyCoursesProgress(myCourses, {
-    enabled: activeProfileTab === "overview",
-  });
-  const progressTotals = myCoursesProgress.hasData
-    ? myCoursesProgress.totals
-    : null;
-  const shownCompletedLessons =
-    progressTotals?.completedLessons ?? completedLessonsCount;
-  const shownCompletedPractices =
-    progressTotals?.completedPractices ?? completedPracticesCount;
-  const shownOverallPercent = progressTotals?.percent ?? overallProgressPercent;
 
   const canUpdateOwnCourses =
     canUpdateCourse || hasPermission(COURSE_PERMISSIONS.UPDATE);
@@ -717,6 +671,16 @@ export default function ProfilePage({
                 )}
               </article>
 
+              <div className="profile-stats-grid">
+                <article className="glass-card profile-stat-card">
+                  <span>Завершено</span>
+                  <strong>
+                    {completedLessonsCount + completedPracticesCount}
+                  </strong>
+                  <p>элементов из {totalContentCount}</p>
+                </article>
+              </div>
+
               <article className="glass-card profile-my-courses-card profile-learner-courses-card">
                 <div className="profile-my-courses-head">
                   <div>
@@ -748,70 +712,46 @@ export default function ProfilePage({
                   !myCoursesError &&
                   myCourses.length > 0 && (
                     <ul className="teacher-authored-course-list profile-my-course-list">
-                      {myCourses.map((course) => {
-                        const courseProgress =
-                          myCoursesProgress.byCourseId[course.id];
-                        return (
-                          <li
-                            key={course.id}
-                            className="profile-my-course-item"
-                          >
-                            <div className="profile-my-course-summary">
-                              <div
-                                className="teacher-authored-course-btn profile-my-course-card"
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => openCourse(course.id)}
-                                onKeyDown={(event) => {
-                                  if (
-                                    event.key === "Enter" ||
-                                    event.key === " "
-                                  ) {
-                                    event.preventDefault();
-                                    openCourse(course.id);
-                                  }
-                                }}
-                              >
-                                <span className="teacher-authored-course-main">
-                                  <strong title={course.title}>
-                                    {course.title}
-                                  </strong>
-                                  <small>
-                                    {course.category ||
-                                      course.difficulty ||
-                                      "Курс"}
-                                  </small>
+                      {myCourses.map((course) => (
+                        <li key={course.id} className="profile-my-course-item">
+                          <div className="profile-my-course-summary">
+                            <div
+                              className="teacher-authored-course-btn profile-my-course-card"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => openCourse(course.id)}
+                              onKeyDown={(event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  openCourse(course.id);
+                                }
+                              }}
+                            >
+                              <span className="teacher-authored-course-main">
+                                <strong title={course.title}>
+                                  {course.title}
+                                </strong>
+                                <small>
+                                  {course.category ||
+                                    course.difficulty ||
+                                    "Курс"}
+                                </small>
+                              </span>
+                              <span className="teacher-authored-course-meta">
+                                <span>
+                                  {getCourseStatusLabel(course.status)}
                                 </span>
-                                <span className="teacher-authored-course-meta">
-                                  <span>
-                                    {getCourseStatusLabel(course.status)}
-                                  </span>
-                                  <span>
-                                    {courseProgress?.modulesCount ??
-                                      course.blocks?.length ??
-                                      0}{" "}
-                                    модулей
-                                  </span>
+                                <span>
+                                  {course.blocks?.length || 0} модулей
                                 </span>
-                                {courseProgress && (
-                                  <CourseProgressLine
-                                    summary={courseProgress}
-                                  />
-                                )}
-                                {!courseProgress &&
-                                  myCoursesProgress.isLoading &&
-                                  !(
-                                    course.id in myCoursesProgress.byCourseId
-                                  ) && (
-                                    <span className="profile-course-progress is-loading">
-                                      Загружаем прогресс...
-                                    </span>
-                                  )}
-                              </div>
+                              </span>
                             </div>
-                          </li>
-                        );
-                      })}
+                          </div>
+                        </li>
+                      ))}
                     </ul>
                   )}
                 {myCoursesMeta.pages > 1 && (
@@ -882,12 +822,9 @@ export default function ProfilePage({
                 <article className="glass-card profile-info-card">
                   <h3>Активность</h3>
                   <ul>
-                    <li>Завершено уроков: {shownCompletedLessons}</li>
-                    <li>Выполнено практик: {shownCompletedPractices}</li>
-                    {progressTotals && (
-                      <li>Сдано тестов: {progressTotals.completedTests}</li>
-                    )}
-                    <li>Общий прогресс: {shownOverallPercent}%</li>
+                    <li>Завершено уроков: {completedLessonsCount}</li>
+                    <li>Выполнено практик: {completedPracticesCount}</li>
+                    <li>Общий прогресс: {overallProgressPercent}%</li>
                   </ul>
                 </article>
               </div>

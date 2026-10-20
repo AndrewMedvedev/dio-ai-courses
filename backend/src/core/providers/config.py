@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ..settings import ENV_FILE  # ruff: ignore[unused-import]
+
 
 class ProxyApiConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PROXY_API_")

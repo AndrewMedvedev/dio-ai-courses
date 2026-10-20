@@ -11,6 +11,7 @@ from ...application.repos import ChatRepository
 from ...infra.services.client import SrvCourseClient
 from ..middlewares import (
     ChatCheckpointerMiddleware,
+    LemmatizationMiddleware,
     StopInterview,
     SummarizationMiddleware,
     ToolCallLimitMiddleware,
@@ -55,6 +56,7 @@ class InterviewerAgent:
                 "get_content": get_content,
             },
             middlewares=[
+                LemmatizationMiddleware(),
                 SummarizationMiddleware(
                     system_prompt=PROMPT_SUMMARIZE_CHAT,
                     number_of_tokens=70_000,

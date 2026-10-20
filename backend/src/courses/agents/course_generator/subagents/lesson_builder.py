@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import session_factory
-from src.courses.agents.course_generator.subagents.protocols import TheoryAgent
+from src.courses.agents.course_generator.subagents.repos import TheoryAgent
 from src.courses.agents.schemas import Context
 from src.courses.application.domain_dtos import (
     LessonDict,
@@ -29,7 +29,6 @@ from src.llm_service import LLMTextService
 
 from ..few_shots import LESSON_STRUCTURE_FEW_SHOT
 from .prompts import LESSON_STRUCTURE_PROMPT, ContentSpecification, LessonStructure
-from .protocols import IndexLesson
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +56,12 @@ class LessonAgent:
         ],
         vector_repo: VectorRepository,
         theory_agent: TheoryAgent,
-        index_lesson: IndexLesson,
         max_parallel: int = 4,
     ) -> None:
         self._client = client
         self._lesson_repo = lesson_repo
         self._vector_repo = vector_repo
         self._theory_agent = theory_agent
-        self._index_lesson = index_lesson
         self.semaphore = Semaphore(max_parallel)
 
     async def plan_lesson_structure(
@@ -156,7 +153,6 @@ class LessonAgent:
             description=lesson_structure.description,
             learning_objectives=lesson_structure.learning_objectives,
             order=state["order"],
-            estimated_time_minutes=lesson_structure.estimated_time_minutes,
         )
         return {
             "lesson_structure": model_to_typed_dict(lesson_structure),
@@ -256,8 +252,9 @@ class LessonAgent:
             except IntegrityError:
                 await session.rollback()
                 logger.info("Lesson %s alredy exsists", lesson.title)
+        from src.courses.agents.course_generator.workflow import index_lesson
 
-        await self._index_lesson.kiq(  # pyright: ignore[reportCallIssue]
+        await index_lesson.kiq(  # pyright: ignore[reportCallIssue]
             course_id=state["generation_context"].course_id,
             lesson_id=lesson.id,
         )

@@ -69,24 +69,14 @@ class SrvBaseClient:
         ):
             data = await response.json()
             if response.status != status.HTTP_200_OK:
-                error = data.get("error")
-                if not isinstance(error, dict):
-                    error = data
-
-                error_code = (
-                    error.get("code")
-                    or error.get("grant")
-                    or error.get("error_code")
-                    or "UNKNOWN_ERROR"
-                )
-                error_msg = (
-                    error.get("message") or data.get("detail") or "OAuth token request failed."
-                )
-
+                error_code = data.get("error_code") or "UNKNOWN_ERROR"
+                error_msg = data.get("message", "")
                 raise SrvBaseError(
                     f"[OAuth] Failed to fetch token. HTTP status: {response.status}. "
                     f"Error code: '{error_code}'. Message: {error_msg}"
                 )
+
+            data = await response.json()
 
             return _OAuthToken.model_validate(data)
 

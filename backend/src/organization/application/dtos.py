@@ -34,11 +34,7 @@ class OrganizationEdit(BaseModel):
 
 
 class InvitationCreate(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        validate_by_name=True,
-        validate_by_alias=True,
-    )
+    model_config = ConfigDict(alias_generator=to_camel)
 
     email: EmailStr
     granted_roles: set[RoleId]

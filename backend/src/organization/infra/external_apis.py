@@ -1,7 +1,5 @@
 from uuid import UUID
 
-from pydantic import TypeAdapter
-
 from src.iam.application.dtos import InvitationCreate, UserResponse
 from src.iam.application.dtos.membership import CreateMembershipDTO
 from src.iam.domain.entities import Invitation, Membership
@@ -30,18 +28,18 @@ class IAMClient:
     async def invite_user_in_system(
         self,
         dto: InvitationCreate,
-    ) -> Invitation:
+    ) -> Invitation | None:
         async with self.client._get_token_session() as session:  # noqa: SLF001
-            result = await session.post(
-                url="/api/v1/invitations",
-                json=dto.model_dump(mode="json", by_alias=True),
-            )
-            result.raise_for_status()
-
-            response = await result.json()
-            response.pop("_events", None)
-
-            return TypeAdapter(Invitation).validate_python(response)
+            try:
+                result = await session.post(
+                    url="/api/v1/invitations", json=dto.model_dump(mode="json")
+                )
+                result.raise_for_status()
+                response = await result.json()
+                response.pop("_events", None)
+                return Invitation(**response)
+            except:  # noqa: E722
+                return None
 
 
 class MembershipClient:

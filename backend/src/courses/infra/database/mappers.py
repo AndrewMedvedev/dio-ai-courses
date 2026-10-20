@@ -3,23 +3,21 @@
 
 import logging
 
-from src.courses.application.dtos import (
-    BasicInfo,
-    CourseBasicInfo,
-    LessonBasicInfo,
-    ModuleBasicInfo,
-)
 from src.courses.domain.entities import (
+    BasicInfo,
     Chat,
     Course,
+    CourseBasicInfo,
     CourseProgress,
     Document,
     Invitation,
     Lesson,
+    LessonBasicInfo,
     LessonProgress,
     LessonTheorySession,
     Member,
     Module,
+    ModuleBasicInfo,
     ModuleProgress,
     Practice,
 )
@@ -378,7 +376,7 @@ class MemberMapper(ModelMapper[Member, MemberOrm]):
             id=entity.id,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
-            role=entity.role.value,
+            role=entity.role,
             course_id=entity.course_id,
             user_id=entity.user_id,
         )
@@ -415,7 +413,7 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
             email=entity.email.value,
             token=entity.token,
             invited_by=entity.invited_by,
-            role=entity.role.value,
+            role=entity.role,
             expires_at=entity.expires_at,
             used_at=entity.used_at,
             is_used=entity.is_used,

@@ -5,11 +5,11 @@ from uuid import UUID
 from fastapi import APIRouter, Path, Query, status
 
 from src.courses.application.dtos import InvitationCreate, InvitationResponse
+from src.courses.dependencies.base import SearchParamsDep
 from src.courses.dependencies.services import InvitationServiceDep
 from src.courses.domain.entities import Member
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page
-from src.shared.dependencies.params import PaginationDep
 
 router = APIRouter(
     prefix="/courses/invitations", tags=["Приглашения в курсы | Invitations in courses"]
@@ -38,7 +38,7 @@ async def create_invitations(
 async def get_course_invitations(
     identity: CurrentIdentity,
     service: InvitationServiceDep,
-    pagination: PaginationDep,
+    pagination: SearchParamsDep,
     course_id: Annotated[UUID, Query(description="Идентификатор курса")],
 ) -> Page[InvitationResponse]:
     page = await service.get_course_invitations(

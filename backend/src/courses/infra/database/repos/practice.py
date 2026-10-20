@@ -5,11 +5,11 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from src.courses.domain.entities import (
-    Practice,
-)
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
+from ....domain.entities import (
+    Practice,
+)
 from ..mappers import (
     PracticeMapper,
 )

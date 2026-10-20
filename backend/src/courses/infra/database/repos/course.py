@@ -3,19 +3,20 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from src.courses.application.dtos import (
-    BasicInfo,
-    CourseBasicInfo,
-)
-from src.courses.domain.entities import Course
-from src.courses.domain.enums import CourseStatus
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
+from ....domain.entities import (
+    BasicInfo,
+    Course,
+    CourseBasicInfo,
+)
+from ....domain.enums import CourseStatus
 from ..mappers import (
     CourseMapper,
 )
 from ..models import CourseOrm, MemberOrm, ModuleOrm
+from ..search import search_page
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,15 @@ logger = logging.getLogger(__name__)
 class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     model = CourseOrm
     model_mapper = CourseMapper  # type: ignore
+    filter_whitelist = (
+        "id",
+        "title",
+        "description",
+        "status",
+        "difficulty",
+        "createdAt",
+        "updatedAt",
+    )
 
     async def find(
         self,
@@ -36,12 +46,14 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             .where(self.model.status == CourseStatus.PUBLISHED)
         )
 
-        return await paginate(
+        return await search_page(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
+            fields=self.filter_whitelist,
+            text_fields=("title", "description"),
         )
 
     async def find_user_courses(
@@ -57,12 +69,14 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             .where(self.model.creator_id == user_id)
         )
 
-        return await paginate(
+        return await search_page(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
+            fields=self.filter_whitelist,
+            text_fields=("title", "description"),
         )
 
     async def find_member_courses(
@@ -89,13 +103,14 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             )
         )
 
-        return await paginate(
+        return await search_page(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
-            sort="created_at:desc",
+            fields=self.filter_whitelist,
+            text_fields=("title", "description"),
         )
 
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:

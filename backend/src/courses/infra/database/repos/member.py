@@ -3,17 +3,18 @@ from uuid import UUID
 
 from sqlalchemy import exists, select
 
-from src.courses.domain.entities import (
-    Member,
-)
 from src.courses.domain.vo import MemberRole
 from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
+from ....domain.entities import (
+    Member,
+)
 from ..mappers import (
     MemberMapper,
 )
 from ..models import MemberOrm
+from ..search import search_page
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +54,13 @@ class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
             self.model.course_id == course_id,
         )
 
-        return await paginate(
+        return await search_page(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
-            sort="created_at:desc",
+            fields=("id", "userId", "role", "createdAt"),
         )
 
     async def read_role(self, user_id: UUID, course_id: UUID) -> MemberRole | None:

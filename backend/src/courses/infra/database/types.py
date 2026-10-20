@@ -9,7 +9,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator
 
 from src.courses.domain.constants import _BLOCK_REGISTRY, ExtendedContentType
-from src.courses.domain.vo import AnyContentBlock, Question, QuizBlock
+from src.courses.domain.vo import AnyContentBlock, QuizBlock
 
 
 def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:
@@ -20,10 +20,7 @@ def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:
     kwargs["content_type"] = content_type
 
     if block_cls is QuizBlock and "questions" in kwargs:
-        kwargs["questions"] = [
-            Question(question=q[0], answer=q[1]) if isinstance(q, (list, tuple)) else Question(**q)
-            for q in kwargs["questions"]
-        ]
+        kwargs["questions"] = [tuple(q) for q in kwargs["questions"]]
 
     return block_cls(**kwargs)
 

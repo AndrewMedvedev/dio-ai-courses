@@ -4,8 +4,6 @@
 
 from fastapi import APIRouter
 
-from src.core.settings import ENV_FILE  # noqa: F401
-
 from .courses.api.v1 import router as courses_router
 from .iam.api.v1 import router as iam_router
 from .feedback.api.v1.feedback import router as feedback_router
