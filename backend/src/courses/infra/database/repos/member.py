@@ -60,6 +60,7 @@ class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
             pagination=pagination,
             mapper=self.model_mapper.from_model,
             sort="created_at:desc",
+            fields=("id", "user_id", "course_id", "role", "created_at", "updated_at"),
         )
 
     async def read_role(self, user_id: UUID, course_id: UUID) -> MemberRole | None:

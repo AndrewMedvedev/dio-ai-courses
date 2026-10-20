@@ -34,6 +34,7 @@ dependencies = [
     "playwright>=1.60.0",
     "prometheus-fastapi-instrumentator>=8.1.0",
     "pydantic-settings>=2.14.1",
+    "py-ddd-framework",
     "pyjwt>=2.12.1",
     "pymorphy3>=2.0.6",
     "pytest>=9.0.3",
@@ -305,3 +306,6 @@ typeCheckingMode = "basic"
 dev = [
     "testcontainers[postgres]>=4.14.2",
 ]
+
+[tool.uv.sources]
+py-ddd-framework = { git = "https://github.com/Andr171p/py-ddd-framework", rev = "1a1dca331dc1ebb8fa67257bc7a7ea5de74113b2" }

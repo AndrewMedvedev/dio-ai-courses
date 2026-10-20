@@ -11,6 +11,17 @@ class SqlOrganizationRepository(SqlAlchemyRepository[Organization, OrganizationO
     model = OrganizationOrm
     model_mapper = OrganizationMapper  # pyright: ignore[reportAssignmentType]
 
+    query_fields = (
+        "id",
+        "name",
+        "email",
+        "description",
+        "is_active",
+        "created_at",
+        "updated_at",
+    )
+    text_fields = ("name", "email", "description")
+
     async def get_by_email(self, email: str) -> Organization | None:
         stmt = select(self.model).where(self.model.email == email)
         result = await self._session.execute(stmt)
