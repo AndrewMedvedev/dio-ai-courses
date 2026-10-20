@@ -2,8 +2,15 @@
 import { Fragment, useState } from "react";
 import SectionTop from "../components/SectionTop";
 import CourseInviteDialog from "../components/course/CourseInviteDialog";
+import AgentInterviewDialog from "../components/editor/AgentInterviewDialog";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { useGoBack } from "../hooks/useGoBack";
+import {
+  generationJobKey,
+  useGenerationJobsStore,
+} from "../stores/generationJobsStore";
 import { useSessionStore } from "../stores/sessionStore";
+import { isUuid } from "../utils/api";
 
 export default function CoursePage({
   selectedCourse,
@@ -27,8 +34,17 @@ export default function CoursePage({
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [statusAction, setStatusAction] = useState("");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  // Позиция в списке модулей, где открыт чат генерации модуля (null — закрыт).
+  const [moduleAgentIndex, setModuleAgentIndex] = useState(null);
+  const [isModuleChatVisible, setIsModuleChatVisible] = useState(true);
+  // { type: "module" | "course", id, title } — что пользователь хочет удалить.
+  const [pendingDelete, setPendingDelete] = useState(null);
   const currentUserId = useSessionStore(
     (state) => state.identity?.id || state.user?.id || "",
+  );
+  const moduleJob = useGenerationJobsStore(
+    (state) =>
+      state.jobs[generationJobKey("module", selectedCourse.id, "")] || null,
   );
   const goBack = useGoBack({ fallbackPath: "/courses" });
 
@@ -91,14 +107,94 @@ export default function CoursePage({
     }
   };
 
-  const renderInsertControl = (index) =>
-    isCourseEditMode ? (
+  const canGenerateModule = isCourseEditMode && isUuid(selectedCourse.id);
+  // Пока идёт генерация, чат держим в месте, куда вставится модуль.
+  const moduleAgentAt =
+    moduleJob && Number.isFinite(Number(moduleJob.order))
+      ? Number(moduleJob.order) - 1
+      : moduleAgentIndex;
+
+  const describeModulePosition = (index) => {
+    const blocks = selectedCourse.blocks;
+    if (!blocks.length) return "Модуль станет первым в курсе.";
+    if (index <= 0)
+      return `Модуль встанет в начало, перед «${blocks[0].title}».`;
+    if (index >= blocks.length) {
+      return `Модуль встанет в конец, после «${blocks[blocks.length - 1].title}».`;
+    }
+    return `Модуль встанет между «${blocks[index - 1].title}» и «${blocks[index].title}».`;
+  };
+
+  const openModuleAgent = (index) => {
+    setModuleAgentIndex(index);
+    setIsModuleChatVisible(true);
+  };
+
+  // Пока генерация идёт, окно только прячется: метка в списке остаётся.
+  const closeModuleAgent = () => {
+    const currentJob =
+      useGenerationJobsStore.getState().jobs[
+        generationJobKey("module", selectedCourse.id, "")
+      ];
+    if (currentJob) {
+      setIsModuleChatVisible(false);
+      return;
+    }
+    setModuleAgentIndex(null);
+  };
+
+  const renderInsertControl = (index) => {
+    if (!isCourseEditMode) return null;
+    if (canGenerateModule && moduleAgentAt === index) {
+      // Кнопки стоят на месте, а сюда встанет модуль из плавающего окна чата.
+      return (
+        <li className="course-agent-marker" key={`insert-${index}`}>
+          <span>
+            {moduleJob?.status === "running"
+              ? moduleJob.resultId
+                ? `✦ Модуль «${moduleJob.resultTitle || "без названия"}» генерируется — ниже`
+                : "✦ Здесь появится модуль — генерация идёт"
+              : moduleJob?.status === "done"
+                ? "✦ Модуль сгенерирован — ниже"
+                : "✦ Сюда встанет модуль из чата с ИИ"}
+          </span>
+          <div>
+            {!isModuleChatVisible && (
+              <button
+                type="button"
+                onClick={() => setIsModuleChatVisible(true)}
+              >
+                Показать чат
+              </button>
+            )}
+            {!moduleJob && (
+              <button type="button" onClick={() => setModuleAgentIndex(null)}>
+                Отменить
+              </button>
+            )}
+          </div>
+        </li>
+      );
+    }
+    return (
       <li className="course-block-insert" key={`insert-${index}`}>
-        <button type="button" onClick={() => insertBlock(index)}>
-          Вставить здесь
-        </button>
+        <div className="course-insert-actions">
+          <button type="button" onClick={() => insertBlock(index)}>
+            Вставить пустой модуль
+          </button>
+          {canGenerateModule && moduleAgentAt === null && (
+            <button
+              type="button"
+              className="is-ai"
+              onClick={() => openModuleAgent(index)}
+            >
+              ✦ Сгенерировать модуль с ИИ
+            </button>
+          )}
+        </div>
       </li>
-    ) : null;
+    );
+  };
 
   return (
     <section className="container section course-details-view">
@@ -175,15 +271,13 @@ export default function CoursePage({
             <button
               type="button"
               className="btn btn-outline course-delete-btn"
-              onClick={async () => {
-                if (statusAction) return;
-                setStatusAction("archive");
-                try {
-                  await deleteCourse(selectedCourse.id);
-                } finally {
-                  setStatusAction("");
-                }
-              }}
+              onClick={() =>
+                setPendingDelete({
+                  type: "course",
+                  id: selectedCourse.id,
+                  title: selectedCourse.title,
+                })
+              }
               disabled={statusAction === "archive"}
             >
               {statusAction === "archive" ? "Удаляем..." : "Удалить курс"}
@@ -418,7 +512,13 @@ export default function CoursePage({
                           <button
                             type="button"
                             className="btn btn-flat editor-danger-btn"
-                            onClick={() => deleteBlock(block.id)}
+                            onClick={() =>
+                              setPendingDelete({
+                                type: "module",
+                                id: block.id,
+                                title: block.title,
+                              })
+                            }
                             disabled={selectedCourse.blocks.length <= 1}
                           >
                             Удалить
@@ -487,6 +587,60 @@ export default function CoursePage({
           </article>
         )}
       </div>
+
+      {canGenerateModule && moduleAgentAt !== null && (
+        <AgentInterviewDialog
+          variant="floating"
+          open={isModuleChatVisible}
+          kind="module"
+          courseId={selectedCourse.id}
+          order={moduleAgentAt + 1}
+          knownIds={selectedCourse.blocks.map((block) => block.id)}
+          contextTitle={
+            moduleJob?.resultId
+              ? `Модуль «${moduleJob.resultTitle || "без названия"}» уже в списке.`
+              : describeModulePosition(moduleAgentAt)
+          }
+          onClose={closeModuleAgent}
+          onOpenResult={(job) => {
+            setModuleAgentIndex(null);
+            if (job.resultId) openBlock(job.resultId);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        danger
+        eyebrow="Необратимое действие"
+        title={
+          pendingDelete?.type === "course" ? "Удалить курс?" : "Удалить модуль?"
+        }
+        description={
+          pendingDelete?.type === "course"
+            ? `Курс «${pendingDelete?.title || ""}» будет перенесён в архив и пропадёт из каталога.`
+            : `Модуль «${pendingDelete?.title || ""}» и все его уроки будут удалены. Отменить удаление нельзя.`
+        }
+        confirmLabel="Удалить"
+        busyLabel="Удаляем..."
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          const target = pendingDelete;
+          if (!target) return;
+          if (target.type === "course") {
+            setStatusAction("archive");
+            try {
+              await deleteCourse(target.id);
+            } finally {
+              setStatusAction("");
+            }
+          } else {
+            const deleted = await deleteBlock(target.id);
+            if (deleted === false) return false;
+          }
+          setPendingDelete(null);
+        }}
+      />
     </section>
   );
 }

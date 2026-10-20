@@ -49,6 +49,8 @@ import {
   archiveCourse as archiveCourseApi,
   createLesson as createLessonApi,
   createModule as createModuleApi,
+  deleteLesson as deleteLessonApi,
+  deleteModule as deleteModuleApi,
   fetchCoursesPage,
   getCourse,
   getLessonBasicInfo,
@@ -69,9 +71,12 @@ import {
   getSelectedPractice,
   mergeCourse,
   mergeCoursePage,
+  applyEntityFields,
   mergeLesson,
   mergeModule,
   moveItem,
+  upsertLesson,
+  upsertModule,
 } from "./course/courseState";
 import {
   getBlockProgress,
@@ -80,6 +85,11 @@ import {
   getOverallProgress,
 } from "./course/courseProgress";
 import { useAppPermissions } from "./hooks/useAppPermissions";
+import EditorSaveBar from "./components/editor/EditorSaveBar";
+import { useGenerationJobsWatcher } from "./hooks/useGenerationJobsWatcher";
+import { forgetLessonTheory } from "./services/courseService";
+import { useEditorDraftStore } from "./stores/editorDraftStore";
+import { notify } from "./stores/toastStore";
 
 function getCourseRouteTarget(pathname) {
   const segments = pathname.split("/").filter(Boolean);
@@ -870,24 +880,18 @@ function AppContent() {
       ),
     );
 
+    // Правки существующего модуля копятся локально и уходят на backend только
+    // после подтверждения в окне «Сохранить изменения» (EditorSaveBar).
     if (isUuid(selectedCourse.id) && isUuid(blockId)) {
-      updateModuleApi(selectedCourse.id, blockId, changes)
-        .then((savedModule) => {
-          if (savedModule) {
-            setEditableCourses((prev) =>
-              prev.map((course) =>
-                course.id === selectedCourse.id
-                  ? mergeModule(course, savedModule)
-                  : course,
-              ),
-            );
-          }
-        })
-        .catch((error) => {
-          setCoursesError(
-            getErrorMessage(error, "Не удалось сохранить модуль."),
-          );
-        });
+      const block = selectedCourse.blocks.find((item) => item.id === blockId);
+      useEditorDraftStore.getState().recordEdit({
+        kind: "module",
+        courseId: selectedCourse.id,
+        entityId: blockId,
+        label: changes.title || block?.title || "",
+        entity: block,
+        changes,
+      });
     }
   };
 
@@ -1100,7 +1104,9 @@ function AppContent() {
     }
   };
 
-  const updateLesson = (lessonId, changes) => {
+  // options.originalContentBlocks — содержимое урока до правок (теория грузится
+  // отдельно и в состоянии курса её может не быть), нужно для показа изменений.
+  const updateLesson = (lessonId, changes, options = {}) => {
     if (!canUpdateCourse) {
       return;
     }
@@ -1121,23 +1127,122 @@ function AppContent() {
       ),
     );
 
+    // Как и для модулей: сохраняем на backend только после подтверждения.
     if (isUuid(selectedCourse.id) && isUuid(lessonId)) {
-      updateLessonApi(selectedCourse.id, lessonId, changes)
-        .then((savedLesson) => {
-          if (savedLesson) {
+      const lesson = selectedCourse.blocks
+        .flatMap((block) => block.lessons || [])
+        .find((item) => item.id === lessonId);
+      useEditorDraftStore.getState().recordEdit({
+        kind: "lesson",
+        courseId: selectedCourse.id,
+        entityId: lessonId,
+        label: changes.title || lesson?.title || "",
+        entity:
+          lesson && Array.isArray(options.originalContentBlocks)
+            ? { ...lesson, contentBlocks: options.originalContentBlocks }
+            : lesson,
+        changes,
+      });
+    }
+  };
+
+  const savePendingEdits = async (edits) => {
+    const drafts = useEditorDraftStore.getState();
+    let hasFailures = false;
+
+    for (const edit of edits) {
+      try {
+        if (edit.kind === "module") {
+          // eslint-disable-next-line no-await-in-loop
+          const savedModule = await updateModuleApi(
+            edit.courseId,
+            edit.entityId,
+            edit.changes,
+          );
+          if (savedModule) {
             setEditableCourses((prev) =>
               prev.map((course) =>
-                course.id === selectedCourse.id
-                  ? mergeLesson(course, savedLesson)
+                course.id === edit.courseId
+                  ? mergeModule(course, savedModule)
                   : course,
               ),
             );
           }
-        })
-        .catch((error) => {
-          setCoursesError(getErrorMessage(error, "Не удалось сохранить урок."));
-        });
+        } else {
+          const {
+            contentBlocks,
+            content_blocks: contentBlocksSnake,
+            markdown,
+            content,
+            ...meta
+          } = edit.changes;
+          const blocks = contentBlocks ?? contentBlocksSnake;
+          if (Object.keys(meta).length) {
+            // eslint-disable-next-line no-await-in-loop
+            const savedLesson = await updateLessonApi(
+              edit.courseId,
+              edit.entityId,
+              meta,
+            );
+            if (savedLesson) {
+              const {
+                contentBlocks: _ignored,
+                content_blocks: _ignoredSnake,
+                ...savedMeta
+              } = savedLesson;
+              setEditableCourses((prev) =>
+                prev.map((course) =>
+                  course.id === edit.courseId
+                    ? mergeLesson(course, savedMeta)
+                    : course,
+                ),
+              );
+            }
+          }
+          if (blocks !== undefined) {
+            // eslint-disable-next-line no-await-in-loop
+            await updateLessonApi(edit.courseId, edit.entityId, {
+              contentBlocks: blocks,
+            });
+            forgetLessonTheory(edit.entityId);
+          }
+        }
+        drafts.removeEdit(edit.key);
+      } catch (error) {
+        hasFailures = true;
+        drafts.setEditError(
+          edit.key,
+          getErrorMessage(error, "Не удалось сохранить изменения."),
+        );
+      }
     }
+
+    if (!hasFailures) {
+      notify("Изменения сохранены");
+    }
+    return !hasFailures;
+  };
+
+  const discardPendingEdits = (edits) => {
+    const drafts = useEditorDraftStore.getState();
+    setEditableCourses((prev) =>
+      prev.map((course) =>
+        edits.reduce(
+          (current, edit) =>
+            edit.courseId === course.id
+              ? applyEntityFields(
+                  current,
+                  edit.kind,
+                  edit.entityId,
+                  edit.original,
+                )
+              : current,
+          course,
+        ),
+      ),
+    );
+    edits.forEach((edit) => drafts.removeEdit(edit.key));
+    drafts.bumpRevision();
   };
 
   const updatePractice = (practiceId, changes) => {
@@ -1226,9 +1331,11 @@ function AppContent() {
     );
   };
 
-  const deleteBlock = (blockId) => {
+  // Вызывается только после подтверждения в диалоге. Ошибку backend пробрасываем
+  // в диалог, чтобы данные не менялись, если удалить не получилось.
+  const deleteBlock = async (blockId) => {
     if (!canUpdateCourse) {
-      return;
+      return false;
     }
 
     const remainingBlocks = selectedCourse.blocks.filter(
@@ -1236,7 +1343,19 @@ function AppContent() {
     );
 
     if (remainingBlocks.length === 0) {
-      return;
+      return false;
+    }
+
+    if (isUuid(selectedCourse.id) && isUuid(blockId)) {
+      await deleteModuleApi(blockId);
+      const removedBlock = selectedCourse.blocks.find(
+        (block) => block.id === blockId,
+      );
+      const drafts = useEditorDraftStore.getState();
+      drafts.removeEntity("module", blockId);
+      (removedBlock?.lessons || []).forEach((lesson) =>
+        drafts.removeEntity("lesson", lesson.id),
+      );
     }
 
     setEditableCourses((prev) =>
@@ -1250,17 +1369,23 @@ function AppContent() {
     if (selectedBlock.id === blockId) {
       navigate(`/course/${selectedCourse.id}`, { replace: true });
     }
+    return true;
   };
 
-  const deleteLesson = (blockId, lessonId) => {
+  const deleteLesson = async (blockId, lessonId) => {
     if (!canUpdateCourse) {
-      return;
+      return false;
     }
 
     const block = selectedCourse.blocks.find((item) => item.id === blockId);
 
     if (!block || block.lessons.length <= 1) {
-      return;
+      return false;
+    }
+
+    if (isUuid(selectedCourse.id) && isUuid(lessonId)) {
+      await deleteLessonApi(lessonId);
+      useEditorDraftStore.getState().removeEntity("lesson", lessonId);
     }
 
     setEditableCourses((prev) =>
@@ -1288,7 +1413,42 @@ function AppContent() {
         replace: true,
       });
     }
+    return true;
   };
+
+  // Сгенерированные ИИ модули и уроки сразу появляются в редакторе.
+  useGenerationJobsWatcher({
+    enabled: Boolean(accessToken) && canUpdateCourse,
+    onModule: (courseId, module) => {
+      if (!module?.id) return;
+      setEditableCourses((prev) =>
+        prev.map((course) =>
+          course.id === courseId ? upsertModule(course, module) : course,
+        ),
+      );
+    },
+    onLesson: (courseId, moduleId, lesson) => {
+      if (!lesson?.id) return;
+      setEditableCourses((prev) =>
+        prev.map((course) =>
+          course.id === courseId
+            ? upsertLesson(course, moduleId, lesson)
+            : course,
+        ),
+      );
+    },
+    onDone: (job) => {
+      if (job.status === "done") {
+        notify(
+          job.kind === "module"
+            ? `Модуль «${job.resultTitle || "без названия"}» сгенерирован`
+            : `Урок «${job.resultTitle || "без названия"}» сгенерирован`,
+        );
+      } else if (job.error) {
+        notify(job.error, { tone: "error", duration: 8000 });
+      }
+    },
+  });
 
   const deletePractice = (blockId, practiceId) => {
     if (!canUpdateCourse) {
@@ -1678,6 +1838,13 @@ function AppContent() {
         )}
       </main>
       <Footer canCreateCourse={canCreateCourse} canReadCourse={canReadCourse} />
+      {isCourseEditMode && canUpdateCourse && selectedCourse?.id ? (
+        <EditorSaveBar
+          courseId={selectedCourse.id}
+          onSave={savePendingEdits}
+          onDiscard={discardPendingEdits}
+        />
+      ) : null}
       <Toaster />
     </div>
   );
