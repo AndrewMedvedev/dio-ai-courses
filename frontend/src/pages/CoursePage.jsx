@@ -13,7 +13,7 @@ import {
   useGenerationJobsStore,
 } from "../stores/generationJobsStore";
 import { useSessionStore } from "../stores/sessionStore";
-import { isUuid } from "../utils/api";
+import { COURSE_LEVELS, formatCourseLevel, isUuid } from "../utils/api";
 
 // На странице курса в дереве не выделен ни один модуль.
 const NO_SELECTED_BLOCK = { id: "" };
@@ -368,12 +368,18 @@ export default function CoursePage({
                     </label>
                     <label className="course-editor-field">
                       <span>Уровень</span>
-                      <input
-                        value={selectedCourse.level || ""}
+                      <select
+                        value={formatCourseLevel(selectedCourse.level)}
                         onChange={(event) =>
                           updateCourse({ level: event.target.value })
                         }
-                      />
+                      >
+                        {COURSE_LEVELS.map((item) => (
+                          <option key={item.value} value={item.label}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <label className="course-editor-field">
                       <span>Формат</span>
@@ -463,7 +469,7 @@ export default function CoursePage({
                     </div>
                     <div>
                       <span>Уровень</span>
-                      <strong>{selectedCourse.level}</strong>
+                      <strong>{formatCourseLevel(selectedCourse.level)}</strong>
                     </div>
                     <div>
                       <span>Формат</span>

@@ -1,5 +1,9 @@
 // Витрина готовых курсов, созданных пользователями AI Course Lab
 import SectionTop from "../components/SectionTop";
+import { formatCourseLevel } from "../utils/api";
+
+// В карточке каталога показываем не больше стольких тегов, остальные — счётчиком.
+const MAX_CARD_TAGS = 4;
 
 export default function CoursesPage({
   coursesData,
@@ -83,13 +87,31 @@ export default function CoursesPage({
                   }
                 }}
               >
-                <h3>{course.title}</h3>
-                <p>{course.description}</p>
+                {/* Описание курса в каталоге не показываем: длинный текст раздувал
+                    карточки. Оно есть на странице курса. */}
+                <h3 title={course.title}>{course.title}</h3>
+                <p className="course-tab-level">
+                  <span>Уровень</span>
+                  <strong>
+                    {formatCourseLevel(course.difficulty || course.level)}
+                  </strong>
+                </p>
                 {Array.isArray(course.tags) && course.tags.length > 0 && (
-                  <div className="course-meta-inline" aria-label="Теги курса">
-                    {course.tags.map((tag) => (
+                  <div
+                    className="course-meta-inline course-tab-tags"
+                    aria-label="Теги курса"
+                  >
+                    {course.tags.slice(0, MAX_CARD_TAGS).map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
+                    {course.tags.length > MAX_CARD_TAGS && (
+                      <span
+                        className="is-more"
+                        title={course.tags.slice(MAX_CARD_TAGS).join(", ")}
+                      >
+                        +{course.tags.length - MAX_CARD_TAGS}
+                      </span>
+                    )}
                   </div>
                 )}
               </article>

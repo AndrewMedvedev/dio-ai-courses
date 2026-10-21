@@ -34,7 +34,12 @@ import { getErrorMessage } from "../../utils/errors";
 import { isTokenExpired, isUuid } from "../../utils/api";
 import ModuleList from "./ModuleList";
 import LessonMetricsDashboard from "./LessonMetricsDashboard";
+import CourseMetricsSummary from "./metrics/CourseMetricsSummary";
+import { useCourseMetricsStore } from "../../stores/courseMetricsStore";
 import "./course-viewer.css";
+
+// В режиме метрик на сводке курса ни один модуль в дереве не выделен.
+const NO_SELECTED_BLOCK = { id: "" };
 
 function findBlockByLesson(course, lessonId) {
   return (
@@ -589,6 +594,15 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     }
   };
 
+  // Из сводки: выбираем студента и открываем метрики первого урока курса.
+  const openStudentMetrics = (userId) => {
+    useCourseMetricsStore.getState().setSelectedStudent(userId);
+    const firstLesson = (course?.blocks || []).flatMap(
+      (block) => block.lessons || [],
+    )[0];
+    if (firstLesson) openLesson(firstLesson.id);
+  };
+
   const openCourseEditor = () => {
     if (course?.id && canUpdateCourse) {
       navigate(`/course/${course.id}/edit`);
@@ -886,8 +900,21 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
         {course.blocks.length > 0 ? (
           <CourseNavigationTree
             selectedCourse={course}
-            selectedBlock={selectedBlock || course.blocks[0]}
+            selectedBlock={
+              isMetricsMode && !selectedLesson
+                ? NO_SELECTED_BLOCK
+                : selectedBlock || course.blocks[0]
+            }
             selectedLessonId={selectedLesson?.id || ""}
+            summaryItem={
+              isMetricsMode
+                ? {
+                    label: "Сводка по курсу",
+                    active: !selectedLesson,
+                    onOpen: openCourseOverview,
+                  }
+                : null
+            }
             selectedPracticeId=""
             completedLessons={{}}
             completedPractices={{}}
@@ -922,18 +949,10 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
                   lesson={selectedLesson}
                 />
               ) : (
-                <div className="lesson-metrics-dashboard">
-                  <div className="metrics-dashboard-head">
-                    <div>
-                      <span className="metrics-mode-badge">Режим метрик</span>
-                      <h2>Выберите урок</h2>
-                      <p>
-                        Нажмите на урок в дереве курса, чтобы открыть выбор
-                        студента и дашборд.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <CourseMetricsSummary
+                  courseId={course.id}
+                  onOpenStudent={openStudentMetrics}
+                />
               )
             ) : !selectedBlock ? (
               <>

@@ -13,6 +13,8 @@ const DEFAULT_STUDENTS_META = {
 };
 
 const DEFAULT_FILTERS = {
+  // "7" | "30" | "all" | "custom" — быстрый выбор периода на странице метрик.
+  period: "all",
   dateFrom: "",
   dateTo: "",
   createdFrom: "",
@@ -83,6 +85,20 @@ export const useCourseMetricsStore = create((set, get) => ({
 
   setSelectedStudent: (userId) => {
     set({ selectedStudentUserId: userId || "" });
+  },
+
+  // Сбрасывает только сессии (другой урок): студент и период остаются.
+  resetSessions: () => {
+    if (sessionsController) {
+      sessionsController.abort();
+      sessionsController = null;
+    }
+    set({
+      sessions: [],
+      isSessionsLoading: false,
+      sessionsError: "",
+      sessionsRequestKey: "",
+    });
   },
 
   resetSelectionAndSessions: () => {

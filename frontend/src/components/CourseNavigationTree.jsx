@@ -42,6 +42,8 @@ export default function CourseNavigationTree({
   // Прогресс ученика с backend: { [lessonId]: LessonProgress | null } и сводка курса.
   lessonProgressById = null,
   progressSummary = null,
+  // Пункт над модулями (например, «Сводка по курсу» в метриках): { label, active, onOpen }.
+  summaryItem = null,
 }) {
   const isPracticeMode = mode === "practice";
   const isMetricsMode = mode === "metrics";
@@ -131,11 +133,21 @@ export default function CourseNavigationTree({
         ) : (
           <span>
             {isMetricsMode
-              ? "Выбор урока"
+              ? "Сводка и уроки"
               : `${progressLabel}: ${completedItems}/${totalItems}`}
           </span>
         )}
       </div>
+      {summaryItem ? (
+        <button
+          type="button"
+          className={`course-nav-summary-btn ${summaryItem.active ? "is-active" : ""}`}
+          aria-current={summaryItem.active ? "page" : undefined}
+          onClick={summaryItem.onOpen}
+        >
+          {summaryItem.label}
+        </button>
+      ) : null}
       <ul className="course-nav-block-list">
         {selectedCourse.blocks.map((block, blockIndex) => {
           const moduleProgress = hasProgress

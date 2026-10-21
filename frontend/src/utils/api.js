@@ -751,6 +751,25 @@ export async function fetchCourseMembersPage(
   };
 }
 
+// Прогресс всех учеников курса — для автора и преподавателей (страница метрик).
+export async function fetchCourseStudentsProgress(
+  courseId,
+  { page = 1, size = 100 } = {},
+  options = {},
+) {
+  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const data = await requestJson(
+    `/progress/courses/${encodeURIComponent(courseId)}/students?${query.toString()}`,
+    options,
+  );
+  const items = Array.isArray(data) ? data : data?.items || [];
+  return {
+    items,
+    total: Number(data?.total) || items.length,
+    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
 // Прогресс прохождения курса текущим учеником (backend: /progress/*).
 export async function fetchCourseProgress(courseId, options = {}) {
   return requestJson(
@@ -899,17 +918,22 @@ export async function saveDocument(file) {
 // Courses API: documented read/update endpoints and frontend mappers
 // ─────────────────────────────────────────────────────────────
 
-const DIFFICULTY_TO_LEVEL = {
-  beginner: "Новичок",
-  intermediate: "Средний",
-  advanced: "Продвинутый",
-  expert: "Эксперт",
-};
+// Уровни сложности курса — те же названия, что в конструкторе drag-and-drop.
+export const COURSE_LEVELS = [
+  { value: "beginner", label: "Начальный" },
+  { value: "intermediate", label: "Средний" },
+  { value: "advanced", label: "Продвинутый" },
+  { value: "expert", label: "Экспертный" },
+];
+
+const DIFFICULTY_TO_LEVEL = Object.fromEntries(
+  COURSE_LEVELS.map((item) => [item.value, item.label]),
+);
 
 const LEVEL_TO_DIFFICULTY = {
+  ...Object.fromEntries(COURSE_LEVELS.map((item) => [item.label, item.value])),
+  // Старые названия, которые могли остаться в сохранённых данных.
   Новичок: "beginner",
-  Средний: "intermediate",
-  Продвинутый: "advanced",
   Эксперт: "expert",
 };
 
@@ -924,7 +948,18 @@ export function courseLevelToDifficulty(level) {
 }
 
 export function difficultyToCourseLevel(difficulty) {
-  return DIFFICULTY_TO_LEVEL[difficulty] || "Новичок";
+  return DIFFICULTY_TO_LEVEL[difficulty] || COURSE_LEVELS[0].label;
+}
+
+/** Уровень курса по-русски: принимает значение бэкенда (beginner…) или уже готовое название. */
+export function formatCourseLevel(value) {
+  const text = String(value || "").trim();
+  if (!text) return "Не указан";
+  if (DIFFICULTY_TO_LEVEL[text.toLowerCase()]) {
+    return DIFFICULTY_TO_LEVEL[text.toLowerCase()];
+  }
+  const difficulty = LEVEL_TO_DIFFICULTY[text];
+  return difficulty ? DIFFICULTY_TO_LEVEL[difficulty] : text;
 }
 
 function parseMinutes(value) {
@@ -1457,7 +1492,7 @@ export function mapCourseFromApi(data) {
     ...data,
     id: data.id,
     title: data.title || "",
-    category: data.category || data.difficulty || "",
+    category: data.category || "",
     description: data.description || "",
     duration: data.duration || "",
     level: difficultyToCourseLevel(data.difficulty),
@@ -1584,9 +1619,9 @@ function courseBasicToLearningCourse(data) {
 
   return {
     ...data,
-    category: data.category || data.difficulty || "Не указан",
+    category: data.category || "",
     duration: data.duration || "По индивидуальному темпу",
-    level: data.difficulty || "Не указан",
+    level: data.difficulty ? formatCourseLevel(data.difficulty) : "Не указан",
     difficulty: data.difficulty || data.level || "Не указан",
     format: data.format || "Теория + практика",
     learningObjectives:
