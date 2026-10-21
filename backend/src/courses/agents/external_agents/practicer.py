@@ -6,6 +6,7 @@ from dataclasses import asdict
 from uuid import UUID
 
 from pydantic import TypeAdapter
+
 from src.llm_service import LLMTextService
 from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import NotFoundError
@@ -14,7 +15,7 @@ from src.shared.utils.time import current_datetime
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
 from ...domain.enums import PracticeStatus
-from ...domain.events import LessonProgressUpdated, LessonProgressUpdate
+from ...domain.events import LessonProgressUpdate, LessonProgressUpdated
 from ...domain.vo import FileUploadAssignment
 from ...infra.services.client import SrvCourseClient
 from ..course_generator.subagents.prompts import FILE_UPLOAD_PROMPT

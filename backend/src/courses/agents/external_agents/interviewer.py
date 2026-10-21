@@ -55,6 +55,7 @@ class InterviewerAgent:
                 "get_content": get_content,
             },
             middlewares=[
+                ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
                 SummarizationMiddleware(
                     system_prompt=PROMPT_SUMMARIZE_CHAT,
                     number_of_tokens=70_000,
@@ -67,7 +68,6 @@ class InterviewerAgent:
                         "get_content": 12,
                     }
                 ),
-                ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
                 StopInterview(),
             ],
             runtime=Runtime(

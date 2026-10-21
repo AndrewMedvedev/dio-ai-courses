@@ -13,7 +13,7 @@ from ..models import FeedbackOrm
 
 class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
     model = FeedbackOrm
-    model_mapper = FeedbackMapper
+    model_mapper = FeedbackMapper  # pyright: ignore[reportAssignmentType]
 
     async def find(
         self,

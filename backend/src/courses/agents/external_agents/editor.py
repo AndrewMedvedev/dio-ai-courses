@@ -59,11 +59,11 @@ class EditorAgent:
                 prompt=chat.content,  # pyright: ignore[reportArgumentType]
                 runtime=runtime,
                 middlewares=[
+                    ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
                     SummarizationMiddleware(
                         system_prompt=PROMPT_SUMMARIZE_CHAT,
                         number_of_tokens=30_000,
                     ),
-                    ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
                 ],
             )
 
@@ -73,11 +73,11 @@ class EditorAgent:
             context=context,
             prompt=messages,
             middlewares=[
+                ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
                 SummarizationMiddleware(
                     system_prompt=PROMPT_SUMMARIZE_CHAT,
                     number_of_tokens=80_000,
                 ),
-                ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
             ],
             runtime=runtime,
         )

@@ -42,11 +42,11 @@ class MentorAgent:
             client=self._client,
             system_prompt=MENTOR_PROMPT,
             middlewares=[
+                ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
                 SummarizationMiddleware(
                     system_prompt=PROMPT_SUMMARIZE_CHAT,
                     number_of_tokens=70_000,
                 ),
-                ChatCheckpointerMiddleware(repo=self._repo, session=self._session),
             ],
             runtime=Runtime(context=context, state=State(chat_id=chat.chat_id)),
         )

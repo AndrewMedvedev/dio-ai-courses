@@ -19,6 +19,7 @@ from tenacity import (
 from src.core.providers import aitunnel_config
 from src.core.settings import settings
 from src.llm_router.domain.enums import Complexity
+from src.llm_router.infra.external_apis import MediaClient
 from src.llm_service.schemas import (
     LLMImageRequest,
     LLMImageResponse,
@@ -30,7 +31,6 @@ from src.shared.domain.events import EventPublisher
 
 from .decorators import track_image_invocation, track_text_invocation
 from .domain.events import LLMInvocationCreated
-from .infra.media_client import MediaClient
 from .infra.repository import SqlAIModelRepository
 from .schemas import CacheAIModelsProtocol, ClassificationInput, ClassificationState
 from .utils import (
@@ -190,7 +190,7 @@ class LLMTextRouter(LLMRouter):
 
             return await self._invoke(
                 model=selected_model[0],
-                **schema.model_dump(exclude_none=True, by_alias=True),
+                schema=schema,
             )
         selected_model = [
             model["name"] for model in models.items if model["complexity"] == Complexity.MEDIUM
@@ -205,7 +205,7 @@ class LLMImageRouter(LLMRouter):
     def __init__(
         self,
         ai_model_repos: SqlAIModelRepository,
-        event_publisher: EventPublisher,  # ruff: ignore[unused-method-argument]
+        event_publisher: EventPublisher,
         client: AsyncOpenAI,
         image_client: AsyncOpenAI,
         wrapper: CacheAIModelsProtocol,
@@ -269,11 +269,5 @@ class LLMImageRouter(LLMRouter):
         model: str | None = None,
     ) -> LLMImageResponse:
         if schema.image is not None:
-            return await self._invoke_image_based(
-                model=settings.image_ai_model,
-                **schema.model_dump(exclude_none=True, by_alias=True),
-            )
-        return await self._invoke_image(
-            model=settings.image_ai_model,
-            **schema.model_dump(exclude_none=True, by_alias=True),
-        )
+            return await self._invoke_image_based(model=settings.image_ai_model, schema=schema)
+        return await self._invoke_image(model=settings.image_ai_model, schema=schema)

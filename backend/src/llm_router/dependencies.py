@@ -1,14 +1,13 @@
 from typing import Annotated
 
-from collections.abc import AsyncIterator
-
 from fastapi import Depends
 
 from src.core.providers import ai_tunnel_client, proxy_api_client
+from src.llm_router.infra.services import llm_router_client
 from src.shared.dependencies.database import DBSession
 from src.shared.dependencies.events import EventPublisherDep
 
-from .infra.media_client import MediaClient, SrvMediaConfig
+from .infra.external_apis import MediaClient
 from .infra.repository import SqlAIModelRepository, SqlLLMInvocationRepository
 from .services import LLMImageRouter, LLMTextRouter
 from .utils import cache_ai_models
@@ -33,12 +32,8 @@ LLMInvocationRepoDep = Annotated[
 ]
 
 
-async def get_media_client() -> AsyncIterator[MediaClient]:
-    client = MediaClient(SrvMediaConfig())  # pyright: ignore[reportCallIssue]
-    try:
-        yield client
-    finally:
-        await client.close()
+async def get_media_client() -> MediaClient:
+    return MediaClient(llm_router_client)
 
 
 MediaClientDep = Annotated[MediaClient, Depends(get_media_client)]

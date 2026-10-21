@@ -35,7 +35,6 @@ class FeedbackService:
         filters = FeedbackFilters(
             created_after=current_datetime() - timedelta(days=1),
         )
-
         recent_feedbacks = await self._feedback_repo.find(
             Pagination(page=1, size=1),
             filters,

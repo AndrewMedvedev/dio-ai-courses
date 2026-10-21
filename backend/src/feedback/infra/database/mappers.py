@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from src.iam.domain.vo import Email
 from src.shared.infra.database.mappers import ModelMapper
 

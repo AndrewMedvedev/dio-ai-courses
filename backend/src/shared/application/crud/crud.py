@@ -67,7 +67,7 @@ class Crud[
             raise UnsupportedOperationError("Create operation is not supported.")
 
         async def _base_create(dto_: CreateT, options_: CreateOptionsT | None = None) -> EntityT:
-            entity_ = self._create_handler(dto_, options_)
+            entity_ = await self._create_handler(dto_, options_)
 
             await self._repository.create(entity_)
             await self._transaction(entity_)

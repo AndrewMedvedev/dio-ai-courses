@@ -54,16 +54,19 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         await self._create(schema)
         return messages
 
-    async def after_model(
+    async def after_agent(
         self,
         service: LLMServiceProtocol,
         response: LLMTextResponse,
     ) -> LLMTextResponse:
-        """Сохраняет историю вместе с вызовами и результатами инструментов."""
+        """
+        Сохраняет историю только после полного завершения model/tool loop.
+        """
         await self._update(
             chat_id=service.runtime.state.chat_id,
             user_id=service.runtime.context.user_id,
             course_id=service.runtime.context.course_id,
             messages=response.messages,
         )
+
         return response

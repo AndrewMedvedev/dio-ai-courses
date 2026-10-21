@@ -5,15 +5,19 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from faststream.rabbit import RabbitQueue
 
-from src.iam.dependencies import require_permissions
 from src.core.rabbit import events_exchange
 from src.core.rabbit import router as rabbit_router
+from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies.database import DBSession
 from src.shared.utils.time import current_datetime
 
-from ...dependencies.base import CourseProgressRepoDep, LessonProgressRepoDep, ModuleProgressRepoDep
+from ...dependencies.base import (
+    CourseProgressRepoDep,
+    LessonProgressRepoDep,
+    ModuleProgressRepoDep,
+)
 from ...dependencies.services import CheckCourseAccessDep, LearningProgressServiceDep, get_progress
 from ...domain.entities import CourseProgress, LessonProgress, ModuleProgress
 from ...domain.events import LessonProgressUpdated

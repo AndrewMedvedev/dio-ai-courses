@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from src.iam.application.dtos import CreateRoleDTO, RoleResponse, UpdateRoleDTO
 from src.iam.dependencies import CurrentIdentity, require_permissions
 from src.iam.dependencies.crud import RoleCrudDep
+from src.iam.dependencies.crud.roles import RolesListDep
 from src.iam.domain.permissions.roles import CREATE, DELETE, READ, UPDATE
 from src.shared.application.dtos import Page
 
@@ -42,9 +43,10 @@ async def update_role(role_id: UUID, dto: UpdateRoleDTO, crud: RoleCrudDep) -> R
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_permissions(READ.code))],
     summary="Найти роли",
-    description="Возвращает список ролей, доступных в текущем контексте.",
+    description="Возвращает постраничный список ролей.",
 )
-async def get_roles() -> Page[RoleResponse]: ...
+async def get_roles(roles: RolesListDep) -> Page[RoleResponse]:
+    return roles
 
 
 @router.get(

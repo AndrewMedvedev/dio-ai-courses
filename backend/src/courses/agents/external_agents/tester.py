@@ -5,6 +5,7 @@ import secrets
 from uuid import UUID
 
 from pydantic import TypeAdapter
+
 from src.llm_service import LLMTextService
 from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import NotFoundError
@@ -13,7 +14,7 @@ from src.shared.utils.time import current_datetime
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice
 from ...domain.enums import PracticeStatus
-from ...domain.events import LessonProgressUpdated, LessonProgressUpdate
+from ...domain.events import LessonProgressUpdate, LessonProgressUpdated
 from ...domain.vo import TestType
 from ...infra.services.client import SrvCourseClient
 from ..prompts import ASSIGNMENT_PROMPT, KNOWLEDGE_CONFIG, TEST_CHECKER_PROMPT
