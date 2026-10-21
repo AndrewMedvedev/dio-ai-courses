@@ -1,103 +1,48 @@
-import { useEffect, useMemo } from "react";
+// Метрики урока на странице метрик курса: выбор студента и периода, плитки,
+// общий график «активное время + глубина просмотра» и таблица сессий теории.
+import { useEffect, useMemo, useState } from "react";
 import { useCourseMetricsStore } from "../../stores/courseMetricsStore";
+import { METRICS_STUDENTS_LIMIT } from "./metrics/CourseMetricsSummary";
+import {
+  activeTimeTone,
+  formatAxisValue,
+  formatDateTime,
+  formatDuration,
+  formatShortDate,
+  percentTone,
+  pluralRu,
+  toDateInputValue,
+} from "./metrics/metricsFormat";
+import "./metrics/course-metrics.css";
 
-function formatDuration(totalSeconds) {
-  const seconds = Math.max(0, Number(totalSeconds) || 0);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const restSeconds = seconds % 60;
+const PERIODS = [
+  { id: "7", label: "7 дней", days: 7 },
+  { id: "30", label: "30 дней", days: 30 },
+  { id: "all", label: "Всё время" },
+  { id: "custom", label: "Период…" },
+];
 
-  if (hours > 0) return `${hours} ч ${minutes} мин`;
-  if (minutes > 0) return `${minutes} мин ${restSeconds} сек`;
-  return `${restSeconds} сек`;
+const SESSION_FORMS = ["сессия", "сессии", "сессий"];
+
+function periodRange(days) {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - (days - 1));
+  return { dateFrom: toDateInputValue(from), dateTo: toDateInputValue(to) };
 }
 
-function formatChartScale(seconds) {
-  if (seconds >= 60) {
-    const minutes = seconds / 60;
-    return Number.isInteger(minutes)
-      ? `${minutes} мин`
-      : `${minutes.toFixed(1)} мин`;
-  }
-  return `${seconds} сек`;
-}
-
-function getActiveTimeTone(seconds) {
-  if ((Number(seconds) || 0) < 60) return "is-danger";
-  if ((Number(seconds) || 0) < 300) return "is-warning";
-  return "is-good";
-}
-
-function getScrollTone(percent) {
-  const value = Number(percent) || 0;
-  if (value < 30) return "is-danger";
-  if (value < 60) return "is-warning";
-  return "is-good";
-}
-
-function formatDateTime(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getInitials(name) {
-  return (
-    String(name || "Студент")
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase() || "С"
-  );
-}
-
-function StudentName({ user, isLoading, error }) {
-  if (user?.fullName) {
-    return (
-      <>
-        <strong>{user.fullName}</strong>
-        <small>{user.email || "Профиль загружен"}</small>
-      </>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <>
-        <strong className="metrics-skeleton">Загружаем ФИО</strong>
-        <small className="metrics-skeleton metrics-skeleton-short">
-          Профиль
-        </small>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <strong>{error ? "Профиль недоступен" : "ФИО не указано"}</strong>
-      <small>{error || "Ожидаем fullName из профиля"}</small>
-    </>
-  );
+function timeOf(value) {
+  const time = new Date(value || 0).getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 export default function LessonMetricsDashboard({ courseId, lesson }) {
   const students = useCourseMetricsStore((state) => state.students);
-  const studentsMeta = useCourseMetricsStore((state) => state.studentsMeta);
   const isStudentsLoading = useCourseMetricsStore(
     (state) => state.isStudentsLoading,
   );
   const studentsError = useCourseMetricsStore((state) => state.studentsError);
   const usersCache = useCourseMetricsStore((state) => state.usersCache);
-  const usersLoading = useCourseMetricsStore((state) => state.usersLoading);
-  const usersErrors = useCourseMetricsStore((state) => state.usersErrors);
   const selectedStudentUserId = useCourseMetricsStore(
     (state) => state.selectedStudentUserId,
   );
@@ -112,30 +57,40 @@ export default function LessonMetricsDashboard({ courseId, lesson }) {
   const setSelectedStudent = useCourseMetricsStore(
     (state) => state.setSelectedStudent,
   );
-  const resetSelectionAndSessions = useCourseMetricsStore(
-    (state) => state.resetSelectionAndSessions,
-  );
+  const resetSessions = useCourseMetricsStore((state) => state.resetSessions);
   const setFilters = useCourseMetricsStore((state) => state.setFilters);
   const loadStudents = useCourseMetricsStore((state) => state.loadStudents);
   const loadSessions = useCourseMetricsStore((state) => state.loadSessions);
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
 
   const lessonId = lesson?.id || "";
+  const period = sessionsFilters.period || "all";
   const isDateRangeInvalid = Boolean(
     sessionsFilters.dateFrom &&
-    sessionsFilters.dateTo &&
-    sessionsFilters.dateFrom > sessionsFilters.dateTo,
+      sessionsFilters.dateTo &&
+      sessionsFilters.dateFrom > sessionsFilters.dateTo,
   );
 
+  // Другой урок — другие сессии; выбранный студент и период остаются.
   useEffect(() => {
-    resetSelectionAndSessions();
-  }, [lessonId, resetSelectionAndSessions]);
+    resetSessions();
+    setHoveredIndex(-1);
+  }, [lessonId, resetSessions]);
 
   useEffect(() => {
-    if (!courseId || !lessonId) return undefined;
-    const pageSize = studentsMeta.size || 10;
-    loadStudents(courseId, { page: 1, size: pageSize }).catch(() => null);
-    return undefined;
-  }, [courseId, lessonId, loadStudents]);
+    if (!courseId) return;
+    loadStudents(courseId, { page: 1, size: METRICS_STUDENTS_LIMIT }).catch(
+      () => null,
+    );
+  }, [courseId, loadStudents]);
+
+  // Студент не выбран (или не из этого курса) — сразу показываем первого.
+  useEffect(() => {
+    if (!students.length) return;
+    if (students.some((student) => student.userId === selectedStudentUserId))
+      return;
+    setSelectedStudent(students[0].userId);
+  }, [selectedStudentUserId, setSelectedStudent, students]);
 
   useEffect(() => {
     if (!lessonId || !selectedStudentUserId || isDateRangeInvalid) return;
@@ -150,294 +105,320 @@ export default function LessonMetricsDashboard({ courseId, lesson }) {
     sessionsFilters.sort,
   ]);
 
-  const selectedUser = selectedStudentUserId
-    ? usersCache[selectedStudentUserId]
-    : null;
+  const choosePeriod = (option) => {
+    if (option.id === "all") {
+      setFilters({ period: "all", dateFrom: "", dateTo: "" });
+    } else if (option.id === "custom") {
+      setFilters({ period: "custom" });
+    } else {
+      setFilters({ period: option.id, ...periodRange(option.days) });
+    }
+  };
 
-  const summary = useMemo(() => {
-    const completedCount = sessions.filter(
-      (session) => session.completedAt,
-    ).length;
+  const chronological = useMemo(
+    () =>
+      [...sessions].sort((a, b) => timeOf(a.createdAt) - timeOf(b.createdAt)),
+    [sessions],
+  );
+  const newestFirst = useMemo(
+    () => [...chronological].reverse(),
+    [chronological],
+  );
+
+  const stats = useMemo(() => {
+    const totalActive = sessions.reduce(
+      (sum, session) => sum + (session.activeTimeSeconds || 0),
+      0,
+    );
+    const completed = sessions.filter((session) => session.completedAt);
+    const firstCompleted = completed
+      .map((session) => session.completedAt)
+      .sort((a, b) => timeOf(a) - timeOf(b))[0];
+    const bestDepth = Math.max(
+      0,
+      ...sessions.map((session) => session.maxScrollDepthPercent || 0),
+    );
     const maxActive = Math.max(
       1,
       ...sessions.map((session) => session.activeTimeSeconds || 0),
     );
-    const chartScaleMax = Math.max(60, Math.ceil(maxActive / 60) * 60);
-    const chartScaleMiddle = Math.round(chartScaleMax / 2);
-
-    return { chartScaleMax, chartScaleMiddle };
+    return {
+      totalActive,
+      averageActive: sessions.length ? totalActive / sessions.length : 0,
+      completedCount: completed.length,
+      firstCompleted,
+      bestDepth: Math.round(bestDepth),
+      scaleMax: Math.max(60, Math.ceil(maxActive / 60) * 60),
+    };
   }, [sessions]);
 
-  const changeStudentsPage = (page) => {
-    const nextPage = Math.min(Math.max(1, page), studentsMeta.pages || 1);
-    loadStudents(courseId, {
-      page: nextPage,
-      size: studentsMeta.size || 10,
-    }).catch(() => null);
-  };
+  const periodHint =
+    period === "7"
+      ? "за 7 дней"
+      : period === "30"
+        ? "за 30 дней"
+        : period === "custom"
+          ? "за выбранный период"
+          : "за всё время";
 
-  const selectStudent = (userId) => {
-    setSelectedStudent(userId);
-  };
-
-  const updateFilter = (field, value) => {
-    setFilters({ [field]: value });
-  };
-
-  return (
-    <div className="lesson-metrics-dashboard">
-      <div className="metrics-dashboard-head">
-        <div>
-          <span className="metrics-mode-badge">Режим метрик</span>
-          <h2>Метрики прохождения теории</h2>
-          <p>{lesson?.title || "Выберите урок в дереве курса"}</p>
+  let body = null;
+  if (!selectedStudentUserId) {
+    body = (
+      <p className="cm-empty cm-empty-large">
+        {isStudentsLoading
+          ? "Загружаем студентов…"
+          : "На курс пока никто не записан — метрик нет."}
+      </p>
+    );
+  } else if (isDateRangeInvalid) {
+    body = (
+      <p className="cm-error" role="alert">
+        Дата начала периода не должна быть позже даты окончания.
+      </p>
+    );
+  } else if (sessionsError) {
+    body = (
+      <p className="cm-error" role="alert">
+        {sessionsError}
+      </p>
+    );
+  } else if (isSessionsLoading && sessions.length === 0) {
+    body = <p className="cm-empty cm-empty-large">Загружаем метрики…</p>;
+  } else if (sessions.length === 0) {
+    body = (
+      <p className="cm-empty cm-empty-large">
+        Студент не открывал теорию этого урока {periodHint}.
+      </p>
+    );
+  } else {
+    body = (
+      <>
+        <div className="cm-kpis">
+          <article className="cm-kpi">
+            <span>Сессий</span>
+            <strong>{sessions.length}</strong>
+            <small>{periodHint}</small>
+          </article>
+          <article className="cm-kpi">
+            <span>Активное время</span>
+            <strong>{formatDuration(stats.totalActive)}</strong>
+            <small>в среднем {formatDuration(stats.averageActive)}</small>
+          </article>
+          <article className="cm-kpi">
+            <span>Глубина просмотра</span>
+            <strong>{stats.bestDepth}%</strong>
+            <small>лучшая сессия</small>
+          </article>
+          <article className="cm-kpi">
+            <span>Теория</span>
+            <span
+              className={`cm-pill cm-pill-large ${stats.firstCompleted ? "is-good" : "is-neutral"}`}
+            >
+              {stats.firstCompleted
+                ? `Пройдена ${formatShortDate(stats.firstCompleted)}`
+                : "Не пройдена"}
+            </span>
+            <small>
+              {stats.completedCount} из {sessions.length}{" "}
+              {pluralRu(sessions.length, SESSION_FORMS)} завершены
+            </small>
+          </article>
         </div>
-      </div>
 
-      <div className="metrics-workspace">
-        <aside className="metrics-students-panel">
-          <div className="metrics-panel-head">
-            <div>
-              <h3>Студенты курса</h3>
-              <p>Выберите студента для просмотра метрик этого урока.</p>
-            </div>
+        <section className="cm-panel">
+          <div className="cm-panel-head">
+            <h3>Сессии по дням</h3>
+            <span className="cm-legend">
+              <i className="is-good" /> Активное время
+            </span>
+            <span className="cm-legend">
+              <i className="is-depth" /> Глубина просмотра, %
+            </span>
+            <span className="cm-panel-hint">
+              Наведите на столбец, чтобы увидеть точные значения
+            </span>
           </div>
-
-          {studentsError && (
-            <p className="lesson-ai-error" role="alert">
-              {studentsError}
-            </p>
-          )}
-          {isStudentsLoading && (
-            <p className="course-viewer-muted">Загружаем студентов...</p>
-          )}
-          {!isStudentsLoading && !studentsError && students.length === 0 && (
-            <p className="metrics-empty-state">
-              На курс пока не записаны студенты.
-            </p>
-          )}
-
-          <ul className="metrics-student-list">
-            {students.map((student) => {
-              const user = usersCache[student.userId];
-              const isUserLoading = usersLoading[student.userId];
-              const userError = usersErrors[student.userId];
-              const displayName = user?.fullName || "ФИО";
-              return (
-                <li key={student.id || student.userId}>
+          <div className="cm-chart-scroll">
+            <div
+              className="cm-chart"
+              style={{ "--cm-columns": chronological.length }}
+              onMouseLeave={() => setHoveredIndex(-1)}
+            >
+              <div className="cm-chart-axis" aria-hidden="true">
+                <span>{formatAxisValue(stats.scaleMax)}</span>
+                <span>{formatAxisValue(stats.scaleMax / 2)}</span>
+                <span>0</span>
+              </div>
+              {chronological.map((session, index) => {
+                const active = session.activeTimeSeconds || 0;
+                const depth = Math.min(
+                  100,
+                  Math.max(0, Math.round(session.maxScrollDepthPercent || 0)),
+                );
+                const description = `${formatDateTime(session.createdAt)} · ${formatDuration(active)} · ${depth}% · ${session.completedAt ? "завершена" : "не завершена"}`;
+                return (
                   <button
                     type="button"
-                    className={`metrics-student-btn ${selectedStudentUserId === student.userId ? "is-active" : ""}`}
-                    onClick={() => selectStudent(student.userId)}
+                    key={session.id || `${session.createdAt}-${index}`}
+                    className={`cm-chart-col ${hoveredIndex === index ? "is-hovered" : ""}`}
+                    aria-label={description}
+                    onMouseEnter={() => setHoveredIndex(index)}
+                    onFocus={() => setHoveredIndex(index)}
+                    onBlur={() => setHoveredIndex(-1)}
                   >
-                    <span className="metrics-student-avatar">
-                      {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="" />
-                      ) : (
-                        getInitials(displayName)
-                      )}
-                    </span>
-                    <span className="metrics-student-main">
-                      <StudentName
-                        user={user}
-                        isLoading={isUserLoading}
-                        error={userError}
+                    <span className="cm-chart-area">
+                      <i
+                        className={`cm-chart-bar ${activeTimeTone(active)}`}
+                        style={{
+                          height: `${Math.max(2, (active / stats.scaleMax) * 100)}%`,
+                        }}
                       />
+                      <i
+                        className="cm-chart-dot"
+                        style={{ bottom: `calc(${depth}% - 6px)` }}
+                      />
+                      {hoveredIndex === index ? (
+                        <span
+                          className={`cm-chart-tip ${index > chronological.length / 2 ? "is-left" : ""}`}
+                          role="tooltip"
+                        >
+                          {description}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="cm-chart-label">
+                      {formatShortDate(session.createdAt)}
                     </span>
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          {studentsMeta.pages > 1 && (
-            <nav
-              className="metrics-pagination"
-              aria-label="Пагинация студентов"
-            >
-              <span>
-                {studentsMeta.page} / {studentsMeta.pages}
-              </span>
-              <div>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => changeStudentsPage(studentsMeta.page - 1)}
-                  disabled={!studentsMeta.has_prev || isStudentsLoading}
-                >
-                  Назад
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => changeStudentsPage(studentsMeta.page + 1)}
-                  disabled={!studentsMeta.has_next || isStudentsLoading}
-                >
-                  Вперёд
-                </button>
-              </div>
-            </nav>
-          )}
-        </aside>
-
-        <section className="metrics-dashboard-panel">
-          <div className="metrics-filters-card">
-            <div>
-              <h3>
-                {selectedUser?.fullName ||
-                  (selectedStudentUserId
-                    ? "ФИО не указано"
-                    : "Студент не выбран")}
-              </h3>
-              <p>
-                Период фильтрует сессии по дате создания: начало дня
-                включительно, конечная дата — до начала следующего дня.
-              </p>
-            </div>
-            <div className="metrics-date-filters">
-              <label>
-                <span>С даты</span>
-                <input
-                  type="date"
-                  value={sessionsFilters.dateFrom}
-                  onChange={(event) =>
-                    updateFilter("dateFrom", event.target.value)
-                  }
-                  disabled={!selectedStudentUserId}
-                />
-              </label>
-              <label>
-                <span>По дату</span>
-                <input
-                  type="date"
-                  value={sessionsFilters.dateTo}
-                  onChange={(event) =>
-                    updateFilter("dateTo", event.target.value)
-                  }
-                  disabled={!selectedStudentUserId}
-                />
-              </label>
+                );
+              })}
             </div>
           </div>
+        </section>
 
-          {!selectedStudentUserId ? (
-            <div className="metrics-empty-state metrics-empty-state-large">
-              Выберите студента слева — после этого загрузятся графики по
-              текущему уроку.
-            </div>
-          ) : isDateRangeInvalid ? (
-            <div className="lesson-ai-error" role="alert">
-              Дата начала периода не должна быть позже даты окончания.
-            </div>
-          ) : sessionsError ? (
-            <div className="lesson-ai-error" role="alert">
-              {sessionsError}
-            </div>
-          ) : isSessionsLoading ? (
-            <div className="metrics-empty-state metrics-empty-state-large">
-              Загружаем метрики...
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="metrics-empty-state metrics-empty-state-large">
-              За выбранный период сессий теории не найдено.
-            </div>
-          ) : (
-            <>
-              <div className="metrics-chart-card">
-                <div className="metrics-chart-head">
-                  <div>
-                    <h3>Активное время по сессиям</h3>
-                    <p>Высота столбца показывает активное время в сессии.</p>
-                  </div>
-                  <div className="metrics-chart-legend">
-                    <span className="is-danger">&lt; 1 мин</span>
-                    <span className="is-warning">1–5 мин</span>
-                    <span className="is-good">5+ мин</span>
-                  </div>
-                </div>
-                <div className="metrics-chart-with-axis">
-                  <div className="metrics-y-axis" aria-hidden="true">
-                    <span>{formatChartScale(summary.chartScaleMax)}</span>
-                    <span>{formatChartScale(summary.chartScaleMiddle)}</span>
-                    <span>0 сек</span>
-                  </div>
-                  <div className="metrics-bar-chart">
-                    {sessions.map((session, index) => {
-                      const activeSeconds = session.activeTimeSeconds || 0;
-                      return (
-                        <div
-                          className="metrics-bar-column"
-                          key={session.id || `${session.createdAt}-${index}`}
-                        >
-                          <div
-                            className={`metrics-bar-value ${getActiveTimeTone(activeSeconds)}`}
-                          >
-                            {formatDuration(activeSeconds)}
+        <section className="cm-panel">
+          <h3>Все сессии</h3>
+          <div className="cm-table-scroll">
+            <table className="cm-table">
+              <thead>
+                <tr>
+                  <th scope="col">Дата</th>
+                  <th scope="col">Активное время</th>
+                  <th scope="col">Глубина просмотра</th>
+                  <th scope="col">Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+                {newestFirst.map((session, index) => {
+                  const depth = Math.min(
+                    100,
+                    Math.max(0, Math.round(session.maxScrollDepthPercent || 0)),
+                  );
+                  return (
+                    <tr key={session.id || `${session.createdAt}-row-${index}`}>
+                      <td>{formatDateTime(session.createdAt)}</td>
+                      <td>{formatDuration(session.activeTimeSeconds)}</td>
+                      <td>
+                        <div className="cm-meter">
+                          <div className="cm-bar" aria-hidden="true">
+                            <i
+                              className={percentTone(depth)}
+                              style={{ width: `${depth}%` }}
+                            />
                           </div>
-                          <div
-                            className={`metrics-bar ${getActiveTimeTone(activeSeconds)}`}
-                            style={{
-                              height: `${Math.max(3, Math.round((activeSeconds / summary.chartScaleMax) * 100))}%`,
-                            }}
-                            title={`${formatDuration(activeSeconds)} • ${formatDateTime(session.createdAt)}`}
-                          />
-                          <small>{formatDateTime(session.createdAt)}</small>
+                          <b>{depth}%</b>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className="metrics-session-list-card">
-                <div className="metrics-chart-head">
-                  <div>
-                    <h3>Глубина скролла и статус</h3>
-                    <p>
-                      Цвет показывает глубину просмотра: красный — низкая,
-                      жёлтый — средняя, зелёный — высокая.
-                    </p>
-                  </div>
-                </div>
-                <ul className="metrics-session-list">
-                  {sessions.map((session, index) => (
-                    <li key={session.id || `${session.createdAt}-row-${index}`}>
-                      <div className="metrics-session-row-head">
-                        <strong>{formatDateTime(session.createdAt)}</strong>
+                      </td>
+                      <td>
                         <span
-                          className={
-                            session.completedAt
-                              ? "is-completed"
-                              : "is-incomplete"
-                          }
+                          className={`cm-pill ${session.completedAt ? "is-good" : "is-neutral"}`}
                         >
                           {session.completedAt ? "Завершена" : "Не завершена"}
                         </span>
-                      </div>
-                      <div
-                        className={`metrics-progress-line ${getScrollTone(session.maxScrollDepthPercent || 0)}`}
-                        aria-label={`Глубина скролла ${session.maxScrollDepthPercent}%`}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.min(100, Math.max(0, session.maxScrollDepthPercent || 0))}%`,
-                          }}
-                        />
-                      </div>
-                      <small>
-                        Просмотрено{" "}
-                        {Math.round(session.maxScrollDepthPercent || 0)}% •
-                        активное время{" "}
-                        {formatDuration(session.activeTimeSeconds)}
-                      </small>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
+      </>
+    );
+  }
+
+  return (
+    <div className="cm">
+      <div className="cm-toolbar">
+        <h2>Теория урока</h2>
+        <label className="cm-field">
+          <span>Студент</span>
+          <select
+            value={selectedStudentUserId}
+            onChange={(event) => setSelectedStudent(event.target.value)}
+            disabled={!students.length}
+          >
+            {!students.length ? (
+              <option value="">
+                {isStudentsLoading ? "Загружаем…" : "Нет студентов"}
+              </option>
+            ) : null}
+            {students.map((student) => {
+              const user = usersCache[student.userId];
+              return (
+                <option
+                  key={student.id || student.userId}
+                  value={student.userId}
+                >
+                  {user?.fullName || user?.email || "Студент"}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <div className="cm-segmented" role="group" aria-label="Период">
+          {PERIODS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={period === option.id ? "is-active" : ""}
+              aria-pressed={period === option.id}
+              onClick={() => choosePeriod(option)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {period === "custom" ? (
+        <div className="cm-dates">
+          <label className="cm-field">
+            <span>С даты</span>
+            <input
+              type="date"
+              value={sessionsFilters.dateFrom}
+              onChange={(event) => setFilters({ dateFrom: event.target.value })}
+            />
+          </label>
+          <label className="cm-field">
+            <span>По дату</span>
+            <input
+              type="date"
+              value={sessionsFilters.dateTo}
+              onChange={(event) => setFilters({ dateTo: event.target.value })}
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {studentsError ? (
+        <p className="cm-error" role="alert">
+          {studentsError}
+        </p>
+      ) : null}
+
+      {body}
     </div>
   );
 }

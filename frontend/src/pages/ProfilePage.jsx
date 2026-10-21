@@ -12,7 +12,7 @@ import {
   formatModulesCount,
   useCoursesModulesCount,
 } from "../hooks/useCoursesModulesCount";
-import { fetchMyCoursesPage } from "../utils/api";
+import { fetchMyCoursesPage, formatCourseLevel } from "../utils/api";
 import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -793,7 +793,8 @@ export default function ProfilePage({
                                   </strong>
                                   <small>
                                     {course.category ||
-                                      course.difficulty ||
+                                      (course.difficulty &&
+                                        formatCourseLevel(course.difficulty)) ||
                                       "Курс"}
                                   </small>
                                 </span>
@@ -1031,7 +1032,8 @@ export default function ProfilePage({
                                   </strong>
                                   <small>
                                     {course.category ||
-                                      course.difficulty ||
+                                      (course.difficulty &&
+                                        formatCourseLevel(course.difficulty)) ||
                                       "Авторский курс"}
                                   </small>
                                 </span>
