@@ -1,16 +1,16 @@
 import logging
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, status
 
-from src.courses.dependencies.base import MemberRepoDep
+from src.courses.dependencies.base import CourseRepoDep, MemberRepoDep
 from src.courses.dependencies.services import MemberServiceDep
 from src.courses.domain.entities import Course, Member
 from src.courses.domain.permissions.courses import UPDATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
+from src.shared.application.dtos import Page
+from src.shared.dependencies.params import SearchParamsDep
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,11 @@ async def sign_up(
     status_code=status.HTTP_200_OK,
 )
 async def get_courses(
-    service: MemberServiceDep,
+    repo: CourseRepoDep,
     identity: CurrentIdentity,
-    pagination: Annotated[Pagination, Query()],
+    pagination: SearchParamsDep,
 ) -> Page[Course]:
-    return await service.get_my_courses(identity.id, pagination)
+    return await repo.find_member_courses(identity.id, pagination)
 
 
 @router.get(
@@ -55,6 +55,6 @@ async def get_courses(
 async def get_course_students(
     course_id: UUID,
     repo: MemberRepoDep,
-    pagination: Annotated[Pagination, Query()],
+    pagination: SearchParamsDep,
 ) -> Page[Member]:
     return await repo.find_by_course(course_id, pagination)

@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 
 from src.courses.application.dtos import EditModuleSchema, ModuleSchema
+from src.courses.dependencies.base import ModuleRepoDep
 from src.courses.dependencies.services import (
     CheckCourseAccessDep,
     CheckModuleAccessDep,
@@ -12,6 +13,7 @@ from src.courses.dependencies.services import (
 from src.courses.domain.entities import Module
 from src.courses.domain.permissions.courses import CREATE, DELETE, READ, UPDATE
 from src.iam.dependencies import CurrentIdentity, require_permissions
+from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +63,7 @@ async def assign(
     status_code=status.HTTP_200_OK,
 )
 async def get_module_basic_info(
-    service: ModuleServiceDep,
+    repo: ModuleRepoDep,
     check_access: CheckModuleAccessDep,
     identity: CurrentIdentity,
     module_id: UUID,
@@ -71,7 +73,10 @@ async def get_module_basic_info(
         permission=READ,
         uid=module_id,
     )
-    return await service.get_basic_info(module_id)
+    result = await repo.get_by_id_basic_info(module_id)
+    if result is None:
+        raise NotFoundError
+    return result
 
 
 @router.put(

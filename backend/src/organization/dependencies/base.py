@@ -6,7 +6,8 @@ from src.organization.domain.entities import Organization
 from src.organization.infra.database.repos.invitation import SqlInvitationRepository
 from src.organization.infra.database.repos.organization import SqlOrganizationRepository
 from src.shared.application.dtos import Page
-from src.shared.dependencies import DBSession, PaginationDep
+from src.shared.dependencies import DBSession
+from src.shared.dependencies.params import SearchParamsDep
 
 from ..application.repos import InvitationRepository, OrganizationRepository
 
@@ -24,7 +25,7 @@ InvitationRepoDep = Annotated[InvitationRepository, Depends(get_invitation_repo)
 
 
 async def paginate_organizations(
-    pagination: PaginationDep,
+    pagination: SearchParamsDep,
     organization_repo: OrganizationRepoDep,
 ) -> Page[Organization]:
     return await organization_repo.find(pagination=pagination)

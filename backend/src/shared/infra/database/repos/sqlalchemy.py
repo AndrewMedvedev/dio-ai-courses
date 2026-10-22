@@ -1,9 +1,14 @@
 # pyright: reportArgumentType=false
-from typing import Any
+from typing import Any, ClassVar
 
 from collections.abc import Callable
+from datetime import datetime
 from uuid import UUID
 
+from ddf.application.dsl import Condition, Expression, Group, Negation
+from ddf.infra.database.sqlalchemy.filters import compile_filter
+from ddf.utils.cases import camel_to_snake_case
+from pydantic import AwareDatetime, TypeAdapter
 from sqlalchemy import (
     ColumnElement,
     Select,
@@ -19,9 +24,65 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import Base
-from src.shared.application.dtos import BaseQueryParamFilters, Page, Pagination
+from src.shared.application.dtos import BaseQueryParamFilters, Page, Pagination, SearchParams
 from src.shared.domain.entities import Entity
 from src.shared.infra.database.mappers import ModelMapper
+
+
+def _typed_query(model: type[Base], query: Expression, fields: tuple[str, ...]) -> Expression:
+    if isinstance(query, Group):
+        return query.model_copy(
+            update={"filters": tuple(_typed_query(model, item, fields) for item in query.filters)}
+        )
+    if isinstance(query, Negation):
+        return query.model_copy(update={"filter_": _typed_query(model, query.filter_, fields)})
+    if not isinstance(query, Condition):
+        return query
+
+    field = camel_to_snake_case(query.field)
+    if field not in fields or (column := model.__table__.c.get(field)) is None:
+        raise ValueError(f"Unknown filter field: '{query.field}'.")
+    if query.op in ("$isNull", "$isNotNull"):
+        return query.model_copy(update={"field": field})
+    if query.value is None:
+        if query.op not in ("$eq", "$ne"):
+            raise ValueError(f"Operator '{query.op}' does not accept null.")
+        return query.model_copy(update={"field": field})
+
+    value_type = column.type.python_type
+    if query.op in ("$like", "$ilike") and value_type is not str:
+        raise ValueError(f"Operator '{query.op}' requires a text field.")
+    if value_type is datetime and getattr(column.type, "timezone", False):
+        value_type = AwareDatetime
+    adapter = TypeAdapter(list[value_type] if query.op in ("$in", "$nin") else value_type)
+    value = adapter.validate_python(query.value)
+    return query.model_copy(update={"field": field, "value": value})
+
+
+def apply_query[ModelT: Base](
+    model: type[ModelT],
+    stmt: Select[tuple[ModelT]],
+    query: Expression | None,
+    fields: tuple[str, ...],
+    text_fields: tuple[str, ...] = (),
+) -> Select[tuple[ModelT]]:
+    if query is None:
+        return stmt
+
+    def full_text(text: str) -> ColumnElement[bool]:
+        document = func.concat_ws(" ", *(getattr(model, field) for field in text_fields))
+        return func.to_tsvector("russian", document).op("@@")(
+            func.plainto_tsquery("russian", text)
+        )
+
+    return stmt.where(
+        compile_filter(
+            model,
+            _typed_query(model, query, fields),
+            fields,
+            full_text if text_fields else None,
+        )
+    )
 
 
 def _parse_sort_param(
@@ -64,7 +125,7 @@ def apply_sorting[ModelT: Base](
         if (column := getattr(model, field_name, None)) is not None:
             return stmt.order_by(sort_func(column))
 
-    except (AttributeError, ValueError):
+    except AttributeError, ValueError:
         raise ValueError(f"Invalid sort query param - '{sort}'") from None
 
     return default_stmt
@@ -78,7 +139,18 @@ async def paginate[ModelT: Base, ItemT](
     *,
     mapper: Callable[[ModelT], ItemT] | None = None,
     sort: str | None = "created_at:desc",
+    fields: tuple[str, ...] = (),
+    text_fields: tuple[str, ...] = (),
 ) -> Page[ItemT]:
+    if isinstance(pagination, SearchParams) and fields:
+        stmt = apply_query(model, stmt, pagination.query, fields, text_fields)
+        if pagination.sort is not None:
+            field = camel_to_snake_case(pagination.sort.field)
+            if field not in fields or model.__table__.c.get(field) is None:
+                raise ValueError(f"Unknown sort field: '{pagination.sort.field}'.")
+            sort = f"{field}:{pagination.sort.direction}"
+            stmt = stmt.order_by(None)
+
     count_stmt = select(func.count()).select_from(stmt.subquery())
 
     if not (total := await session.scalar(count_stmt)):
@@ -103,6 +175,8 @@ async def paginate[ModelT: Base, ItemT](
 class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
     model: type[ModelT]
     model_mapper: ModelMapper[EntityT, ModelT]
+    query_fields: ClassVar[tuple[str, ...]] = ()
+    text_fields: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -135,6 +209,8 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
             pagination=pagination,
             mapper=self.model_mapper.from_model,
             sort=filters.sort if filters else None,
+            fields=self.query_fields,
+            text_fields=self.text_fields,
         )
 
     async def update(self, uid: UUID, **kwargs) -> EntityT | None:

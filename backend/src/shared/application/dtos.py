@@ -6,6 +6,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
+from ddf.application.dsl import Expression
+from ddf.application.dtos import Sort
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
 
@@ -30,6 +32,11 @@ class Pagination(BaseModel):
         """Смещение пагинации"""
 
         return (self.page - 1) * self.size
+
+
+class SearchParams(Pagination):
+    query: Expression | None = None
+    sort: Sort | None = None
 
 
 class Page[T: Any](BaseModel):

@@ -23,6 +23,17 @@ logger = logging.getLogger(__name__)
 class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     model = CourseOrm
     model_mapper = CourseMapper  # type: ignore
+    query_fields = (
+        "id",
+        "title",
+        "description",
+        "difficulty",
+        "status",
+        "popularity",
+        "creator_id",
+        "created_at",
+        "updated_at",
+    )
 
     async def find(
         self,
@@ -42,6 +53,8 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
+            fields=self.query_fields,
+            text_fields=("title", "description"),
         )
 
     async def find_user_courses(
@@ -63,6 +76,8 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
+            fields=self.query_fields,
+            text_fields=("title", "description"),
         )
 
     async def find_member_courses(
@@ -96,6 +111,8 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             pagination=pagination,
             mapper=self.model_mapper.from_model,
             sort="created_at:desc",
+            fields=self.query_fields,
+            text_fields=("title", "description"),
         )
 
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:

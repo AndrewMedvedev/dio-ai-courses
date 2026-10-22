@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.organization.api.v1.organization import read_my_organization
 from src.organization.application.dtos import OrganizationCreate, OrganizationEdit
 from src.organization.application.services import OrganizationService
 from src.organization.domain.entities import Organization
@@ -89,3 +90,35 @@ async def test_edit_updates_and_saves_existing_organization():
     assert organization.name == "New name"
     repository.upsert.assert_awaited_once_with(organization)
     session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_read_endpoint_returns_organization_with_one_repository_call():
+    """Чтение в эндпоинте не делает повторный запрос той же организации."""
+    organization = Organization(
+        name="Organization",
+        email="organization@example.com",
+        description="Description",
+    )
+    repository = AsyncMock()
+    repository.read.return_value = organization
+
+    result = await read_my_organization(organization.id, repository)
+
+    assert result is organization
+    repository.read.assert_awaited_once_with(organization.id)
+
+
+@pytest.mark.asyncio
+async def test_read_endpoint_rejects_unknown_organization():
+    """После переноса чтения сохраняются статус и текст ошибки отсутствия записи."""
+    organization_id = uuid4()
+    repository = AsyncMock()
+    repository.read.return_value = None
+
+    with pytest.raises(NotFoundError) as exc:
+        await read_my_organization(organization_id, repository)
+
+    assert exc.value.status_code == NotFoundError.status_code
+    assert str(exc.value) == f"Organization with ID {organization_id} not found"
+    repository.read.assert_awaited_once_with(organization_id)

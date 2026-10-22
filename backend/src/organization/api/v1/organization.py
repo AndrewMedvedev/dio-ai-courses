@@ -23,6 +23,7 @@ from src.organization.domain.permissions.organizations import (
     UPDATE,
 )
 from src.shared.application.dtos import Page
+from src.shared.domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/organizations", tags=["Организации"])
 
@@ -52,9 +53,12 @@ async def create_organization(
 )
 async def read_my_organization(
     organization_id: UUID,
-    service: OrganizationServiceDep,
+    repository: OrganizationRepoDep,
 ) -> Organization:
-    return await service.read(organization_id)
+    organization = await repository.read(organization_id)
+    if organization is None:
+        raise NotFoundError(f"Organization with ID {organization_id} not found")
+    return organization
 
 
 @router.patch(

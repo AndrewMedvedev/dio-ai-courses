@@ -5,10 +5,12 @@ from uuid import uuid4
 
 import pytest
 
+from src.courses.api.v1.member import get_courses
 from src.courses.application.services.member import MemberService
 from src.courses.domain.entities import Member
 from src.courses.domain.vo import MemberRole
-from src.shared.application.dtos import Page, Pagination
+from src.iam.application.dtos import Identity, IdentityType
+from src.shared.application.dtos import Page, SearchParams
 from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 
@@ -90,14 +92,18 @@ class TestStudentService:
         session.commit.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_get_my_courses_returns_repository_page(self, service, course_repo):
-        """Возвращает страницу курсов, полученную из репозитория."""
+    async def test_get_my_courses_returns_repository_page(self, course_repo):
+        """Ручка передаёт в репозиторий ID авторизованного пользователя."""
         user_id = uuid4()
-        pagination = Pagination(page=2, size=5)
+        pagination = SearchParams(page=2, size=5)
         page = Page.create([], total=0, page=pagination.page, size=pagination.size)
         course_repo.find_member_courses.return_value = page
 
-        result = await service.get_my_courses(user_id, pagination)
+        result = await get_courses(
+            repo=course_repo,
+            identity=Identity(id=user_id, organization_id=uuid4(), type=IdentityType.USER),
+            pagination=pagination,
+        )
 
         assert result == page
         course_repo.find_member_courses.assert_awaited_once_with(user_id, pagination)

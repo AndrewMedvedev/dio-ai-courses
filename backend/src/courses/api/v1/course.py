@@ -11,7 +11,8 @@ from src.courses.domain.enums import CourseStatus
 from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
+from src.shared.application.dtos import Page, SearchParams
+from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ async def create_course(
 )
 async def get_course_with_pagination(
     repo: CourseRepoDep,
-    pagination: Pagination,
+    pagination: SearchParams,
 ) -> Page[Course]:
     return await repo.find(pagination)
 
@@ -55,7 +56,7 @@ async def get_course_with_pagination(
 async def get_user_courses(
     repo: CourseRepoDep,
     identity: CurrentIdentity,
-    pagination: Pagination,
+    pagination: SearchParams,
 ) -> Page[Course]:
     return await repo.find_user_courses(identity.id, pagination)
 
@@ -84,10 +85,13 @@ async def get_status(
     status_code=status.HTTP_200_OK,
 )
 async def get_course_basic_info(
-    service: CourseServiceDep,
+    repo: CourseRepoDep,
     course_id: UUID,
 ) -> CourseBasicInfo:
-    return await service.get_basic_info(course_id)
+    result = await repo.get_by_id_basic_info(course_id)
+    if result is None:
+        raise NotFoundError
+    return result
 
 
 @router.put(
