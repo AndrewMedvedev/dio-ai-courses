@@ -4,6 +4,8 @@ from typing import Any
 from collections.abc import Callable
 from uuid import UUID
 
+from ddf.domain.models import Entity
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
 from sqlalchemy import (
     ColumnElement,
     Select,
@@ -20,8 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import Base
 from src.shared.application.dtos import BaseQueryParamFilters, Page, Pagination
-from src.shared.domain.entities import Entity
-from src.shared.infra.database.mappers import ModelMapper
 
 
 def _parse_sort_param(
@@ -102,7 +102,7 @@ async def paginate[ModelT: Base, ItemT](
 
 class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
     model: type[ModelT]
-    model_mapper: ModelMapper[EntityT, ModelT]
+    model_mapper: DataMapper[EntityT, ModelT]
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session

@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import time
 
-from .base import Cache
+from ddf.application.cache import Cache
 
 
 class InMemoryCache[T](Cache[T]):

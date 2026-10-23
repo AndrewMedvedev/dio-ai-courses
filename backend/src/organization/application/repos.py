@@ -2,13 +2,14 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
+
 from src.iam.application.dtos import InvitationCreate, UserResponse
 from src.iam.application.dtos.membership import CreateMembershipDTO
 from src.iam.domain.entities import Invitation as IAMInvitation
 from src.iam.domain.entities import Membership
 from src.organization.infra.services.client import SrvOrganizationClient
 from src.shared.application.repos import Repository
-from src.shared.domain.vo import Email
 
 from ..domain.entities import Invitation, Organization
 

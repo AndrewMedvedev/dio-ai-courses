@@ -5,12 +5,12 @@ import json
 from dataclasses import asdict
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.domain.entities import Practice
 from src.llm_service import LLMTextService
-from src.shared.domain.exceptions import NotFoundError
 
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.vo import FileUploadAssignment, PracticeStatus

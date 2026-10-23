@@ -1,7 +1,8 @@
 import logging
-from importlib import import_module
 import pkgutil
+from importlib import import_module
 
+from ddf.domain.vo.email import Email
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import session_factory
@@ -10,7 +11,6 @@ from src.iam.domain.entities import Membership, Permission, Role, User
 from src.iam.domain.permissions.registry import get_permissions
 from src.iam.domain.types import RoleId
 from src.iam.domain.vo import (
-    Email,
     FullName,
     PermissionGrant,
     PermissionScope,

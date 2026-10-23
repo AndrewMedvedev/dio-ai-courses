@@ -24,10 +24,10 @@ class SqlUserPreferenceRepository(SqlAlchemyRepository[UserPreference, UserPrefe
         )
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.to_entity(model)
+        return None if model is None else self.model_mapper.from_model(model)
 
     async def get_by_user(self, user_id: UUID) -> list[UserPreference]:
         stmt = select(self.model).where(self.model.user_id == user_id)
         results = await self.session.execute(stmt)
         models = results.scalars().all()
-        return [self.model_mapper.to_entity(model) for model in models]
+        return [self.model_mapper.from_model(model) for model in models]

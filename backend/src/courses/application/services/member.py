@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.shared.application.dtos import Page, Pagination
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 from ...application.repos import CourseRepository, MemberRepository
 from ...domain.entities import Course, Member

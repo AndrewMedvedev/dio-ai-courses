@@ -1,27 +1,14 @@
-from typing import Protocol, Self, runtime_checkable
+from typing import Protocol
 
-from collections.abc import Awaitable, Callable
 from uuid import UUID
+
+from ddf.application.uow import UnitOfWork
+from ddf.domain.models import Entity
 
 from src.activity.recorder import ActivityRecorder
 
 from ..application.dtos import Page, Pagination
-from .entities import Entity
 from .events import EventPublisher
-from .exceptions import NotFoundError
-
-
-@runtime_checkable
-class UnitOfWork(Protocol):
-    async def __aenter__(self) -> Self: ...
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None: ...
-
-    async def commit(self) -> None: ...
-
-    async def rollback(self) -> None: ...
-
-    async def flush(self) -> None: ...
 
 
 class Repository[EntityT: Entity](Protocol):
@@ -40,18 +27,6 @@ class Repository[EntityT: Entity](Protocol):
     async def exists(self, uid: UUID) -> bool: ...
 
     async def get_by_ids(self, ids: list[UUID]) -> list[EntityT]: ...
-
-
-async def get_or_raise_404[EntityT: Entity](
-    loader: Callable[[UUID], Awaitable[EntityT | None]],
-    uid: UUID,
-    aggregate_type: type[EntityT],
-) -> EntityT:
-    obj = await loader(uid)
-    if obj is None:
-        raise NotFoundError(f"{aggregate_type.__class__.__name__} with ID {uid} not found")
-
-    return obj
 
 
 async def finalize[EntityT: Entity](

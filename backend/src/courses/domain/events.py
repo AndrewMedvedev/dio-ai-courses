@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.shared.domain.events import Event
-from src.shared.domain.vo import Email
+from ddf.domain.events import Event
+from ddf.domain.vo.email import Email
 
 from .vo import MemberRole
 

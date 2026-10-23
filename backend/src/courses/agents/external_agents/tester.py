@@ -4,11 +4,11 @@ import json
 import random
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.llm_service import LLMTextService
-from src.shared.domain.exceptions import NotFoundError
 
 from ...application.repos import LessonRepository, PracticeRepository
 from ...domain.entities import Practice

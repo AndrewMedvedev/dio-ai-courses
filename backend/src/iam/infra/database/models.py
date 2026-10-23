@@ -2,18 +2,14 @@ from typing import Any
 
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.types import DatatimeTz as DatetimeTz
+from ddf.infra.database.sqlalchemy.types import DatetimeTzNull as DatetimeNull
+from ddf.infra.database.sqlalchemy.types import StrNull, StrUnique, TextNull
 from sqlalchemy import ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-from src.shared.infra.database.types import (
-    DatetimeNull,
-    DatetimeTz,
-    StrNull,
-    StrUnique,
-    TextNull,
-)
 
 
 class UserOrm(Base):

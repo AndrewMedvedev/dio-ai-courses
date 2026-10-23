@@ -3,9 +3,8 @@
 
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.shared.domain.exceptions import NotFoundError
 
 from ...application.dtos import (
     EditModuleSchema,

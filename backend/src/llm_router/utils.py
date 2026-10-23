@@ -8,6 +8,7 @@ import uuid
 
 import openai
 import orjson
+from ddf.application.exceptions import NotFoundError
 from json_repair import repair_json
 from langsmith import traceable
 from openai.types.responses.response import Response
@@ -16,7 +17,6 @@ from tenacity import RetryCallState
 from src.core.redis import redis_client
 from src.llm_service.schemas import LLMTextResponse, ToolCallParsed
 from src.shared.application.dtos import Page
-from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 

@@ -1,16 +1,16 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
 from sqlalchemy import func, select
 
 from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.mappers import ModelMapper
 from src.shared.infra.database.repos import SqlAlchemyRepository
 
 from ..domain.dataclass import AIModel
 from .models import AIModelOrm
 
 
-class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
+class AIModelMapper(DataMapper[AIModel, AIModelOrm]):
     @staticmethod
     def from_model(model: AIModelOrm) -> AIModel:
         """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""

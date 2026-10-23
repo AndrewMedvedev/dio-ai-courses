@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.types import DatatimeTz as DatetimeTz
+from ddf.infra.database.sqlalchemy.types import StrUnique
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.media.domain.vo import UploadStatus
-from src.shared.infra.database.types import DatetimeTz, StrUnique
 
 
 class UploadSessionOrm(Base):

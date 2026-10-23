@@ -1,5 +1,6 @@
 from typing import Annotated, Any
 
+from ddf.domain.utils import apply_changes
 from fastapi import Depends
 
 from src.iam.application.dtos import (
@@ -12,7 +13,6 @@ from src.iam.domain.entities import ServiceAccount
 from src.shared.application.crud import Crud
 from src.shared.application.dtos import Page
 from src.shared.dependencies import PaginationDep, TransactionDep
-from src.shared.domain.helpers import apply_changes
 from src.shared.utils.time import current_datetime
 
 ServiceAccountCrud = Crud[

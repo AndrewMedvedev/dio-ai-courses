@@ -2,9 +2,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from ddf.application.exceptions import NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.shared.domain.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from src.shared.domain.exceptions import BadRequestError, ForbiddenError
 
 from ..domain.constants import PRESIGNED_URL_EXPIRES_IN
 from ..domain.entities import StoredObject, UploadSession

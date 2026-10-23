@@ -1,10 +1,11 @@
 from collections.abc import Awaitable, Callable
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+
 from src.iam.application.dtos import Identity
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
-from src.shared.domain.exceptions import NotFoundError
 
 from .policies import ManageCourseOptions
 from .repos import CourseRepository, LessonRepository, MemberRepository, ModuleRepository

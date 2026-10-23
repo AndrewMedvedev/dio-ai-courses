@@ -1,8 +1,8 @@
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
 from sqlalchemy import select
 
-from src.shared.domain.vo import Email
 from src.shared.infra.repos import SqlAlchemyRepository
 
 from ....domain.entities import Invitation
@@ -18,7 +18,7 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
         stmt = select(self.model).where(self.model.token == token)
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.to_entity(model)
+        return None if model is None else self.model_mapper.from_model(model)
 
     async def get_active(
         self,
@@ -36,4 +36,4 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
         )
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.to_entity(model)
+        return None if model is None else self.model_mapper.from_model(model)

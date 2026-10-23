@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.shared.domain.entities import Entity
+from ddf.domain.models import Entity
 
 
 @dataclass(kw_only=True)

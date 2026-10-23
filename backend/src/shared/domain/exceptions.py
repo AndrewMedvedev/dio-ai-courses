@@ -52,30 +52,6 @@ class ForbiddenError(DomainError):
     public_message = "Доступ запрещен"
 
 
-class NotFoundError(DomainError):
-    status_code = status.HTTP_404_NOT_FOUND
-    error_code = "RESOURCE_NOT_FOUND"
-    public_message = "Ресурс не найден"
-
-
-class InvariantViolationError(DomainError):
-    status_code = status.HTTP_409_CONFLICT
-    error_code = "INVARIANT_VIOLATION"
-    public_message = "Нарушены условия существования объекта"
-
-
-class InvalidStateError(DomainError):
-    status_code = status.HTTP_409_CONFLICT
-    error_code = "INVALID_STATE"
-    public_message = "Невалидное состояние объекта"
-
-
-class AlreadyExistsError(DomainError):
-    status_code = status.HTTP_409_CONFLICT
-    error_code = "ALREADY_EXISTS"
-    public_message = "Ресурс уже существует"
-
-
 class EmailSendingFailedError(DomainError):
     status_code = status.HTTP_502_BAD_GATEWAY
     error_code = "EMAIL_SENDING_FAILED"
@@ -86,9 +62,3 @@ class RateLimitExceededError(DomainError):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     error_code = "RATE_LIMIT_EXCEEDED"
     public_message = "Превышен лимит запросов"
-
-
-class UnsupportedOperationError(DomainError):
-    status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-    error_code = "UNSUPPORTED_OPERATION"
-    public_message = "Операция удалена или не поддерживается."

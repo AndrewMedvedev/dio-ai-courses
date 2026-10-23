@@ -4,6 +4,9 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from ddf.application.cache import Cache
+from ddf.domain.vo.email import Email
+
 from src.core.settings import jwt_config
 from src.iam.application.builders import build_login_response
 from src.iam.application.dtos import (
@@ -17,7 +20,6 @@ from src.iam.application.dtos import (
 from src.iam.application.repos import MembershipRepository, RoleRepository, UserRepository
 from src.iam.domain.entities import Membership, Role, User
 from src.iam.domain.exceptions import UnauthorizedError
-from src.iam.domain.vo import Email
 from src.iam.security import (
     create_access_token,
     create_authentication_token,
@@ -26,7 +28,6 @@ from src.iam.security import (
     verify_password_async,
 )
 from src.organization.application.repos import OrganizationRepository
-from src.shared.infra.cache import Cache
 from src.shared.utils.time import from_timestamp, get_expiration_timestamp
 
 from .blacklist import is_revoked, revoke_token

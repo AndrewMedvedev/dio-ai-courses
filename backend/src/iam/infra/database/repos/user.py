@@ -1,7 +1,7 @@
+from ddf.domain.vo.email import Email
 from sqlalchemy import select
 
 from src.iam.domain.entities import User
-from src.iam.domain.vo import Email
 from src.iam.infra.database.mappers import UserMapper
 from src.iam.infra.database.models import UserOrm
 from src.shared.infra.database import SqlAlchemyRepository

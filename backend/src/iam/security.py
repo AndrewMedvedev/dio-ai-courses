@@ -11,13 +11,13 @@ from uuid import UUID, uuid4
 
 import jwt
 import zxcvbn_rs_py
+from ddf.domain.vo.email import Email
 from passlib.context import CryptContext
 
 from src.core.settings import jwt_config, settings
 from src.iam.application.dtos import IdentityType
 from src.iam.consts import CLIENT_ID_BYTES_LENGTH, CLIENT_SECRET_BYTES_LENGTH
 from src.iam.domain.exceptions import UnauthorizedError, WeakPasswordError
-from src.iam.domain.vo import Email
 from src.shared.utils.time import current_datetime
 
 MEMORY_COST = 100

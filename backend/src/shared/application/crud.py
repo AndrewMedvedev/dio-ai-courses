@@ -3,18 +3,18 @@ from typing import Any
 from collections.abc import Awaitable, Callable
 from uuid import UUID
 
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import OperationNotAllowedError
+from ddf.application.utils import get_or_raise_not_found
+from ddf.domain.models import Entity
 from pydantic import BaseModel
 
-from src.shared.domain.entities import Entity
-from src.shared.domain.exceptions import UnsupportedOperationError
-
 from .dtos import Page, Pagination
-from .repos import Repository, get_or_raise_404
-from .transaction import Transaction
+from .repos import Repository
 
 
 async def _method_not_allowed_stub(*args: Any, **kwargs: Any) -> Any:  # noqa: RUF029, ARG001
-    raise UnsupportedOperationError("This CRUD method not allowed.")
+    raise OperationNotAllowedError("This CRUD method not allowed.")
 
 
 class Crud[
@@ -27,7 +27,7 @@ class Crud[
     def __init__(
             self,
             repository: Repository[EntityT],
-            transaction: Transaction,
+            transaction: EventDispatcher,
             to_response: Callable[[EntityT], ResponseT],
             *,
             create_handler: Callable[CreateP, Awaitable[EntityT]] = _method_not_allowed_stub,
@@ -55,7 +55,7 @@ class Crud[
         return self._to_response(entity)
 
     async def read(self, uid: UUID) -> ResponseT:
-        entity = await get_or_raise_404(self._repository.read, uid, type[EntityT])
+        entity = await get_or_raise_not_found(self._repository.read, uid, type[EntityT])
         return self._to_response(entity)
 
     async def paginate[FilterT](

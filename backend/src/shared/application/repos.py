@@ -1,10 +1,8 @@
 from typing import Protocol
 
-from collections.abc import Awaitable, Callable
 from uuid import UUID
 
-from src.shared.domain.entities import Entity
-from src.shared.domain.exceptions import NotFoundError
+from ddf.domain.models import Entity
 
 from .dtos import BaseQueryParamFilters, Page, Pagination
 
@@ -29,18 +27,6 @@ class Repository[EntityT: Entity](Protocol):
     async def exists(self, uid: UUID) -> bool: ...
 
     async def get_by_ids(self, ids: list[UUID]) -> tuple[EntityT, ...]: ...
-
-
-async def get_or_raise_404[EntityT: Entity](
-    loader: Callable[[UUID], Awaitable[EntityT | None]],
-    uid: UUID,
-    aggregate_type: type[EntityT],
-) -> EntityT:
-    obj = await loader(uid)
-    if obj is None:
-        raise NotFoundError(f"{aggregate_type.__class__.__name__} with ID {uid} not found")
-
-    return obj
 
 
 class RepositoryDecorator[EntityT: Entity](Repository[EntityT]):

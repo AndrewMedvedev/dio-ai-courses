@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from ddf.application.cache import Cache
+from ddf.infra.cache.redis import RedisCache
 from fastapi import Depends
 
 from src.core.redis import redis_client
@@ -22,7 +24,7 @@ from src.iam.infra.database.repos import (
 from src.organization.application.repos import OrganizationRepository
 from src.organization.infra.database.repos.organization import SqlOrganizationRepository
 from src.shared.dependencies import DBSession
-from src.shared.infra.cache import Cache, PrimitiveSerializer, RedisCache
+from src.shared.infra.cache import PrimitiveSerializer
 
 redis_cache = RedisCache[bool](redis_client, serializer=PrimitiveSerializer(bool))
 

@@ -3,9 +3,10 @@ from datetime import datetime
 from enum import IntEnum, auto
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt
 
-from src.iam.domain.vo import Email, PermissionGrant, PermissionScope
+from src.iam.domain.vo import PermissionGrant, PermissionScope
 from src.organization.application.dtos import OrganizationRef
 from src.shared.application.dtos import BaseQueryParamFilters
 

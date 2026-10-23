@@ -20,10 +20,11 @@ from typing import Any
 
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
+
 from src.courses.domain.vo import MemberRole
 from src.shared.application.dtos import Page, Pagination
 from src.shared.application.repos import Repository
-from src.shared.domain.vo import Email
 
 from ..domain.entities import (
     AnyContentBlock,

@@ -1,7 +1,8 @@
 from collections.abc import AsyncIterable
 
+from ddf.domain.models import Entity
+
 from ..application.dtos import Pagination
-from ..domain.entities import Entity
 from ..domain.repos import Repository
 
 

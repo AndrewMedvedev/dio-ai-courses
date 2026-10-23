@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.organization.domain.entities import Organization
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 from ..dtos import OrganizationCreate, OrganizationEdit
 from ..repos import OrganizationRepository

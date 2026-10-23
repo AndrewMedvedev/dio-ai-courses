@@ -1,16 +1,17 @@
 import logging
 from uuid import UUID
 
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+from ddf.application.utils import get_or_raise_not_found
+from ddf.domain.vo.email import Email
+
 from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.dtos.membership import CreateMembershipDTO
 from src.iam.domain.entities import Membership
 from src.organization.application.dtos import InvitationCreate
 from src.organization.domain.entities import Invitation
 from src.organization.infra.services.client import SrvOrganizationClient
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
-from src.shared.domain.repos import get_or_raise_404
-from src.shared.domain.vo import Email
 
 from ..repos import (
     IAMInvitationRepository,
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 class InvitationService:
     def __init__(
         self,
-        transaction: Transaction,
+        transaction: EventDispatcher,
         invitation_repo: InvitationRepository,
         membership_repo: MembershipRepository,
         user_repo: UserRepository,
@@ -102,7 +103,9 @@ class InvitationService:
         """
         Отзыв ошибочно отправленного приглашения.
         """
-        invitation = await get_or_raise_404(self.invitation_repo.read, invitation_id, Invitation)
+        invitation = await get_or_raise_not_found(
+            self.invitation_repo.read, invitation_id, Invitation
+        )
 
         await self.invitation_repo.delete(invitation_id)
         await self.transaction(invitation)

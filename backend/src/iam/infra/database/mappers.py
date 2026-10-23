@@ -1,15 +1,16 @@
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
+
 from src.iam.domain.entities import Invitation, Membership, Permission, Role, ServiceAccount, User
 from src.iam.domain.vo import (
-    Email,
     FullName,
     PermissionGrant,
     PermissionScope,
     SecretHash,
     Username,
 )
-from src.shared.infra.database import ModelMapper
 
 from ...domain.types import RoleId
 from .models import (
@@ -22,7 +23,7 @@ from .models import (
 )
 
 
-class UserMapper(ModelMapper[User, UserOrm]):
+class UserMapper(DataMapper[User, UserOrm]):
     @staticmethod
     def from_model(model: UserOrm) -> User:
         return User(
@@ -54,7 +55,7 @@ class UserMapper(ModelMapper[User, UserOrm]):
         )
 
 
-class ServiceAccountMapper(ModelMapper[ServiceAccount, ServiceAccountOrm]):
+class ServiceAccountMapper(DataMapper[ServiceAccount, ServiceAccountOrm]):
     @staticmethod
     def from_model(model: ServiceAccountOrm) -> ServiceAccount:
         return ServiceAccount(
@@ -88,7 +89,7 @@ class ServiceAccountMapper(ModelMapper[ServiceAccount, ServiceAccountOrm]):
         )
 
 
-class MembershipMapper(ModelMapper[Membership, MembershipOrm]):
+class MembershipMapper(DataMapper[Membership, MembershipOrm]):
     @staticmethod
     def from_model(model: MembershipOrm) -> Membership:
         return Membership(
@@ -118,7 +119,7 @@ class MembershipMapper(ModelMapper[Membership, MembershipOrm]):
         )
 
 
-class PermissionMapper(ModelMapper[Permission, PermissionOrm]):
+class PermissionMapper(DataMapper[Permission, PermissionOrm]):
     @staticmethod
     def from_model(model: PermissionOrm) -> Permission:
         return Permission(
@@ -150,7 +151,7 @@ class PermissionMapper(ModelMapper[Permission, PermissionOrm]):
         }
 
 
-class RoleMapper(ModelMapper[Role, RoleOrm]):
+class RoleMapper(DataMapper[Role, RoleOrm]):
     @staticmethod
     def from_model(model: RoleOrm) -> Role:
         return Role(
@@ -193,7 +194,7 @@ class RoleMapper(ModelMapper[Role, RoleOrm]):
         )
 
 
-class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
+class InvitationMapper(DataMapper[Invitation, InvitationOrm]):
     @staticmethod
     def from_model(model: InvitationOrm) -> Invitation:
         return Invitation(

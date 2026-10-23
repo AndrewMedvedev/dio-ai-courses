@@ -2,7 +2,7 @@ from typing import TypeVar
 
 from collections.abc import Callable
 
-from src.shared.domain.events import Event
+from ddf.domain.events import Event
 
 from .domain.models import ActivityLog
 

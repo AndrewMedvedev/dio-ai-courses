@@ -1,8 +1,7 @@
 from collections.abc import Awaitable, Callable
 
+from ddf.domain.models import Entity
 from pydantic import BaseModel
-
-from src.shared.domain.entities import Entity
 
 # =================================================================================================
 # Handlers - выполняют доменную логику (DTO -> Domain model).

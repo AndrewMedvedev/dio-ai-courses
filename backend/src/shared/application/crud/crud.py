@@ -1,12 +1,13 @@
 from collections.abc import Callable
 from uuid import UUID
 
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import OperationNotAllowedError
+from ddf.application.utils import get_or_raise_not_found
+from ddf.domain.models import Entity
 from pydantic import BaseModel
 
-from src.shared.application.repos import Repository, get_or_raise_404
-from src.shared.application.transaction import Transaction
-from src.shared.domain.entities import Entity
-from src.shared.domain.exceptions import UnsupportedOperationError
+from src.shared.application.repos import Repository
 
 from .types import (
     CreateHandler,
@@ -32,7 +33,7 @@ class Crud[
     def __init__(
         self,
         repository: Repository[EntityT],
-        transaction: Transaction,
+        transaction: EventDispatcher,
         to_response: Callable[[EntityT], ResponseT],
         *,
         # handlers:
@@ -64,7 +65,7 @@ class Crud[
         options: CreateOptionsT | None = None,
     ) -> ResponseT:
         if self._create_handler is None:
-            raise UnsupportedOperationError("Create operation is not supported.")
+            raise OperationNotAllowedError("Create operation is not supported.")
 
         async def _base_create(dto_: CreateT, options_: CreateOptionsT | None = None) -> EntityT:
             entity_ = self._create_handler(dto_, options_)
@@ -82,7 +83,7 @@ class Crud[
         return self._to_response(created)
 
     async def read(self, uid: UUID, options: ReadOptionsT | None = None) -> ResponseT:
-        entity = await get_or_raise_404(self._repository.read, uid, type[EntityT])
+        entity = await get_or_raise_not_found(self._repository.read, uid, type[EntityT])
 
         async def _base_read(entity_: EntityT, options_: ReadOptionsT | None = None) -> EntityT:  # ruff: ignore[unused-async, unused-function-argument]
             return entity_
@@ -101,9 +102,9 @@ class Crud[
         self, uid: UUID, dto: UpdateT, options: UpdateOptionsT | None = None
     ) -> ResponseT:
         if self._update_handler is None:
-            raise UnsupportedOperationError("Update operation is not supported.")
+            raise OperationNotAllowedError("Update operation is not supported.")
 
-        entity = await get_or_raise_404(self._repository.read, uid, type[EntityT])
+        entity = await get_or_raise_not_found(self._repository.read, uid, type[EntityT])
 
         async def _base_update(
             entity_: EntityT,
@@ -127,9 +128,9 @@ class Crud[
 
     async def delete(self, uid: UUID, options: DeleteOptionsT | None = None) -> None:
         if self._delete_handler is None:
-            raise UnsupportedOperationError("Delete operation is not supported.")
+            raise OperationNotAllowedError("Delete operation is not supported.")
 
-        entity = await get_or_raise_404(self._repository.read, uid, type[EntityT])
+        entity = await get_or_raise_not_found(self._repository.read, uid, type[EntityT])
 
         async def _base_delete(entity_: EntityT, options_: DeleteOptionsT | None) -> EntityT:
             handled = await self._delete_handler(entity_, options_)
