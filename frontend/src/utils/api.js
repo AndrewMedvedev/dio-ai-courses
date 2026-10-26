@@ -492,9 +492,8 @@ export async function acceptInvitation({
   full_name,
   username,
 }) {
-  const query = new URLSearchParams({ token });
   return requestJson(
-    `/invitations/accept?${query.toString()}`,
+    `/invitations/accept/${encodeURIComponent(token)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -504,12 +503,41 @@ export async function acceptInvitation({
   );
 }
 
+export function previewInvitation(token) {
+  return requestJson(`/invitations/preview/${encodeURIComponent(token)}`, {}, { auth: false });
+}
+
+export async function fetchInvitationRoles() {
+  const roles = [];
+  let page = 1;
+  let result;
+  do {
+    result = await requestJson(`/roles?page=${page}&size=100`);
+    roles.push(...result.items);
+    page += 1;
+  } while (result.has_next);
+  // Preserve the supported invitation roles, resolving their actual database IDs.
+  return roles.filter((role) => ["default_role", "admin"].includes(role.code));
+}
+
 // Приглашение в текущую организацию (бэкенд берёт её из токена); роли — массив UUID.
 export async function inviteToOrganization({ email, grantedRoles = [] }) {
   return jsonRequest("/organizations/invitations", "POST", {
     email,
     grantedRoles,
   });
+}
+
+export function fetchOrganizationInvitations(page = 1) {
+  return requestJson(`/organizations/invitations?page=${page}&size=20`);
+}
+
+export function revokeOrganizationInvitation(id, source) {
+  return requestJson(`/organizations/invitations/revoke/${encodeURIComponent(id)}?source=${encodeURIComponent(source)}`, { method: "DELETE" });
+}
+
+export function resendOrganizationInvitation(id, source) {
+  return requestJson(`/organizations/invitations/${encodeURIComponent(id)}/resend?source=${encodeURIComponent(source)}`, { method: "POST" });
 }
 
 // Принятие приглашения в организацию уже существующим пользователем.
