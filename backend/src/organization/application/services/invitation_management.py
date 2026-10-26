@@ -14,8 +14,6 @@ from src.shared.domain.exceptions import (
 )
 from src.shared.utils.time import current_datetime
 
-x
-
 
 class InvitationManagementService:
     def __init__(
