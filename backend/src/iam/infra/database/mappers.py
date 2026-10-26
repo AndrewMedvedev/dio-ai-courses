@@ -31,8 +31,8 @@ class UserMapper(ModelMapper[User, UserOrm]):
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,
             email=Email(model.email),
-            username=Username(model.username),
-            full_name=FullName(model.full_name),
+            username=None if model.username is None else Username(model.username),
+            full_name=None if model.full_name is None else FullName(model.full_name),
             avatar_url=model.avatar_url,
             password_hash=SecretHash(model.password_hash),
             is_active=model.is_active,
@@ -46,8 +46,8 @@ class UserMapper(ModelMapper[User, UserOrm]):
             updated_at=entity.updated_at,
             deleted_at=entity.deleted_at,
             email=entity.email.value,
-            username=entity.username.value,
-            full_name=entity.full_name.value,
+            username=None if entity.username is None else entity.username.value,
+            full_name=None if entity.full_name is None else entity.full_name.value,
             avatar_url=entity.avatar_url,
             password_hash=entity.password_hash.get_hashed_value(),
             is_active=entity.is_active,
@@ -118,7 +118,7 @@ class MembershipMapper(ModelMapper[Membership, MembershipOrm]):
         )
 
 
-class PermissionMapper(ModelMapper[Permission, PermissionOrm]):
+class PermissionMapper(ModelMapper[Permission, PermissionOrm]):  # pyright: ignore[reportInvalidTypeArguments]
     @staticmethod
     def from_model(model: PermissionOrm) -> Permission:
         return Permission(
@@ -204,7 +204,7 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
             email=Email(model.email),
             token=model.token,
             invited_by=model.invited_by,
-            granted_roles=set(UUID(role_id) for role_id in model.granted_roles)
+            granted_roles={UUID(role_id) for role_id in model.granted_roles}  # pyright: ignore[reportArgumentType]
             if model.granted_roles
             else None,
             organization_id=model.organization_id,

@@ -197,7 +197,7 @@ class LLMTextRouter(LLMRouter):
         ]
         return await self._invoke(
             model=selected_model[0],
-            **schema.model_dump(exclude_none=True, by_alias=True),
+            schema=schema,
         )
 
 

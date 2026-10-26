@@ -106,7 +106,6 @@ async def call_researcher_agent(
 
 
 def reasoner_agent(runtime: Runtime[Context, SrvCourseClient]) -> LLMTextService:
-
     return LLMTextService(
         client=runtime.state,  # pyright: ignore[reportArgumentType]
         system_prompt=REASONER_PROMPT.format(prompt=runtime.context.prompt),

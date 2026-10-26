@@ -16,3 +16,10 @@ class InvitationCreate(BaseModel):
     email: EmailStr
     granted_roles: set[RoleId] | None = None
     organization_id: UUID
+
+
+class InvitationPreview(BaseModel):
+    email: str
+    registration_required: bool
+    organization_id: UUID | None = None
+    organization_name: str | None = None
