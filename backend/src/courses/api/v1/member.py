@@ -1,7 +1,10 @@
-import logging
 from typing import Annotated
+
+import logging
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination as Pagination
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Depends, Query, status
 
 from src.courses.dependencies.base import MemberRepoDep
@@ -10,7 +13,6 @@ from src.courses.domain.entities import Course, Member
 from src.courses.domain.permissions.courses import UPDATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 
 logger = logging.getLogger(__name__)
 

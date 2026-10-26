@@ -2,13 +2,13 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Path, Query, status
 
 from src.courses.application.dtos import InvitationCreate, InvitationResponse
 from src.courses.dependencies.services import InvitationServiceDep
 from src.courses.domain.entities import Member
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page
 from src.shared.dependencies.params import PaginationDep
 
 router = APIRouter(

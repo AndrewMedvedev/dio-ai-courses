@@ -1,13 +1,13 @@
-from src.shared.domain.vo import Email
-from src.shared.infra.repos import ModelMapper
+from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
 
 from ...domain.entities import Notification, UserPreference
 from .models import NotificationOrm, UserPreferenceOrm
 
 
-class NotificationMapper(ModelMapper[Notification, NotificationOrm]):
+class NotificationMapper(DataMapper[Notification, NotificationOrm]):
     @staticmethod
-    def to_entity(model: NotificationOrm) -> Notification:
+    def from_model(model: NotificationOrm) -> Notification:
         return Notification(
             id=model.id,
             created_at=model.created_at,
@@ -23,7 +23,7 @@ class NotificationMapper(ModelMapper[Notification, NotificationOrm]):
         )
 
     @staticmethod
-    def from_entity(entity: Notification) -> NotificationOrm:
+    def to_model(entity: Notification) -> NotificationOrm:
         return NotificationOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -39,9 +39,9 @@ class NotificationMapper(ModelMapper[Notification, NotificationOrm]):
         )
 
 
-class UserPreferenceMapper(ModelMapper[UserPreference, UserPreferenceOrm]):
+class UserPreferenceMapper(DataMapper[UserPreference, UserPreferenceOrm]):
     @staticmethod
-    def to_entity(model: UserPreferenceOrm) -> UserPreference:
+    def from_model(model: UserPreferenceOrm) -> UserPreference:
         return UserPreference(
             id=model.id,
             created_at=model.created_at,
@@ -54,7 +54,7 @@ class UserPreferenceMapper(ModelMapper[UserPreference, UserPreferenceOrm]):
         )
 
     @staticmethod
-    def from_entity(entity: UserPreference) -> UserPreferenceOrm:
+    def to_model(entity: UserPreference) -> UserPreferenceOrm:
         return UserPreferenceOrm(
             id=entity.id,
             created_at=entity.created_at,

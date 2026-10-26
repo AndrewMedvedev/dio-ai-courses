@@ -3,15 +3,15 @@ from typing import Annotated, Any
 from collections.abc import Callable
 from uuid import UUID
 
+from ddf.application.cache import Cache
+from ddf.domain.vo.email import Email
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.iam.application.dtos import Identity, IdentityType
 from src.iam.application.services import blacklist
 from src.iam.domain.exceptions import UnauthorizedError
-from src.iam.domain.vo import Email
 from src.iam.security import decode_token
-from src.shared.infra.cache import Cache
 
 from .repos import get_cache
 

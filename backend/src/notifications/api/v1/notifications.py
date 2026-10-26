@@ -4,15 +4,15 @@ import asyncio
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination, Page
+from ddf.application.dtos import PaginationQuery as PaginationDep
 from fastapi import APIRouter, Query, Request, status
 from fastapi.encoders import jsonable_encoder
 from sse_starlette.event import ServerSentEvent
 from sse_starlette.sse import EventSourceResponse
 
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies import sse_manager
-from src.shared.dependencies.params import PaginationDep
 
 from ...application.dtos import UnreadCountOut
 from ...dependencies.base import NotificationRepoDep
@@ -83,7 +83,7 @@ async def notification_stream(
             # 1. Отправка последних непрочитанных уведомлений при подключении
             unread_notifications = await repository.get_by_user(
                 user_id=identity.id,
-                pagination=Pagination(page=1, size=50),
+                pagination=OffsetPagination(page=1, size=50),
                 unread_only=True,
             )
             for notification in unread_notifications.items:

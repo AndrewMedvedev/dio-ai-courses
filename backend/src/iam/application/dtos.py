@@ -1,13 +1,15 @@
+from typing import Literal
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum, auto
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt
 
-from src.iam.domain.vo import Email, PermissionGrant, PermissionScope
+from src.iam.domain.vo import PermissionGrant, PermissionScope
 from src.organization.application.dtos import OrganizationRef
-from src.shared.application.dtos import BaseQueryParamFilters
 
 
 class IdentityType(IntEnum):
@@ -167,22 +169,15 @@ class UserUpdate(BaseModel):
     avatar_url: HttpUrl | None = Field(None, description="Ссылка на аватарку в CDN.")
 
 
-class UserQueryParamFilters(BaseModel):
-    """Query param фильтры для поиска списка пользователей."""
-
-    email: EmailStr | None = None
-    username: str | None = None
-    full_name: str | None = None
-
-
 # =================================================================================================
 # Roles & Permissions Request & Response DTOs
 # =================================================================================================
 
 
-class PermissionQueryParamFilters(BaseQueryParamFilters):
+class PermissionQueryParamFilters(BaseModel):
     """Фильтры для получения списка прав."""
 
+    op: Literal["and", "or"] = "and"
     resource: str | None = None
     action: str | None = None
     scopes: list[PermissionScope] | None = None

@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from ...shared.domain.entities import Entity
+from ddf.domain.models import Entity
+
 from .vo import UploadStatus
 
 

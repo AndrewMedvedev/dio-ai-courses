@@ -6,6 +6,8 @@ import time
 from asyncio import Semaphore
 from asyncio.taskgroups import TaskGroup
 
+from ddf.application.exceptions import NotFoundError, UniqueConstraintViolationError
+from ddf.domain.utils import apply_changes
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from langgraph.graph import END, START, StateGraph
@@ -129,7 +131,7 @@ class CourseAgent:
             await self._repo.create(course)
             logger.info("Saving course '%s' to database ...", course.title)
             await self._session.commit()
-        except IntegrityError:
+        except (IntegrityError, UniqueConstraintViolationError):
             await self._session.rollback()
             logger.info("Course %s alredy exsists", course.title)
 
@@ -206,10 +208,11 @@ class CourseAgent:
     ) -> None:
         """Обновляет курс, чтобы синхронизировать сохранённое состояние."""
         course = state["course"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
-        await self._repo.update(
-            uid=course["id"],
-            status=CourseStatus.DRAFT,
-        )
+        saved_course = await self._repo.read(course["id"])
+        if saved_course is None:
+            raise NotFoundError(f"Course with id {course['id']} not found")
+        apply_changes(saved_course, status=CourseStatus.DRAFT)
+        await self._repo.update(saved_course)
         logger.info("Update course '%s' to database ...", course["title"])
 
         await self._session.commit()

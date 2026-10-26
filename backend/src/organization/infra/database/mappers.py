@@ -1,14 +1,15 @@
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
+
 from src.iam.domain.types import RoleId
 from src.organization.domain.entities import Invitation, Organization
-from src.shared.domain.vo import Email
-from src.shared.infra.database.repos.sqlalchemy import ModelMapper
 
 from .models import InvitationOrm, OrganizationOrm
 
 
-class OrganizationMapper(ModelMapper[Organization, OrganizationOrm]):
+class OrganizationMapper(DataMapper[Organization, OrganizationOrm]):
     @staticmethod
     def from_model(model: OrganizationOrm) -> Organization:
         return Organization(
@@ -34,7 +35,7 @@ class OrganizationMapper(ModelMapper[Organization, OrganizationOrm]):
         )
 
 
-class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
+class InvitationMapper(DataMapper[Invitation, InvitationOrm]):
     @staticmethod
     def from_model(model: InvitationOrm) -> Invitation:
         return Invitation(

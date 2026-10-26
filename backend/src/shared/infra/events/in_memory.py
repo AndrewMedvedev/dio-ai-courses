@@ -1,9 +1,9 @@
 import asyncio
 import logging
 from collections import defaultdict
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 
-from src.shared.domain.events import Event
+from ddf.domain.events import Event
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class ImMemoryEventBus:
         except asyncio.QueueFull:
             logger.exception("EventBus queue is full! Dropping event: %s", type(event).__name__)
 
-    async def publish_all(self, events: list[Event]) -> None:
+    async def publish_all(self, events: Sequence[Event]) -> None:
         """Публикация списка событий."""
 
         for event in events:

@@ -1,6 +1,8 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination as Pagination
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.courses.application.dtos import CourseBasicInfo, CourseSchema, EditCourseSchema
@@ -11,7 +13,6 @@ from src.courses.domain.enums import CourseStatus
 from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ async def get_course_with_pagination(
     repo: CourseRepoDep,
     pagination: Pagination,
 ) -> Page[Course]:
-    return await repo.find(pagination)
+    return await repo.find_published(pagination)
 
 
 @router.post(

@@ -1,11 +1,12 @@
 import logging
 from uuid import UUID
 
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+from ddf.application.utils import get_or_raise_not_found
+from ddf.domain.vo.email import Email
+
 from src.iam.domain.types import RoleId
-from src.iam.domain.vo import Email
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
-from src.shared.domain.repos import get_or_raise_404
 from src.shared.utils.time import current_datetime
 
 from ...domain.entities import Invitation
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class InvitationService:
     def __init__(
         self,
-        transaction: Transaction,
+        transaction: EventDispatcher,
         invitation_repo: InvitationRepository,
         role_repo: RoleRepository,
     ) -> None:
@@ -105,7 +106,9 @@ class InvitationService:
         """
         Отзыв ошибочно отправленного приглашения.
         """
-        invitation = await get_or_raise_404(self.invitation_repo.read, invitation_id, Invitation)
+        invitation = await get_or_raise_not_found(
+            self.invitation_repo.read, invitation_id, Invitation
+        )
         if invitation.organization_id != organization_id:
             raise NotFoundError("Invitation not found.")
         if invitation.deleted_at:
@@ -115,6 +118,7 @@ class InvitationService:
             raise NotFoundError("Invitation not found.")
         if invitation.is_used:
             raise AlreadyExistsError("Accepted invitations cannot be revoked.")
-        await self.invitation_repo.update(invitation_id, deleted_at=current_datetime())
+        invitation.deleted_at = current_datetime()
+        await self.invitation_repo.update(invitation)
         await self.transaction(invitation)
         logger.info("Invitation deleted successfully")

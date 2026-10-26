@@ -8,6 +8,8 @@ import uuid
 
 import openai
 import orjson
+from ddf.application.dtos import Page
+from ddf.application.exceptions import NotFoundError
 from json_repair import repair_json
 from langsmith import traceable
 from openai.types.responses.response import Response
@@ -15,8 +17,6 @@ from tenacity import RetryCallState
 
 from src.core.redis import redis_client
 from src.llm_service.schemas import LLMTextResponse, ToolCallParsed
-from src.shared.application.dtos import Page
-from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -371,7 +371,7 @@ def parse_llm_response(
 async def cache_ai_models(
     func,
     ttl: int = 60 * 60,
-    key: str = "ai_models",
+    key: str = "ai_models:ddf",
     *args,
     **kwargs,
 ) -> Page:

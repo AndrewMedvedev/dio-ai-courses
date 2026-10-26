@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page
 from fastapi import APIRouter, status
 
 from src.iam.application.dtos import (
@@ -10,7 +11,6 @@ from src.iam.application.dtos import (
 )
 from src.iam.dependencies.crud import ServiceAccountCrudDep, service_accounts_list_depends
 from src.iam.dependencies.services import ClientCredentialsServiceDep
-from src.shared.application.dtos import Page
 
 router = APIRouter(prefix="/service-accounts", tags=["Сервисные аккаунты | Service accounts"])
 

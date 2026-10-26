@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
@@ -56,12 +55,3 @@ class UpdateUserDTO(BaseModel):
     avatar_url: str | None = Field(default=None, description="Ссылка на аватарку в CDN.")
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
-
-@dataclass(frozen=True, slots=True)
-class UserQueryParamFilters:
-    """Query param фильтры для поиска списка пользователей."""
-
-    email: EmailStr | None = None
-    username: str | None = None
-    full_name: str | None = None

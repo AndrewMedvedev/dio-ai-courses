@@ -3,7 +3,7 @@ from typing import Any
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.shared.domain.entities import Entity
+from ddf.domain.models import Entity
 
 from .enums import Complexity
 from .vo import LLMInvocationStatus

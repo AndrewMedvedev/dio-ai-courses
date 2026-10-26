@@ -1,17 +1,15 @@
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination, Page, create_page
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+
 from src.iam.application.repos import InvitationRepository as IAMInvitationRepository
 from src.iam.application.repos import MembershipRepository, UserRepository
 from src.iam.domain.entities import Membership
 from src.organization.application.dtos import InvitationSummary
 from src.organization.application.repos import InvitationRepository
-from src.shared.application.dtos import Page, Pagination
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import (
-    AlreadyExistsError,
-    ForbiddenError,
-    NotFoundError,
-)
+from src.shared.domain.exceptions import ForbiddenError
 from src.shared.utils.time import current_datetime
 
 
@@ -22,7 +20,7 @@ class InvitationManagementService:
         iam_repo: IAMInvitationRepository,
         users: UserRepository,
         memberships: MembershipRepository,
-        transaction: Transaction,
+        transaction: EventDispatcher,
     ):
         self.repos = {"organization": organization_repo, "iam": iam_repo}
         self.users = users
@@ -50,18 +48,19 @@ class InvitationManagementService:
             status=status,
         )
 
-    async def list(self, organization_id: UUID, pagination: Pagination) -> Page[InvitationSummary]:
+    async def list(
+        self, organization_id: UUID, pagination: OffsetPagination
+    ) -> Page[InvitationSummary]:
         items = []
         for source, repo in self.repos.items():
             invitations = await repo.get_by_organization(organization_id)
             items.extend(self.summarize(invitation, source) for invitation in invitations)
         items.sort(key=lambda item: (item.created_at, str(item.id)), reverse=True)
         start = pagination.offset
-        return Page.create(
+        return create_page(
+            pagination,
             items[start : start + pagination.size],
-            len(items),
-            pagination.page,
-            pagination.size,
+            total=len(items),
         )
 
     async def get_scoped(self, invitation_id: UUID, source: str, organization_id: UUID):
@@ -82,7 +81,7 @@ class InvitationManagementService:
             raise AlreadyExistsError("Accepted invitations cannot be revoked.")
         if not invitation.deleted_at:
             invitation.deleted_at = current_datetime()
-            await repo.update(invitation.id, deleted_at=invitation.deleted_at)
+            await repo.update(invitation)
             await self.transaction(invitation)
 
     async def resend(self, invitation_id: UUID, source: str, organization_id: UUID):
@@ -116,6 +115,6 @@ class InvitationManagementService:
             )
             await self.memberships.create(membership)
         invitation.mark_as_used()
-        await repo.update(invitation.id, is_used=True, used_at=invitation.used_at)
+        await repo.update(invitation)
         await self.transaction(invitation, membership)
         return membership

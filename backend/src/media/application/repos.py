@@ -3,7 +3,7 @@ from typing import BinaryIO, Protocol
 from collections.abc import AsyncIterator
 from uuid import UUID
 
-from src.shared.application.repos import Repository
+from ddf.application.repositories import Repository
 
 from ..domain.entities import StoredObject, UploadSession
 from .dtos import ObjectMeta
@@ -18,8 +18,6 @@ class StoredObjectRepository(Repository[StoredObject]):
 
 
 class UploadSessionRepository(Repository[UploadSession]):
-    async def update(self, storage_key: str, **kwargs) -> UploadSession | None: ...
-
     async def get_by_storage_key(self, storage_key: str) -> UploadSession | None:
         """Получение вложения по уникальному ключу объекта в хранилище"""
 

@@ -1,3 +1,6 @@
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+
 from src.iam.application.dtos import CreateUserDTO, TokensResponse
 from src.iam.application.repos import (
     InvitationRepository,
@@ -7,8 +10,6 @@ from src.iam.application.repos import (
 )
 from src.iam.domain.services import accept_for_new_user
 from src.iam.security import hash_password_async, validate_password_strength_async
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 from .auth import create_tokens_for_user
 
@@ -16,7 +17,7 @@ from .auth import create_tokens_for_user
 class RegistrationService:
     def __init__(
         self,
-        transaction: Transaction,
+        transaction: EventDispatcher,
         user_repo: UserRepository,
         membership_repo: MembershipRepository,
         role_repo: RoleRepository,
@@ -51,11 +52,7 @@ class RegistrationService:
 
         await self._user_repo.create(user)
         invitation.mark_as_used()
-        await self._invitation_repo.update(
-            invitation.id,
-            is_used=invitation.is_used,
-            used_at=invitation.used_at,
-        )
+        await self._invitation_repo.update(invitation)
         if membership is not None:
             await self._membership_repo.create(membership)
 

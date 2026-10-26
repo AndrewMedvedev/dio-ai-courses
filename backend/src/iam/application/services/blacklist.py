@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from src.shared.infra.cache import Cache
+from ddf.application.cache import Cache
+
 from src.shared.utils.time import current_datetime
 
 

@@ -2,9 +2,8 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from uuid import UUID
 
+from ddf.domain.vo.email import Email
 from pydantic import BaseModel, ConfigDict, Field
-
-from src.iam.domain.vo import Email
 
 
 class IdentityType(IntEnum):

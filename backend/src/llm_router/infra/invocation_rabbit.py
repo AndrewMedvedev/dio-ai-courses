@@ -15,7 +15,7 @@ MAX_CONCURRENT_INVOCATION_LOGS = 5
 invocation_queue = RabbitQueue(
     "llm_invocation_created",
     durable=True,
-    routing_key=LLMInvocationCreated.event_type,
+    routing_key="llminvocation.created.v1",
 )
 invocation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_INVOCATION_LOGS)
 

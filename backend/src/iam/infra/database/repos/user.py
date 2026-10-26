@@ -1,15 +1,16 @@
+from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.iam.domain.entities import User
-from src.iam.domain.vo import Email
 from src.iam.infra.database.mappers import UserMapper
 from src.iam.infra.database.models import UserOrm
-from src.shared.infra.database import SqlAlchemyRepository
 
 
 class SqlUserRepository(SqlAlchemyRepository[User, UserOrm]):
     model = UserOrm
-    model_mapper = UserMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = UserMapper()
+    filter_whitelist = ("email", "username", "full_name")
 
     async def get_by_email(self, email: Email) -> User | None:
         stmt = select(self.model).where(
@@ -17,4 +18,4 @@ class SqlUserRepository(SqlAlchemyRepository[User, UserOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return self.model_mapper.from_model(model) if model else None
+        return self.data_mapper.from_model(model) if model else None

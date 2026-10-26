@@ -9,9 +9,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from ddf.domain.models import AggregateRoot, Entity
+from ddf.domain.vo.email import Email
+
 from src.core.settings import settings
-from src.shared.domain.entities import AggregateRoot, Entity
-from src.shared.domain.vo import Email
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 from .constants import INVITATION_EXPIRES_IN_DAYS

@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page
+from ddf.domain.vo.email import Email
 from fastapi import APIRouter, HTTPException, status
 from pydantic import EmailStr
 
@@ -8,8 +10,6 @@ from src.iam.application.dtos import UpdateUserDTO, UserResponse
 from src.iam.dependencies import CurrentIdentity, require_authentication
 from src.iam.dependencies.crud import UserCrudDep, current_user_depends, users_list_depends
 from src.iam.dependencies.repos import UserRepositoryDep
-from src.iam.domain.vo import Email
-from src.shared.application.dtos import Page
 
 router = APIRouter(prefix="/users", tags=["Пользователи | Users"])
 

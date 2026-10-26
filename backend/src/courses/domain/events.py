@@ -3,10 +3,9 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID
 
+from ddf.domain.events import Event
+from ddf.domain.vo.email import Email
 from pydantic import BaseModel
-
-from src.shared.domain.events import Event
-from src.shared.domain.vo import Email
 
 from .vo import MemberRole
 

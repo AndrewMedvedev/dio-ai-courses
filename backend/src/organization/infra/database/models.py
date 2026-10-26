@@ -1,11 +1,13 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.types import DatatimeTz as DatetimeTz
+from ddf.infra.database.sqlalchemy.types import DatetimeTzNull as DatetimeNull
+from ddf.infra.database.sqlalchemy.types import StrUnique
 from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
-from src.shared.infra.database.types import DatetimeNull, DatetimeTz, StrUnique
 
 
 class OrganizationOrm(Base):

@@ -1,10 +1,11 @@
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
+
 from src.media.domain.entities import StoredObject, UploadSession
-from src.shared.infra.database.mappers import ModelMapper
 
 from .models import StoredObjectOrm, UploadSessionOrm
 
 
-class UploadSessionMapper(ModelMapper):
+class UploadSessionMapper(DataMapper[UploadSession, UploadSessionOrm]):
     @staticmethod
     def from_model(model: UploadSessionOrm) -> UploadSession:
         """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
@@ -42,7 +43,7 @@ class UploadSessionMapper(ModelMapper):
         )
 
 
-class StoredObjectMapper(ModelMapper):
+class StoredObjectMapper(DataMapper[StoredObject, StoredObjectOrm]):
     @staticmethod
     def from_model(model: StoredObjectOrm) -> StoredObject:
         """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""

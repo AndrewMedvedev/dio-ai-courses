@@ -1,6 +1,8 @@
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import func, select, update
 
 from src.courses.application.dtos import (
@@ -8,8 +10,6 @@ from src.courses.application.dtos import (
     ModuleBasicInfo,
 )
 from src.courses.domain.entities import Module
-from src.shared.domain.exceptions import NotFoundError
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     ModuleMapper,
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
     model = ModuleOrm
-    model_mapper = ModuleMapper  # type: ignore
+    data_mapper = ModuleMapper()
 
     async def create_at(self, module: Module) -> Module:
         if module.order < 0:
@@ -64,9 +64,7 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
             select(self.model.course_id).where(self.model.id == module_id)
         )
         if course_id is None:
-            exists = await self.exists(module_id)
-
-            if not exists:
+            if await self.read(module_id) is None:
                 raise NotFoundError(f"Module with id {module_id} not found")
 
             # Модуль существует, но не привязан к курсу.
@@ -152,7 +150,7 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
             return None
         lessons = await self.select_lessons_by_id_module(module_id=uid)
 
-        return self.model_mapper.basic_info_mapper(module_row, lessons)  # type: ignore
+        return self.data_mapper.basic_info_mapper(module_row, lessons)  # type: ignore
 
     async def read_course_ownership(
         self,

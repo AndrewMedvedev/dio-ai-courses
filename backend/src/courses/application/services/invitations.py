@@ -2,6 +2,13 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+from ddf.application.utils import get_or_raise_not_found
+from ddf.domain.exceptions import InvalidStateError
+from ddf.domain.vo.email import Email
+
 from src.courses.application.policies import InviteCourseOptions
 from src.courses.domain.permissions.invitations import INVITE
 from src.courses.domain.vo import MemberRole
@@ -11,15 +18,6 @@ from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
 from src.organization.application.dtos import InvitationCreate as OrganizationInvitationCreate
-from src.shared.application.dtos import Page, Pagination
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import (
-    AlreadyExistsError,
-    InvalidStateError,
-    NotFoundError,
-)
-from src.shared.domain.repos import get_or_raise_404
-from src.shared.domain.vo import Email
 
 from ...domain.entities import Course, Invitation, Member
 from ..dtos import InvitationCreate
@@ -37,7 +35,7 @@ logger = logging.getLogger(__name__)
 class InvitationService:
     def __init__(
         self,
-        transaction: Transaction,
+        transaction: EventDispatcher,
         invitation_repo: InvitationRepository,
         course_repo: CourseRepository,
         member_repo: MemberRepository,
@@ -61,7 +59,7 @@ class InvitationService:
         role: MemberRole,
     ) -> tuple[Course, Member | None]:
         course = await self.course_repo.read(course_id)
-        member = await self.member_repo.read(identity.id, course_id)
+        member = await self.member_repo.read_by_keys(identity.id, course_id)
         if course is None:
             raise NotFoundError
         authorize(
@@ -134,7 +132,7 @@ class InvitationService:
         ) is None or not invitation.is_valid:
             raise NotFoundError(f"Invitation with token - '{token}' not found or invalid.")
 
-        if await self.member_repo.exists(
+        if await self.member_repo.exists_by_keys(
             user_id=user_id,
             course_id=invitation.course_id,
         ):
@@ -168,7 +166,9 @@ class InvitationService:
         """
         Отзыв ошибочно отправленного приглашения.
         """
-        invitation = await get_or_raise_404(self.invitation_repo.read, invitation_id, Invitation)
+        invitation = await get_or_raise_not_found(
+            self.invitation_repo.read, invitation_id, Invitation
+        )
         await self._check_access(
             identity,
             permission=INVITE,

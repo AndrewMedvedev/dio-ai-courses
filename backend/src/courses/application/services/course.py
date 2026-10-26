@@ -3,11 +3,12 @@
 
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+from ddf.domain.utils import apply_changes
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.domain.entities import Course
 from src.courses.domain.enums import CourseStatus
-from src.shared.domain.exceptions import NotFoundError
 
 from ...application.dtos import (
     CourseSchema,
@@ -31,23 +32,25 @@ class CourseService(BaseCourseService[CourseRepository]):
 
     async def edit(self, course_id: UUID, schema: EditCourseSchema) -> Course:
         """Выполняет действие `edit_course`, чтобы поддержать основной сценарий модуля."""
-        course_exists = await self.repo.exists(course_id)
-        if not course_exists:
+        course = await self.repo.read(course_id)
+        if course is None:
             raise NotFoundError(f"Course with id {course_id} not found")
-        course = await self.repo.update(uid=course_id, **schema.model_dump(exclude_none=True))
+        apply_changes(course, **schema.model_dump(exclude_none=True))
+        await self.repo.update(course)
         await self.session.commit()
         return course
 
     async def delete(self, course_id: UUID) -> None:
-        course_exists = await self.repo.exists(course_id)
-        if not course_exists:
+        course = await self.repo.read(course_id)
+        if course is None:
             raise NotFoundError(f"Course with id {course_id} not found")
         await self.repo.delete(course_id)
         await self.session.commit()
 
     async def change_status(self, course_id: UUID, status: CourseStatus) -> None:
-        course_exists = await self.repo.exists(course_id)
-        if not course_exists:
+        course = await self.repo.read(course_id)
+        if course is None:
             raise NotFoundError(f"Course with id {course_id} not found")
-        await self.repo.update(uid=course_id, status=status)
+        apply_changes(course, status=status)
+        await self.repo.update(course)
         await self.session.commit()

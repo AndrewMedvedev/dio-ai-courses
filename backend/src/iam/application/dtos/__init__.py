@@ -22,7 +22,7 @@ from .service_account import (
     ServiceAccountResponse,
     UpdateServiceAccountDTO,
 )
-from .users import CreateUserDTO, UpdateUserDTO, UserQueryParamFilters, UserResponse
+from .users import CreateUserDTO, UpdateUserDTO, UserResponse
 
 __all__ = [
     "ClientCredentials",
@@ -49,6 +49,5 @@ __all__ = [
     "UpdateServiceAccountDTO",
     "UpdateUserDTO",
     "UserCredentials",
-    "UserQueryParamFilters",
     "UserResponse",
 ]

@@ -3,6 +3,8 @@
 
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+from ddf.domain.utils import apply_changes
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.dtos import (
@@ -10,7 +12,6 @@ from src.courses.application.dtos import (
     LessonSchema,
 )
 from src.courses.domain.entities import AnyContentBlock, Lesson
-from src.shared.domain.exceptions import NotFoundError
 
 from ..repos import LessonRepository, ModuleRepository
 from .base_course import BaseCourseService
@@ -34,18 +35,18 @@ class LessonService(BaseCourseService):
         return lesson
 
     async def assign_module(self, lesson_id: UUID, module_id: UUID) -> None:
-        module = await self.module_repo.exists(module_id)
-        if not module:
+        module = await self.module_repo.read(module_id)
+        if module is None:
             raise NotFoundError(f"Module with id {module_id} not found")
-        lesson = await self.repo.exists(lesson_id)
-        if not lesson:
+        lesson = await self.repo.read(lesson_id)
+        if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
         await self.repo.assign_module(lesson_id, module_id)
         await self.session.commit()
 
     async def read_content_blocks(self, lesson_id: UUID) -> list[AnyContentBlock]:
-        lesson_exists = await self.repo.exists(lesson_id)
-        if not lesson_exists:
+        lesson = await self.repo.read(lesson_id)
+        if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
         content_blocks = await self.repo.get_content_blocks_by_id(lesson_id)
         if not content_blocks:
@@ -54,10 +55,11 @@ class LessonService(BaseCourseService):
 
     async def edit(self, lesson_id: UUID, schema: EditLessonSchema) -> Lesson:
         """Выполняет действие `edit_lesson`, чтобы поддержать основной сценарий модуля."""
-        lesson_exists = await self.repo.exists(lesson_id)
-        if not lesson_exists:
+        lesson = await self.repo.read(lesson_id)
+        if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
-        lesson = await self.repo.update(uid=lesson_id, **schema.model_dump(exclude_none=True))
+        apply_changes(lesson, **schema.model_dump(exclude_none=True))
+        await self.repo.update(lesson)
         await self.session.commit()
         return lesson
 
@@ -67,17 +69,18 @@ class LessonService(BaseCourseService):
         content_blocks: list[AnyContentBlock],
     ) -> Lesson:
         """Обновляет контент-блоки, чтобы синхронизировать сохранённое состояние."""
-        lesson_exists = await self.repo.exists(lesson_id)
-        if not lesson_exists:
+        lesson = await self.repo.read(lesson_id)
+        if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
-        lesson: Lesson = await self.repo.update(uid=lesson_id, content_blocks=content_blocks)
+        apply_changes(lesson, content_blocks=content_blocks)
+        await self.repo.update(lesson)
         await self.session.commit()
         return lesson
 
     async def delete(self, lesson_id: UUID) -> None:
         """Выполняет действие `delete_lesson`, чтобы поддержать основной сценарий модуля."""
-        lesson_exists = await self.repo.exists(lesson_id)
-        if not lesson_exists:
+        lesson = await self.repo.read(lesson_id)
+        if lesson is None:
             raise NotFoundError(f"Lesson with id {lesson_id} not found")
         await self.repo.delete(lesson_id)
         await self.session.commit()

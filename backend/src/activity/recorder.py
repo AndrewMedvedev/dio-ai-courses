@@ -1,6 +1,6 @@
 import logging
 
-from src.shared.domain.events import Event
+from ddf.domain.events import Event
 
 from .domain.models import ActivityLog
 from .domain.repos import ActivityLogRepository

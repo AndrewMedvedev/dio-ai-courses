@@ -5,11 +5,12 @@ import json
 from dataclasses import asdict
 from uuid import UUID
 
+from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import NotFoundError
+from ddf.domain.utils import apply_changes
 from pydantic import TypeAdapter
 
 from src.llm_service import LLMTextService
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import NotFoundError
 from src.shared.utils.time import current_datetime
 
 from ...application.repos import LessonRepository, PracticeRepository
@@ -28,7 +29,7 @@ class PracticerAgent:
         self,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
-        transaction: Transaction,
+        transaction: EventDispatcher,
         client: SrvCourseClient,
     ) -> None:
         """Инициализирует объект и сохраняет зависимости, необходимые для дальнейшей работы."""
@@ -82,7 +83,8 @@ class PracticerAgent:
         practice_id: UUID,
     ) -> PracticeResult:
         """Проверяет практику, сохраняет результат и публикует событие при успешном прохождении."""
-        if not await self.practice_repo.exists(practice_id):
+        saved_practice = await self.practice_repo.read(practice_id)
+        if saved_practice is None:
             raise NotFoundError("Practice was not found")
 
         file_str = base64.b64encode(file).decode("utf-8")
@@ -98,24 +100,19 @@ class PracticerAgent:
             schema=PracticeResult,
         )
         response = PracticeResult.model_validate(result.output)
+        apply_changes(
+            saved_practice,
+            status=PracticeStatus.COMPLETED if response.is_passed else PracticeStatus.FAILED,
+            practice={"practice": practice, **response.model_dump()},
+        )
+        await self.practice_repo.update(saved_practice)
         if response.is_passed:
-            practice_entity = await self.practice_repo.update(
-                uid=practice_id,
-                status=PracticeStatus.COMPLETED,
-                practice={"practice": practice, **response.model_dump()},
-            )
-            practice_entity.register_event(
+            saved_practice.register_event(
                 LessonProgressUpdated(
-                    user_id=practice_entity.user_id,
-                    lesson_id=practice_entity.lesson_id,
+                    user_id=saved_practice.user_id,
+                    lesson_id=saved_practice.lesson_id,
                     progress=LessonProgressUpdate(practice_completed_at=current_datetime()),
                 )
             )
-        else:
-            practice_entity = await self.practice_repo.update(
-                uid=practice_id,
-                status=PracticeStatus.FAILED,
-                practice={"practice": practice, **response.model_dump()},
-            )
-        await self.transaction(practice_entity)
+        await self.transaction(saved_practice)
         return response

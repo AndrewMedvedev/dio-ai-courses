@@ -1,5 +1,7 @@
 from typing import ClassVar
 
+from ddf.application.dtos import Page, Pagination, Sort
+from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,8 +10,6 @@ from src.iam.application.dtos import PermissionQueryParamFilters
 from src.iam.domain.entities import Permission
 from src.iam.infra.database.mappers import PermissionMapper
 from src.iam.infra.database.models import PermissionOrm
-from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.repos.sqlalchemy import paginate
 
 
 def apply_permission_query_param_filters(
@@ -43,13 +43,13 @@ def apply_permission_query_param_filters(
 
 class SqlPermissionRepository:
     model: ClassVar[type[PermissionOrm]] = PermissionOrm
-    model_mapper: ClassVar[type[PermissionMapper]] = PermissionMapper
+    data_mapper: ClassVar[type[PermissionMapper]] = PermissionMapper
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def create_or_update(self, permission: Permission) -> None:
-        values = self.model_mapper.to_dict(permission)
+        values = self.data_mapper.to_dict(permission)
 
         insert_stmt = pg_insert(self.model).values(**values)
         upsert_stmt = insert_stmt.on_conflict_do_update(
@@ -64,6 +64,7 @@ class SqlPermissionRepository:
 
     async def find(
             self, pagination: Pagination, filters: PermissionQueryParamFilters | None = None,
+            sort: Sort | None = None,
     ) -> Page[Permission]:
 
         stmt = select(self.model)
@@ -76,6 +77,6 @@ class SqlPermissionRepository:
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            mapper=self.model_mapper.from_model,
-            sort=filters.sort,
+            from_model=self.data_mapper.from_model,
+            sort=sort,
         )

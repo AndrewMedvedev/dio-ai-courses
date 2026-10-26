@@ -1,7 +1,9 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from ddf.domain.exceptions import DomainError
+from ddf.domain.vo.email import Email
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
@@ -12,9 +14,7 @@ from src.feedback.api.v1.feedback import router
 from src.feedback.domain.permissions.feedback import READ
 from src.iam.application.dtos import Identity, IdentityType
 from src.iam.dependencies.identity import get_current_identity
-from src.iam.domain.vo import Email
 from src.shared.dependencies.events import get_event_publisher
-from src.shared.domain.exceptions import DomainError
 
 
 def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
@@ -23,6 +23,9 @@ def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
     app.include_router(router, prefix="/api/v1")
     session = AsyncMock(spec=AsyncSession)
     session.scalar.return_value = 0
+    rows = MagicMock()
+    rows.all.return_value = []
+    session.scalars.return_value = rows
     publisher = AsyncMock()
     app.dependency_overrides[get_current_identity] = lambda: identity
     app.dependency_overrides[get_db] = lambda: session
@@ -60,7 +63,7 @@ def test_http_post_creates_feedback_using_token_identity() -> None:
     session.scalar.assert_awaited_once()
     session.add.assert_called_once()
     session.commit.assert_awaited_once()
-    publisher.publish_all.assert_awaited_once()
+    publisher.assert_awaited_once()
 
 
 def test_http_post_rejects_client_supplied_identity() -> None:
@@ -93,8 +96,8 @@ def test_http_get_allows_service_account_with_permission_and_applies_filters() -
     response = client.get("/api/v1/feedbacks?page=2&size=3&rating=4&sort=created_at:asc")
 
     assert response.status_code == 200
-    assert response.json()["page"] == 2
-    assert response.json()["size"] == 3
+    assert response.json()["meta"]["page"] == 2
+    assert response.json()["meta"]["size"] == 3
     assert response.json()["items"] == []
     session.scalar.assert_awaited_once()
     statement = session.scalar.await_args.args[0]

@@ -1,6 +1,8 @@
 import asyncio
+from collections.abc import Sequence
 
-from src.shared.domain.events import Event, EventPublisher
+from ddf.application.events import EventPublisher
+from ddf.domain.events import Event
 
 
 class ConcurrentEventPublisher:
@@ -10,9 +12,9 @@ class ConcurrentEventPublisher:
 
     async def publish(self, event: Event) -> None:
         async with self._semaphore:
-            await self._publisher.publish(event)
+            await self._publisher([event])
 
-    async def publish_all(self, events: list[Event]) -> None:
+    async def publish_all(self, events: Sequence[Event]) -> None:
         async with asyncio.TaskGroup() as tg:
             for event in events:
                 tg.create_task(self.publish(event))

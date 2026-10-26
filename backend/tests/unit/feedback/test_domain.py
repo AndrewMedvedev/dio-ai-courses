@@ -1,12 +1,12 @@
 from uuid import UUID
 
 import pytest
+from ddf.domain.vo.email import Email
 
 from src.feedback.domain.constants import MAX_COMMENT_LENGTH
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.events import FeedbackCreated
 from src.feedback.domain.vo import FeedbackRating
-from src.iam.domain.vo import Email
 
 
 @pytest.mark.parametrize("rating", [1, 5])

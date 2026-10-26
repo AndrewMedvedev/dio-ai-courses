@@ -1,8 +1,7 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import exists, select, update
-
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ....domain.entities import LessonProgress
 from ....domain.events import LessonProgressUpdated
@@ -12,7 +11,7 @@ from ..models import CourseProgressOrm, LessonProgressOrm, ModuleProgressOrm
 
 class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonProgressOrm]):
     model = LessonProgressOrm
-    model_mapper = LessonProgressMapper
+    data_mapper = LessonProgressMapper()
 
     async def get_by_user(self, user_id: UUID, resource_id: UUID) -> LessonProgress | None:
         stmt = (
@@ -26,7 +25,7 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool:
         stmt = select(exists().where(

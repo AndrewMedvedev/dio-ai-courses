@@ -33,16 +33,11 @@ Design principles
 - Entity, collection and pagination caches are independent and use different keys.
 """
 
-from .base import Cache
-from .in_memory import InMemoryCache
+from ddf.infra.cache.in_memory import InMemoryCache
+
 from .multi_level import MultiLevelCache
-from .redis import PrimitiveSerializer, RedisCache, Serializer
 
 __all__ = [
-    "Cache",
     "InMemoryCache",
     "MultiLevelCache",
-    "PrimitiveSerializer",
-    "RedisCache",
-    "Serializer",
 ]

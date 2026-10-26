@@ -27,7 +27,7 @@ async def handle_notification(notification: Notification) -> None:
 
 
 @router.subscriber(
-    queue=RabbitQueue("courses.invited", durable=True),
+    queue=RabbitQueue("course.invited.v1", durable=True),
     exchange=events_exchange,
 )
 async def on_course_invited(
@@ -39,7 +39,7 @@ async def on_course_invited(
 
 
 @router.subscriber(
-    queue=RabbitQueue("organizations.invited", durable=True),
+    queue=RabbitQueue("organization.invited.v1", durable=True),
     exchange=events_exchange,
 )
 async def on_organization_invited(
@@ -51,7 +51,7 @@ async def on_organization_invited(
 
 
 @router.subscriber(
-    queue=RabbitQueue("users.invited", durable=True),
+    queue=RabbitQueue("user.invited.v1", durable=True),
     exchange=events_exchange,
 )
 async def on_user_invited(

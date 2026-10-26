@@ -1,10 +1,10 @@
 import logging
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.iam.application.dtos.membership import CreateMembershipDTO
 from src.iam.domain.entities import Membership
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 from ..repos import MembershipRepository, UserRepository
 
@@ -26,7 +26,7 @@ class MembershipService:
         self,
         dto: CreateMembershipDTO,
     ) -> Membership:
-        user_exists = await self.user_repo.exists(dto.user_id)
+        user_exists = await self.user_repo.read(dto.user_id) is not None
         if not user_exists:
             raise NotFoundError("User not found")
         created_membership = await self.membership_repo.get_by_user_and_organization(

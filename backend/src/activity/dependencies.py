@@ -4,10 +4,10 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination, Page
 from fastapi import Depends, Query
 
-from src.shared.dependencies import PaginationDep, SessionDep
-from src.shared.schemas import Page
+from src.shared.dependencies import DBSession
 
 from .domain.dtos import ActivityLogFilters
 from .domain.repos import ActivityLogRepository
@@ -19,7 +19,7 @@ from .schemas import ActivityLogResponse
 ActivityLogPaginatorFunc = Callable[[str, UUID], Awaitable[Page[ActivityLogResponse]]]
 
 
-def get_activity_repo(session: SessionDep) -> SqlActivityLogRepository:
+def get_activity_repo(session: DBSession) -> SqlActivityLogRepository:
     return SqlActivityLogRepository(session)
 
 
@@ -54,18 +54,18 @@ async def paginate_activities(
         activity_log_repo: ActivityRepoDep,
         aggregate_type: str,
         aggregate_id: UUID,
-        pagination: PaginationDep,
+        pagination: Annotated[OffsetPagination, Query()],
         filters: ActivityLogFiltersDep,
 ) -> Page[ActivityLogResponse]:
     page = await activity_log_repo.get_for_aggregate(
         aggregate_type, aggregate_id, pagination=pagination, filters=filters,
     )
-    return page.to_response(map_activity_log_to_response)
+    return page.map(map_activity_log_to_response)
 
 
 async def get_activity_paginator(  # noqa: RUF029
         activity_repo: ActivityRepoDep,
-        pagination: PaginationDep,
+        pagination: Annotated[OffsetPagination, Query()],
         filters: ActivityLogFiltersDep,
 ) -> ActivityLogPaginatorFunc:
     async def paginator(aggregate_type: str, aggregate_id: UUID) -> Page[ActivityLogResponse]:
@@ -75,6 +75,6 @@ async def get_activity_paginator(  # noqa: RUF029
             pagination=pagination,
             filters=filters,
         )
-        return page.to_response(map_activity_log_to_response)
+        return page.map(map_activity_log_to_response)
 
     return paginator

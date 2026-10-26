@@ -3,6 +3,8 @@ from typing import Annotated
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import Sort, SortDirection
+from ddf.domain.utils import apply_changes
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.courses.application.dtos import LessonTheorySessionEditSchema, LessonTheorySessionFilters
@@ -55,10 +57,11 @@ async def update(
     theory_session_id: UUID,
     schema: LessonTheorySessionEditSchema,
 ) -> LessonTheorySession:
-    exsists = await repo.exists(uid=theory_session_id)
-    if not exsists:
+    result = await repo.read(theory_session_id)
+    if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Metrics not found")
-    result = await repo.update(uid=theory_session_id, **schema.model_dump(exclude_none=True))
+    apply_changes(result, **schema.model_dump(exclude_none=True))
+    await repo.update(result)
     await session.commit()
     return result  # pyright: ignore[reportReturnType]
 
@@ -77,10 +80,17 @@ async def get(
     identity: CurrentIdentity,
     lesson_id: UUID,
     filters: Annotated[LessonTheorySessionFilters, Query()],
+    field: str = "created_at",
+    direction: SortDirection = "asc",
 ) -> list[LessonTheorySession]:
     await check_access(
         identity=identity,
         permission=READ,
         uid=lesson_id,
     )
-    return await repo.find(lesson_id=lesson_id, user_id=user_id, filters=filters)
+    return await repo.find_sessions(
+        lesson_id=lesson_id,
+        user_id=user_id,
+        filters=filters,
+        sort=Sort(field=field, direction=direction),
+    )

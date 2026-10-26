@@ -1,10 +1,10 @@
 import logging
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.courses.domain.enums import DocumentNodeType
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ....domain.entities import (
     Document,
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     model = DocumentOrm
-    model_mapper = DocumentMapper  # type: ignore
+    data_mapper = DocumentMapper()
 
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
     async def get_tocs(self, owner_id: UUID) -> list[Document]:
@@ -32,7 +32,7 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             )
         )
 
-        return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
+        return [self.data_mapper.from_model(model) for model in stmt.scalars().all()]
 
     # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
     async def get_headings(
@@ -48,7 +48,7 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             )
         )
 
-        return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
+        return [self.data_mapper.from_model(model) for model in stmt.scalars().all()]
 
     # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
     async def get_text(
@@ -69,4 +69,4 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
         if model is None:
             return None
 
-        return self.model_mapper.from_model(model)
+        return self.data_mapper.from_model(model)

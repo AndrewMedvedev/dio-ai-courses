@@ -2,7 +2,7 @@ from typing import Protocol
 
 from uuid import UUID
 
-from src.shared.application.dtos import Page, Pagination
+from ddf.application.dtos import OffsetPagination, Page
 
 from .dtos import ActivityLogFilters
 from .models import ActivityLog
@@ -19,6 +19,6 @@ class ActivityLogRepository(Protocol):
             aggregate_type: str,
             aggregate_id: UUID,
             *,
-            pagination: Pagination,
+            pagination: OffsetPagination,
             filters: ActivityLogFilters | None = None,
     ) -> Page[ActivityLog]: ...

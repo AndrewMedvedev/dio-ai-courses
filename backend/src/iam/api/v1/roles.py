@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Depends, status
 
 from src.iam.application.dtos import CreateRoleDTO, RoleResponse, UpdateRoleDTO
@@ -7,7 +8,6 @@ from src.iam.dependencies import CurrentIdentity, require_permissions
 from src.iam.dependencies.crud import RoleCrudDep
 from src.iam.dependencies.crud.roles import RolesListDep
 from src.iam.domain.permissions.roles import CREATE, DELETE, READ, UPDATE
-from src.shared.application.dtos import Page
 
 router = APIRouter(prefix="/roles", tags=["Роли | Roles"])
 

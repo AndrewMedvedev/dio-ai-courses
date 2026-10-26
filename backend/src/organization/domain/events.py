@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from ddf.domain.events import Event
+from ddf.domain.vo.email import Email
+
 from src.iam.domain.types import RoleId
-from src.shared.domain.events import Event
-from src.shared.domain.vo import Email
 
 
 @dataclass(frozen=True, kw_only=True)

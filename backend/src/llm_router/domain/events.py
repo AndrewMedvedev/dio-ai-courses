@@ -3,7 +3,7 @@ from typing import Any, ClassVar
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.shared.domain.events import Event
+from ddf.domain.events import Event
 
 from .vo import LLMInvocationStatus
 

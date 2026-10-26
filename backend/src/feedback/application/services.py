@@ -1,9 +1,13 @@
+from typing import cast
+
 from datetime import timedelta
 from uuid import UUID
 
-from src.iam.domain.vo import Email
-from src.shared.application.dtos import Pagination
-from src.shared.application.transaction import Transaction
+from ddf.application.dtos import OffsetPagination
+from ddf.application.dtos.pagination import OffsetMeta
+from ddf.application.events import EventDispatcher
+from ddf.domain.vo.email import Email
+
 from src.shared.domain.exceptions import RateLimitExceededError
 from src.shared.utils.time import current_datetime
 
@@ -19,7 +23,7 @@ class FeedbackService:
     def __init__(
         self,
         feedback_repo: FeedbackRepository,
-        transaction: Transaction,
+        transaction: EventDispatcher,
     ) -> None:
         self._feedback_repo = feedback_repo
         self._transaction = transaction
@@ -35,13 +39,13 @@ class FeedbackService:
         filters = FeedbackFilters(
             created_after=current_datetime() - timedelta(days=1),
         )
-        recent_feedbacks = await self._feedback_repo.find(
-            Pagination(page=1, size=1),
+        recent_feedbacks = await self._feedback_repo.find_feedbacks(
+            OffsetPagination(page=1, size=1),
             filters,
             user_id=user_id,
         )
 
-        if recent_feedbacks.total >= DAILY_FEEDBACK_LIMIT:
+        if cast(OffsetMeta, recent_feedbacks.meta).total >= DAILY_FEEDBACK_LIMIT:
             raise RateLimitExceededError(
                 f"Можно оставить не более {DAILY_FEEDBACK_LIMIT} отзывов за сутки"
             )

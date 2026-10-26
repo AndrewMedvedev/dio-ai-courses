@@ -1,9 +1,9 @@
 from uuid import UUID, uuid4
 
 import pytest
+from ddf.domain.vo.email import Email
 
 from src.feedback.domain.entities import Feedback
-from src.iam.domain.vo import Email
 
 
 @pytest.fixture

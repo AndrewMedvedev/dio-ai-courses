@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 
-from .base import Cache
+from ddf.application.cache import Cache
 
 logger = logging.getLogger(__name__)
 

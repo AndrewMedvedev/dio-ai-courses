@@ -11,7 +11,6 @@ from pydantic import BaseModel, EmailStr, Field
 
 from src.courses.domain.enums import ContentType, DifficultyLevel
 from src.courses.domain.vo import MemberRole
-from src.shared.application.dtos import BaseQueryParamFilters
 
 
 @dataclass(kw_only=True, slots=True)
@@ -135,7 +134,7 @@ class EditLessonSchema(BaseModel):
     estimated_time_minutes: int | None = None
 
 
-class LessonTheorySessionFilters(BaseQueryParamFilters):
+class LessonTheorySessionFilters(BaseModel):
     created_from: datetime | None = None
     created_to: datetime | None = None
 
