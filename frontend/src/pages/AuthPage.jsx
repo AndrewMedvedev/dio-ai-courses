@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSessionStore } from "../stores/sessionStore";
 import { isTokenExpired } from "../utils/api";
+import InvitationEntry from "./InvitationEntry";
 
 function getRedirectPath(search) {
   const params = new URLSearchParams(search);
@@ -14,6 +15,21 @@ function getRedirectPath(search) {
   return ["/login", "/register"].includes(redirectPathname)
     ? "/profile"
     : redirect;
+}
+
+// После принятия приглашения в организацию сюда приходят с ?organization=<id>,
+// чтобы на шаге выбора организации она уже была отмечена.
+function getPreferredOrganizationId(search) {
+  return new URLSearchParams(search).get("organization") || "";
+}
+
+function getMembershipOrganizationId(membership) {
+  return (
+    membership?.organization_id ||
+    membership?.organizationId ||
+    membership?.organization?.id ||
+    ""
+  );
 }
 
 function getMembershipId(membership) {
@@ -30,6 +46,16 @@ function getOrganizationName(membership) {
 }
 
 export default function AuthPage({ mode = "login" }) {
+  const location = useLocation();
+  const redirect = getRedirectPath(location.search);
+  const invitation = redirect.match(/^\/invitations\/organization\/accept\/([^/?#]+)$/);
+  const explicitLogin = new URLSearchParams(location.search).get("invitationLogin") === "1";
+  return invitation && !explicitLogin ? (
+    <InvitationEntry key={invitation[1]} token={invitation[1]}><ExistingAuthPage mode={mode} /></InvitationEntry>
+  ) : <ExistingAuthPage mode={mode} />;
+}
+
+function ExistingAuthPage({ mode = "login" }) {
   const isRegister = mode === "register";
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +81,11 @@ export default function AuthPage({ mode = "login" }) {
     (state) => state.resetOrganizationSelection,
   );
   const [selectedMembershipId, setSelectedMembershipId] = useState("");
+  const preferredOrganizationId = useMemo(
+    () => getPreferredOrganizationId(location.search),
+    [location.search],
+  );
+  const isInvitationRedirect = redirectPath.startsWith("/invitations/");
 
   useEffect(() => {
     const hasActiveSession = Boolean(
@@ -77,10 +108,19 @@ export default function AuthPage({ mode = "login" }) {
   ]);
 
   useEffect(() => {
-    if (!selectedMembershipId && memberships.length === 1) {
+    if (selectedMembershipId || !memberships.length) return;
+    const preferred = preferredOrganizationId
+      ? memberships.find(
+          (membership) =>
+            getMembershipOrganizationId(membership) === preferredOrganizationId,
+        )
+      : null;
+    if (preferred) {
+      setSelectedMembershipId(getMembershipId(preferred) || "");
+    } else if (memberships.length === 1) {
       setSelectedMembershipId(getMembershipId(memberships[0]) || "");
     }
-  }, [memberships, selectedMembershipId]);
+  }, [memberships, preferredOrganizationId, selectedMembershipId]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -133,12 +173,20 @@ export default function AuthPage({ mode = "login" }) {
               ? "Создайте учебный профиль"
               : loginStep === "organization"
                 ? "Продолжите в организации"
-                : "С возвращением"}
+                : isInvitationRedirect
+                  ? "Вас пригласили"
+                  : "С возвращением"}
           </h1>
           <p>
             {loginStep === "organization"
-              ? "Выбор организации определяет рабочее пространство, роли и доступные курсы. Для смены организации нужно войти заново."
-              : "Сохраняйте прогресс, проходите курсы и возвращайтесь к материалам с любого устройства."}
+              ? preferredOrganizationId
+                ? "Организация, в которую вы вступили по приглашению, уже выбрана — нажмите «Продолжить»."
+                : "Выбор организации определяет рабочее пространство, роли и доступные курсы. Для смены организации нужно войти заново."
+              : isInvitationRedirect
+                ? "Войдите в аккаунт, на email которого пришло письмо, — приглашение примется автоматически."
+                : preferredOrganizationId
+                  ? "Войдите ещё раз, чтобы перейти в организацию, в которую вы вступили."
+                  : "Сохраняйте прогресс, проходите курсы и возвращайтесь к материалам с любого устройства."}
           </p>
         </div>
 

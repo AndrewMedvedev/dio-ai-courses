@@ -3,11 +3,10 @@ from uuid import UUID
 from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.courses.application.repos import CourseRepository, MemberRepository
+from src.courses.domain.entities import Course, Member
+from src.courses.domain.vo import MemberRole
 from src.shared.application.dtos import Page, Pagination
-
-from ...application.repos import CourseRepository, MemberRepository
-from ...domain.entities import Course, Member
-from ...domain.vo import MemberRole
 
 
 class MemberService:
@@ -36,4 +35,4 @@ class MemberService:
         return student
 
     async def get_my_courses(self, user_id: UUID, pagination: Pagination) -> Page[Course]:
-        return await self._course_repo.find_student_courses(user_id, pagination)
+        return await self._course_repo.find_member_courses(user_id, pagination)

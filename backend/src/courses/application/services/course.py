@@ -6,12 +6,13 @@ from uuid import UUID
 from ddf.application.exceptions import NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.courses.domain.entities import Course
+from src.courses.domain.enums import CourseStatus
+
 from ...application.dtos import (
     CourseSchema,
     EditCourseSchema,
 )
-from ...domain.entities import Course
-from ...domain.vo import CourseStatus
 from ..repos import (
     CourseRepository,
 )

@@ -1,3 +1,5 @@
+import { formatCourseLevel } from "../../utils/api";
+
 function TextList({ title, items, emptyText }) {
   if (!Array.isArray(items) || items.length === 0) {
     return <p className="course-viewer-muted">{emptyText}</p>;
@@ -32,7 +34,7 @@ export default function CourseBasicInfo({ course }) {
     : Array.isArray(course.learning_objectives)
       ? course.learning_objectives
       : [];
-  const difficulty = course.difficulty || course.level || "Не указан";
+  const difficulty = formatCourseLevel(course.difficulty || course.level);
 
   return (
     <article className="course-viewer-card course-basic-info">

@@ -1,3 +1,6 @@
+from typing import Literal
+
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -34,8 +37,23 @@ class OrganizationEdit(BaseModel):
 
 
 class InvitationCreate(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel)
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
 
     email: EmailStr
     granted_roles: set[RoleId]
+
+
+class InvitationSummary(BaseModel):
+    id: UUID
+    source: Literal["iam", "organization"]
+    email: str
     organization_id: UUID
+    created_at: datetime
+    expires_at: datetime
+    used_at: datetime | None
+    revoked_at: datetime | None
+    status: Literal["pending", "accepted", "expired", "revoked"]

@@ -7,7 +7,7 @@ from .auth import (
     UserCredentials,
 )
 from .identity import Identity, IdentityResponse, IdentityType
-from .invitations import InvitationCreate
+from .invitations import InvitationCreate, InvitationPreview
 from .oauth import OAuthCredentials, OAuthTokenResponse
 from .roles import (
     CreateRoleDTO,
@@ -33,6 +33,7 @@ __all__ = [
     "IdentityResponse",
     "IdentityType",
     "InvitationCreate",
+    "InvitationPreview",
     "LoginResponse",
     "LogoutRequest",
     "MembershipResponse",

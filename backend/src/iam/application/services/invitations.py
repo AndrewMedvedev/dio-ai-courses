@@ -2,14 +2,16 @@ import logging
 from uuid import UUID
 
 from ddf.application.events.dispatcher import EventDispatcher
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from ddf.application.utils import get_or_raise_not_found
 from ddf.domain.vo.email import Email
 
 from src.iam.domain.types import RoleId
+from src.shared.utils.time import current_datetime
 
 from ...domain.entities import Invitation
 from ..dtos.invitations import InvitationCreate
-from ..repos import InvitationRepository
+from ..repos import InvitationRepository, RoleRepository
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +21,11 @@ class InvitationService:
         self,
         transaction: EventDispatcher,
         invitation_repo: InvitationRepository,
+        role_repo: RoleRepository,
     ) -> None:
         self.transaction = transaction
         self.invitation_repo = invitation_repo
+        self.role_repo = role_repo
 
     @staticmethod
     def _is_same_invitation_scope(
@@ -30,8 +34,8 @@ class InvitationService:
         granted_roles: set[RoleId] | None,
     ) -> bool:
         return invitation.organization_id == organization_id and (
-            invitation.granted_roles or []
-        ) == (granted_roles or [])
+            invitation.granted_roles or set()
+        ) == (granted_roles or set())
 
     async def create(
         self,
@@ -39,7 +43,16 @@ class InvitationService:
         invited_by: UUID,
     ) -> Invitation:
         email = Email(dto.email)
-        requested_roles = set(dto.granted_roles or set())
+        if dto.granted_roles is None:
+            default_role = await self.role_repo.get_by_code("default_role")
+
+            if default_role is None:
+                raise NotFoundError("Default role with code 'default_role' was not found.")
+
+            requested_roles = {RoleId(default_role.id)}
+        else:
+            requested_roles = dto.granted_roles
+
         invitations = await self.invitation_repo.get_active_by_email(email)
         invitation = next(
             (
@@ -49,7 +62,7 @@ class InvitationService:
                 and self._is_same_invitation_scope(
                     invitation=invitation,
                     organization_id=dto.organization_id,
-                    granted_roles=dto.granted_roles,
+                    granted_roles=requested_roles,
                 )
             ),
             None,
@@ -76,7 +89,7 @@ class InvitationService:
         invitation = Invitation.create(
             email=email,
             invited_by=invited_by,
-            granted_roles=requested_roles or None,
+            granted_roles=requested_roles,
             organization_id=dto.organization_id,
         )
 
@@ -85,14 +98,26 @@ class InvitationService:
 
         return invitation
 
-    async def revoke_invitation(self, invitation_id: UUID) -> None:
+    async def revoke_invitation(
+        self,
+        invitation_id: UUID,
+        organization_id: UUID,
+    ) -> None:
         """
         Отзыв ошибочно отправленного приглашения.
         """
         invitation = await get_or_raise_not_found(
             self.invitation_repo.read, invitation_id, Invitation
         )
-
-        await self.invitation_repo.delete(invitation_id)
+        if invitation.organization_id != organization_id:
+            raise NotFoundError("Invitation not found.")
+        if invitation.deleted_at:
+            return
+        invitation = await self.invitation_repo.get_by_token(invitation.token)
+        if invitation is None:
+            raise NotFoundError("Invitation not found.")
+        if invitation.is_used:
+            raise AlreadyExistsError("Accepted invitations cannot be revoked.")
+        await self.invitation_repo.update(invitation_id, deleted_at=current_datetime())
         await self.transaction(invitation)
         logger.info("Invitation deleted successfully")

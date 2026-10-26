@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.database import session_factory
 from ..courses.domain.entities import Course, Lesson, Module
+from ..courses.domain.enums import CourseStatus, DifficultyLevel
 
 # Импорты доменных классов (убедитесь, что пути соответствуют вашей структуре)
 from ..courses.domain.vo import (
@@ -18,8 +19,6 @@ from ..courses.domain.vo import (
     ChemicalBlock,
     CodeBlock,
     ContentType,
-    CourseStatus,
-    DifficultyLevel,
     ExtendedContentType,
     FileUploadAssignment,
     GitHubAssignment,
@@ -251,7 +250,7 @@ async def main():
     """Запускает сценарий модуля и связывает подготовку данных с основным действием."""
     async with session_factory() as session:
         # Укажите реальный UUID создателя (можно взять из JSON или передать)
-        creator_id = UUID("a8cf83bc-0de9-4b7b-8047-137f5669195e")
+        creator_id = UUID("653494ed-02ce-428c-9c0d-352c979a8837")
         loaded_courses: list[Course] = []
 
         for course_file in COURSE_JSON_FILES:

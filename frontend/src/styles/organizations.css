@@ -169,6 +169,14 @@
     justify-content: flex-end;
 }
 
+/* Кнопки в шапке панели организации: приглашения и редактирование. */
+.organization-panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 .organization-card-actions-row {
     justify-content: flex-start;
 }
@@ -389,7 +397,8 @@
         flex-direction: column;
     }
 
-    .organization-card-actions {
+    .organization-card-actions,
+    .organization-panel-actions {
         justify-content: flex-start;
     }
 
@@ -397,4 +406,8 @@
     .organization-meta {
         grid-template-columns: 1fr;
     }
+}
+.organization-invitation-email {
+  overflow-wrap: anywhere;
+  min-width: 0;
 }

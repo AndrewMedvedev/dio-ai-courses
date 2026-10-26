@@ -576,6 +576,46 @@
     cursor: pointer;
 }
 
+/* Карточка каталога: название, уровень и теги — без описания, все карточки одной формы. */
+.courses-catalog-grid .course-tab-card {
+    gap: 12px;
+    min-height: 196px;
+    padding: 22px;
+}
+
+.courses-catalog-grid .course-tab-card h3 {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.32;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.courses-catalog-grid .course-tab-level {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.courses-catalog-grid .course-tab-level strong {
+    color: var(--ink-accent);
+    font-size: 0.92rem;
+}
+
+.courses-catalog-grid .course-tab-tags {
+    margin: auto 0 0;
+}
+
+.course-meta-inline span.is-more {
+    background: transparent;
+}
+
 .course-tab-card.is-clickable:hover {
     border-color: rgba(var(--accent-rgb), 0.82);
 }

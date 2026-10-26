@@ -42,7 +42,7 @@ async function parseError(response, fallbackMessage) {
 
 export async function signCourse(courseId, options = {}) {
   const response = await apiFetch(
-    `/student/${encodeURIComponent(courseId)}/sign`,
+    `/members/${encodeURIComponent(courseId)}/enroll`,
     {
       ...options,
       method: "POST",
@@ -103,15 +103,14 @@ export async function getCourseStudents(
   { page = 1, size = 10 } = {},
   options = {},
 ) {
-  const response = await apiFetch(`/student/${encodeURIComponent(courseId)}`, {
-    ...options,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
+  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const response = await apiFetch(
+    `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
+    {
+      ...options,
+      method: "GET",
     },
-    body: JSON.stringify({ page, size }),
-  });
+  );
 
   if (!response.ok) {
     throw await parseError(response, "Не удалось загрузить студентов курса.");
@@ -138,14 +137,10 @@ export async function getUserById(userId, options = {}) {
 }
 
 export async function getMyCourses({ page = 1, size = 10 } = {}, options = {}) {
-  const response = await apiFetch("/student/", {
+  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const response = await apiFetch(`/members?${query.toString()}`, {
     ...options,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    body: JSON.stringify({ page, size }),
+    method: "GET",
   });
 
   if (!response.ok) {

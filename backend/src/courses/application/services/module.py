@@ -6,11 +6,12 @@ from uuid import UUID
 from ddf.application.exceptions import NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...application.dtos import (
+from src.courses.application.dtos import (
     EditModuleSchema,
     ModuleSchema,
 )
-from ...domain.entities import Module
+from src.courses.domain.entities import Module
+
 from ..repos import CourseRepository, ModuleRepository
 from .base_course import BaseCourseService
 

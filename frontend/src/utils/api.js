@@ -1,5 +1,6 @@
 import { getMediaId } from "./media";
 import { getLocalStorage } from "./storage";
+import { validateMermaidSource } from "../components/MermaidDiagram.jsx";
 
 const SESSION_KEY = "aicolab_session";
 const API_BASE = "/api/v1";
@@ -491,15 +492,59 @@ export async function acceptInvitation({
   full_name,
   username,
 }) {
-  const query = new URLSearchParams({ token });
   return requestJson(
-    `/invitations/accept?${query.toString()}`,
+    `/invitations/accept/${encodeURIComponent(token)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password, full_name, username }),
     },
     { auth: false },
+  );
+}
+
+export function previewInvitation(token) {
+  return requestJson(`/invitations/preview/${encodeURIComponent(token)}`, {}, { auth: false });
+}
+
+export async function fetchInvitationRoles() {
+  const roles = [];
+  let page = 1;
+  let result;
+  do {
+    result = await requestJson(`/roles?page=${page}&size=100`);
+    roles.push(...result.items);
+    page += 1;
+  } while (result.has_next);
+  // Preserve the supported invitation roles, resolving their actual database IDs.
+  return roles.filter((role) => ["default_role", "admin"].includes(role.code));
+}
+
+// Приглашение в текущую организацию (бэкенд берёт её из токена); роли — массив UUID.
+export async function inviteToOrganization({ email, grantedRoles = [] }) {
+  return jsonRequest("/organizations/invitations", "POST", {
+    email,
+    grantedRoles,
+  });
+}
+
+export function fetchOrganizationInvitations(page = 1) {
+  return requestJson(`/organizations/invitations?page=${page}&size=20`);
+}
+
+export function revokeOrganizationInvitation(id, source) {
+  return requestJson(`/organizations/invitations/revoke/${encodeURIComponent(id)}?source=${encodeURIComponent(source)}`, { method: "DELETE" });
+}
+
+export function resendOrganizationInvitation(id, source) {
+  return requestJson(`/organizations/invitations/${encodeURIComponent(id)}/resend?source=${encodeURIComponent(source)}`, { method: "POST" });
+}
+
+// Принятие приглашения в организацию уже существующим пользователем.
+export async function acceptOrganizationInvitation(token) {
+  return requestJson(
+    `/organizations/invitations/accept/${encodeURIComponent(token)}`,
+    { method: "POST" },
   );
 }
 
@@ -658,6 +703,159 @@ export async function updateCurrentUser(changes) {
   });
 }
 
+// ───── приглашения на курс ─────
+
+// Точечный поиск по уникальному email (индекс в БД): null, если такого пользователя нет.
+export async function findUserByEmail(email, options = {}) {
+  try {
+    return await requestJson(
+      `/users/by-email/${encodeURIComponent(email)}`,
+      options,
+    );
+  } catch (error) {
+    if (error?.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function inviteToCourse({ courseId, email, role }) {
+  return jsonRequest("/courses/invitations", "POST", {
+    course_id: courseId,
+    email,
+    role,
+  });
+}
+
+// Приглашения курса, которые ещё ждут ответа (без токенов из писем).
+export async function fetchCourseInvitationsPage(
+  courseId,
+  { page = 1, size = 20 } = {},
+) {
+  const query = new URLSearchParams({
+    course_id: courseId,
+    page: String(page),
+    size: String(size),
+  });
+  const data = await requestJson(`/courses/invitations?${query.toString()}`);
+  const items = Array.isArray(data) ? data : data?.items || [];
+  return {
+    items,
+    page: Number(data?.page) || page,
+    size: Number(data?.size) || size,
+    total: Number(data?.total) || items.length,
+    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
+export async function revokeCourseInvitation(invitationId) {
+  return requestJson(
+    `/courses/invitations/revoke/${encodeURIComponent(invitationId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function acceptCourseInvitation(token) {
+  return requestJson(
+    `/courses/invitations/accept/${encodeURIComponent(token)}`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchCourseMembersPage(
+  courseId,
+  { page = 1, size = 20 } = {},
+) {
+  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const data = await requestJson(
+    `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
+  );
+  const items = Array.isArray(data) ? data : data?.items || [];
+  return {
+    items,
+    page: Number(data?.page) || page,
+    size: Number(data?.size) || size,
+    total: Number(data?.total) || items.length,
+    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
+// Прогресс всех учеников курса — для автора и преподавателей (страница метрик).
+export async function fetchCourseStudentsProgress(
+  courseId,
+  { page = 1, size = 100 } = {},
+  options = {},
+) {
+  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const data = await requestJson(
+    `/progress/courses/${encodeURIComponent(courseId)}/students?${query.toString()}`,
+    options,
+  );
+  const items = Array.isArray(data) ? data : data?.items || [];
+  return {
+    items,
+    total: Number(data?.total) || items.length,
+    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
+// Прогресс прохождения курса текущим учеником (backend: /progress/*).
+export async function fetchCourseProgress(courseId, options = {}) {
+  return requestJson(
+    `/progress/courses/${encodeURIComponent(courseId)}`,
+    options,
+  );
+}
+
+export async function createCourseProgress(courseId) {
+  return requestJson(`/progress/courses/${encodeURIComponent(courseId)}`, {
+    method: "POST",
+  });
+}
+
+export async function recalculateCourseProgress(courseId, totalLessons) {
+  const query = new URLSearchParams({
+    total_lessons: String(Math.max(0, Number(totalLessons) || 0)),
+  });
+  return requestJson(
+    `/progress/courses/${encodeURIComponent(courseId)}?${query.toString()}`,
+    { method: "PATCH" },
+  );
+}
+
+export async function fetchModuleProgress(moduleId, options = {}) {
+  return requestJson(
+    `/progress/modules/${encodeURIComponent(moduleId)}`,
+    options,
+  );
+}
+
+export async function createModuleProgress(courseId, moduleId) {
+  return requestJson(
+    `/progress/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchLessonProgress(lessonId, options = {}) {
+  return requestJson(
+    `/progress/lessons/${encodeURIComponent(lessonId)}`,
+    options,
+  );
+}
+
+export async function createLessonProgress(moduleId, lessonId) {
+  return requestJson(
+    `/progress/module/${encodeURIComponent(moduleId)}/lessons/${encodeURIComponent(lessonId)}`,
+    { method: "POST" },
+  );
+}
+
+export async function completeLessonTheory(lessonId) {
+  return requestJson(`/progress/lessons/${encodeURIComponent(lessonId)}`, {
+    method: "PATCH",
+  });
+}
+
 export async function fetchUsers(params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -748,17 +946,22 @@ export async function saveDocument(file) {
 // Courses API: documented read/update endpoints and frontend mappers
 // ─────────────────────────────────────────────────────────────
 
-const DIFFICULTY_TO_LEVEL = {
-  beginner: "Новичок",
-  intermediate: "Средний",
-  advanced: "Продвинутый",
-  expert: "Эксперт",
-};
+// Уровни сложности курса — те же названия, что в конструкторе drag-and-drop.
+export const COURSE_LEVELS = [
+  { value: "beginner", label: "Начальный" },
+  { value: "intermediate", label: "Средний" },
+  { value: "advanced", label: "Продвинутый" },
+  { value: "expert", label: "Экспертный" },
+];
+
+const DIFFICULTY_TO_LEVEL = Object.fromEntries(
+  COURSE_LEVELS.map((item) => [item.value, item.label]),
+);
 
 const LEVEL_TO_DIFFICULTY = {
+  ...Object.fromEntries(COURSE_LEVELS.map((item) => [item.label, item.value])),
+  // Старые названия, которые могли остаться в сохранённых данных.
   Новичок: "beginner",
-  Средний: "intermediate",
-  Продвинутый: "advanced",
   Эксперт: "expert",
 };
 
@@ -773,7 +976,18 @@ export function courseLevelToDifficulty(level) {
 }
 
 export function difficultyToCourseLevel(difficulty) {
-  return DIFFICULTY_TO_LEVEL[difficulty] || "Новичок";
+  return DIFFICULTY_TO_LEVEL[difficulty] || COURSE_LEVELS[0].label;
+}
+
+/** Уровень курса по-русски: принимает значение бэкенда (beginner…) или уже готовое название. */
+export function formatCourseLevel(value) {
+  const text = String(value || "").trim();
+  if (!text) return "Не указан";
+  if (DIFFICULTY_TO_LEVEL[text.toLowerCase()]) {
+    return DIFFICULTY_TO_LEVEL[text.toLowerCase()];
+  }
+  const difficulty = LEVEL_TO_DIFFICULTY[text];
+  return difficulty ? DIFFICULTY_TO_LEVEL[difficulty] : text;
 }
 
 function parseMinutes(value) {
@@ -849,6 +1063,40 @@ function withoutEmptyValues(payload) {
   );
 }
 
+function normalizeQuizQuestionPayload(question) {
+  let record = question;
+  if (Array.isArray(record)) {
+    if (["multipart", "multiple_choice", "detailed_answer"].includes(String(record[0]).toLowerCase())) {
+      return normalizeQuizQuestionPayload(record[1]);
+    }
+    return {
+      question: record[0] ?? "",
+      answer: record[1] ?? "",
+    };
+  }
+  if (!record || typeof record !== "object") return { question: "", answer: "" };
+  for (const tag of ["multipart", "multiple_choice", "detailed_answer"]) {
+    if (tag in record) {
+      record = record[tag];
+      break;
+    }
+  }
+  const answerValue = record.answer ?? record.correct_answer ?? record.expected_answer ?? "";
+  const answerRecord = answerValue && typeof answerValue === "object" ? answerValue : null;
+  const options = record.options ?? record.choices ?? answerRecord?.options ?? [];
+  const correctAnswer = typeof answerValue === "number"
+    ? options[answerValue] ?? ""
+    : typeof answerValue === "string"
+      ? answerValue
+      : answerRecord?.answer ?? answerRecord?.correct_answer ?? answerRecord?.expected_answer ?? answerRecord?.text ?? "";
+  return {
+    question: record.question ?? record.text ?? record.prompt ?? "",
+    options,
+    answer: correctAnswer,
+    explanation: record.explanation ?? record.rationale ?? answerRecord?.explanation ?? answerRecord?.rationale ?? "",
+  };
+}
+
 function sanitizeContentBlock(block) {
   const source =
     block && typeof block === "object" ? block : { content: block };
@@ -859,6 +1107,7 @@ function sanitizeContentBlock(block) {
       ai_generated:
         typeof source.ai_generated === "boolean" ? source.ai_generated : false,
       md_content: String(source.md_content ?? source.content ?? block ?? ""),
+      ...(Array.isArray(source.sources) ? { sources: source.sources } : {}),
     };
   }
 
@@ -905,12 +1154,14 @@ function sanitizeContentBlock(block) {
       source.md_content ?? source.mdContent ?? source.content ?? "";
     payload.explanation = source.explanation ?? "";
   } else if (contentType === "quiz") {
-    payload.questions = Array.isArray(source.questions)
-      ? source.questions.map((question) => ({
-          question: question?.question || "",
-          answer: question?.answer || "",
-        }))
-      : [];
+    const questions = Array.isArray(source.questions) ? source.questions : [];
+    const questionFields = new Set(["question", "answer", "options", "explanation", "rationale"]);
+    const isFieldPairs = questions.length > 0 && questions.every(
+      (entry) => Array.isArray(entry) && entry.length === 2 && questionFields.has(entry[0]),
+    );
+    payload.questions = isFieldPairs
+      ? [normalizeQuizQuestionPayload(Object.fromEntries(questions))]
+      : questions.map(normalizeQuizQuestionPayload);
   } else {
     payload.formula = source.formula ?? "";
     payload.explanation = source.explanation ?? "";
@@ -1269,7 +1520,7 @@ export function mapCourseFromApi(data) {
     ...data,
     id: data.id,
     title: data.title || "",
-    category: data.category || data.difficulty || "",
+    category: data.category || "",
     description: data.description || "",
     duration: data.duration || "",
     level: difficultyToCourseLevel(data.difficulty),
@@ -1396,9 +1647,9 @@ function courseBasicToLearningCourse(data) {
 
   return {
     ...data,
-    category: data.category || data.difficulty || "Не указан",
+    category: data.category || "",
     duration: data.duration || "По индивидуальному темпу",
-    level: data.difficulty || "Не указан",
+    level: data.difficulty ? formatCourseLevel(data.difficulty) : "Не указан",
     difficulty: data.difficulty || data.level || "Не указан",
     format: data.format || "Теория + практика",
     learningObjectives:
@@ -1512,7 +1763,7 @@ export async function fetchCoursesPage(
   options = {},
 ) {
   const data = await jsonRequest(
-    "/course/",
+    "/courses/search",
     "POST",
     { page, size },
     { ...options, auth: false },
@@ -1530,7 +1781,7 @@ export async function fetchMyCoursesPage(
   options = {},
 ) {
   const data = await jsonRequest(
-    "/course/my-courses",
+    "/courses/my-courses",
     "POST",
     { page, size },
     options,
@@ -1540,7 +1791,7 @@ export async function fetchMyCoursesPage(
 
 export async function createCourse(data, options = {}) {
   const response = await jsonRequest(
-    "/course/create",
+    "/courses",
     "POST",
     {
       title: data.title || "Новый курс",
@@ -1563,7 +1814,7 @@ export async function getCourseBasicInfo(courseId, options = {}) {
   }
 
   const data = await requestJson(
-    `/course/basic/info/${encodeURIComponent(courseId)}`,
+    `/courses/${encodeURIComponent(courseId)}`,
     options,
     { auth: false },
   );
@@ -1575,17 +1826,17 @@ export async function getCourse(courseId, options = {}) {
 }
 
 export async function getModuleBasicInfo(moduleId, options = {}) {
+  // Бэкенд проверяет права на модуль через курс, поэтому запрос нужен с токеном.
   const data = await requestJson(
-    `/module/basic/info/${encodeURIComponent(moduleId)}`,
+    `/modules/${encodeURIComponent(moduleId)}`,
     options,
-    { auth: false },
   );
   return moduleBasicToLearningBlock(data);
 }
 
 export async function getLessonBasicInfo(lessonId, options = {}) {
   const data = await requestJson(
-    `/lesson/basic/info/${encodeURIComponent(lessonId)}`,
+    `/lessons/${encodeURIComponent(lessonId)}`,
     options,
   );
   return lessonBasicToLearningLesson(data);
@@ -1593,7 +1844,7 @@ export async function getLessonBasicInfo(lessonId, options = {}) {
 
 export async function getLessonTheory(lessonId, options = {}) {
   const data = await requestJson(
-    `/lesson/theory/${encodeURIComponent(lessonId)}`,
+    `/lessons/${encodeURIComponent(lessonId)}/theory`,
     options,
   );
   return normalizeTheoryContentBlocks(data);
@@ -1603,7 +1854,7 @@ export async function updateCourse(courseId, changes) {
   const patch = withoutEmptyValues(courseChangesToPatch(changes));
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
-    `/course/edit/${encodeURIComponent(courseId)}`,
+    `/courses/${encodeURIComponent(courseId)}`,
     "PUT",
     patch,
   );
@@ -1624,7 +1875,7 @@ export async function createModule(courseId, data, options = {}) {
       data.learning_objectives || data.learningObjectives || [],
   };
   const response = await jsonRequest(
-    `/module/create${query}`,
+    `/modules${query}`,
     "POST",
     payload,
     options,
@@ -1659,7 +1910,7 @@ export async function createModule(courseId, data, options = {}) {
 
 export async function assignModuleToCourse(moduleId, courseId, options = {}) {
   return requestJson(
-    `/module/assign/${encodeURIComponent(moduleId)}/${encodeURIComponent(courseId)}`,
+    `/modules/${encodeURIComponent(moduleId)}/courses/${encodeURIComponent(courseId)}`,
     {
       method: "POST",
     },
@@ -1673,7 +1924,7 @@ export async function createLesson(data, options = {}) {
     ? `?${new URLSearchParams({ module_id: moduleId }).toString()}`
     : "";
   const response = await jsonRequest(
-    `/lesson/create${query}`,
+    `/lessons${query}`,
     "POST",
     {
       title: data.title || "Новый урок",
@@ -1702,7 +1953,7 @@ export async function createLesson(data, options = {}) {
 
 export async function assignLessonToModule(lessonId, moduleId, options = {}) {
   return requestJson(
-    `/lesson/assign/${encodeURIComponent(lessonId)}/${encodeURIComponent(moduleId)}`,
+    `/lessons/${encodeURIComponent(lessonId)}/modules/${encodeURIComponent(moduleId)}`,
     {
       method: "POST",
     },
@@ -1714,7 +1965,7 @@ export async function updateModule(courseId, moduleId, changes) {
   const patch = withoutEmptyValues(moduleChangesToPatch(changes));
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
-    `/module/edit/${encodeURIComponent(moduleId)}`,
+    `/modules/${encodeURIComponent(moduleId)}`,
     "PUT",
     patch,
   );
@@ -1736,7 +1987,7 @@ export async function updateLesson(courseId, lessonId, changes) {
   const patch = withoutEmptyValues(lessonChangesToPatch(changes));
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
-    `/lesson/edit/${encodeURIComponent(lessonId)}`,
+    `/lessons/${encodeURIComponent(lessonId)}`,
     "PUT",
     patch,
   );
@@ -1747,8 +1998,31 @@ export async function updateLessonContentBlocks(lessonId, contentBlocks) {
   const payload = (Array.isArray(contentBlocks) ? contentBlocks : [])
     .map(sanitizeContentBlock)
     .filter(Boolean);
+  if (payload.some((block) => block.content_type === "mermaid" ||
+    (block.content_type === "text" && /```mermaid\s*\n/i.test(block.md_content || "")))) {
+    for (const [index, block] of payload.entries()) {
+      try {
+        if (block.content_type === "mermaid") {
+          block.md_content = await validateMermaidSource(block.md_content);
+        } else if (block.content_type === "text" && /```mermaid\s*\n/i.test(block.md_content || "")) {
+          const source = block.md_content;
+          const matches = [...source.matchAll(/```mermaid\s*\n([\s\S]*?)\n```/gi)];
+          let normalized = "";
+          let offset = 0;
+          for (const match of matches) {
+            normalized += source.slice(offset, match.index);
+            normalized += `\`\`\`mermaid\n${await validateMermaidSource(match[1])}\n\`\`\``;
+            offset = match.index + match[0].length;
+          }
+          block.md_content = normalized + source.slice(offset);
+        }
+      } catch (error) {
+        throw new Error(`Блок ${index + 1}: ${error.message || "ошибка Mermaid"}`);
+      }
+    }
+  }
   const data = await jsonRequest(
-    `/lesson/update/${encodeURIComponent(lessonId)}`,
+    `/lessons/${encodeURIComponent(lessonId)}/content-blocks`,
     "PUT",
     payload,
   );
@@ -1761,7 +2035,7 @@ export async function updateLessonContentBlocks(lessonId, contentBlocks) {
 
 export async function deleteModule(moduleId, options = {}) {
   return requestJson(
-    `/module/${encodeURIComponent(moduleId)}`,
+    `/modules/${encodeURIComponent(moduleId)}`,
     { method: "DELETE" },
     options,
   );
@@ -1769,7 +2043,7 @@ export async function deleteModule(moduleId, options = {}) {
 
 export async function deleteLesson(lessonId, options = {}) {
   return requestJson(
-    `/lesson/${encodeURIComponent(lessonId)}`,
+    `/lessons/${encodeURIComponent(lessonId)}`,
     { method: "DELETE" },
     options,
   );
@@ -1798,23 +2072,43 @@ function extractCourseStatus(data) {
 
 export async function fetchCourseStatus(courseId, options = {}) {
   const data = await requestJson(
-    `/course/${encodeURIComponent(courseId)}/status`,
+    `/courses/${encodeURIComponent(courseId)}/status`,
     { method: "GET", ...(options || {}) },
   );
   return { raw: data, status: extractCourseStatus(data) };
 }
 
 export async function publishCourse(courseId, options = {}) {
+  const course = await getCourseBasicInfo(courseId, options);
+  for (const module of course.blocks || []) {
+    for (const lesson of module.lessons || []) {
+      const blocks = await getLessonTheory(lesson.id, options);
+      for (const [index, block] of blocks.entries()) {
+        const diagrams = block.content_type === "mermaid"
+          ? [block.md_content]
+          : block.content_type === "text"
+            ? [...String(block.md_content || "").matchAll(/```mermaid\s*\n([\s\S]*?)\n```/gi)].map((match) => match[1])
+            : [];
+        for (const source of diagrams) {
+          try {
+            await validateMermaidSource(source);
+          } catch (error) {
+            throw new Error(`Урок «${lesson.title || lesson.id}», блок ${index + 1}: ${error.message}`);
+          }
+        }
+      }
+    }
+  }
   const data = await requestJson(
-    `/course/publish/${encodeURIComponent(courseId)}`,
-    { method: "POST", ...(options || {}) },
+    `/courses/${encodeURIComponent(courseId)}/status`,
+    { method: "PATCH", ...(options || {}) },
   );
   return { raw: data, status: extractCourseStatus(data) || "published" };
 }
 
 export async function setCourseInviteOnly(courseId, options = {}) {
   const data = await requestJson(
-    `/course/${encodeURIComponent(courseId)}/invite-only`,
+    `/courses/${encodeURIComponent(courseId)}/invite-only`,
     { method: "POST", ...(options || {}) },
   );
   return { raw: data, status: extractCourseStatus(data) || "invite_only" };
@@ -1822,7 +2116,7 @@ export async function setCourseInviteOnly(courseId, options = {}) {
 
 export async function archiveCourse(courseId, options = {}) {
   const data = await requestJson(
-    `/course/delete/${encodeURIComponent(courseId)}`,
+    `/courses/${encodeURIComponent(courseId)}`,
     { method: "DELETE", ...(options || {}) },
   );
   return { raw: data, status: extractCourseStatus(data) || "archived" };
@@ -1844,7 +2138,7 @@ function appendPracticeAssignmentFormFields(formData, assignment = {}) {
 export async function generateLessonTest(moduleId, lessonId, options = {}) {
   return normalizeCreatedPracticeResponse(
     await requestJson(
-      `/agent/test/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
+      `/agent/tests/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
       { method: "POST", ...(options || {}) },
     ),
   );
@@ -1852,7 +2146,7 @@ export async function generateLessonTest(moduleId, lessonId, options = {}) {
 
 export async function checkLessonTest(practiceId, payload, options = {}) {
   return jsonRequest(
-    `/agent/check/test/${encodeURIComponent(practiceId)}`,
+    `/agent/check/tests/${encodeURIComponent(practiceId)}`,
     "POST",
     payload,
     options,
@@ -1862,7 +2156,7 @@ export async function checkLessonTest(practiceId, payload, options = {}) {
 export async function generateLessonPractice(moduleId, lessonId, options = {}) {
   return normalizeCreatedPracticeResponse(
     await requestJson(
-      `/agent/practice/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
+      `/agent/practices/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
       { method: "POST", ...(options || {}) },
     ),
   );
@@ -1879,7 +2173,7 @@ export async function checkLessonPractice(
   formData.append("file", file);
 
   const response = await apiFetch(
-    `/agent/check/practice/${encodeURIComponent(practiceId)}`,
+    `/agent/check/practices/${encodeURIComponent(practiceId)}`,
     { method: "POST", body: formData, ...(options || {}) },
   );
 
@@ -1905,9 +2199,41 @@ function toAgentChatPayload(payload = {}) {
 export async function askInterviewerAgent(payload, options = {}) {
   return normalizeAgentResponse(
     await jsonRequest(
-      "/agent/interviewer",
+      "/agent/course/interviewer",
       "POST",
       toAgentChatPayload(payload),
+      options,
+    ),
+  );
+}
+
+// Интервьюер модуля: собирает требования к новому модулю курса и по подтверждению
+// пользователя сам ставит генерацию в очередь (в ответе content = { task_id }).
+export async function askModuleInterviewerAgent(payload, options = {}) {
+  return normalizeAgentResponse(
+    await jsonRequest(
+      "/agent/module/interviewer",
+      "POST",
+      {
+        ...toAgentChatPayload(payload),
+        order: Math.max(1, Number(payload.order) || 1),
+      },
+      options,
+    ),
+  );
+}
+
+// Интервьюер урока: то же для нового урока внутри модуля.
+export async function askLessonInterviewerAgent(payload, options = {}) {
+  return normalizeAgentResponse(
+    await jsonRequest(
+      "/agent/lesson/interviewer",
+      "POST",
+      {
+        ...toAgentChatPayload(payload),
+        module_id: payload.module_id || payload.moduleId,
+        order: Math.max(1, Number(payload.order) || 1),
+      },
       options,
     ),
   );
