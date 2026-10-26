@@ -2,14 +2,14 @@ from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
+from ddf.application.dtos import OffsetPagination, create_page
+from ddf.domain.vo.email import Email
 from fastapi import FastAPI
 
 from src.feedback.api.v1.feedback import create_feedback, get_feedbacks, router
 from src.feedback.application.dtos import FeedbackCreate, FeedbackFilters
 from src.feedback.domain.entities import Feedback
 from src.iam.application.dtos import Identity, IdentityType
-from src.iam.domain.vo import Email
-from src.shared.application.dtos import Page, Pagination
 
 
 @pytest.mark.asyncio
@@ -41,10 +41,10 @@ async def test_post_uses_identity_not_client_fields(
 
 @pytest.mark.asyncio
 async def test_get_passes_filters_and_pagination(feedback: Feedback) -> None:
-    pagination = Pagination(page=2, size=3)
+    pagination = OffsetPagination(page=2, size=3)
     filters = FeedbackFilters(rating=5, sort="created_at:asc")
     repo = AsyncMock()
-    repo.find.return_value = Page.create([feedback], total=4, page=2, size=3)
+    repo.find_feedbacks.return_value = create_page(pagination, [feedback], total=4)
 
     response = await get_feedbacks(
         repo=repo,
@@ -52,9 +52,9 @@ async def test_get_passes_filters_and_pagination(feedback: Feedback) -> None:
         filters=filters,
     )
 
-    repo.find.assert_awaited_once_with(pagination, filters)
-    assert response.total == 4
-    assert response.page == 2
+    repo.find_feedbacks.assert_awaited_once_with(pagination, filters)
+    assert response.meta.total == 4
+    assert response.meta.page == 2
     assert response.items[0].id == feedback.id
 
 

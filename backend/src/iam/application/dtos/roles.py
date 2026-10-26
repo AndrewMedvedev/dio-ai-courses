@@ -1,15 +1,17 @@
+from typing import Literal
+
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.iam.domain.vo import PermissionGrant, PermissionScope
-from src.shared.application.dtos import BaseQueryParamFilters
 
 
-class PermissionQueryParamFilters(BaseQueryParamFilters):
+class PermissionQueryParamFilters(BaseModel):
     """Фильтры для получения списка прав."""
 
+    op: Literal["and", "or"] = "and"
     resource: str | None = None
     action: str | None = None
     scopes: list[PermissionScope] | None = None

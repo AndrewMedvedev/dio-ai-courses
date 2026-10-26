@@ -1,6 +1,5 @@
+from ddf.domain.exceptions import DomainError
 from fastapi import status
-
-from src.shared.domain.exceptions import DomainError
 
 
 class SrvBaseError(DomainError):

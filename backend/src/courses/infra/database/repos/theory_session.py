@@ -1,13 +1,15 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import Sort
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
+from ddf.infra.database.sqlalchemy.utils import apply_sorting
 from sqlalchemy import select
 
 from src.courses.application.dtos import LessonTheorySessionFilters
 from src.courses.domain.entities import (
     LessonTheorySession,
 )
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, apply_sorting
 
 from ..mappers import LessonTheorySessionMapper
 from ..models import LessonTheorySessionOrm
@@ -19,14 +21,15 @@ class SqlLessonTheorySessionRepository(
     SqlAlchemyRepository[LessonTheorySession, LessonTheorySessionOrm]
 ):
     model = LessonTheorySessionOrm
-    model_mapper = LessonTheorySessionMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = LessonTheorySessionMapper()
 
-    async def find(
+    async def find_sessions(
         self,
         *,
         lesson_id: UUID,
         user_id: UUID,
         filters: LessonTheorySessionFilters | None = None,
+        sort: Sort | None = None,
     ) -> list[LessonTheorySession]:
         stmt = select(self.model).where(
             self.model.lesson_id == lesson_id,
@@ -47,9 +50,9 @@ class SqlLessonTheorySessionRepository(
         stmt = apply_sorting(
             stmt,
             self.model,
-            filters.sort if filters else None,
+            sort or Sort(field="created_at", direction="asc"),
         )
 
         result = await self._session.execute(stmt)
 
-        return [self.model_mapper.from_model(model) for model in result.scalars().all()]
+        return [self.data_mapper.from_model(model) for model in result.scalars().all()]

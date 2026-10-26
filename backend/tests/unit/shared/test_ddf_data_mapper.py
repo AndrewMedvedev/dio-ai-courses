@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from ddf.application.dtos import OffsetPagination
+from ddf.application.dtos.pagination import OffsetMeta
 from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +19,7 @@ from src.courses.domain.vo import MemberRole
 from src.courses.infra.database.mappers import InvitationMapper
 from src.courses.infra.database.repos.invitation import SqlInvitationRepository
 from src.llm_router.domain.dataclass import AIModel
+from src.llm_router.domain.enums import Complexity
 from src.llm_router.infra.repository import AIModelMapper
 from src.media.domain.entities import StoredObject
 from src.media.infra.database.mappers import StoredObjectMapper
@@ -23,8 +27,6 @@ from src.notifications.domain.entities import Notification, UserPreference
 from src.notifications.domain.vo import ChannelType, NotificationType
 from src.notifications.infra.database.mappers import NotificationMapper, UserPreferenceMapper
 from src.notifications.infra.database.repos.user_preference import SqlUserPreferenceRepository
-from src.shared.application.dtos import Pagination
-from src.shared.infra.repos import SqlAlchemyRepository
 
 CREATED_AT = datetime(2026, 10, 23, 10, tzinfo=UTC)
 UPDATED_AT = CREATED_AT + timedelta(hours=1)
@@ -133,6 +135,7 @@ def test_ai_model_round_trip_preserves_existing_model_parameters() -> None:
         updated_at=UPDATED_AT,
         name="unit-test-model",
         description="No provider requests",
+        complexity=Complexity.MEDIUM,
         context=8192,
     )
 
@@ -160,8 +163,8 @@ def mapped_record(request: pytest.FixtureRequest) -> tuple[UserPreference | Invi
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("operation", ["create", "read", "update", "get_by_ids", "paginate"])
-async def test_legacy_repository_uses_ddf_mapping_methods(
+@pytest.mark.parametrize("operation", ["create", "read", "update", "get_by_ids", "find"])
+async def test_repository_uses_ddf_mapping_methods(
     mapped_record: tuple[UserPreference | Invitation, Base], operation: str
 ) -> None:
     entity, model = mapped_record
@@ -170,6 +173,7 @@ async def test_legacy_repository_uses_ddf_mapping_methods(
     result.scalar_one_or_none.return_value = model
     result.scalars.return_value.all.return_value = [model]
     session.execute.return_value = result
+    session.scalars.return_value = result.scalars.return_value
     session.scalar.return_value = 1
     repo = cast(
         SqlAlchemyRepository[UserPreference | Invitation, Base],
@@ -181,17 +185,19 @@ async def test_legacy_repository_uses_ddf_mapping_methods(
     if operation == "create":
         restored = await repo.create(entity)
         session.add.assert_called_once()
+        session.flush.assert_awaited_once()
     elif operation == "update":
         await repo.update(entity)
         session.merge.assert_awaited_once()
-        restored = repo.model_mapper.from_model(session.merge.call_args.args[0])
+        restored = repo.data_mapper.from_model(session.merge.call_args.args[0])
     elif operation == "read":
         restored = await repo.read(entity.id)
     elif operation == "get_by_ids":
         restored = (await repo.get_by_ids([entity.id]))[0]
     else:
-        page = await repo.paginate(Pagination())
-        assert page.total == 1
+        page = await repo.find(OffsetPagination())
+        assert isinstance(page.meta, OffsetMeta)
+        assert page.meta.total == 1
         restored = page.items[0]
 
     assert restored is not None

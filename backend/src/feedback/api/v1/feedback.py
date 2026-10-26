@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Depends, Query, status
 
 from src.feedback.application.dtos import FeedbackCreate, FeedbackFilters
@@ -8,7 +9,6 @@ from src.feedback.dependencies.services import FeedbackServiceDep
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.permissions.feedback import READ
 from src.iam.dependencies import CurrentIdentity, require_permissions
-from src.shared.application.dtos import Page
 from src.shared.dependencies import PaginationDep
 
 router = APIRouter(prefix="/feedbacks", tags=["Отзывы"])
@@ -43,4 +43,4 @@ async def get_feedbacks(
     filters: Annotated[FeedbackFilters, Query()],
 ) -> Page[Feedback]:
     """Возвращает администратору страницу отзывов."""
-    return await repo.find(pagination, filters)
+    return await repo.find_feedbacks(pagination, filters)

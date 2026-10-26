@@ -6,6 +6,7 @@ from asyncio import Semaphore, TaskGroup
 from collections.abc import Callable
 from uuid import UUID
 
+from ddf.application.exceptions import UniqueConstraintViolationError
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from langgraph.graph import END, START, StateGraph
@@ -150,7 +151,7 @@ class ModuleAgent:
                 logger.info("Saving module '%s' to database ...", module.title)
 
                 await session.commit()
-            except IntegrityError:
+            except (IntegrityError, UniqueConstraintViolationError):
                 await session.rollback()
                 logger.info("Module %s alredy exsists", module.title)
 

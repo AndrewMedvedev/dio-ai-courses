@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
+from ddf.application.dtos import OffsetPagination, Sort, create_page
 from sqlalchemy.dialects import postgresql
 
 from src.feedback.application.dtos import FeedbackFilters
@@ -11,7 +12,6 @@ from src.feedback.domain.entities import Feedback
 from src.feedback.infra.database.models import FeedbackOrm
 from src.feedback.infra.database.repos import feedback as repository_module
 from src.feedback.infra.database.repos.feedback import SqlFeedbackRepository
-from src.shared.application.dtos import Page, Pagination
 
 
 @pytest.mark.asyncio
@@ -42,14 +42,14 @@ async def test_find_filters_active_feedbacks_and_sorts_by_date(
     rating: int | None,
     order: Literal["asc", "desc"],
 ) -> None:
-    pagination = Pagination(page=2, size=3)
-    expected = Page.create([], total=0, page=2, size=3)
+    pagination = OffsetPagination(page=2, size=3)
+    expected = create_page(pagination, [], total=0)
     paginate = AsyncMock(return_value=expected)
     monkeypatch.setattr(repository_module, "paginate", paginate)
     repository = SqlFeedbackRepository(mock_session)
 
     filters = FeedbackFilters(rating=rating, sort=f"created_at:{order}")
-    result = await repository.find(pagination, filters)
+    result = await repository.find_feedbacks(pagination, filters)
 
     assert result is expected
     paginate.assert_awaited_once()
@@ -57,7 +57,7 @@ async def test_find_filters_active_feedbacks_and_sorts_by_date(
     assert kwargs["session"] is mock_session
     assert kwargs["model"] is FeedbackOrm
     assert kwargs["pagination"] is pagination
-    assert kwargs["sort"] == f"created_at:{order}"
+    assert kwargs["sort"] == Sort(field="created_at", direction=order)
     compiled = kwargs["stmt"].compile(dialect=postgresql.dialect())
     sql = str(compiled)
     assert "feedbacks.deleted_at IS NULL" in sql
@@ -75,11 +75,13 @@ async def test_find_filters_by_internal_user_id(
     monkeypatch: pytest.MonkeyPatch,
     user_id: UUID,
 ) -> None:
-    paginate = AsyncMock(return_value=Page.create([], total=0, page=1, size=1))
+    paginate = AsyncMock(return_value=create_page(OffsetPagination(size=1), [], total=0))
     monkeypatch.setattr(repository_module, "paginate", paginate)
     repository = SqlFeedbackRepository(mock_session)
 
-    await repository.find(Pagination(page=1, size=1), FeedbackFilters(), user_id=user_id)
+    await repository.find_feedbacks(
+        OffsetPagination(page=1, size=1), FeedbackFilters(), user_id=user_id,
+    )
 
     statement = paginate.await_args.kwargs["stmt"]
     compiled = statement.compile(dialect=postgresql.dialect())
@@ -94,16 +96,16 @@ async def test_find_orders_sql_before_pagination(
 ) -> None:
     mock_session.scalar.return_value = 1
     result = MagicMock()
-    result.scalars.return_value.all.return_value = []
-    mock_session.execute.return_value = result
+    result.all.return_value = []
+    mock_session.scalars.return_value = result
     repository = SqlFeedbackRepository(mock_session)
 
-    await repository.find(
-        Pagination(page=2, size=3),
+    await repository.find_feedbacks(
+        OffsetPagination(page=2, size=3),
         FeedbackFilters(sort=f"created_at:{order}"),
     )
 
-    statement = mock_session.execute.await_args.args[0]
+    statement = mock_session.scalars.await_args.args[0]
     sql = str(statement.compile(dialect=postgresql.dialect()))
     assert f"ORDER BY feedbacks.created_at {order.upper()}" in sql
     assert "LIMIT" in sql and "OFFSET" in sql

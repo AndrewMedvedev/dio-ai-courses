@@ -2,7 +2,8 @@ from typing import Annotated, Literal
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, status
+from ddf.application.dtos import OffsetPagination, Page
+from fastapi import APIRouter, Depends, Path, Query, status
 
 from src.iam.dependencies import CurrentIdentity, require_permissions
 from src.iam.domain.entities import Invitation as IAMInvitation
@@ -14,8 +15,6 @@ from src.organization.dependencies.services import (
 )
 from src.organization.domain.entities import Invitation as OrganizationInvitation
 from src.organization.domain.permissions.invitations import DELETE_INVITATION, INVITE
-from src.shared.application.dtos import Page
-from src.shared.dependencies import PaginationDep
 
 router = APIRouter(
     prefix="/organizations/invitations",
@@ -27,7 +26,7 @@ router = APIRouter(
 async def list_invitations(
     service: InvitationManagementDep,
     identity: CurrentIdentity,
-    pagination: PaginationDep,
+    pagination: Annotated[OffsetPagination, Query()],
 ) -> Page[InvitationSummary]:
     return await service.list(identity.organization_id, pagination)
 

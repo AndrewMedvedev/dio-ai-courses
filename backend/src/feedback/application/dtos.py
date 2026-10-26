@@ -4,8 +4,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.shared.application.dtos import BaseQueryParamFilters
-
 from ..domain.constants import MAX_RATING, MIN_RATING
 
 
@@ -18,7 +16,7 @@ class FeedbackCreate(BaseModel):
     comment: str
 
 
-class FeedbackFilters(BaseQueryParamFilters):
+class FeedbackFilters(BaseModel):
     """Фильтры отзывов."""
 
     rating: int | None = Field(default=None, ge=MIN_RATING, le=MAX_RATING)

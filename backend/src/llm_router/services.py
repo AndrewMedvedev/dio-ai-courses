@@ -5,6 +5,8 @@ import base64
 import logging
 
 from aiohttp import ClientSession
+from ddf.application.dtos import OffsetPagination
+from ddf.application.events import EventPublisher
 from langsmith import traceable
 from openai import (
     AsyncOpenAI,
@@ -26,8 +28,6 @@ from src.llm_service.schemas import (
     LLMTextRequest,
     LLMTextResponse,
 )
-from src.shared.application.dtos import Pagination
-from src.shared.domain.events import EventPublisher
 
 from .decorators import track_image_invocation, track_text_invocation
 from .domain.events import LLMInvocationCreated
@@ -79,7 +79,7 @@ class LLMRouter:
     ) -> None:
         """Публикует событие для асинхронного сохранения мониторинга."""
         try:
-            await self._event_publisher.publish(event)
+            await self._event_publisher([event])
             logger.info(
                 "LLM invocation published",
                 extra={
@@ -169,7 +169,8 @@ class LLMTextRouter(LLMRouter):
     ) -> LLMTextResponse:
         models = (
             await self._wrapper(
-                func=self._ai_model_repos.read_fields, params=Pagination(size=PAGINATION_SIZE)
+                func=self._ai_model_repos.read_fields,
+                params=OffsetPagination(size=PAGINATION_SIZE),
             )
         ).items
         if model is None:

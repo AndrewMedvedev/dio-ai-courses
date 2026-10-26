@@ -3,12 +3,12 @@ from typing import Any
 import logging
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.courses.domain.entities import (
     Practice,
 )
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     PracticeMapper,
@@ -20,9 +20,11 @@ logger = logging.getLogger(__name__)
 
 class SqlPracticeRepository(SqlAlchemyRepository[Practice, PracticeOrm]):
     model = PracticeOrm
-    model_mapper = PracticeMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = PracticeMapper()
 
-    async def read(self, user_id: UUID, module_id: UUID, lesson_id: UUID) -> Practice | None:
+    async def read_by_keys(
+        self, user_id: UUID, module_id: UUID, lesson_id: UUID,
+    ) -> Practice | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
         stmt = select(self.model).where(
             self.model.user_id == user_id,
@@ -31,7 +33,7 @@ class SqlPracticeRepository(SqlAlchemyRepository[Practice, PracticeOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def read_by_module(self, user_id: UUID, module_id: UUID) -> list[dict[str, Any]]:
         """Получает практики пользователя внутри модуля без служебных полей."""

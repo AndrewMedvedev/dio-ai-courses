@@ -1,9 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+from ddf.domain.utils import apply_changes
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from ddf.domain.exceptions import AlreadyExistsError, NotFoundError
 
 from ...application.repos import (
     CourseProgressRepository,
@@ -39,7 +39,8 @@ class LearningProgressService:
     async def update_course_progress(self, progress: CourseProgress, total_lessons: int) -> CourseProgress:
         completed_lessons = await self._course_progress_repo.count_completed_lessons(progress.id)
         progress_percent = round(completed_lessons * 100 / total_lessons, 2) if total_lessons else 0
-        progress = await self._course_progress_repo.update(progress.id, progress_percent=progress_percent)
+        apply_changes(progress, progress_percent=progress_percent)
+        await self._course_progress_repo.update(progress)
         await self._session.commit()
         return progress
 
@@ -70,6 +71,7 @@ class LearningProgressService:
         return progress
 
     async def update(self, progress: LessonProgress, theory_completed_at: datetime) -> LessonProgress:
-        progress = await self._progress_repo.update(progress.id, theory_completed_at=theory_completed_at)
+        apply_changes(progress, theory_completed_at=theory_completed_at)
+        await self._progress_repo.update(progress)
         await self._session.commit()
         return progress

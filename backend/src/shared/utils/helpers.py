@@ -1,9 +1,8 @@
 from collections.abc import AsyncIterable
 
+from ddf.application.dtos import OffsetPagination
+from ddf.application.repositories import Repository
 from ddf.domain.models import Entity
-
-from ..application.dtos import Pagination
-from ..domain.repos import Repository
 
 
 async def iterate_batches[EntityT: Entity](
@@ -14,11 +13,11 @@ async def iterate_batches[EntityT: Entity](
     """
 
     page = start_page
-    batch = await repository.paginate(Pagination(page=page, size=size), **kwargs)
+    batch = await repository.find(OffsetPagination(page=page, size=size), **kwargs)
 
     yield batch.items
 
-    while batch.has_next:
+    while batch.meta.has_next:
         page += 1
-        batch = await repository.paginate(Pagination(page=page, size=size), **kwargs)
+        batch = await repository.find(OffsetPagination(page=page, size=size), **kwargs)
         yield batch.items

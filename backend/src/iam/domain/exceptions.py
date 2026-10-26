@@ -1,9 +1,11 @@
+from ddf.domain.exceptions import DomainError
 from fastapi import status
-
-from src.shared.domain.exceptions import DomainError
 
 
 class WeakPasswordError(DomainError):
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    error_code = "WEAK_PASSWORD"
+
     def __init__(
         self,
         message: str,
@@ -16,8 +18,6 @@ class WeakPasswordError(DomainError):
 
         super().__init__(
             message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            error_code="WEAK_PASSWORD",
             details=details,
         )
 
@@ -25,16 +25,13 @@ class WeakPasswordError(DomainError):
 class PermissionDeniedError(DomainError):
     status_code = status.HTTP_403_FORBIDDEN
     error_code = "PERMISSION_DENIED"
-    public_message = "Недостаточно прав"
 
 
 class UnauthorizedError(DomainError):
     status_code = status.HTTP_401_UNAUTHORIZED
     error_code = "UNAUTHORIZED"
-    public_message = "Требуется авторизация"
 
 
 class InvitationExpiredError(DomainError):
     status_code = status.HTTP_410_GONE
     error_code = "INVITATION_EXPIRED"
-    public_message = "Приглашение было использовано или его срок действия истёк"

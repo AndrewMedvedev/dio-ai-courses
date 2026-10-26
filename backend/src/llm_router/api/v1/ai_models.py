@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination, Page
 from fastapi import APIRouter, Depends, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 
 from ...dependencies import AIModelsRepoDep, DBSession
 from ...domain.dataclass import AIModel
@@ -43,7 +43,7 @@ async def add_model(
     status_code=status.HTTP_200_OK,
 )
 async def get_models(
-    params: Pagination,
+    params: OffsetPagination,
     repository: AIModelsRepoDep,
     _identity: CurrentIdentity,
 ) -> Page[AIModel]:

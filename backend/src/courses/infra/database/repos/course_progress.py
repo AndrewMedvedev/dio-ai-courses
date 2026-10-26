@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination, Sort
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
+from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import exists, func, select
-
-from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....domain.entities import CourseProgress
 from ..mappers import CourseProgressMapper
@@ -12,7 +12,7 @@ from ..models import CourseProgressOrm, LessonProgressOrm
 
 class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CourseProgressOrm]):
     model = CourseProgressOrm
-    model_mapper = CourseProgressMapper
+    data_mapper = CourseProgressMapper()
 
     async def get_by_user(self, user_id: UUID, resource_id: UUID) -> CourseProgress | None:
         stmt = select(self.model).where(
@@ -21,7 +21,7 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool:
         stmt = select(exists().where(
@@ -43,7 +43,9 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
         )
         return completed_lessons or 0
 
-    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]:
+    async def find_by_course(
+        self, course_id: UUID, pagination: Pagination,
+    ) -> Page[CourseProgress]:
         """Возвращает progress всех учеников курса для teacher endpoint."""
         stmt = select(self.model).where(self.model.course_id == course_id)
         return await paginate(
@@ -51,6 +53,6 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            mapper=self.model_mapper.from_model,
-            sort="created_at:desc",
+            from_model=self.data_mapper.from_model,
+            sort=Sort(field="created_at", direction="desc"),
         )

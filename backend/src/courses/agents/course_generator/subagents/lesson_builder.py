@@ -6,6 +6,7 @@ from asyncio import Semaphore, TaskGroup
 from collections.abc import Callable
 from uuid import UUID
 
+from ddf.application.exceptions import UniqueConstraintViolationError
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -253,7 +254,7 @@ class LessonAgent:
                 await repo.create_at(lesson)
                 await session.commit()
                 logger.info("Saving lesson '%s' to database ...", lesson.title)
-            except IntegrityError:
+            except (IntegrityError, UniqueConstraintViolationError):
                 await session.rollback()
                 logger.info("Lesson %s alredy exsists", lesson.title)
 

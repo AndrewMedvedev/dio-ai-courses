@@ -1,11 +1,11 @@
 from typing import Annotated
 
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Depends, status
 
 from src.iam.application.dtos import PermissionResponse
 from src.iam.dependencies.permissions import get_permission_list, require_permissions
 from src.iam.domain.permissions import permissions as acl
-from src.shared.application.dtos import Page
 
 router = APIRouter(prefix="/permissions", tags=["Разрешения | Permissions"])
 

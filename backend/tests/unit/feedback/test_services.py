@@ -3,14 +3,14 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from ddf.application.dtos import OffsetPagination, create_page
+from ddf.application.events import EventDispatcher
+from ddf.domain.vo.email import Email
 
 from src.feedback.application.dtos import FeedbackFilters
 from src.feedback.application.services import FeedbackService
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.events import FeedbackCreated
-from src.iam.domain.vo import Email
-from src.shared.application.dtos import Page, Pagination
-from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import RateLimitExceededError
 from src.shared.utils.time import current_datetime
 
@@ -18,7 +18,7 @@ from src.shared.utils.time import current_datetime
 @pytest.fixture
 def repository() -> AsyncMock:
     repo = AsyncMock()
-    repo.find.return_value = Page.create([], total=0, page=1, size=1)
+    repo.find_feedbacks.return_value = create_page(OffsetPagination(size=1), [], total=0)
     return repo
 
 
@@ -41,7 +41,9 @@ async def test_create_checks_limit_saves_and_commits(
     user_id: UUID,
     recent_count: int,
 ) -> None:
-    repository.find.return_value = Page.create([], total=recent_count, page=1, size=1)
+    repository.find_feedbacks.return_value = create_page(
+        OffsetPagination(size=1), [], total=recent_count,
+    )
     before = current_datetime() - timedelta(days=1)
 
     feedback = await service.create_feedback(
@@ -57,9 +59,9 @@ async def test_create_checks_limit_saves_and_commits(
     assert feedback.email == Email("user@example.com")
     assert feedback.rating.value == 4
     assert feedback.comment == "Спасибо"
-    pagination, filters = repository.find.await_args.args
-    assert pagination == Pagination(page=1, size=1)
-    assert repository.find.await_args.kwargs == {"user_id": user_id}
+    pagination, filters = repository.find_feedbacks.await_args.args
+    assert pagination == OffsetPagination(page=1, size=1)
+    assert repository.find_feedbacks.await_args.kwargs == {"user_id": user_id}
     assert before <= filters.created_after <= after
     repository.create.assert_awaited_once_with(feedback)
     transaction.assert_awaited_once_with(feedback)
@@ -74,7 +76,9 @@ async def test_daily_limit_returns_429_without_saving(
     user_id: UUID,
     recent_count: int,
 ) -> None:
-    repository.find.return_value = Page.create([], total=recent_count, page=1, size=1)
+    repository.find_feedbacks.return_value = create_page(
+        OffsetPagination(size=1), [], total=recent_count,
+    )
 
     with pytest.raises(RateLimitExceededError) as exc_info:
         await service.create_feedback(
@@ -85,7 +89,7 @@ async def test_daily_limit_returns_429_without_saving(
         )
 
     assert exc_info.value.status_code == 429
-    repository.find.assert_awaited_once()
+    repository.find_feedbacks.assert_awaited_once()
     repository.create.assert_not_awaited()
     transaction.assert_not_awaited()
 
@@ -115,7 +119,7 @@ async def test_create_commits_and_publishes_registered_event(
 ) -> None:
     uow = AsyncMock()
     publisher = AsyncMock()
-    service = FeedbackService(repository, Transaction(uow, publisher))
+    service = FeedbackService(repository, EventDispatcher(uow, publisher))
 
     feedback = await service.create_feedback(
         user_id=user_id,
@@ -125,8 +129,8 @@ async def test_create_commits_and_publishes_registered_event(
     )
 
     uow.commit.assert_awaited_once()
-    publisher.publish_all.assert_awaited_once()
-    events = publisher.publish_all.await_args.args[0]
+    publisher.assert_awaited_once()
+    events = publisher.await_args.args[0]
     assert len(events) == 1
     assert isinstance(events[0], FeedbackCreated)
     assert events[0].feedback_id == feedback.id

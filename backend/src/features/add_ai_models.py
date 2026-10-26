@@ -1,6 +1,7 @@
 # add_models.py
 import asyncio
 
+from ddf.domain.utils import apply_changes
 from sqlalchemy import select
 
 from src.core.database import session_factory
@@ -343,13 +344,13 @@ async def add_models_to_db(session, models_data):
         existing = result.scalar_one_or_none()
 
         if existing:
-            # Обновляем существующую запись (updated_at обновится автоматически)
-            await repo.update(
-                existing.id,
+            entity = repo.data_mapper.from_model(existing)
+            await repo.update(apply_changes(
+                entity,
                 complexity=data["complexity"],
                 description=data["description"],
                 context=data["context"],
-            )
+            ))
         else:
             # Создаём новую доменную сущность (id генерируется автоматически)
             new_entity = AIModel(

@@ -1,9 +1,8 @@
 from uuid import UUID
 
 from ddf.application.cache import Cache
+from ddf.application.repositories import Repository, RepositoryDecorator
 from ddf.domain.models import Entity
-
-from src.shared.application.repos import Repository, RepositoryDecorator
 
 
 def build_key(prefix: str, uid: UUID) -> str:

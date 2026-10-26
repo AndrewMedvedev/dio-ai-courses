@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination, Sort
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
+from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import select
-
-from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....application.dtos import FeedbackFilters
 from ....domain.entities import Feedback
@@ -13,9 +13,9 @@ from ..models import FeedbackOrm
 
 class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
     model = FeedbackOrm
-    model_mapper = FeedbackMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = FeedbackMapper()
 
-    async def find(
+    async def find_feedbacks(
         self,
         pagination: Pagination,
         filters: FeedbackFilters | None = None,
@@ -39,13 +39,16 @@ class SqlFeedbackRepository(SqlAlchemyRepository[Feedback, FeedbackOrm]):
             if filters.created_before is not None:
                 stmt = stmt.where(self.model.created_at <= filters.created_before)
 
-        sort = filters.sort if filters and filters.sort else "created_at:desc"
+        sort = Sort(
+            field="created_at",
+            direction="asc" if filters and filters.sort == "created_at:asc" else "desc",
+        )
 
         return await paginate(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            mapper=self.model_mapper.from_model,
+            from_model=self.data_mapper.from_model,
             sort=sort,
         )

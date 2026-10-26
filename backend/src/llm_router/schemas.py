@@ -2,11 +2,11 @@ from typing import Any, Protocol
 
 from collections.abc import Awaitable, Callable
 
+from ddf.application.dtos import Page
 from openai.types.responses import ToolParam
 from pydantic import BaseModel, Field
 
 from src.llm_router.domain.enums import Complexity
-from src.shared.application.dtos import Page
 
 
 class AIModelSchema(BaseModel):
@@ -90,7 +90,7 @@ class CacheAIModelsProtocol(Protocol):
         self,
         func: Callable[..., Awaitable[Any]],
         ttl: int = 300,
-        key: str = "ai_models",
+        key: str = "ai_models:ddf",
         lock_timeout: int = 30,
         *args: Any,
         **kwargs: Any,

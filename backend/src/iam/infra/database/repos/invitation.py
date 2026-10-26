@@ -1,23 +1,23 @@
 from uuid import UUID
 
 from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.iam.domain.entities import Invitation
 from src.iam.infra.database.mappers import InvitationMapper
 from src.iam.infra.database.models import InvitationOrm
-from src.shared.infra.database import SqlAlchemyRepository
 
 
 class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
     model = InvitationOrm
-    model_mapper = InvitationMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = InvitationMapper()
 
     async def get_by_organization(self, organization_id: UUID) -> tuple[Invitation, ...]:
         result = await self._session.execute(
             select(self.model).where(self.model.organization_id == organization_id)
         )
-        return tuple(self.model_mapper.from_model(model) for model in result.scalars())
+        return tuple(self.data_mapper.from_model(model) for model in result.scalars())
 
     async def get_by_token(self, token: str) -> Invitation | None:
         stmt = select(self.model).where(
@@ -27,7 +27,7 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
             stmt.with_for_update().execution_options(populate_existing=True)
         )
         model = result.scalar_one_or_none()
-        return self.model_mapper.from_model(model) if model else None
+        return self.data_mapper.from_model(model) if model else None
 
     async def get_active_by_email(self, email: Email) -> tuple[Invitation, ...]:
         stmt = select(self.model).where(
@@ -35,4 +35,4 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
         )
         results = await self._session.execute(stmt)
         models = results.scalars().all()
-        return tuple(self.model_mapper.from_model(model) for model in models)
+        return tuple(self.data_mapper.from_model(model) for model in models)

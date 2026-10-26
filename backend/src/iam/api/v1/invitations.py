@@ -2,6 +2,7 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from fastapi import APIRouter, Depends, Path, Response, status
 
 from src.iam.application.dtos import (
@@ -20,7 +21,6 @@ from src.iam.dependencies.services import InvitationServiceDep, RegistrationServ
 from src.iam.domain.entities import Invitation
 from src.iam.domain.permissions.invitations import DELETE_INVITATION, INVITE
 from src.organization.dependencies.base import InvitationRepoDep as OrganizationInvitationRepoDep
-from ddf.domain.exceptions import NotFoundError
 
 router = APIRouter(prefix="/invitations", tags=["Приглашения | Invitations"])
 

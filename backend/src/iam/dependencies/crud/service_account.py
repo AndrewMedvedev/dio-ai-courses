@@ -1,5 +1,7 @@
 from typing import Annotated, Any
 
+from ddf.application.crud import Crud
+from ddf.application.dtos import Page
 from ddf.domain.utils import apply_changes
 from fastapi import Depends
 
@@ -10,8 +12,6 @@ from src.iam.application.dtos import (
 )
 from src.iam.dependencies.repos import ServiceAccountRepositoryDep
 from src.iam.domain.entities import ServiceAccount
-from src.shared.application.crud import Crud
-from src.shared.application.dtos import Page
 from src.shared.dependencies import PaginationDep, TransactionDep
 from src.shared.utils.time import current_datetime
 
@@ -63,7 +63,7 @@ async def get_service_accounts_list(
         service_account_repo: ServiceAccountRepositoryDep,
 ) -> Page[ServiceAccountResponse]:
     service_accounts = await service_account_repo.find(pagination)
-    return service_accounts.to_response(map_to_response)
+    return service_accounts.map(map_to_response)
 
 
 ServiceAccountCrudDep = Annotated[ServiceAccountCrud, Depends(get_service_account_crud)]

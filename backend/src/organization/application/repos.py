@@ -2,17 +2,13 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.application.repositories import Repository
 from ddf.domain.vo.email import Email
 
 from src.iam.application.dtos import InvitationCreate, UserResponse
 from src.iam.application.dtos.membership import CreateMembershipDTO
-from src.iam.domain.entities import (
-    Invitation as IAMInvitation,
-)
-from src.iam.domain.entities import (
-    Membership,
-)
-from src.shared.application.repos import Repository
+from src.iam.domain.entities import Invitation as IAMInvitation
+from src.iam.domain.entities import Membership
 
 from ..domain.entities import Invitation, Organization
 

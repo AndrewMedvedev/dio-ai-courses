@@ -1,12 +1,13 @@
 from typing import Annotated, Any
 
+from ddf.application.crud import Crud
+from ddf.application.dtos import Page
 from fastapi import Depends
 
 from src.iam.application.dtos import CreateRoleDTO, Identity, RoleResponse, UpdateRoleDTO
 from src.iam.dependencies.repos import RoleRepositoryDep
 from src.iam.domain.entities import Role
-from src.shared.application.crud import Crud
-from src.shared.application.dtos import Page
+from src.iam.domain.exceptions import UnauthorizedError
 from src.shared.dependencies import PaginationDep, TransactionDep
 
 RoleCrud = Crud[
@@ -21,7 +22,9 @@ RoleCrud = Crud[
 ]
 
 
-async def create_handler(dto: CreateRoleDTO, identity: Identity) -> Role:
+async def create_handler(dto: CreateRoleDTO, identity: Identity | None = None) -> Role:
+    if identity is None:
+        raise UnauthorizedError()
     return Role(
         name=dto.name,
         code=dto.code,
@@ -70,7 +73,7 @@ async def get_roles_list(
 ) -> Page[RoleResponse]:
     page = await role_repo.find(pagination)
 
-    return page.to_response(
+    return page.map(
         lambda role: RoleResponse.model_validate(role, from_attributes=True),
     )
 

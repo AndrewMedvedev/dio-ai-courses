@@ -2,6 +2,8 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination as Pagination
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Depends, Query, status
 from faststream.rabbit import RabbitQueue
 
@@ -9,7 +11,6 @@ from src.core.rabbit import events_exchange
 from src.core.rabbit import router as rabbit_router
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies.database import DBSession
 from src.shared.utils.time import current_datetime
 
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/progress", tags=["Learning Progress"])
 progress_queue = RabbitQueue(
     "learning_progress_updated",
     durable=True,
-    routing_key=LessonProgressUpdated.event_type,
+    routing_key="lesson.progress.updated.v1",
 )
 
 

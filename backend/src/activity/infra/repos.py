@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from ddf.application.dtos import OffsetPagination, Page, Sort
+from ddf.infra.database.sqlalchemy.utils import paginate
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.shared.schemas import Page, Pagination
 
 from ..domain.dtos import ActivityLogFilters
 from ..domain.models import ActivityLog
@@ -77,7 +77,7 @@ class SqlActivityLogRepository:
             aggregate_type: str,
             aggregate_id: UUID,
             *,
-            pagination: Pagination,
+            pagination: OffsetPagination,
             filters: ActivityLogFilters | None = None,
     ) -> Page[ActivityLog]:
         stmt = select(self.model).where(
@@ -88,29 +88,8 @@ class SqlActivityLogRepository:
         if filters:
             stmt = self._apply_activity_log_filters(stmt, filters)
 
-        count_stmt = select(func.count()).select_from(stmt.subquery())
-        total_items = await self.session.scalar(count_stmt) or 0
-
-        if total_items == 0:
-            return Page.create(
-                items=[],
-                total_items=total_items,
-                page=pagination.page,
-                size=pagination.size
-            )
-
-        stmt = (
-            stmt
-            .order_by(self.model.occurred_on.desc())
-            .offset(pagination.offset)
-            .limit(pagination.size)
-        )
-        results = await self.session.execute(stmt)
-        models = results.scalars().all()
-
-        return Page.create(
-            items=[self.model_mapper.from_orm(model) for model in models],
-            total_items=total_items,
-            page=pagination.page,
-            size=pagination.size
+        return await paginate(
+            self.session, self.model, stmt, pagination,
+            from_model=self.model_mapper.from_orm,
+            sort=Sort(field="occurred_on", direction="desc"),
         )

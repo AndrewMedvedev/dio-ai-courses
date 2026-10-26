@@ -1,8 +1,7 @@
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination, Page, create_page
 from ddf.domain.models import Entity
-
-from src.shared.application.dtos import Page, Pagination
 
 
 class InMemoryRepository[EntityT: Entity]:
@@ -16,17 +15,9 @@ class InMemoryRepository[EntityT: Entity]:
     async def read(self, uid: UUID) -> EntityT | None:
         return self.data.get(uid)
 
-    async def paginate(self, params: Pagination) -> Page[EntityT]:
+    async def paginate(self, params: OffsetPagination) -> Page[EntityT]:
         items = list(self.data.values())
-        return Page(
-            page=params.page,
-            size=params.size,
-            total=len(items),
-            pages=1,
-            has_next=False,
-            has_prev=False,
-            items=items[:params.size],
-        )
+        return create_page(params, items[:params.size], total=len(items))
 
     async def update(self, entity: EntityT) -> None:
         self.data[entity.id] = entity

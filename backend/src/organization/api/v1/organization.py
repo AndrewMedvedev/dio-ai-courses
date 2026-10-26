@@ -2,6 +2,8 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.dtos import Page
+from ddf.application.utils import get_or_raise_not_found
 from fastapi import APIRouter, Depends, status
 
 from src.iam.application.policies import authorize
@@ -22,7 +24,6 @@ from src.organization.domain.permissions.organizations import (
     READ,
     UPDATE,
 )
-from src.shared.application.dtos import Page
 
 router = APIRouter(prefix="/organizations", tags=["Организации"])
 
@@ -99,5 +100,7 @@ async def delete_organization(
     repository: OrganizationRepoDep,
     session: DBSession,
 ) -> None:
-    await repository.update(organization_id, is_active=False)
+    organization = await get_or_raise_not_found(repository.read, organization_id, Organization)
+    organization.is_active = False
+    await repository.update(organization)
     await session.commit()

@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from ddf.domain.models import AggregateRoot
-
-from src.iam.domain.vo import Email
+from ddf.domain.vo.email import Email
 
 from .constants import MAX_COMMENT_LENGTH
 from .events import FeedbackCreated

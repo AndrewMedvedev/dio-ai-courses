@@ -1,10 +1,11 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination, Sort
 from ddf.domain.vo.email import Email
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
+from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import select
 
-from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.repos import SqlAlchemyRepository
 from src.shared.utils.time import current_datetime
 
 from ....domain.entities import Invitation
@@ -14,13 +15,13 @@ from ..models import InvitationOrm
 
 class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
     model = InvitationOrm
-    model_mapper = InvitationMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = InvitationMapper()
 
     async def get_by_token(self, token: str) -> Invitation | None:
         stmt = select(self.model).where(self.model.token == token)
-        result = await self.session.execute(stmt)
+        result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def find_by_course(
         self,
@@ -34,7 +35,14 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
             self.model.is_used.is_(False),
             self.model.expires_at > current_datetime(),
         )
-        return await self._paginate(stmt, pagination)
+        return await paginate(
+            session=self._session,
+            model=self.model,
+            stmt=stmt,
+            pagination=pagination,
+            from_model=self.data_mapper.from_model,
+            sort=Sort(field="created_at", direction="desc"),
+        )
 
     async def get_active(
         self,
@@ -50,6 +58,6 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
             )
             .limit(1)
         )
-        result = await self.session.execute(stmt)
+        result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)

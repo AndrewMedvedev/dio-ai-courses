@@ -5,6 +5,7 @@ from typing import Any
 
 import logging
 
+from ddf.domain.utils import apply_changes
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.dtos import Chat as ChatSchema
@@ -22,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
+    repo: ChatRepository
+
     def __init__(
         self,
         repo: ChatRepository,
@@ -44,7 +47,7 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
             course_id=service.runtime.context.course_id,
             messages=messages,
         )
-        data = await self._read(
+        data = await self.repo.read_by_keys(
             user_id=schema.user_id,
             course_id=schema.course_id,
             chat_id=service.runtime.state.chat_id,
@@ -62,11 +65,13 @@ class ChatCheckpointerMiddleware(BaseSqlCheckpointer[Chat, ChatSchema]):
         """
         Сохраняет историю только после полного завершения model/tool loop.
         """
-        await self._update(
+        chat = await self.repo.read_by_keys(
             chat_id=service.runtime.state.chat_id,
             user_id=service.runtime.context.user_id,
             course_id=service.runtime.context.course_id,
-            messages=response.messages,
         )
+        if chat is not None:
+            apply_changes(chat, messages=response.messages)
+            await self._update(chat)
 
         return response

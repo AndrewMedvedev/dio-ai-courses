@@ -36,10 +36,8 @@ Design principles
 from ddf.infra.cache.in_memory import InMemoryCache
 
 from .multi_level import MultiLevelCache
-from .redis import PrimitiveSerializer
 
 __all__ = [
     "InMemoryCache",
     "MultiLevelCache",
-    "PrimitiveSerializer",
 ]

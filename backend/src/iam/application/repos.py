@@ -1,10 +1,10 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination, Sort
+from ddf.application.repositories import Repository
 from ddf.domain.vo.email import Email
 
 from src.iam.domain.entities import Invitation, Membership, Permission, Role, ServiceAccount, User
-from src.shared.application.dtos import Page, Pagination
-from src.shared.application.repos import Repository
 
 from .dtos import PermissionQueryParamFilters
 
@@ -34,6 +34,7 @@ class PermissionRepository:
         self,
         pagination: Pagination,
         filters: PermissionQueryParamFilters | None = None,
+        sort: Sort | None = None,
     ) -> Page[Permission]: ...
 
 

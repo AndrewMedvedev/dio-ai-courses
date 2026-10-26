@@ -118,6 +118,7 @@ class InvitationService:
             raise NotFoundError("Invitation not found.")
         if invitation.is_used:
             raise AlreadyExistsError("Accepted invitations cannot be revoked.")
-        await self.invitation_repo.update(invitation_id, deleted_at=current_datetime())
+        invitation.deleted_at = current_datetime()
+        await self.invitation_repo.update(invitation)
         await self.transaction(invitation)
         logger.info("Invitation deleted successfully")

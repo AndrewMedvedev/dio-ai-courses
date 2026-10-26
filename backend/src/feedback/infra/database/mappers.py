@@ -1,6 +1,5 @@
+from ddf.domain.vo.email import Email
 from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
-
-from src.iam.domain.vo import Email
 
 from ...domain.entities import Feedback
 from ...domain.vo import FeedbackRating

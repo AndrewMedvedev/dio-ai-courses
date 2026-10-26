@@ -4,6 +4,7 @@
 from uuid import UUID
 
 from ddf.application.exceptions import NotFoundError
+from ddf.domain.utils import apply_changes
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.dtos import (
@@ -34,28 +35,29 @@ class ModuleService(BaseCourseService[ModuleRepository]):
         return module
 
     async def assign_course(self, module_id: UUID, course_id: UUID) -> None:
-        course = await self.course_repo.exists(course_id)
-        if not course:
+        course = await self.course_repo.read(course_id)
+        if course is None:
             raise NotFoundError(f"Module with id {course_id} not found")
-        module = await self.repo.exists(module_id)
-        if not module:
+        module = await self.repo.read(module_id)
+        if module is None:
             raise NotFoundError(f"Lesson with id {module_id} not found")
         await self.repo.assign_course(module_id, course_id)
         await self.session.commit()
 
     async def edit(self, module_id: UUID, schema: EditModuleSchema) -> Module:
         """Выполняет действие `edit_module`, чтобы поддержать основной сценарий модуля."""
-        module_exists = await self.repo.exists(module_id)
-        if not module_exists:
+        module = await self.repo.read(module_id)
+        if module is None:
             raise NotFoundError(f"Module with id {module_id} not found")
-        module = await self.repo.update(uid=module_id, **schema.model_dump(exclude_none=True))
+        apply_changes(module, **schema.model_dump(exclude_none=True))
+        await self.repo.update(module)
         await self.session.commit()
         return module
 
     async def delete(self, module_id: UUID) -> None:
         """Выполняет действие `delete_module`, чтобы поддержать основной сценарий модуля."""
-        module_exists = await self.repo.exists(module_id)
-        if not module_exists:
+        module = await self.repo.read(module_id)
+        if module is None:
             raise NotFoundError(f"Module with id {module_id} not found")
         await self.repo.delete(module_id)
         await self.session.commit()

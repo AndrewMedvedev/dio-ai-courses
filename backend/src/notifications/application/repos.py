@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from src.shared.application.dtos import Page, Pagination
-from src.shared.domain.repos import Repository
+from ddf.application.dtos import Page, Pagination
+from ddf.application.repositories import Repository
 
 from ..domain.entities import Notification, UserPreference
 from ..domain.vo import NotificationType

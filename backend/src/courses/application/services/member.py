@@ -1,12 +1,12 @@
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
 from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.repos import CourseRepository, MemberRepository
 from src.courses.domain.entities import Course, Member
 from src.courses.domain.vo import MemberRole
-from src.shared.application.dtos import Page, Pagination
 
 
 class MemberService:
@@ -21,10 +21,10 @@ class MemberService:
         self._session = session
 
     async def sign_course(self, user_id: UUID, course_id: UUID) -> Member:
-        course = await self._course_repo.exists(course_id)
-        if not course:
+        course = await self._course_repo.read(course_id)
+        if course is None:
             raise NotFoundError(f"Course with id {course_id} not found")
-        student = await self._member_repo.read(user_id, course_id)
+        student = await self._member_repo.read_by_keys(user_id, course_id)
         if student is not None:
             raise AlreadyExistsError(
                 f"Member with id {user_id} is already signed for course {course_id}"

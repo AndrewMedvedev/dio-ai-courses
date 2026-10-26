@@ -14,7 +14,7 @@ DBSession = Annotated[AsyncSession, Depends(get_db)]
 
 def get_transaction(db: DBSession, publisher: EventPublisherDep) -> EventDispatcher:
     # Имена аргументов __aexit__ у AsyncSession отличаются от протокола DDF.
-    return EventDispatcher(uow=cast(UnitOfWork, db), evnt_publisher=publisher.publish_all)
+    return EventDispatcher(uow=cast(UnitOfWork, db), evnt_publisher=publisher)
 
 
 TransactionDep = Annotated[EventDispatcher, Depends(get_transaction)]

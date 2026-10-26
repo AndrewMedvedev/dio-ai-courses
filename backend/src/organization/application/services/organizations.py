@@ -62,7 +62,7 @@ class OrganizationService:
             email=data.email,
             description=data.description,
         )
-        await self.repository.upsert(organization)
+        await self.repository.update(organization)
         await self.session.commit()
 
         return organization
