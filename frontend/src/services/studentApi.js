@@ -1,4 +1,4 @@
-import { mapCourseFromApi } from "../utils/api";
+import { mapCourseFromApi } from "@/entities/course";
 import { apiFetch } from "@/shared/api";
 
 function normalizePaginatedCourses(data, { page = 1, size = 10 } = {}) {

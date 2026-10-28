@@ -1,14 +1,55 @@
 import { create } from "zustand";
+import type { ApiError, ValidationErrors } from "@/shared/api";
+import { getErrorMessage } from "@/shared/lib/errors";
 import {
   createModel as createModelApi,
   deleteModel as deleteModelApi,
   fetchModelsPage,
-} from "../utils/api";
+} from "../api/ai-model-api";
+import type { AiModel, AiModelPayload, AiModelsPage } from "./types";
+
+interface ModelForm {
+  name: string;
+  description: string;
+  context: string;
+}
+
+interface ModelData {
+  items: AiModel[];
+  page: number;
+  size: number;
+  total: number;
+  totalPages: number;
+  isLoading: boolean;
+  isCreating: boolean;
+  deletingUid: string | null;
+  error: string;
+  notice: string;
+  validationErrors: ValidationErrors;
+  selectedModel: AiModel | null;
+  createForm: ModelForm;
+}
+
+interface ModelState extends ModelData {
+  setPage: (page: number) => void;
+  setSelectedModel: (selectedModel: AiModel | null) => void;
+  setNotice: (notice: string) => void;
+  clearMessages: () => void;
+  updateCreateField: (field: keyof ModelForm, value: string) => void;
+  resetCreateForm: () => void;
+  fetchModels: (page?: number, size?: number) => Promise<AiModelsPage>;
+  createModel: (payload: AiModelPayload) => Promise<AiModel | null>;
+  deleteModel: (uid: string) => Promise<boolean | null>;
+  reset: () => void;
+}
+
+const errorMessage = (error: unknown, fallback: string) =>
+  getErrorMessage(error, fallback) ?? fallback;
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 
-const initialState = {
+const initialState: ModelData = {
   items: [],
   page: DEFAULT_PAGE,
   size: DEFAULT_PAGE_SIZE,
@@ -28,11 +69,7 @@ const initialState = {
   },
 };
 
-function getErrorMessage(error, fallback) {
-  return error?.userMessage || error?.message || fallback;
-}
-
-export const useModelStore = create((set, get) => ({
+export const useModelStore = create<ModelState>((set, get) => ({
   ...initialState,
 
   setPage: (page) => set({ page }),
@@ -76,7 +113,7 @@ export const useModelStore = create((set, get) => ({
         total: 0,
         totalPages: 1,
         isLoading: false,
-        error: getErrorMessage(error, "Не удалось загрузить AI-модели."),
+        error: errorMessage(error, "Не удалось загрузить AI-модели."),
       });
       throw error;
     }
@@ -105,8 +142,8 @@ export const useModelStore = create((set, get) => ({
     } catch (error) {
       set({
         isCreating: false,
-        validationErrors: error?.validationErrors || {},
-        error: getErrorMessage(error, "Не удалось создать AI-модель."),
+        validationErrors: (error as ApiError | null)?.validationErrors || {},
+        error: errorMessage(error, "Не удалось создать AI-модель."),
       });
       throw error;
     }
@@ -128,7 +165,7 @@ export const useModelStore = create((set, get) => ({
       await get().fetchModels(get().page, get().size);
       return true;
     } catch (error) {
-      if (error?.status === 404) {
+      if ((error as ApiError | null)?.status === 404) {
         set({
           items: get().items.filter((item) => item.uid !== uid),
           deletingUid: null,
@@ -140,7 +177,7 @@ export const useModelStore = create((set, get) => ({
 
       set({
         deletingUid: null,
-        error: getErrorMessage(error, "Не удалось удалить AI-модель."),
+        error: errorMessage(error, "Не удалось удалить AI-модель."),
       });
       throw error;
     }

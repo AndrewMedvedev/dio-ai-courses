@@ -6,7 +6,7 @@ import {
   getLessonProgressStatus,
   getLessonsProgress,
 } from "../services/progressService";
-import { isUuid } from "../utils/api";
+import { isUuid } from "@/shared/lib/uuid";
 
 function collectLessonIds(course) {
   return (course?.blocks || []).flatMap((block) =>

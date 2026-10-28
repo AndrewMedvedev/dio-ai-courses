@@ -18,9 +18,10 @@ import { notify } from "@/shared/ui/toast";
 import {
   acceptCourseInvitation,
   acceptOrganizationInvitation,
-} from "../utils/api";
+  describeAcceptError,
+  INVITATION_TYPES,
+} from "@/entities/invitation";
 import { isTokenExpired } from "@/shared/api";
-import { describeAcceptError, INVITATION_TYPES } from "../utils/invitations";
 import InvitationEntry from "./InvitationEntry";
 
 const ACCEPT = {

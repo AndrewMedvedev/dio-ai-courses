@@ -14,7 +14,7 @@ import {
   archiveCourse,
   publishCourse,
   setCourseInviteOnly,
-} from "../utils/api";
+} from "@/entities/course";
 import { getApiErrorMessage } from "./helpers";
 import Icon, { Spinner } from "./icons";
 import { fetchCourseStructure, fetchLessonBlocks } from "./serverCourse";

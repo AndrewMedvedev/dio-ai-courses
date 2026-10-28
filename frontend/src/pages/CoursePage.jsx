@@ -13,7 +13,8 @@ import {
   useGenerationJobsStore,
 } from "../stores/generationJobsStore";
 import { useSessionStore } from "@/entities/session";
-import { COURSE_LEVELS, formatCourseLevel, isUuid } from "../utils/api";
+import { isUuid } from "@/shared/lib/uuid";
+import { COURSE_LEVELS, formatCourseLevel } from "@/entities/course";
 
 // На странице курса в дереве не выделен ни один модуль.
 const NO_SELECTED_BLOCK = { id: "" };

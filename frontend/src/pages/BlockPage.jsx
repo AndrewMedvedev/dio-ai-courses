@@ -11,7 +11,7 @@ import {
   generationJobKey,
   useGenerationJobsStore,
 } from "../stores/generationJobsStore";
-import { isUuid } from "../utils/api";
+import { isUuid } from "@/shared/lib/uuid";
 
 export default function BlockPage({
   selectedCourse,

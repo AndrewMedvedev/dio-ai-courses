@@ -3,6 +3,7 @@ import {
   createAgentConversationKey,
   useAgentStore,
 } from "../stores/agentStore";
+import { uploadDocument } from "../utils/api";
 import {
   assignLessonToModule,
   createCourse as createCourseApi,
@@ -15,8 +16,7 @@ import {
   updateLesson as updateLessonApi,
   updateLessonContentBlocks,
   updateModule as updateModuleApi,
-  uploadDocument,
-} from "../utils/api";
+} from "@/entities/course";
 import { isAuthenticated, redirectToLogin } from "@/shared/api";
 import {
   COLUMN_GAP,

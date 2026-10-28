@@ -48,6 +48,7 @@ import {
   useAppPermissions,
 } from "@/entities/session";
 import { resolveTheme, useThemeStore } from "./stores/themeStore";
+import { isUuid } from "@/shared/lib/uuid";
 import {
   archiveCourse as archiveCourseApi,
   createLesson as createLessonApi,
@@ -58,14 +59,13 @@ import {
   getCourse,
   getLessonBasicInfo,
   getModuleBasicInfo,
-  isUuid,
   publishCourse as publishCourseApi,
   setCourseInviteOnly as setCourseInviteOnlyApi,
   updateCourse as updateCourseApi,
   updateLesson as updateLessonApi,
   updateLessonContentBlocks,
   updateModule as updateModuleApi,
-} from "./utils/api";
+} from "@/entities/course";
 import {
   createEmptyCourseBlock,
   getSelectedBlock,

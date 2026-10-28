@@ -3,9 +3,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { notify } from "@/shared/ui/toast";
-import { fetchInvitationRoles, inviteToOrganization } from "../../utils/api";
+import {
+  fetchInvitationRoles,
+  inviteToOrganization,
+  describeRole,
+} from "@/entities/invitation";
 import { getErrorMessage } from "@/shared/lib/errors";
-import { describeRole } from "../../utils/invitations";
 import EmailRowsField from "./EmailRowsField";
 import { useEmailRows } from "./useEmailRows";
 import "../course/course-invite.css";

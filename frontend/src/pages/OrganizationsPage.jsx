@@ -9,7 +9,7 @@ import {
   fetchOrganizationById,
   fetchOrganizationsPage,
   updateOrganization,
-} from "../utils/api";
+} from "@/entities/organization";
 
 const EMPTY_FORM = {
   name: "",

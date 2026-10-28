@@ -12,7 +12,7 @@ import {
   formatModulesCount,
   useCoursesModulesCount,
 } from "../hooks/useCoursesModulesCount";
-import { fetchMyCoursesPage, formatCourseLevel } from "../utils/api";
+import { fetchMyCoursesPage, formatCourseLevel } from "@/entities/course";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);

@@ -1,6 +1,6 @@
 // Витрина готовых курсов, созданных пользователями AI Course Lab
 import { SectionTop } from "@/shared/ui/section-top";
-import { formatCourseLevel } from "../utils/api";
+import { formatCourseLevel } from "@/entities/course";
 
 // В карточке каталога показываем не больше стольких тегов, остальные — счётчиком.
 const MAX_CARD_TAGS = 4;

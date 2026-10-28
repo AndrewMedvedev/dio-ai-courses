@@ -31,7 +31,7 @@ import { useTheorySessionTracker } from "../../hooks/useTheorySessionTracker";
 import { useCourseProgress } from "../../hooks/useCourseProgress";
 import { getModuleProgressSummary } from "../../services/progressService";
 import { getErrorMessage } from "@/shared/lib/errors";
-import { isUuid } from "../../utils/api";
+import { isUuid } from "@/shared/lib/uuid";
 import { isTokenExpired } from "@/shared/api";
 import ModuleList from "./ModuleList";
 import LessonMetricsDashboard from "./LessonMetricsDashboard";

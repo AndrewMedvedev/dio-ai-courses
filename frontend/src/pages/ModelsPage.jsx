@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { SectionTop } from "@/shared/ui/section-top";
-import { useModelStore } from "../stores/modelStore";
+import { useModelStore } from "@/entities/ai-model";
 
 function FieldError({ message }) {
   return message ? <span className="model-field-error">{message}</span> : null;

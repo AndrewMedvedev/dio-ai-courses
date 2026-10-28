@@ -1,4 +1,4 @@
-import { formatCourseLevel } from "../../utils/api";
+import { formatCourseLevel } from "@/entities/course";
 
 function TextList({ title, items, emptyText }) {
   if (!Array.isArray(items) || items.length === 0) {

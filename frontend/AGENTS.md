@@ -182,7 +182,8 @@ src/
 - [x] `shared/lib/ui-layout`: история маршрутов, «Назад», восстановление скролла, UI-настройки страниц
 - [x] `shared/ui`: mermaid-diagram, syntax-highlighted-code
 - [x] `entities/session`: сессия, вход, текущий пользователь, права (`useAppPermissions`, `PermissionGate`); охрана маршрутов — `app/router/ProtectedRoute`
-- [ ] `entities`: курс/модуль/урок, организация, приглашение, прогресс
+- [x] `entities/course`: запросы курса, модулей и уроков, мапперы бэкенд ↔ интерфейс, контент-блоки, уровни сложности
+- [ ] `entities`: организация, приглашение, прогресс, ИИ-модель; состояние курса (`course/courseState.js`, `routeState.js`)
 - [ ] `features`
 - [ ] `widgets` (в том числе хлебные крошки — они знают про курс, модуль и урок)
 - [ ] `pages` и роутер (`App.jsx` → `app/router`)

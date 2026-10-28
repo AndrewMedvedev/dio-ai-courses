@@ -4,7 +4,7 @@ import {
   getCourseBasicInfo,
   getLessonBasicInfo,
   getModuleBasicInfo,
-} from "../utils/api";
+} from "@/entities/course";
 import { useGenerationJobsStore } from "../stores/generationJobsStore";
 import { isAgentMockEnabled } from "../services/agentMockHook";
 

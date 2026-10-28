@@ -3,7 +3,7 @@ import {
   fetchOrganizationInvitations,
   resendOrganizationInvitation,
   revokeOrganizationInvitation,
-} from "../../utils/api";
+} from "@/entities/invitation";
 import { usePermissionStore } from "@/entities/session";
 import { notify } from "@/shared/ui/toast";
 

@@ -3,7 +3,7 @@ import {
   getCourseBasicInfo,
   getLessonTheory,
   getModuleBasicInfo,
-} from "../utils/api";
+} from "@/entities/course";
 
 function parseMinutes(duration) {
   const match = /(\d+)/.exec(String(duration || ""));

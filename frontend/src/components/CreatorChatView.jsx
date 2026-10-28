@@ -22,9 +22,9 @@ import {
   DOCUMENT_ALLOWED_EXTENSION,
   DOCUMENT_ALLOWED_EXTENSIONS_LABEL,
   DOCUMENT_MAX_SIZE_BYTES,
-  fetchCourseStatus,
   saveDocument,
 } from "../utils/api";
+import { fetchCourseStatus } from "@/entities/course";
 import { getLocalStorage } from "@/shared/lib/storage";
 
 const MAX_FILES = 5;

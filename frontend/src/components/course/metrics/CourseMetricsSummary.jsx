@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { normalizeCourseProgress } from "../../../services/progressService";
 import { useCourseMetricsStore } from "../../../stores/courseMetricsStore";
-import { fetchCourseStudentsProgress } from "../../../utils/api";
+import { fetchCourseStudentsProgress } from "@/entities/progress";
 import { getInitials, percentTone, pluralRu } from "./metricsFormat";
 import "./course-metrics.css";
 

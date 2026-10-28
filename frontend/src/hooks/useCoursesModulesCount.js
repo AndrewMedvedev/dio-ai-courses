@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { getCourseBasicInfo, isUuid } from "../utils/api";
+import { isUuid } from "@/shared/lib/uuid";
+import { getCourseBasicInfo } from "@/entities/course";
 
 /**
  * Число модулей для списка курсов (профиль, «Мои курсы»).

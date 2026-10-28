@@ -2,8 +2,8 @@
 // подсказка «есть в системе / нет в системе» и последовательная отправка.
 // Общий для окон «Пригласить на курс», «в организацию» и «в систему».
 import { useCallback, useRef, useState } from "react";
-import { findUserByEmail } from "../../utils/api";
-import { EMAIL_RE } from "../../utils/invitations";
+import { findUserByEmail } from "@/entities/user";
+import { EMAIL_RE } from "@/entities/invitation";
 
 export const MAX_EMAILS = 20;
 

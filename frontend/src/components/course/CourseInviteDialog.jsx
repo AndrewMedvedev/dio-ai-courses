@@ -3,13 +3,13 @@
 // email введён целиком — без поиска на каждую букву.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { fetchCourseMembersPage } from "@/entities/course";
+import { fetchUserById } from "@/entities/user";
 import {
   fetchCourseInvitationsPage,
-  fetchCourseMembersPage,
-  fetchUserById,
   inviteToCourse,
   revokeCourseInvitation,
-} from "../../utils/api";
+} from "@/entities/invitation";
 import { getErrorMessage } from "@/shared/lib/errors";
 import { notify } from "@/shared/ui/toast";
 import EmailRowsField from "../invite/EmailRowsField";

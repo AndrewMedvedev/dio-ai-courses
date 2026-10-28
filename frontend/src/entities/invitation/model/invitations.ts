@@ -1,5 +1,18 @@
 // Общие помощники для приглашений: валидация email/ролей и разбор ошибок принятия.
 import { getErrorMessage } from "@/shared/lib/errors";
+import type { InvitationType, Role } from "./types";
+
+export interface RoleDescription {
+  id: string | undefined;
+  label: string;
+  hint: string;
+}
+
+export interface AcceptErrorDescription {
+  kind: "invalid" | "wrong-account" | "member" | "retry";
+  title: string;
+  text: string;
+}
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -9,7 +22,7 @@ const USER_ROLE_TEXT = {
   hint: "Проходит курсы, видит свой прогресс и профиль.",
 };
 
-const ROLE_TEXT = {
+const ROLE_TEXT: Record<string, { label: string; hint: string }> = {
   // На бэке базовая роль переименована user → default_role, поддерживаем обе.
   default_role: USER_ROLE_TEXT,
   user: USER_ROLE_TEXT,
@@ -19,7 +32,9 @@ const ROLE_TEXT = {
   },
 };
 
-export function describeRole(role) {
+export function describeRole(
+  role: Partial<Role> | null | undefined,
+): RoleDescription {
   const known = ROLE_TEXT[String(role?.code || "").toLowerCase()];
   return {
     id: role?.id,
@@ -28,7 +43,10 @@ export function describeRole(role) {
   };
 }
 
-export const INVITATION_TYPES = {
+export const INVITATION_TYPES: Record<
+  InvitationType,
+  { label: string; title: string; memberText: string }
+> = {
   course: {
     label: "Приглашение на курс",
     title: "Приглашение на курс",
@@ -42,8 +60,12 @@ export const INVITATION_TYPES = {
 };
 
 // Бэкенд отвечает одним 404 на истёкшее, отозванное и уже использованное приглашение.
-export function describeAcceptError(error, type) {
+export function describeAcceptError(
+  rawError: unknown,
+  type: InvitationType | string,
+): AcceptErrorDescription {
   const isCourse = type === "course";
+  const error = rawError as { status?: number } | null | undefined;
 
   if (error?.status === 404) {
     return {
@@ -62,7 +84,9 @@ export function describeAcceptError(error, type) {
   if (error?.status === 409) {
     return {
       kind: "member",
-      title: isCourse ? "Вы уже участник курса" : "Вы уже состоите в организации",
+      title: isCourse
+        ? "Вы уже участник курса"
+        : "Вы уже состоите в организации",
       text: isCourse
         ? "Курс уже есть в вашем списке — откройте его в личном кабинете."
         : "Повторно принимать приглашение не нужно.",
@@ -71,6 +95,6 @@ export function describeAcceptError(error, type) {
   return {
     kind: "retry",
     title: "Не удалось принять приглашение",
-    text: getErrorMessage(error, "Попробуйте ещё раз чуть позже."),
+    text: getErrorMessage(rawError, "Попробуйте ещё раз чуть позже.") ?? "",
   };
 }

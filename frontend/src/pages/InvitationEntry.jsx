@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { acceptInvitation, previewInvitation } from "../utils/api";
+import { acceptInvitation, previewInvitation } from "@/entities/invitation";
 import { useSessionStore, usePermissionStore } from "@/entities/session";
 import { notify } from "@/shared/ui/toast";
 

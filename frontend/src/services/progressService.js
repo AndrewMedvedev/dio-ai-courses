@@ -7,7 +7,7 @@ import {
   fetchLessonProgress,
   fetchModuleProgress,
   recalculateCourseProgress,
-} from "../utils/api";
+} from "@/entities/progress";
 
 // Статусы прохождения урока/модуля для отрисовки цветами.
 export const PROGRESS_STATUS = {

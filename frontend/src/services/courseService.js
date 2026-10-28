@@ -4,7 +4,7 @@ import {
   getLessonBasicInfo,
   getLessonTheory,
   getModuleBasicInfo,
-} from "../utils/api";
+} from "@/entities/course";
 import { getMyCourses, signCourse } from "./studentApi";
 
 const ENROLLMENT_PAGE_SIZE = 100;

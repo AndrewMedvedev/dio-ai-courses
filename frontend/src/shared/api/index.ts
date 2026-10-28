@@ -26,3 +26,5 @@ export {
   type StoredSession,
   type TokenResponse,
 } from "./session";
+export { buildQuery } from "./build-query";
+export type { ItemsPage, PageParams, Paginated, RawApiRecord } from "./types";
