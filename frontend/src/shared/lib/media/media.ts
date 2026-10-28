@@ -1,7 +1,9 @@
 export const MEDIA_FOLDERS = Object.freeze({
   AVATAR: "avatar",
   COURSE_IMAGES: "course-images",
-});
+} as const);
+
+export type MediaFolder = (typeof MEDIA_FOLDERS)[keyof typeof MEDIA_FOLDERS];
 
 export const MEDIA_BASE_URL = String(
   import.meta.env.VITE_MEDIA_BASE_URL ||
@@ -12,7 +14,7 @@ export const MEDIA_BASE_URL = String(
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function getMediaId(value) {
+export function getMediaId(value: unknown): string {
   const source = String(value || "").trim();
   if (!source) return "";
   if (UUID_RE.test(source)) return source;
@@ -22,7 +24,11 @@ export function getMediaId(value) {
   return filename;
 }
 
-export function getMediaUrl(userId, folder, imageId) {
+export function getMediaUrl(
+  userId: unknown,
+  folder: unknown,
+  imageId: unknown,
+): string {
   const normalizedUserId = String(userId || "").trim();
   const normalizedFolder = String(folder || "")
     .trim()

@@ -8,11 +8,11 @@ import {
 } from "../stores/agentStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { convertDocumentToMarkdown } from "../utils/api";
-import ConfirmDialog from "./ui/ConfirmDialog";
-import FloatingWindow from "./ui/FloatingWindow";
-import { autosizeTextarea } from "../utils/autosizeTextarea";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { FloatingWindow } from "@/shared/ui/floating-window";
+import { autosizeTextarea } from "@/shared/lib/dom";
 import { attachmentsApi } from "../utils/attachments";
-import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
+import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 import {
   allowedImageExtension,
   allowedImageTypes,

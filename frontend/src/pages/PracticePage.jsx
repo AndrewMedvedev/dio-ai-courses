@@ -10,7 +10,7 @@ import {
 } from "../components/LessonAgentAssessments";
 
 import MermaidDiagram from "../components/MermaidDiagram";
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
 import { useGoBack } from "../hooks/useGoBack";
 

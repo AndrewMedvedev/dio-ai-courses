@@ -175,7 +175,9 @@ src/
 ## Статус переноса
 
 - [x] TypeScript, Tailwind (без preflight, префикс `tw:`), алиас `@/`, точка входа `src/app/main.tsx`
-- [ ] `shared`: вызов бэкенда, утилиты, хуки, UI-кит
+- [x] `shared/lib`: storage, errors, dom, media
+- [x] `shared/ui`: toast, app-modal, confirm-dialog, floating-window, section-top
+- [ ] `shared`: вызов бэкенда (`requestJson`), хуки, Mermaid и подсветка кода, хлебные крошки
 - [ ] `entities`: сессия, права, курс/модуль/урок, организация, приглашение, прогресс
 - [ ] `features`
 - [ ] `widgets`

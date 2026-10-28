@@ -1,5 +1,5 @@
-import { getMediaId } from "./media";
-import { getLocalStorage } from "./storage";
+import { getMediaId } from "@/shared/lib/media";
+import { getLocalStorage } from "@/shared/lib/storage";
 import { validateMermaidSource } from "../components/MermaidDiagram.jsx";
 
 const SESSION_KEY = "aicolab_session";

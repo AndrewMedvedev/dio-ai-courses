@@ -7,7 +7,7 @@ import {
   askMentorAgent,
   askModuleInterviewerAgent,
 } from "../utils/api";
-import { getLocalStorage } from "../utils/storage";
+import { getLocalStorage } from "@/shared/lib/storage";
 import { isAgentMockEnabled, mockInterviewer } from "../services/agentMockHook";
 
 // Диалоги интервьюеров (курс, модуль, урок) сохраняются в браузере вместе с chat_id,

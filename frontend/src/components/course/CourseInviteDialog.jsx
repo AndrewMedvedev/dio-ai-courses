@@ -10,8 +10,8 @@ import {
   inviteToCourse,
   revokeCourseInvitation,
 } from "../../utils/api";
-import { getErrorMessage } from "../../utils/errors";
-import { notify } from "../../stores/toastStore";
+import { getErrorMessage } from "@/shared/lib/errors";
+import { notify } from "@/shared/ui/toast";
 import EmailRowsField from "../invite/EmailRowsField";
 import { useEmailRows } from "../invite/useEmailRows";
 import "./course-invite.css";

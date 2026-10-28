@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import { useModelStore } from "../stores/modelStore";
 
 function FieldError({ message }) {

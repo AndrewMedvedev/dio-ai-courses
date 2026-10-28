@@ -1,6 +1,6 @@
 import MermaidDiagram from "../components/MermaidDiagram";
 import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
-import { getMediaId } from "../utils/media";
+import { getMediaId } from "@/shared/lib/media";
 
 export const MAX_CONTENT_BLOCKS = 10;
 

@@ -1,5 +1,5 @@
 // Витрина готовых курсов, созданных пользователями AI Course Lab
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import { formatCourseLevel } from "../utils/api";
 
 // В карточке каталога показываем не больше стольких тегов, остальные — счётчиком.

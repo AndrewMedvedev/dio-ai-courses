@@ -5,7 +5,7 @@ import ContentPreviewModal from "../ContentPreviewModal";
 import ContentBlockSources, { hasSources } from "./ContentBlockSources";
 import MermaidDiagram from "../MermaidDiagram";
 import SyntaxHighlightedCode from "../SyntaxHighlightedCode";
-import { getMediaUrl, MEDIA_FOLDERS } from "../../utils/media";
+import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 import { normalizeQuizQuestions } from "../../utils/quiz";
 
 const allowedImageDataUrl =

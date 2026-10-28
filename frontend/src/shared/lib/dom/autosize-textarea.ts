@@ -1,6 +1,9 @@
 // Подгоняет высоту поля ввода под текст: без пустого скролла на старте,
 // скролл появляется только когда текст длиннее maxHeight.
-export function autosizeTextarea(element, maxHeight = 180) {
+export function autosizeTextarea(
+  element: HTMLElement | null | undefined,
+  maxHeight = 180,
+): void {
   if (!element) return;
   element.style.height = "auto";
   const borders = element.offsetHeight - element.clientHeight;

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { acceptInvitation, previewInvitation } from "../utils/api";
 import { useSessionStore } from "../stores/sessionStore";
 import { usePermissionStore } from "../stores/permissionStore";
-import { notify } from "../stores/toastStore";
+import { notify } from "@/shared/ui/toast";
 
 // The token determines the email and whether registration is available.
 // Existing users keep the normal login/accept flow passed as children.

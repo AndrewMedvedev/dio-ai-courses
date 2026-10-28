@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import AppModal from "../ui/AppModal";
-import FloatingWindow from "../ui/FloatingWindow";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { AppModal } from "@/shared/ui/app-modal";
+import { FloatingWindow } from "@/shared/ui/floating-window";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import AgentMarkdown from "./AgentMarkdown";
-import { autosizeTextarea } from "../../utils/autosizeTextarea";
+import { autosizeTextarea } from "@/shared/lib/dom";
 import { isAgentMockEnabled } from "../../services/agentMockHook";
 import {
   CONFIRM_LAUNCH_MESSAGE,

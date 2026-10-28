@@ -1,5 +1,5 @@
 // Страница генерации курса с интерактивным чатом
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import CreatorChatView from "../components/CreatorChatView";
 
 export default function CreatorPage() {

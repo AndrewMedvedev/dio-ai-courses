@@ -1,5 +1,5 @@
 // Общие помощники для приглашений: валидация email/ролей и разбор ошибок принятия.
-import { getErrorMessage } from "./errors";
+import { getErrorMessage } from "@/shared/lib/errors";
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

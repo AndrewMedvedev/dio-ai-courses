@@ -1,5 +1,5 @@
 // Главная страница с описанием продукта, каталогом треков и механикой генерации
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 
 export default function HomePage({
   tracks,

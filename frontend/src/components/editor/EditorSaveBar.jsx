@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import TextDiff from "./TextDiff";
 import {
   isDerivedDraftField,

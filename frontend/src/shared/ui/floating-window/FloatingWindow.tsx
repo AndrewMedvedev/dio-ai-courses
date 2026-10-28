@@ -1,13 +1,43 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
-import { getLocalStorage } from "../../utils/storage";
+import { getLocalStorage } from "@/shared/lib/storage";
 import "./floating-window.css";
+
+export interface FloatingWindowSize {
+  width: number;
+  height: number;
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+type GestureMode = "move" | "e" | "w" | "s" | "se" | "sw";
+
+interface Gesture {
+  mode: GestureMode;
+  startX: number;
+  startY: number;
+  start: Rect;
+}
 
 const MARGIN = 12;
 const MIN_VISIBLE = 120;
 const MOBILE_QUERY = "(max-width: 720px)";
 
-function readRect(storageKey) {
+function readRect(storageKey: string): Rect | null {
   if (!storageKey) return null;
   try {
     const value = JSON.parse(
@@ -21,7 +51,7 @@ function readRect(storageKey) {
   }
 }
 
-function writeRect(storageKey, rect) {
+function writeRect(storageKey: string, rect: Rect): void {
   if (!storageKey) return;
   try {
     getLocalStorage()?.setItem(
@@ -33,7 +63,7 @@ function writeRect(storageKey, rect) {
   }
 }
 
-function clampRect(rect, minSize) {
+function clampRect(rect: Rect, minSize: FloatingWindowSize): Rect {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const w = Math.min(Math.max(rect.w, minSize.width), vw - MARGIN * 2);
@@ -44,7 +74,7 @@ function clampRect(rect, minSize) {
   return { x, y, w, h };
 }
 
-function defaultRect(defaultSize) {
+function defaultRect(defaultSize: FloatingWindowSize): Rect {
   const w = Math.min(defaultSize.width, window.innerWidth - MARGIN * 2);
   const h = Math.min(defaultSize.height, window.innerHeight - MARGIN * 2);
   return {
@@ -60,7 +90,21 @@ function defaultRect(defaultSize) {
  * сворачивается в шапку. Положение и размер запоминаются по storageKey.
  * На узком экране открывается снизу на всю ширину без перетаскивания.
  */
-export default function FloatingWindow({
+export interface FloatingWindowProps {
+  open: boolean;
+  title: ReactNode;
+  eyebrow?: ReactNode;
+  subtitle?: ReactNode;
+  onClose?: () => void;
+  storageKey?: string;
+  defaultSize?: FloatingWindowSize;
+  minSize?: FloatingWindowSize;
+  headerActions?: ReactNode;
+  className?: string;
+  children?: ReactNode;
+}
+
+export function FloatingWindow({
   open,
   title,
   eyebrow = "",
@@ -72,16 +116,16 @@ export default function FloatingWindow({
   headerActions = null,
   className = "",
   children,
-}) {
+}: FloatingWindowProps) {
   const titleId = useId();
-  const [rect, setRect] = useState(null);
+  const [rect, setRect] = useState<Rect | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () =>
       typeof window !== "undefined" && window.matchMedia(MOBILE_QUERY).matches,
   );
-  const gestureRef = useRef(null);
-  const rectRef = useRef(null);
+  const gestureRef = useRef<Gesture | null>(null);
+  const rectRef = useRef<Rect | null>(null);
   rectRef.current = rect;
 
   useEffect(() => {
@@ -108,11 +152,11 @@ export default function FloatingWindow({
   }, []);
 
   const startGesture = useCallback(
-    (event, mode) => {
+    (event: ReactPointerEvent<HTMLElement>, mode: GestureMode) => {
       if (isMobile || event.button !== 0 || !rectRef.current) return;
       if (
         mode === "move" &&
-        event.target.closest("button, a, input, textarea")
+        (event.target as Element).closest("button, a, input, textarea")
       ) {
         return;
       }
@@ -129,7 +173,7 @@ export default function FloatingWindow({
   );
 
   const moveGesture = useCallback(
-    (event) => {
+    (event: ReactPointerEvent<HTMLElement>) => {
       const gesture = gestureRef.current;
       if (!gesture) return;
       const dx = event.clientX - gesture.startX;
@@ -164,7 +208,7 @@ export default function FloatingWindow({
 
   if (!open || !rect) return null;
 
-  const style = isMobile
+  const style: CSSProperties | undefined = isMobile
     ? undefined
     : {
         left: rect.x,
@@ -188,7 +232,8 @@ export default function FloatingWindow({
         className="floating-window-head"
         onPointerDown={(event) => startGesture(event, "move")}
         onDoubleClick={(event) => {
-          if (!event.target.closest("button")) setMinimized((value) => !value);
+          if (!(event.target as Element).closest("button"))
+            setMinimized((value) => !value);
         }}
         title={isMobile ? undefined : "Перетащите, чтобы переместить окно"}
       >

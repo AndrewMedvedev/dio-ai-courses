@@ -1,6 +1,6 @@
 // Личный кабинет с карточками прогресса, навигацией по вкладкам и управлением потоками преподавателя
 import { useEffect, useMemo, useState } from "react";
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
@@ -13,7 +13,7 @@ import {
   useCoursesModulesCount,
 } from "../hooks/useCoursesModulesCount";
 import { fetchMyCoursesPage, formatCourseLevel } from "../utils/api";
-import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
+import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const AVATAR_MAX_SIZE_BYTES = 15 * 1024 * 1024;

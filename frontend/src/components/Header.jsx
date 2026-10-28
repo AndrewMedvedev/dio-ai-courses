@@ -2,7 +2,7 @@
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useSessionStore } from "../stores/sessionStore";
 import { useUiLayoutStore } from "../stores/uiLayoutStore";
-import { getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
+import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 function getDisplayText(value) {
   if (typeof value === "string") return value.trim();

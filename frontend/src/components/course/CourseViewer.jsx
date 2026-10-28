@@ -6,7 +6,7 @@ import {
 } from "../LessonAgentAssessments";
 import LessonChatWorkspace from "../LessonChatWorkspace";
 import CourseNavigationTree from "../CourseNavigationTree";
-import SectionTop from "../SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import {
   getCourseBasicInfo,
   getCourseLearningStructure,
@@ -30,7 +30,7 @@ import { useUiLayoutStore } from "../../stores/uiLayoutStore";
 import { useTheorySessionTracker } from "../../hooks/useTheorySessionTracker";
 import { useCourseProgress } from "../../hooks/useCourseProgress";
 import { getModuleProgressSummary } from "../../services/progressService";
-import { getErrorMessage } from "../../utils/errors";
+import { getErrorMessage } from "@/shared/lib/errors";
 import { isTokenExpired, isUuid } from "../../utils/api";
 import ModuleList from "./ModuleList";
 import LessonMetricsDashboard from "./LessonMetricsDashboard";

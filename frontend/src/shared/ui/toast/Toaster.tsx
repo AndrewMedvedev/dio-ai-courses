@@ -1,7 +1,7 @@
-import { useToastStore } from "../stores/toastStore";
+import { useToastStore } from "./toast-store";
 import "./toaster.css";
 
-export default function Toaster() {
+export function Toaster() {
   const toasts = useToastStore((state) => state.toasts);
   const dismiss = useToastStore((state) => state.dismiss);
 

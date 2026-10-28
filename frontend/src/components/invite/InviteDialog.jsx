@@ -2,9 +2,9 @@
 // тот же модальный каркас, тот же ввод нескольких email и карточки выбора ролей.
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { notify } from "../../stores/toastStore";
+import { notify } from "@/shared/ui/toast";
 import { fetchInvitationRoles, inviteToOrganization } from "../../utils/api";
-import { getErrorMessage } from "../../utils/errors";
+import { getErrorMessage } from "@/shared/lib/errors";
 import { describeRole } from "../../utils/invitations";
 import EmailRowsField from "./EmailRowsField";
 import { useEmailRows } from "./useEmailRows";

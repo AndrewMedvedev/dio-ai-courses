@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router-dom";
 import "../creator/creator-chat.css";
-import ConfirmDialog from "./ui/ConfirmDialog";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { isAgentMockEnabled } from "../services/agentMockHook";
 import {
   CONFIRM_LAUNCH_MESSAGE,
@@ -25,7 +25,7 @@ import {
   fetchCourseStatus,
   saveDocument,
 } from "../utils/api";
-import { getLocalStorage } from "../utils/storage";
+import { getLocalStorage } from "@/shared/lib/storage";
 
 const MAX_FILES = 5;
 

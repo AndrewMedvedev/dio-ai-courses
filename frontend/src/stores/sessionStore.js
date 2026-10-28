@@ -14,7 +14,7 @@ import {
   isTokenExpired,
 } from "../utils/api";
 import { attachmentsApi } from "../utils/attachments";
-import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "../utils/media";
+import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 const initialStoredSession = readStoredSession();
 const SESSION_CACHE_STORAGE_KEY = "aicolab-session-cache";

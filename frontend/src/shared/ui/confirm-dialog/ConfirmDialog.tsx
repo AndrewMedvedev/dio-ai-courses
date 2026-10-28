@@ -1,11 +1,28 @@
-import { useState } from "react";
-import AppModal from "./AppModal";
+import { useState, type ReactNode } from "react";
+import { AppModal, type AppModalSize } from "@/shared/ui/app-modal";
+import { getErrorMessage } from "@/shared/lib/errors";
+
+export interface ConfirmDialogProps {
+  open: boolean;
+  title: ReactNode;
+  description?: ReactNode;
+  eyebrow?: ReactNode;
+  confirmLabel?: ReactNode;
+  cancelLabel?: ReactNode;
+  busyLabel?: ReactNode;
+  danger?: boolean;
+  /** Вернёт false — окно останется открытым. */
+  onConfirm?: () => unknown;
+  onCancel?: () => void;
+  children?: ReactNode;
+  size?: AppModalSize;
+}
 
 /**
  * Диалог подтверждения: «Подтвердить» выполняет onConfirm, «Отмена» ничего не меняет.
  * Если onConfirm вернул false или бросил ошибку — окно остаётся открытым.
  */
-export default function ConfirmDialog({
+export function ConfirmDialog({
   open,
   title,
   description = "",
@@ -18,7 +35,7 @@ export default function ConfirmDialog({
   onCancel,
   children,
   size = "sm",
-}) {
+}: ConfirmDialogProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,9 +54,10 @@ export default function ConfirmDialog({
       if (result === false) return;
     } catch (confirmError) {
       setError(
-        confirmError?.userMessage ||
-          confirmError?.message ||
+        getErrorMessage(
+          confirmError,
           "Не удалось выполнить действие. Попробуйте ещё раз.",
+        ) ?? "",
       );
     } finally {
       setBusy(false);

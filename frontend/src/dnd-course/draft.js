@@ -1,4 +1,4 @@
-import { getLocalStorage } from "../utils/storage";
+import { getLocalStorage } from "@/shared/lib/storage";
 import {
   DRAFT_KEY,
   EMPTY_COURSE_FORM,

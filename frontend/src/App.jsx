@@ -10,7 +10,7 @@ import {
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Breadcrumbs from "./components/Breadcrumbs";
-import Toaster from "./components/Toaster";
+import { Toaster } from "@/shared/ui/toast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
@@ -31,7 +31,7 @@ import ModelsPage from "./pages/ModelsPage";
 import AuthPage from "./pages/AuthPage";
 import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
-import { getErrorMessage } from "./utils/errors";
+import { getErrorMessage } from "@/shared/lib/errors";
 import { getRouteState } from "./utils/routeState";
 import { useRouteHistoryTracker } from "./hooks/useRouteHistoryTracker";
 import { useRouteScrollRestoration } from "./hooks/useRouteScrollRestoration";
@@ -89,7 +89,7 @@ import EditorSaveBar from "./components/editor/EditorSaveBar";
 import { useGenerationJobsWatcher } from "./hooks/useGenerationJobsWatcher";
 import { forgetLessonTheory } from "./services/courseService";
 import { useEditorDraftStore } from "./stores/editorDraftStore";
-import { notify } from "./stores/toastStore";
+import { notify } from "@/shared/ui/toast";
 
 function getCourseRouteTarget(pathname) {
   const segments = pathname.split("/").filter(Boolean);

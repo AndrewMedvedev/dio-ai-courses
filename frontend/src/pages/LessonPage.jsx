@@ -8,7 +8,7 @@ import {
 } from "../components/LessonAgentAssessments";
 import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import { getLessonContentBlocks } from "../services/courseService";
 import { useGoBack } from "../hooks/useGoBack";
 import { useTheorySessionTracker } from "../hooks/useTheorySessionTracker";

@@ -1,12 +1,12 @@
 // Страница деталей выбранного курса с описанием, блоками и лидербордом
 import { Fragment, useState } from "react";
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import CourseNavigationTree from "../components/CourseNavigationTree";
 import CourseInviteDialog from "../components/course/CourseInviteDialog";
 import AgentInterviewDialog, {
   resetAgentInterview,
 } from "../components/editor/AgentInterviewDialog";
-import ConfirmDialog from "../components/ui/ConfirmDialog";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { useGoBack } from "../hooks/useGoBack";
 import {
   generationJobKey,

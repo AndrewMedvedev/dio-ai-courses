@@ -1,12 +1,34 @@
-import { useEffect, useId, useRef } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import "./app-modal.css";
+
+export type AppModalSize = "sm" | "md" | "lg" | (string & {});
+
+export interface AppModalProps {
+  open: boolean;
+  title: ReactNode;
+  eyebrow?: ReactNode;
+  description?: ReactNode;
+  onClose?: () => void;
+  busy?: boolean;
+  size?: AppModalSize;
+  className?: string;
+  children?: ReactNode;
+  footer?: ReactNode;
+  initialFocusRef?: RefObject<HTMLElement | null> | null;
+}
 
 /**
  * Базовое модальное окно в стиле карточек курса.
  * Закрывается по Esc и клику по фону, пока не заблокировано (busy).
  */
-export default function AppModal({
+export function AppModal({
   open,
   title,
   eyebrow = "",
@@ -18,13 +40,13 @@ export default function AppModal({
   children,
   footer = null,
   initialFocusRef = null,
-}) {
+}: AppModalProps) {
   const titleId = useId();
-  const dialogRef = useRef(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) {
         event.stopPropagation();
         onClose?.();
@@ -36,10 +58,10 @@ export default function AppModal({
 
   useEffect(() => {
     if (!open) return undefined;
-    const previous = document.activeElement;
+    const previous = document.activeElement as HTMLElement | null;
     const focusTarget =
       initialFocusRef?.current ||
-      dialogRef.current?.querySelector(
+      dialogRef.current?.querySelector<HTMLElement>(
         "[data-autofocus], textarea, input, button:not([disabled])",
       );
     window.requestAnimationFrame(() => focusTarget?.focus?.());

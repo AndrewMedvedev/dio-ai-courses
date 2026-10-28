@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchOrganizationInvitations, resendOrganizationInvitation, revokeOrganizationInvitation } from "../../utils/api";
 import { usePermissionStore } from "../../stores/permissionStore";
-import { notify } from "../../stores/toastStore";
+import { notify } from "@/shared/ui/toast";
 
 const STATUS = { pending: "Ожидает принятия", accepted: "Принято", expired: "Срок истёк", revoked: "Отозвано" };
 const date = (value) => value ? new Date(value).toLocaleString("ru-RU") : "—";

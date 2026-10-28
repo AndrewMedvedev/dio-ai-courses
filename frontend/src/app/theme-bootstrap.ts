@@ -1,4 +1,4 @@
-import { readJsonFromStorage } from "../utils/storage";
+import { readJsonFromStorage } from "@/shared/lib/storage";
 
 type Theme = "light" | "dark" | "system";
 type ResolvedTheme = Exclude<Theme, "system">;
@@ -8,7 +8,7 @@ interface StoredTheme {
 }
 
 const getStoredTheme = (): Theme | undefined =>
-  (readJsonFromStorage("app-theme-storage") as StoredTheme | null)?.state?.theme;
+  readJsonFromStorage<StoredTheme>("app-theme-storage")?.state?.theme;
 
 const resolveTheme = (theme: Theme | undefined): ResolvedTheme => {
   if (theme === "system") {

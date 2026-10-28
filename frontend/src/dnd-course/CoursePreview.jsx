@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CourseNavigationTree from "../components/CourseNavigationTree";
-import SectionTop from "../components/SectionTop";
+import { SectionTop } from "@/shared/ui/section-top";
 import ContentBlocks from "../components/course/ContentBlocks";
 import CourseBasicInfo from "../components/course/CourseBasicInfo";
 import LessonBasicInfo from "../components/course/LessonBasicInfo";

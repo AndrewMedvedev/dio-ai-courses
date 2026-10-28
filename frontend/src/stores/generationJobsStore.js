@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { getLocalStorage } from "../utils/storage";
+import { getLocalStorage } from "@/shared/lib/storage";
 
 /**
  * Запущенные генерации модулей и уроков из редактора курса.
