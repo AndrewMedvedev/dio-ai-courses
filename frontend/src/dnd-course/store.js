@@ -2,8 +2,8 @@ import { create } from "zustand";
 import {
   createAgentConversationKey,
   useAgentStore,
-} from "../stores/agentStore";
-import { uploadDocument } from "../utils/api";
+} from "@/entities/agent-chat";
+import { uploadDocument } from "@/features/upload-document";
 import {
   assignLessonToModule,
   createCourse as createCourseApi,

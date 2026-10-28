@@ -7,9 +7,9 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import Breadcrumbs from "./components/Breadcrumbs";
+import { Header } from "@/widgets/header";
+import { Footer } from "@/widgets/footer";
+import { Breadcrumbs } from "@/widgets/breadcrumbs";
 import { Toaster, notify } from "@/shared/ui/toast";
 import { ProtectedRoute } from "@/app/router";
 import HomePage from "./pages/HomePage";
@@ -84,9 +84,11 @@ import {
 } from "@/entities/session";
 import { resolveTheme, useThemeStore } from "@/shared/lib/theme";
 import { isUuid } from "@/shared/lib/uuid";
-import EditorSaveBar from "./components/editor/EditorSaveBar";
-import { useGenerationJobsWatcher } from "./hooks/useGenerationJobsWatcher";
-import { useEditorDraftStore } from "./stores/editorDraftStore";
+import {
+  EditorSaveBar,
+  useEditorDraftStore,
+} from "@/features/edit-course-draft";
+import { useGenerationJobsWatcher } from "@/features/track-generation";
 
 function getCourseRouteTarget(pathname) {
   const segments = pathname.split("/").filter(Boolean);

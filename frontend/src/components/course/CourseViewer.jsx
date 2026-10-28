@@ -5,35 +5,35 @@ import {
   LessonTestAgent,
 } from "../LessonAgentAssessments";
 import LessonChatWorkspace from "../LessonChatWorkspace";
-import CourseNavigationTree from "../CourseNavigationTree";
-import { SectionTop } from "@/shared/ui/section-top";
 import {
+  CourseNavigationTree,
   getCachedCourseBasicInfo as getCourseBasicInfo,
   getCourseLearningStructure,
   getLessonById,
   getLessonContentBlocks,
   getModuleById,
   useStudentStore,
+  ContentBlocks,
+  CourseBasicInfo,
+  LessonBasicInfo,
+  LessonList,
+  ModuleBasicInfo,
+  ModuleList,
 } from "@/entities/course";
-import ContentBlocks from "./ContentBlocks";
-import CourseInviteDialog from "./CourseInviteDialog";
-import CourseBasicInfo from "./CourseBasicInfo";
-import LessonBasicInfo from "./LessonBasicInfo";
-import LessonList from "./LessonList";
-import ModuleBasicInfo from "./ModuleBasicInfo";
+import { SectionTop } from "@/shared/ui/section-top";
+import { CourseInviteDialog } from "@/features/invite";
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
   useSessionStore,
 } from "@/entities/session";
 import { useUiLayoutStore } from "@/shared/lib/ui-layout";
-import { useTheorySessionTracker } from "../../hooks/useTheorySessionTracker";
-import { useCourseProgress } from "../../hooks/useCourseProgress";
+import { useTheorySessionTracker } from "@/features/track-theory-time";
+import { useCourseProgress } from "@/features/course-progress";
 import { getModuleProgressSummary } from "@/entities/progress";
 import { getErrorMessage } from "@/shared/lib/errors";
 import { isUuid } from "@/shared/lib/uuid";
 import { isTokenExpired } from "@/shared/api";
-import ModuleList from "./ModuleList";
 import LessonMetricsDashboard from "./LessonMetricsDashboard";
 import CourseMetricsSummary from "./metrics/CourseMetricsSummary";
 import { useCourseMetricsStore } from "../../stores/courseMetricsStore";

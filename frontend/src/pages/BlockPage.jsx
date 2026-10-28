@@ -1,7 +1,7 @@
 // Страница выбранного блока курса с уроками и практикой
 import { Fragment, useEffect, useState } from "react";
 import { SectionTop } from "@/shared/ui/section-top";
-import CourseNavigationTree from "../components/CourseNavigationTree";
+import { CourseNavigationTree } from "@/entities/course";
 import AgentInterviewDialog, {
   resetAgentInterview,
 } from "../components/editor/AgentInterviewDialog";
@@ -10,7 +10,7 @@ import { useGoBack } from "@/shared/lib/ui-layout";
 import {
   generationJobKey,
   useGenerationJobsStore,
-} from "../stores/generationJobsStore";
+} from "@/entities/generation-job";
 import { isUuid } from "@/shared/lib/uuid";
 
 export default function BlockPage({

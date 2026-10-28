@@ -112,3 +112,33 @@ export {
   formatModulesCount,
   useCoursesModulesCount,
 } from "./model/use-courses-modules-count";
+export { ContentBlocks, type ContentBlocksProps } from "./ui/ContentBlocks";
+export {
+  ContentBlockSources,
+  hasSources,
+  normalizeSources,
+  type SourceItem,
+} from "./ui/ContentBlockSources";
+export {
+  CourseBasicInfo,
+  type CourseBasicInfoData,
+} from "./ui/CourseBasicInfo";
+export {
+  CourseNavigationTree,
+  type CourseNavigationTreeProps,
+} from "./ui/CourseNavigationTree";
+export {
+  LessonBasicInfo,
+  type LessonBasicInfoData,
+} from "./ui/LessonBasicInfo";
+export { LessonList, type LessonListProps } from "./ui/LessonList";
+export {
+  ModuleBasicInfo,
+  type ModuleBasicInfoData,
+} from "./ui/ModuleBasicInfo";
+export { ModuleList, type ModuleListProps } from "./ui/ModuleList";
+export {
+  COURSE_ROLES,
+  COURSE_ROLE_LABEL,
+  type CourseMemberRole,
+} from "./model/member-roles";

@@ -10,10 +10,9 @@ import {
   useParams,
 } from "react-router-dom";
 import { SectionTop } from "@/shared/ui/section-top";
-import { COURSE_ROLE_LABEL } from "../components/course/CourseInviteDialog";
-import "../components/course/course-invite.css";
+import { COURSE_ROLE_LABEL, useStudentStore } from "@/entities/course";
+import "@/features/invite/ui/course-invite.css";
 import { usePermissionStore, useSessionStore } from "@/entities/session";
-import { useStudentStore } from "@/entities/course";
 import { notify } from "@/shared/ui/toast";
 import {
   acceptCourseInvitation,

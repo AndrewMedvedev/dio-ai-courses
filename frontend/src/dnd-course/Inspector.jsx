@@ -3,7 +3,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useShallow } from "zustand/react/shallow";
 import LessonContentEditor from "../components/LessonContentEditor";
-import { createAgentConversationKey, useAgentStore } from "../stores/agentStore";
+import {
+  createAgentConversationKey,
+  useAgentStore,
+} from "@/entities/agent-chat";
 import { DIFFICULTY_OPTIONS, MATERIAL_STATUS } from "./constants";
 import {
   countLabel,

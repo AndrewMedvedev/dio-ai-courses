@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { SectionTop } from "@/shared/ui/section-top";
-import InviteDialog from "../components/invite/InviteDialog";
-import OrganizationInvitations from "../components/invite/OrganizationInvitations";
+import { InviteDialog, OrganizationInvitations } from "@/features/invite";
 import { useSessionStore } from "@/entities/session";
 import {
   createOrganization,

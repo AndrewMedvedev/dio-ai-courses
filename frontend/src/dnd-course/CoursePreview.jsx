@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import CourseNavigationTree from "../components/CourseNavigationTree";
-import { SectionTop } from "@/shared/ui/section-top";
-import ContentBlocks from "../components/course/ContentBlocks";
-import CourseBasicInfo from "../components/course/CourseBasicInfo";
-import LessonBasicInfo from "../components/course/LessonBasicInfo";
-import LessonList from "../components/course/LessonList";
-import ModuleBasicInfo from "../components/course/ModuleBasicInfo";
-import ModuleList from "../components/course/ModuleList";
-import "../components/course/course-viewer.css";
-import { useSessionStore } from "@/entities/session";
 import {
+  CourseNavigationTree,
+  ContentBlocks,
+  CourseBasicInfo,
+  LessonBasicInfo,
+  LessonList,
+  ModuleBasicInfo,
+  ModuleList,
   archiveCourse,
   publishCourse,
   setCourseInviteOnly,
 } from "@/entities/course";
+import { SectionTop } from "@/shared/ui/section-top";
+import "../components/course/course-viewer.css";
+import { useSessionStore } from "@/entities/session";
 import { getApiErrorMessage } from "./helpers";
 import Icon, { Spinner } from "./icons";
 import { fetchCourseStructure, fetchLessonBlocks } from "./serverCourse";

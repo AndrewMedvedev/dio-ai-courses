@@ -1,7 +1,11 @@
 // Страница отдельного урока с навигацией по курсу и блочным редактором контента
 import { useEffect, useRef, useState } from "react";
-import CourseNavigationTree from "../components/CourseNavigationTree";
-import ContentBlocks from "../components/course/ContentBlocks";
+import {
+  CourseNavigationTree,
+  ContentBlocks,
+  getLessonContentBlocks,
+  printLessonSummary,
+} from "@/entities/course";
 import {
   LessonPracticeAgent,
   LessonTestAgent,
@@ -9,10 +13,9 @@ import {
 import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import { SectionTop } from "@/shared/ui/section-top";
-import { getLessonContentBlocks, printLessonSummary } from "@/entities/course";
 import { useGoBack, useUiLayoutStore } from "@/shared/lib/ui-layout";
-import { useTheorySessionTracker } from "../hooks/useTheorySessionTracker";
-import { draftKey, useEditorDraftStore } from "../stores/editorDraftStore";
+import { useTheorySessionTracker } from "@/features/track-theory-time";
+import { draftKey, useEditorDraftStore } from "@/features/edit-course-draft";
 
 export default function LessonPage({
   selectedCourse,

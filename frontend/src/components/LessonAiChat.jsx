@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import {
   createAgentConversationKey,
   useAgentStore,
-} from "../stores/agentStore";
+} from "@/entities/agent-chat";
 
 const COMPACT_QUERY = "(max-width: 1300px)";
 const QUICK_PROMPTS = [

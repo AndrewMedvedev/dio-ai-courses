@@ -29,3 +29,12 @@ export {
   type ModuleProgressSummary,
   type ProgressStatus,
 } from "./model/progress-service";
+export {
+  createSession,
+  getTheorySessions,
+  updateSession,
+  updateSessionKeepalive,
+  type TheorySession,
+  type TheorySessionMetrics,
+  type TheorySessionsFilters,
+} from "./api/theory-session-api";

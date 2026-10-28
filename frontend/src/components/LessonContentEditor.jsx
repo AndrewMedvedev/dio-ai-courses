@@ -5,9 +5,9 @@ import remarkGfm from "remark-gfm";
 import {
   createAgentConversationKey,
   useAgentStore,
-} from "../stores/agentStore";
+} from "@/entities/agent-chat";
 import { useSessionStore } from "@/entities/session";
-import { convertDocumentToMarkdown } from "../utils/api";
+import { convertDocumentToMarkdown } from "@/features/upload-document";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FloatingWindow } from "@/shared/ui/floating-window";
 import { autosizeTextarea } from "@/shared/lib/dom";

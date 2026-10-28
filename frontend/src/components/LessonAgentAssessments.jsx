@@ -6,7 +6,7 @@ import {
   checkLessonTest,
   generateLessonPractice,
   generateLessonTest,
-} from "../utils/api";
+} from "@/features/lesson-assessment";
 
 const PASSING_SCORE = 61;
 

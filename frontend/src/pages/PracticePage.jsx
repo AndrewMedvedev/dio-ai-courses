@@ -2,8 +2,8 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import ContentPreviewModal from "../components/ContentPreviewModal";
-import CourseNavigationTree from "../components/CourseNavigationTree";
+import { ContentPreviewModal } from "@/shared/ui/content-preview";
+import { CourseNavigationTree } from "@/entities/course";
 import {
   LessonPracticeAgent,
   LessonTestAgent,

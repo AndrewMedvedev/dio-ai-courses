@@ -1,8 +1,12 @@
 // Страница деталей выбранного курса с описанием, блоками и лидербордом
 import { Fragment, useState } from "react";
 import { SectionTop } from "@/shared/ui/section-top";
-import CourseNavigationTree from "../components/CourseNavigationTree";
-import CourseInviteDialog from "../components/course/CourseInviteDialog";
+import {
+  CourseNavigationTree,
+  COURSE_LEVELS,
+  formatCourseLevel,
+} from "@/entities/course";
+import { CourseInviteDialog } from "@/features/invite";
 import AgentInterviewDialog, {
   resetAgentInterview,
 } from "../components/editor/AgentInterviewDialog";
@@ -11,10 +15,9 @@ import { useGoBack } from "@/shared/lib/ui-layout";
 import {
   generationJobKey,
   useGenerationJobsStore,
-} from "../stores/generationJobsStore";
+} from "@/entities/generation-job";
 import { useSessionStore } from "@/entities/session";
 import { isUuid } from "@/shared/lib/uuid";
-import { COURSE_LEVELS, formatCourseLevel } from "@/entities/course";
 
 // На странице курса в дереве не выделен ни один модуль.
 const NO_SELECTED_BLOCK = { id: "" };

@@ -2,25 +2,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppModal } from "@/shared/ui/app-modal";
 import { FloatingWindow } from "@/shared/ui/floating-window";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import AgentMarkdown from "./AgentMarkdown";
-import { autosizeTextarea } from "@/shared/lib/dom";
-import { isAgentMockEnabled } from "../../services/agentMockHook";
 import {
+  AgentMarkdown,
   CONFIRM_LAUNCH_MESSAGE,
   extractTaskId,
   getLastAssistantMessage,
   getResponseText,
   isAwaitingLaunchConfirmation,
   looksLikeLaunchConfirmation,
-} from "./agentChatUtils";
-import {
   createAgentConversationKey,
   useAgentStore,
-} from "../../stores/agentStore";
+} from "@/entities/agent-chat";
+import { autosizeTextarea } from "@/shared/lib/dom";
+import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
 import {
   generationJobKey,
   useGenerationJobsStore,
-} from "../../stores/generationJobsStore";
+} from "@/entities/generation-job";
 
 const TEXTS = {
   module: {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { getCourseStudents } from "@/entities/course";
 import { getUserById } from "@/entities/user";
-import { getTheorySessions } from "../services/theorySessionApi";
+import { getTheorySessions } from "@/entities/progress";
 
 const DEFAULT_STUDENTS_META = {
   page: 1,

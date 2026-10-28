@@ -13,7 +13,7 @@ import {
   fetchMyCoursesPage,
   formatCourseLevel,
 } from "@/entities/course";
-import { useMyCoursesProgress } from "../hooks/useMyCoursesProgress";
+import { useMyCoursesProgress } from "@/features/course-progress";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);

@@ -4,26 +4,24 @@ import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router-dom";
 import "../creator/creator-chat.css";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { isAgentMockEnabled } from "../services/agentMockHook";
+import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
 import {
   CONFIRM_LAUNCH_MESSAGE,
   getLastAssistantMessage,
   isAwaitingLaunchConfirmation,
   looksLikeLaunchConfirmation,
-} from "./editor/agentChatUtils";
-
-import { intakeQuestions } from "../creator/creatorChatConfig";
-import {
   createAgentConversationKey,
   createInitialGenerationState,
   useAgentStore,
-} from "../stores/agentStore";
+} from "@/entities/agent-chat";
+
+import { intakeQuestions } from "../creator/creatorChatConfig";
 import {
   DOCUMENT_ALLOWED_EXTENSION,
   DOCUMENT_ALLOWED_EXTENSIONS_LABEL,
   DOCUMENT_MAX_SIZE_BYTES,
   saveDocument,
-} from "../utils/api";
+} from "@/features/upload-document";
 import { fetchCourseStatus } from "@/entities/course";
 import { getLocalStorage } from "@/shared/lib/storage";
 
