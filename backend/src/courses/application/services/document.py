@@ -5,10 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.domain.entities import Document as EntityDocument
 from src.courses.domain.enums import DocumentNodeType
+from src.courses.domain.exceptions import InvalidDocumentError
 from src.courses.utils.docs_processing import (
     get_header_order,
     get_heading_chain,
-    is_heading_only,
+    has_document_content,
 )
 
 from ..repos import (
@@ -33,14 +34,15 @@ class DocumentService:
         user_id: UUID,
     ) -> None:
         """Сохраняет document, чтобы результат был доступен после завершения операции."""
+        docs = [document for document in docs if has_document_content(document.page_content)]
+        if not docs:
+            raise InvalidDocumentError
+
         node_cache: dict[tuple[str, ...], EntityDocument] = {}
 
         for document in docs:
             chain = get_heading_chain(document, get_header_order())
             content = document.page_content.strip()
-
-            if content and is_heading_only(content):
-                continue
 
             if not chain:
                 root_path = (file_name,)
