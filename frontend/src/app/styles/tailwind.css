@@ -1,0 +1,8 @@
+/*
+ * Tailwind подключён без preflight (сброса стилей браузера), чтобы не менять
+ * текущий интерфейс. Все утилиты идут с префиксом tw (пишется через двоеточие,
+ * как в AGENTS.md) и не пересекаются с существующими классами (.container, .hidden...).
+ */
+@layer theme, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities);
