@@ -7,12 +7,12 @@ import AgentInterviewDialog, {
   resetAgentInterview,
 } from "../components/editor/AgentInterviewDialog";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { useGoBack } from "../hooks/useGoBack";
+import { useGoBack } from "@/shared/lib/ui-layout";
 import {
   generationJobKey,
   useGenerationJobsStore,
 } from "../stores/generationJobsStore";
-import { useSessionStore } from "../stores/sessionStore";
+import { useSessionStore } from "@/entities/session";
 import { COURSE_LEVELS, formatCourseLevel, isUuid } from "../utils/api";
 
 // На странице курса в дереве не выделен ни один модуль.

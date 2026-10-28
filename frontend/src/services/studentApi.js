@@ -1,4 +1,5 @@
-import { apiFetch, mapCourseFromApi } from "../utils/api";
+import { mapCourseFromApi } from "../utils/api";
+import { apiFetch } from "@/shared/api";
 
 function normalizePaginatedCourses(data, { page = 1, size = 10 } = {}) {
   const rawItems = Array.isArray(data)

@@ -1,6 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, type ComponentPropsWithoutRef, type ReactNode } from "react";
 
-const languageAliases = {
+const languageAliases: Record<string, string> = {
   py: "python",
   python3: "python",
   js: "javascript",
@@ -15,6 +15,7 @@ const languageAliases = {
   oscript: "bsl",
 };
 
+// prettier-ignore
 const keywords = new Set(
   [
     "and", "as", "assert", "async", "await", "break", "case", "catch", "class",
@@ -36,6 +37,7 @@ const keywords = new Set(
   ].map((word) => word.toLowerCase()),
 );
 
+// prettier-ignore
 const types = new Set(
   [
     "bool", "boolean", "byte", "char", "date", "datetime", "decimal", "dict",
@@ -46,6 +48,7 @@ const types = new Set(
   ].map((word) => word.toLowerCase()),
 );
 
+// prettier-ignore
 const literals = new Set(
   [
     "true", "false", "null", "none", "undefined", "nan", "inf", "истина",
@@ -53,6 +56,7 @@ const literals = new Set(
   ].map((word) => word.toLowerCase()),
 );
 
+// prettier-ignore
 const builtins = new Set(
   [
     "print", "len", "range", "open", "input", "sum", "min", "max", "map",
@@ -66,13 +70,18 @@ const builtins = new Set(
 const tokenPattern =
   /\/\*[\s\S]*?\*\/|\/\/[^\n]*|#[^\n]*|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|@[A-Za-zА-Яа-яЁё_][A-Za-zА-Яа-яЁё0-9_]*|\b(?:0x[\da-f]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)\b|[A-Za-zА-Яа-яЁё_][A-Za-zА-Яа-яЁё0-9_]*|[+\-*/%=&|!<>^~?:]+|[{}[\]();,.]/gi;
 
-export function getCodeLanguage(className = "") {
+export function getCodeLanguage(className = ""): string {
   const match = /(?:^|\s)language-([^\s]+)/i.exec(className);
   const rawLanguage = match?.[1]?.toLowerCase() || "";
   return languageAliases[rawLanguage] || rawLanguage;
 }
 
-function getTokenKind(token, source, index, language) {
+function getTokenKind(
+  token: string,
+  source: string,
+  index: number,
+  language: string,
+): string {
   if (token.startsWith("/*") || token.startsWith("//")) {
     return "comment";
   }
@@ -113,10 +122,13 @@ function getTokenKind(token, source, index, language) {
   if (builtins.has(normalized)) {
     return "builtin";
   }
-  const previousWord = /([A-Za-zА-Яа-яЁё_][A-Za-zА-Яа-яЁё0-9_]*)\s*$/.exec(
-    source.slice(0, index),
-  )?.[1]?.toLowerCase();
-  if (["class", "interface", "struct", "enum"].includes(previousWord)) {
+  const previousWord = /([A-Za-zА-Яа-яЁё_][A-Za-zА-Яа-яЁё0-9_]*)\s*$/
+    .exec(source.slice(0, index))?.[1]
+    ?.toLowerCase();
+  if (
+    previousWord &&
+    ["class", "interface", "struct", "enum"].includes(previousWord)
+  ) {
     return "class";
   }
   if (/\.\s*$/.test(source.slice(0, index))) {
@@ -131,10 +143,10 @@ function getTokenKind(token, source, index, language) {
   return "";
 }
 
-function highlight(source, language) {
-  const parts = [];
+function highlight(source: string, language: string): ReactNode[] {
+  const parts: ReactNode[] = [];
   let cursor = 0;
-  let match;
+  let match: RegExpExecArray | null;
 
   tokenPattern.lastIndex = 0;
   while ((match = tokenPattern.exec(source)) !== null) {
@@ -162,12 +174,18 @@ function highlight(source, language) {
   return parts;
 }
 
-export default function SyntaxHighlightedCode({
+export interface SyntaxHighlightedCodeProps
+  extends ComponentPropsWithoutRef<"code"> {
+  /** Узел AST от react-markdown — не пробрасываем в DOM. */
+  node?: unknown;
+}
+
+export function SyntaxHighlightedCode({
   className = "",
   children,
   node: _node,
   ...props
-}) {
+}: SyntaxHighlightedCodeProps) {
   const language = getCodeLanguage(className);
   const source = String(children).replace(/\n$/, "");
 

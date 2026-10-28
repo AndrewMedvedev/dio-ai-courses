@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import MermaidDiagram from "./MermaidDiagram";
+import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 8;

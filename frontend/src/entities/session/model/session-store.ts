@@ -1,28 +1,87 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  authenticateWithMembership,
-  fetchIdentity,
-  fetchCurrentUser,
-  updateCurrentUser,
-  login as loginApi,
-  logout as logoutApi,
+  isTokenExpired,
+  normalizeTokenResponse,
   readStoredSession,
   saveStoredSession,
   setTokenChangeHandler,
   setUnauthorizedHandler,
-  isTokenExpired,
-} from "../utils/api";
-import { attachmentsApi } from "../utils/attachments";
+  type ApiError,
+  type TokenResponse,
+  type ValidationErrors,
+} from "@/shared/api";
 import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
+import { attachmentsApi } from "@/utils/attachments";
+import {
+  authenticateWithMembership,
+  fetchCurrentUser,
+  fetchIdentity,
+  login as loginApi,
+  logout as logoutApi,
+  updateCurrentUser,
+} from "../api/session-api";
+import type {
+  Identity,
+  LoginCredentials,
+  LoginResponse,
+  LoginStep,
+  Membership,
+  SessionUser,
+} from "./types";
+
+interface SessionData {
+  accessToken: string | null;
+  refreshToken: string | null;
+  expiresAt: number | null;
+  membershipId: string | null;
+  organizationId: string | null;
+  authenticationToken: string | null;
+  memberships: Membership[];
+  identity: Identity | null;
+  user: SessionUser | null;
+  loginStep: LoginStep;
+  isLoading: boolean;
+  error: string | null;
+  validationErrors: ValidationErrors;
+  hasHydrated: boolean;
+}
+
+export interface SessionState extends SessionData {
+  readonly isAuthenticated: boolean;
+  setHasHydrated: (hasHydrated: boolean) => void;
+  setTokens: (
+    tokens: TokenResponse | null | undefined,
+    context?: { membershipId?: string | null; organizationId?: string | null },
+  ) => void;
+  loginWithCredentials: (
+    credentials: LoginCredentials,
+  ) => Promise<LoginResponse>;
+  selectMembership: (membershipId: string) => Promise<TokenResponse>;
+  loadIdentity: () => Promise<Identity | null>;
+  loadCurrentUser: () => Promise<SessionUser | null>;
+  resetOrganizationSelection: () => void;
+  updateProfile: (
+    changes: Record<string, unknown>,
+  ) => Promise<SessionUser | null>;
+  uploadAvatar: (file: File) => Promise<SessionUser>;
+  clearPersistedState: () => void;
+  clearSession: () => void;
+  logout: () => Promise<void>;
+}
+
+type PersistedSession = Pick<SessionData, "user" | "membershipId">;
+
+/** Ошибка из requestJson (ApiError) или обычная Error. */
+const asApiError = (error: unknown) => error as Partial<ApiError> & Error;
 
 const initialStoredSession = readStoredSession();
 const SESSION_CACHE_STORAGE_KEY = "aicolab-session-cache";
 const SESSION_CACHE_VERSION = 1;
-let identityRequestPromise = null;
-let currentUserRequestPromise = null;
+let identityRequestPromise: Promise<Identity | null> | null = null;
+let currentUserRequestPromise: Promise<SessionUser | null> | null = null;
 
-const initialState = {
+const initialState: SessionData = {
   accessToken: initialStoredSession.accessToken,
   refreshToken: initialStoredSession.refreshToken,
   expiresAt: initialStoredSession.expiresAt,
@@ -39,11 +98,17 @@ const initialState = {
   hasHydrated: false,
 };
 
-function getSessionUserId(user) {
+function getSessionUserId(user: SessionUser | null | undefined): string {
   return user?.id || user?.user_id || user?.userId || "";
 }
 
-function normalizeSessionUser(user) {
+function normalizeSessionUser(user: SessionUser): SessionUser;
+function normalizeSessionUser(
+  user: SessionUser | null | undefined,
+): SessionUser | null | undefined;
+function normalizeSessionUser(
+  user: SessionUser | null | undefined,
+): SessionUser | null | undefined {
   if (!user || typeof user !== "object") return user;
   const userId = getSessionUserId(user);
   const avatarId = getMediaId(user.avatar_url || user.avatarUrl);
@@ -54,7 +119,9 @@ function normalizeSessionUser(user) {
   };
 }
 
-function getOrganizationIdFromMembership(membership) {
+function getOrganizationIdFromMembership(
+  membership: Membership | undefined,
+): string | null {
   return (
     membership?.organization_id ||
     membership?.organizationId ||
@@ -65,7 +132,7 @@ function getOrganizationIdFromMembership(membership) {
   );
 }
 
-function getMembershipIdFromIdentity(identity) {
+function getMembershipIdFromIdentity(identity: Identity | null): string | null {
   return (
     identity?.membership_id ||
     identity?.membershipId ||
@@ -76,7 +143,9 @@ function getMembershipIdFromIdentity(identity) {
   );
 }
 
-function getOrganizationIdFromIdentity(identity) {
+function getOrganizationIdFromIdentity(
+  identity: Identity | null,
+): string | null {
   return (
     identity?.organization_id ||
     identity?.organizationId ||
@@ -94,64 +163,8 @@ function getOrganizationIdFromIdentity(identity) {
   );
 }
 
-function decodeJwtExp(token) {
-  if (!token || typeof token !== "string") return null;
-
-  try {
-    const encodedPayload = token.split(".")[1] || "";
-    const base64Payload = encodedPayload
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
-    const payload = JSON.parse(atob(base64Payload));
-    return Number(payload?.exp) || null;
-  } catch {
-    return null;
-  }
-}
-
-function normalizeExpiresAt(value, accessToken) {
-  if (value === null || value === undefined || value === "") {
-    return decodeJwtExp(accessToken);
-  }
-
-  const numericValue = Number(value);
-  if (Number.isFinite(numericValue) && numericValue > 0) {
-    return numericValue > 9999999999
-      ? Math.floor(numericValue / 1000)
-      : numericValue;
-  }
-
-  const parsedDate = Date.parse(value);
-  if (Number.isFinite(parsedDate)) {
-    return Math.floor(parsedDate / 1000);
-  }
-
-  return decodeJwtExp(accessToken);
-}
-
-function normalizeTokens(tokens) {
-  const source = tokens?.tokens || tokens?.data || tokens || {};
-  const accessToken =
-    source.access_token || source.accessToken || source.access;
-  const refreshToken =
-    source.refresh_token || source.refreshToken || source.refresh;
-  const expiresAt =
-    source.expires_at ||
-    source.expiresAt ||
-    source.exp ||
-    source.access_expires_at ||
-    source.accessTokenExpiresAt;
-
-  return {
-    accessToken,
-    refreshToken,
-    expiresAt: normalizeExpiresAt(expiresAt, accessToken),
-  };
-}
-
-export const useSessionStore = create(
-  persist(
+export const useSessionStore = create<SessionState>()(
+  persist<SessionState, [], [], PersistedSession>(
     (set, get) => ({
       ...initialState,
 
@@ -162,13 +175,13 @@ export const useSessionStore = create(
         const state = get();
         return Boolean(
           state.accessToken &&
-          state.expiresAt &&
-          (!isTokenExpired(state.expiresAt) || state.refreshToken),
+            state.expiresAt &&
+            (!isTokenExpired(state.expiresAt) || state.refreshToken),
         );
       },
 
       setTokens: (tokens, context = {}) => {
-        const normalizedTokens = normalizeTokens(tokens);
+        const normalizedTokens = normalizeTokenResponse(tokens);
         const nextSession = {
           accessToken: normalizedTokens.accessToken || get().accessToken,
           refreshToken: normalizedTokens.refreshToken || get().refreshToken,
@@ -203,7 +216,8 @@ export const useSessionStore = create(
             validationErrors: {},
           });
           return data;
-        } catch (error) {
+        } catch (rawError) {
+          const error = asApiError(rawError);
           set({
             isLoading: false,
             error:
@@ -263,7 +277,8 @@ export const useSessionStore = create(
           get().loadCurrentUser();
           set({ isLoading: false });
           return tokens;
-        } catch (error) {
+        } catch (rawError) {
+          const error = asApiError(rawError);
           const isExpiredSelection = error.status === 401;
           set({
             isLoading: false,
@@ -298,7 +313,8 @@ export const useSessionStore = create(
             });
             return identity;
           })
-          .catch((error) => {
+          .catch((rawError: unknown) => {
+            const error = asApiError(rawError);
             if (error.status === 401) {
               get().clearSession();
               return null;
@@ -330,7 +346,8 @@ export const useSessionStore = create(
             set({ user: normalizedUser });
             return normalizedUser;
           })
-          .catch((error) => {
+          .catch((rawError: unknown) => {
+            const error = asApiError(rawError);
             set({
               user: null,
               error:
@@ -365,7 +382,8 @@ export const useSessionStore = create(
           const user = normalizeSessionUser(await updateCurrentUser(changes));
           set({ user, isLoading: false, error: null, validationErrors: {} });
           return user;
-        } catch (error) {
+        } catch (rawError) {
+          const error = asApiError(rawError);
           set({
             isLoading: false,
             error:
@@ -420,7 +438,8 @@ export const useSessionStore = create(
             validationErrors: {},
           });
           return userWithAvatarUrl;
-        } catch (error) {
+        } catch (rawError) {
+          const error = asApiError(rawError);
           set({
             isLoading: false,
             error:
@@ -489,10 +508,10 @@ export const useSessionStore = create(
           return { user: null, membershipId: null };
         }
 
-        return persistedState;
+        return persistedState as PersistedSession;
       },
       merge: (persistedState, currentState) => {
-        const cache = persistedState || {};
+        const cache = (persistedState || {}) as Partial<PersistedSession>;
         const belongsToCurrentMembership =
           Boolean(currentState.membershipId) &&
           cache.membershipId === currentState.membershipId;

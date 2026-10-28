@@ -10,8 +10,8 @@ import {
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Breadcrumbs from "./components/Breadcrumbs";
-import { Toaster } from "@/shared/ui/toast";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { Toaster, notify } from "@/shared/ui/toast";
+import { ProtectedRoute } from "@/app/router";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import CoursePage from "./pages/CoursePage";
@@ -33,18 +33,21 @@ import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
 import { getErrorMessage } from "@/shared/lib/errors";
 import { getRouteState } from "./utils/routeState";
-import { useRouteHistoryTracker } from "./hooks/useRouteHistoryTracker";
-import { useRouteScrollRestoration } from "./hooks/useRouteScrollRestoration";
+import {
+  useRouteHistoryTracker,
+  useRouteScrollRestoration,
+  useUiLayoutStore,
+} from "@/shared/lib/ui-layout";
 import { useTeacherGroups } from "./hooks/useTeacherGroups";
 import {
   COURSE_PERMISSIONS,
   INVITATION_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
   usePermissionStore,
-} from "./stores/permissionStore";
-import { useSessionStore } from "./stores/sessionStore";
+  useSessionStore,
+  useAppPermissions,
+} from "@/entities/session";
 import { resolveTheme, useThemeStore } from "./stores/themeStore";
-import { useUiLayoutStore } from "./stores/uiLayoutStore";
 import {
   archiveCourse as archiveCourseApi,
   createLesson as createLessonApi,
@@ -84,12 +87,10 @@ import {
   getLessonSequence,
   getOverallProgress,
 } from "./course/courseProgress";
-import { useAppPermissions } from "./hooks/useAppPermissions";
 import EditorSaveBar from "./components/editor/EditorSaveBar";
 import { useGenerationJobsWatcher } from "./hooks/useGenerationJobsWatcher";
 import { forgetLessonTheory } from "./services/courseService";
 import { useEditorDraftStore } from "./stores/editorDraftStore";
-import { notify } from "@/shared/ui/toast";
 
 function getCourseRouteTarget(pathname) {
   const segments = pathname.split("/").filter(Boolean);

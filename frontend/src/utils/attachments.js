@@ -1,4 +1,4 @@
-import { ApiError, apiFetch } from "./api";
+import { ApiError, apiFetch } from "@/shared/api";
 
 // Настраиваемый frontend-лимит до сетевых запросов. Если backend/product зададут
 // другой лимит, поменяйте значение здесь и/или вынесите его в VITE_MAX_FILE_SIZE_BYTES.

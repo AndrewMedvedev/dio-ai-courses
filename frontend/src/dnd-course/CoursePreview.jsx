@@ -9,8 +9,12 @@ import LessonList from "../components/course/LessonList";
 import ModuleBasicInfo from "../components/course/ModuleBasicInfo";
 import ModuleList from "../components/course/ModuleList";
 import "../components/course/course-viewer.css";
-import { useSessionStore } from "../stores/sessionStore";
-import { archiveCourse, publishCourse, setCourseInviteOnly } from "../utils/api";
+import { useSessionStore } from "@/entities/session";
+import {
+  archiveCourse,
+  publishCourse,
+  setCourseInviteOnly,
+} from "../utils/api";
 import { getApiErrorMessage } from "./helpers";
 import Icon, { Spinner } from "./icons";
 import { fetchCourseStructure, fetchLessonBlocks } from "./serverCourse";

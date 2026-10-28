@@ -1,12 +1,12 @@
+import { isTokenExpired } from "@/shared/api";
+import { usePermissionStore } from "./permission-store";
 import {
   AI_MODEL_PERMISSIONS,
   COURSE_PERMISSIONS,
   INVITATION_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
-  usePermissionStore,
-} from "../stores/permissionStore";
-import { useSessionStore } from "../stores/sessionStore";
-import { isTokenExpired } from "../utils/api";
+} from "./permissions";
+import { useSessionStore } from "./session-store";
 
 export function useAppPermissions() {
   const hasPermission = usePermissionStore((state) => state.hasPermission);
@@ -30,10 +30,7 @@ export function useAppPermissions() {
   const canReadCourse =
     isAuthenticated &&
     arePermissionsLoaded &&
-    hasAnyPermission([
-      COURSE_PERMISSIONS.READ,
-      COURSE_PERMISSIONS.COURSE_READ,
-    ]);
+    hasAnyPermission([COURSE_PERMISSIONS.READ, COURSE_PERMISSIONS.COURSE_READ]);
   const canOpenCourse =
     isAuthenticated &&
     arePermissionsLoaded &&

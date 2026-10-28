@@ -1,24 +1,41 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import type { Mermaid } from "mermaid";
+
+interface MermaidErrorLike {
+  str?: string;
+  message?: string;
+  hash?: { text?: string; line?: number; loc?: { first_line?: number } };
+}
+
+export interface MermaidRenderResult {
+  svg: string;
+  error: string | null;
+  recovered: boolean;
+  fallback: boolean;
+}
+
+type DiagramStatus = "loading" | "ready" | "recovered" | "fallback" | "error";
 
 /* -------------------------------------------------------------------------- */
 /* Global Mermaid */
 /* -------------------------------------------------------------------------- */
-let mermaidPromise = null;
+let mermaidPromise: Promise<Mermaid> | null = null;
 let mermaidInitialized = false;
 let globalRenderCounter = 0;
 
-let renderQueue = Promise.resolve();
-const enqueueRender = (task) => {
+let renderQueue: Promise<unknown> = Promise.resolve();
+const enqueueRender = <T,>(task: () => T | Promise<T>): Promise<T> => {
   const result = renderQueue.then(task, task);
   renderQueue = result.catch(() => undefined);
   return result;
 };
 
-const formatMermaidError = (error) => {
+const formatMermaidError = (rawError: unknown): string => {
+  const error = rawError as MermaidErrorLike | null | undefined;
   const rawMessage =
-    error?.str || error?.message || error?.hash?.text || String(error ?? "");
+    error?.str || error?.message || error?.hash?.text || String(rawError ?? "");
   const message = String(rawMessage).replace(/\s+/g, " ").trim();
 
   if (!message) {
@@ -55,7 +72,7 @@ const ULTIMATE_FALLBACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="
 /* -------------------------------------------------------------------------- */
 /* Mermaid loader */
 /* -------------------------------------------------------------------------- */
-const getMermaid = async () => {
+const getMermaid = async (): Promise<Mermaid> => {
   if (typeof document !== "undefined" && document.fonts?.ready) {
     await document.fonts.ready;
   }
@@ -101,7 +118,7 @@ const getMermaid = async () => {
 /* -------------------------------------------------------------------------- */
 /* Source helpers */
 /* -------------------------------------------------------------------------- */
-const normalizeTypography = (source) =>
+const normalizeTypography = (source: unknown) =>
   String(source ?? "")
     .replace(/\r\n?/g, "\n")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
@@ -111,7 +128,7 @@ const normalizeTypography = (source) =>
     .replace(/[\u2013\u2014]/g, "-")
     .trim();
 
-const stripCodeFence = (source) => {
+const stripCodeFence = (source: unknown) => {
   const value = String(source ?? "").trim();
   const normalFence = value.match(
     /^```(?:mermaid)?[^\S\r\n]*\r?\n([\s\S]*?)\r?\n```$/i,
@@ -124,12 +141,12 @@ const stripCodeFence = (source) => {
 };
 
 /* Удаляем init-директивы ПО ВСЕМУ ТЕКСТУ */
-const stripInitDirectives = (source) =>
+const stripInitDirectives = (source: unknown) =>
   String(source ?? "")
     .replace(/\s*%%\{\{?\s*(?:init|initialize)\s*:[\s\S]*?\}\}?\s*%%\s*/gim, "")
     .trim();
 
-const normalizeMermaidSource = (source) => {
+const normalizeMermaidSource = (source: unknown) => {
   const normalized = normalizeTypography(source);
   const withoutFence = stripCodeFence(normalized);
   return stripInitDirectives(withoutFence).trim();
@@ -141,10 +158,10 @@ const normalizeMermaidSource = (source) => {
 const DIAGRAM_TYPE_PATTERN =
   /^\s*(flowchart|graph|sequenceDiagram|classDiagram(?:-v2)?|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|sankey-beta|block-beta|xychart-beta|zenuml|architecture-beta|packet-beta|kanban)\b/i;
 
-const hasDiagramType = (source) =>
+const hasDiagramType = (source: unknown) =>
   DIAGRAM_TYPE_PATTERN.test(String(source ?? "").trim());
 
-const quoteUnsafeSquareLabels = (source) =>
+const quoteUnsafeSquareLabels = (source: unknown) =>
   String(source ?? "")
     .split("\n")
     .map((line) => {
@@ -152,23 +169,26 @@ const quoteUnsafeSquareLabels = (source) =>
         return line;
       }
 
-      return line.replace(/(?<!\[)\[(?!\[)([^\]\n]+)\](?!\])/g, (match, label) => {
-        const trimmed = label.trim();
+      return line.replace(
+        /(?<!\[)\[(?!\[)([^\]\n]+)\](?!\])/g,
+        (match, label: string) => {
+          const trimmed = label.trim();
 
-        if (!trimmed || /^["'`]/.test(trimmed)) {
-          return match;
-        }
+          if (!trimmed || /^["'`]/.test(trimmed)) {
+            return match;
+          }
 
-        if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) {
-          return match;
-        }
+          if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) {
+            return match;
+          }
 
-        return `["${trimmed.replace(/"/g, "#quot;")}"]`;
-      });
+          return `["${trimmed.replace(/"/g, "#quot;")}"]`;
+        },
+      );
     })
     .join("\n");
 
-const stripInlineComments = (source) =>
+const stripInlineComments = (source: unknown) =>
   String(source ?? "")
     .split("\n")
     .map((line) => {
@@ -177,7 +197,7 @@ const stripInlineComments = (source) =>
     })
     .join("\n");
 
-const splitStuckFlowchartStatements = (source) =>
+const splitStuckFlowchartStatements = (source: unknown) =>
   String(source ?? "")
     // A["Текст"]"direction TB -> A["Текст"]\ndirection TB
     .replace(/\]\s*["']\s*(?=direction\b)/gi, "]\n")
@@ -211,7 +231,7 @@ const splitStuckFlowchartStatements = (source) =>
 const FLOWCHART_PATTERN = /^\s*(flowchart|graph)\b/i;
 
 // Допустимые пары скобок у фигур узла: открывающая -> закрывающая.
-const NODE_SHAPE_CLOSERS = {
+const NODE_SHAPE_CLOSERS: Record<string, string> = {
   "[": "]",
   "(": ")",
   "{": "}",
@@ -225,73 +245,97 @@ const NODE_SHAPE_CLOSERS = {
 
 const UNSAFE_EDGE_LABEL = /[()[\]{}"'<>#;:&]/;
 
-const repairFlowchartSlips = (source) => {
+const repairFlowchartSlips = (source: unknown) => {
   const text = String(source ?? "");
   // Правки ниже специфичны для flowchart; sequence/class/state диаграммы не трогаем.
-  const firstLine = text.split("\n").find((line) => line.trim() && !/^\s*%%/.test(line)) ?? "";
-  if (hasDiagramType(firstLine) && !FLOWCHART_PATTERN.test(firstLine)) return text;
+  const firstLine =
+    text.split("\n").find((line) => line.trim() && !/^\s*%%/.test(line)) ?? "";
+  if (hasDiagramType(firstLine) && !FLOWCHART_PATTERN.test(firstLine))
+    return text;
 
-  return text
-    .split("\n")
-    // `% комментарий` с одним процентом и несуществующая директива classId ломают парсер.
-    .filter((line) => !/^\s*%(?!%)/.test(line) && !/^\s*classId\b/i.test(line))
-    // `class a,b,c` без имени класса: список узлов есть, а применять нечего.
-    .filter((line) => !/^\s*class\s+\S+\s*;?\s*$/.test(line))
-    .map((line) => {
-      if (/^\s*%%/.test(line)) return line;
-      let next = line;
+  return (
+    text
+      .split("\n")
+      // `% комментарий` с одним процентом и несуществующая директива classId ломают парсер.
+      .filter(
+        (line) => !/^\s*%(?!%)/.test(line) && !/^\s*classId\b/i.test(line),
+      )
+      // `class a,b,c` без имени класса: список узлов есть, а применять нечего.
+      .filter((line) => !/^\s*class\s+\S+\s*;?\s*$/.test(line))
+      .map((line) => {
+        if (/^\s*%%/.test(line)) return line;
+        let next = line;
 
-      // classDef/style: свойства разделяются запятыми, `;` внутри обрывает инструкцию.
-      if (/^\s*(classDef|style|linkStyle)\b/.test(next)) {
-        // `shape:` не является CSS-свойством и не поддерживается в classDef.
-        next = next.replace(/[;,]\s*shape\s*:\s*[\w-]+/gi, "");
-        return next.replace(/;(?=\s*\S)/g, ",");
-      }
+        // classDef/style: свойства разделяются запятыми, `;` внутри обрывает инструкцию.
+        if (/^\s*(classDef|style|linkStyle)\b/.test(next)) {
+          // `shape:` не является CSS-свойством и не поддерживается в classDef.
+          next = next.replace(/[;,]\s*shape\s*:\s*[\w-]+/gi, "");
+          return next.replace(/;(?=\s*\S)/g, ",");
+        }
 
-      // subgraph ID [ Заголовок: с двоеточием ] -> subgraph ID ["Заголовок: с двоеточием"]
-      next = next.replace(
-        /^(\s*subgraph\s+[A-Za-z_][\w-]*)\s*\[\s*([^\]"\n]+?)\s*\]\s*$/,
-        (match, head, title) => `${head}["${title.replace(/"/g, "#quot;")}"]`,
-      );
+        // subgraph ID [ Заголовок: с двоеточием ] -> subgraph ID ["Заголовок: с двоеточием"]
+        next = next.replace(
+          /^(\s*subgraph\s+[A-Za-z_][\w-]*)\s*\[\s*([^\]"\n]+?)\s*\]\s*$/,
+          (match, head: string, title: string) =>
+            `${head}["${title.replace(/"/g, "#quot;")}"]`,
+        );
 
-      // `==>>` и `-->>` в flowchart не существуют; `||метка|` — лишняя вертикальная черта.
-      next = next.replace(/(==|--)>>(?=\s*\||\s)/g, "$1>");
-      next = next.replace(/((?:==+|--+|-\.+-)>?)\s*\|\|\s*([^|\n]*?)\s*\|/g, "$1|$2|");
+        // `==>>` и `-->>` в flowchart не существуют; `||метка|` — лишняя вертикальная черта.
+        next = next.replace(/(==|--)>>(?=\s*\||\s)/g, "$1>");
+        next = next.replace(
+          /((?:==+|--+|-\.+-)>?)\s*\|\|\s*([^|\n]*?)\s*\|/g,
+          "$1|$2|",
+        );
 
-      // Подпись связи со спецсимволами: |230 В (падение U)| -> |"230 В (падение U)"|
-      next = next.replace(
-        /((?:<?(?:==+|--+|-\.+-)[>ox]?))\s*\|([^|\n]+?)\|/g,
-        (match, arrow, label) => {
-          const trimmed = label.trim();
-          if (!trimmed || /^".*"$/.test(trimmed) || !UNSAFE_EDGE_LABEL.test(trimmed)) return match;
-          return `${arrow}|"${trimmed.replace(/"/g, "#quot;")}"|`;
-        },
-      );
+        // Подпись связи со спецсимволами: |230 В (падение U)| -> |"230 В (падение U)"|
+        next = next.replace(
+          /((?:<?(?:==+|--+|-\.+-)[>ox]?))\s*\|([^|\n]+?)\|/g,
+          (match, arrow: string, label: string) => {
+            const trimmed = label.trim();
+            if (
+              !trimmed ||
+              /^".*"$/.test(trimmed) ||
+              !UNSAFE_EDGE_LABEL.test(trimmed)
+            )
+              return match;
+            return `${arrow}|"${trimmed.replace(/"/g, "#quot;")}"|`;
+          },
+        );
 
-      // Узел с подписью в кавычках и несовпавшими скобками: A("текст"] / A["текст"]] / A({{"текст"}})
-      next = next.replace(
-        /([A-Za-z_][\w-]*)([[({]{1,3})("[^"\n]*")([\])}]{1,3})/g,
-        (match, id, open, label, close) => {
-          const expected = NODE_SHAPE_CLOSERS[open];
-          if (expected) return expected === close ? match : `${id}${open}${label}${expected}`;
-          const fallback = open.includes("{{") ? "{{" : open.includes("{") ? "{" : open.includes("(") ? "(" : "[";
-          return `${id}${fallback}${label}${NODE_SHAPE_CLOSERS[fallback]}`;
-        },
-      );
+        // Узел с подписью в кавычках и несовпавшими скобками: A("текст"] / A["текст"]] / A({{"текст"}})
+        next = next.replace(
+          /([A-Za-z_][\w-]*)([[({]{1,3})("[^"\n]*")([\])}]{1,3})/g,
+          (match, id: string, open: string, label: string, close: string) => {
+            const expected = NODE_SHAPE_CLOSERS[open];
+            if (expected)
+              return expected === close
+                ? match
+                : `${id}${open}${label}${expected}`;
+            const fallback = open.includes("{{")
+              ? "{{"
+              : open.includes("{")
+                ? "{"
+                : open.includes("(")
+                  ? "("
+                  : "[";
+            return `${id}${fallback}${label}${NODE_SHAPE_CLOSERS[fallback]}`;
+          },
+        );
 
-      // Лишняя кавычка после закрывающей скобки в конце строки: Q{"Текст?"}"
-      next = next.replace(/([\])}])"(\s*;?\s*)$/, "$1$2");
+        // Лишняя кавычка после закрывающей скобки в конце строки: Q{"Текст?"}"
+        next = next.replace(/([\])}])"(\s*;?\s*)$/, "$1$2");
 
-      return next;
-    })
-    .join("\n");
+        return next;
+      })
+      .join("\n")
+  );
 };
 /* LLM-SLIPS-END */
 
 /* -------------------------------------------------------------------------- */
 /* УЛУЧШЕННЫЙ ремонт — удаляем все обратные слеши, вставляем пробелы между узлами */
 /* -------------------------------------------------------------------------- */
-const repairCommonErrors = (source) => {
+const repairCommonErrors = (source: unknown) => {
   let result = String(source ?? "").trim();
   if (!result) return "";
 
@@ -316,22 +360,26 @@ const repairCommonErrors = (source) => {
   result = splitStuckFlowchartStatements(result);
 
   // 5. Mermaid 11 строже парсит спецсимволы внутри [label].
-  result = result.replace(/([A-Za-z_][\w-]*)(\[\[|\(\()([^\]\)\n]+)(\]\]|\)\))/g,
-    (match, id, open, label, close) => {
+  result = result.replace(
+    /([A-Za-z_][\w-]*)(\[\[|\(\()([^\]\)\n]+)(\]\]|\)\))/g,
+    (match, id: string, open: string, label: string, close: string) => {
       if ((open === "[[") !== (close === "]]")) return match;
       const trimmed = label.trim();
       if (/^".*"$/.test(trimmed)) return match;
       return `${id}${open}"${trimmed.replace(/"/g, "#quot;")}"${close}`;
-    });
+    },
+  );
   result = quoteUnsafeSquareLabels(result);
-  result = result.replace(/([A-Za-z_][\w-]*)(\{\{|\{)([^{}\n]+)(\}\}|\})/g,
-    (match, id, open, label, close) => {
+  result = result.replace(
+    /([A-Za-z_][\w-]*)(\{\{|\{)([^{}\n]+)(\}\}|\})/g,
+    (match, id: string, open: string, label: string, close: string) => {
       if ((open === "{{") !== (close === "}}")) return match;
       const trimmed = label.trim();
       if (!trimmed || /^".*"$/.test(trimmed)) return match;
       if (/^[A-Za-z0-9_. -]+$/.test(trimmed)) return match;
       return `${id}${open}"${trimmed.replace(/"/g, "#quot;")}"${close}`;
-    });
+    },
+  );
 
   // 6. Повторяем после закавычивания, потому что строка могла стать A["Текст"]B --> C.
   result = splitStuckFlowchartStatements(result);
@@ -340,7 +388,7 @@ const repairCommonErrors = (source) => {
   // 7. Оборачиваем простой текстовый subgraph в кавычки, не трогая форму `subgraph id [label]`.
   result = result.replace(
     /subgraph\s+([^\s"'\n][^\n]*?)(\s*\n)/g,
-    (match, title, rest) => {
+    (match, title: string, rest: string) => {
       if (/^["']/.test(title) || /\[[^\]]+\]\s*$/.test(title)) return match;
       return `subgraph "${title}"${rest}`;
     },
@@ -352,7 +400,10 @@ const repairCommonErrors = (source) => {
 
   // Links and callbacks are disabled by securityLevel=strict; malformed
   // legacy click lines must not invalidate the entire diagram.
-  result = result.split("\n").filter((line) => !/^\s*click\s+/i.test(line)).join("\n");
+  result = result
+    .split("\n")
+    .filter((line) => !/^\s*click\s+/i.test(line))
+    .join("\n");
 
   return result.trim();
 };
@@ -360,10 +411,10 @@ const repairCommonErrors = (source) => {
 /* -------------------------------------------------------------------------- */
 /* Render candidates — ТОЛЬКО исправленная версия */
 /* -------------------------------------------------------------------------- */
-export const createRenderCandidates = (source) => {
+export const createRenderCandidates = (source: unknown): string[] => {
   const normalized = normalizeMermaidSource(source);
   const repaired = repairCommonErrors(normalized);
-  const candidates = [];
+  const candidates: string[] = [];
 
   if (repaired) candidates.push(repaired);
   if (repaired && !hasDiagramType(repaired)) {
@@ -373,29 +424,33 @@ export const createRenderCandidates = (source) => {
   return [...new Set(candidates.filter(Boolean))];
 };
 
-export const validateMermaidSource = async (chart) => {
+export const validateMermaidSource = async (
+  chart: unknown,
+): Promise<string> => {
   const candidates = createRenderCandidates(chart);
   if (!candidates.length) throw new Error("Код Mermaid пустой.");
   const mermaid = await getMermaid();
   return enqueueRender(async () => {
-    let lastError;
+    let lastError: MermaidErrorLike | undefined;
     for (const candidate of candidates) {
       try {
         await validateCandidate(mermaid, candidate);
         return candidate;
       } catch (error) {
-        lastError = error;
+        lastError = error as MermaidErrorLike;
       }
     }
     const line = lastError?.hash?.loc?.first_line ?? lastError?.hash?.line;
-    throw new Error(`Mermaid${line ? `, строка ${line}` : ""}: ${formatMermaidError(lastError)}`);
+    throw new Error(
+      `Mermaid${line ? `, строка ${line}` : ""}: ${formatMermaidError(lastError)}`,
+    );
   });
 };
 
 /* -------------------------------------------------------------------------- */
 /* SVG normalization */
 /* -------------------------------------------------------------------------- */
-const sanitizeRenderedSvg = (svgElement) => {
+const sanitizeRenderedSvg = (svgElement: Element) => {
   svgElement
     .querySelectorAll("script, iframe, object, embed")
     .forEach((element) => element.remove());
@@ -420,7 +475,7 @@ const sanitizeRenderedSvg = (svgElement) => {
   });
 };
 
-const normalizeRenderedSvg = (svg) => {
+const normalizeRenderedSvg = (svg: string): string => {
   if (!svg) return "";
   try {
     const parser = new DOMParser();
@@ -467,12 +522,15 @@ const normalizeRenderedSvg = (svg) => {
 /* -------------------------------------------------------------------------- */
 /* Проверка на ошибки — только явные индикаторы */
 /* -------------------------------------------------------------------------- */
-const isErrorSvg = (svg) => {
+const isErrorSvg = (svg: string | undefined): boolean => {
   if (!svg) return true;
 
   try {
     const parser = new DOMParser();
-    const parsed = parser.parseFromString(svg.replace(/<br\s*\/?>/gi, "<br/>"), "image/svg+xml");
+    const parsed = parser.parseFromString(
+      svg.replace(/<br\s*\/?>/gi, "<br/>"),
+      "image/svg+xml",
+    );
     const svgElement = parsed.querySelector("parsererror")
       ? parser.parseFromString(svg, "text/html").querySelector("svg")
       : parsed.documentElement;
@@ -498,12 +556,12 @@ const isErrorSvg = (svg) => {
 /* -------------------------------------------------------------------------- */
 /* DOM cleanup */
 /* -------------------------------------------------------------------------- */
-const escapeSelectorValue = (value) =>
+const escapeSelectorValue = (value: string) =>
   typeof CSS !== "undefined" && typeof CSS.escape === "function"
     ? CSS.escape(value)
     : String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
 
-const cleanupMermaidDom = (id) => {
+const cleanupMermaidDom = (id: string) => {
   if (typeof document === "undefined" || !id) return;
 
   [id, `d${id}`, `i${id}`].forEach((elementId) => {
@@ -523,13 +581,17 @@ const cleanupMermaidDom = (id) => {
 /* -------------------------------------------------------------------------- */
 /* Render single candidate */
 /* -------------------------------------------------------------------------- */
-const validateCandidate = async (mermaid, source) => {
+const validateCandidate = async (mermaid: Mermaid, source: string) => {
   if (typeof mermaid.parse !== "function") return;
 
   await mermaid.parse(source, { suppressErrors: false });
 };
 
-const renderCandidate = async (mermaid, source, id) => {
+const renderCandidate = async (
+  mermaid: Mermaid,
+  source: string,
+  id: string,
+): Promise<{ svg: string | null; error: string | null }> => {
   try {
     await validateCandidate(mermaid, source);
 
@@ -557,7 +619,13 @@ const renderCandidate = async (mermaid, source, id) => {
 /* -------------------------------------------------------------------------- */
 /* Complete Mermaid render — если не удалось, возвращаем ultimate fallback */
 /* -------------------------------------------------------------------------- */
-const renderMermaid = async ({ chart, componentId }) => {
+const renderMermaid = async ({
+  chart,
+  componentId,
+}: {
+  chart: unknown;
+  componentId: string;
+}): Promise<MermaidRenderResult> => {
   let lastError = "Не удалось отрисовать Mermaid-диаграмму.";
 
   try {
@@ -603,18 +671,32 @@ const renderMermaid = async ({ chart, componentId }) => {
   };
 };
 
-export const auditMermaidRender = (chart, componentId) =>
+export const auditMermaidRender = (chart: unknown, componentId: string) =>
   enqueueRender(() => renderMermaid({ chart, componentId }));
 
 /* -------------------------------------------------------------------------- */
 /* Component */
 /* -------------------------------------------------------------------------- */
-export default function MermaidDiagram({ chart, onRendered, lessonId, blockId }) {
+export interface MermaidDiagramProps {
+  chart: unknown;
+  onRendered?: (svg: SVGSVGElement | null) => void;
+  /** Для отчёта об ошибке отрисовки. */
+  lessonId?: string | null;
+  /** Для отчёта об ошибке отрисовки. */
+  blockId?: string | number | null;
+}
+
+export function MermaidDiagram({
+  chart,
+  onRendered,
+  lessonId,
+  blockId,
+}: MermaidDiagramProps) {
   const reactId = useId();
-  const svgHostRef = useRef(null);
+  const svgHostRef = useRef<HTMLDivElement>(null);
   const renderVersionRef = useRef(0);
   const [svg, setSvg] = useState("");
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState<DiagramStatus>("loading");
   const [errorMessage, setErrorMessage] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const [showSource, setShowSource] = useState(false);
@@ -622,7 +704,8 @@ export default function MermaidDiagram({ chart, onRendered, lessonId, blockId })
   const normalizedChart = useMemo(() => normalizeMermaidSource(chart), [chart]);
 
   useEffect(() => {
-    if (svg && onRendered) onRendered(svgHostRef.current?.querySelector("svg") ?? null);
+    if (svg && onRendered)
+      onRendered(svgHostRef.current?.querySelector("svg") ?? null);
   }, [svg, onRendered]);
 
   const componentId = useMemo(() => {
@@ -648,14 +731,22 @@ export default function MermaidDiagram({ chart, onRendered, lessonId, blockId })
         cancelled ? null : renderMermaid({ chart: chartToRender, componentId }),
       );
 
-      if (!result || cancelled || currentVersion !== renderVersionRef.current) return;
+      if (!result || cancelled || currentVersion !== renderVersionRef.current)
+        return;
 
       setSvg(result.svg);
       setErrorMessage(result.error || "");
       if (result.error) {
-        const detail = { lessonId, blockId, source: normalizedChart, error: result.error };
+        const detail = {
+          lessonId,
+          blockId,
+          source: normalizedChart,
+          error: result.error,
+        };
         console.error("Mermaid render failed", detail);
-        window.dispatchEvent(new CustomEvent("mermaid:render-error", { detail }));
+        window.dispatchEvent(
+          new CustomEvent("mermaid:render-error", { detail }),
+        );
       }
       if (result.error) {
         setStatus("error");
@@ -672,7 +763,12 @@ export default function MermaidDiagram({ chart, onRendered, lessonId, blockId })
       if (cancelled || currentVersion !== renderVersionRef.current) return;
       setSvg("");
       setErrorMessage(formatMermaidError(error));
-      const detail = { lessonId, blockId, source: normalizedChart, error: formatMermaidError(error) };
+      const detail = {
+        lessonId,
+        blockId,
+        source: normalizedChart,
+        error: formatMermaidError(error),
+      };
       console.error("Mermaid render failed", detail);
       window.dispatchEvent(new CustomEvent("mermaid:render-error", { detail }));
       setStatus("error");
@@ -697,12 +793,23 @@ export default function MermaidDiagram({ chart, onRendered, lessonId, blockId })
           <strong>Схему пока не удалось показать</strong>
           <span>{errorMessage}</span>
           <div className="mermaid-diagram-error-actions">
-            <button type="button" onClick={() => setRetryCount((count) => count + 1)}>Повторить отрисовку</button>
-            <button type="button" onClick={() => setShowSource((shown) => !shown)} aria-expanded={showSource}>
+            <button
+              type="button"
+              onClick={() => setRetryCount((count) => count + 1)}
+            >
+              Повторить отрисовку
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSource((shown) => !shown)}
+              aria-expanded={showSource}
+            >
               {showSource ? "Скрыть исходный код" : "Показать исходный код"}
             </button>
           </div>
-          {showSource && <pre className="mermaid-diagram-source">{normalizedChart}</pre>}
+          {showSource && (
+            <pre className="mermaid-diagram-source">{normalizedChart}</pre>
+          )}
         </div>
       ) : (
         <div

@@ -2,19 +2,24 @@
 // где type — course или organization. Для нового пользователя сначала создаём
 // пароль; существующий пользователь входит и принимает приглашение.
 import { useEffect, useRef, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { SectionTop } from "@/shared/ui/section-top";
 import { COURSE_ROLE_LABEL } from "../components/course/CourseInviteDialog";
 import "../components/course/course-invite.css";
-import { usePermissionStore } from "../stores/permissionStore";
-import { useSessionStore } from "../stores/sessionStore";
+import { usePermissionStore, useSessionStore } from "@/entities/session";
 import { useStudentStore } from "../stores/studentStore";
 import { notify } from "@/shared/ui/toast";
 import {
   acceptCourseInvitation,
   acceptOrganizationInvitation,
-  isTokenExpired,
 } from "../utils/api";
+import { isTokenExpired } from "@/shared/api";
 import { describeAcceptError, INVITATION_TYPES } from "../utils/invitations";
 import InvitationEntry from "./InvitationEntry";
 

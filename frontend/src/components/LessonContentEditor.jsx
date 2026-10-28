@@ -6,7 +6,7 @@ import {
   createAgentConversationKey,
   useAgentStore,
 } from "../stores/agentStore";
-import { useSessionStore } from "../stores/sessionStore";
+import { useSessionStore } from "@/entities/session";
 import { convertDocumentToMarkdown } from "../utils/api";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FloatingWindow } from "@/shared/ui/floating-window";

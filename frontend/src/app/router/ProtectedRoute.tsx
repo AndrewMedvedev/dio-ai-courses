@@ -1,9 +1,13 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { usePermissionStore } from "../stores/permissionStore";
-import { useSessionStore } from "../stores/sessionStore";
-import { isTokenExpired } from "../utils/api";
+import type { ReactNode } from "react";
+import { Navigate, Outlet, useLocation, type Location } from "react-router-dom";
+import {
+  usePermissionStore,
+  useSessionStore,
+  type PermissionInput,
+} from "@/entities/session";
+import { isTokenExpired } from "@/shared/api";
 
-function buildRedirect(location) {
+function buildRedirect(location: Location) {
   return `${location.pathname}${location.search}`;
 }
 
@@ -21,13 +25,22 @@ function AccessDenied() {
   );
 }
 
-export default function ProtectedRoute({
+export interface ProtectedRouteProps {
+  children?: ReactNode;
+  permission?: PermissionInput;
+  permissions?: PermissionInput[];
+  /** true — нужны все права, false — хотя бы одно. */
+  requireAll?: boolean;
+  fallback?: ReactNode;
+}
+
+export function ProtectedRoute({
   children,
   permission,
   permissions,
   requireAll = true,
   fallback = <AccessDenied />,
-}) {
+}: ProtectedRouteProps) {
   const location = useLocation();
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
@@ -81,7 +94,7 @@ export default function ProtectedRoute({
       : hasAnyPermission(requiredPermissions));
 
   if (!isAllowed) {
-    return fallback;
+    return <>{fallback}</>;
   }
 
   return children || <Outlet />;

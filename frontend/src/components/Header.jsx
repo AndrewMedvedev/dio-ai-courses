@@ -1,7 +1,7 @@
 // Шапка приложения и навигация по маршрутам
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useSessionStore } from "../stores/sessionStore";
-import { useUiLayoutStore } from "../stores/uiLayoutStore";
+import { useSessionStore } from "@/entities/session";
+import { useUiLayoutStore } from "@/shared/lib/ui-layout";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 function getDisplayText(value) {

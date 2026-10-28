@@ -4,8 +4,8 @@ import { SectionTop } from "@/shared/ui/section-top";
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
-} from "../stores/permissionStore";
-import { useSessionStore } from "../stores/sessionStore";
+  useSessionStore,
+} from "@/entities/session";
 import { useStudentStore } from "../stores/studentStore";
 import { useMyCoursesProgress } from "../hooks/useMyCoursesProgress";
 import {

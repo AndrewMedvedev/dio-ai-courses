@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { fetchOrganizationInvitations, resendOrganizationInvitation, revokeOrganizationInvitation } from "../../utils/api";
-import { usePermissionStore } from "../../stores/permissionStore";
+import {
+  fetchOrganizationInvitations,
+  resendOrganizationInvitation,
+  revokeOrganizationInvitation,
+} from "../../utils/api";
+import { usePermissionStore } from "@/entities/session";
 import { notify } from "@/shared/ui/toast";
 
 const STATUS = { pending: "Ожидает принятия", accepted: "Принято", expired: "Срок истёк", revoked: "Отозвано" };

@@ -9,10 +9,10 @@ import {
   LessonTestAgent,
 } from "../components/LessonAgentAssessments";
 
-import MermaidDiagram from "../components/MermaidDiagram";
+import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
 import { SectionTop } from "@/shared/ui/section-top";
-import SyntaxHighlightedCode from "../components/SyntaxHighlightedCode";
-import { useGoBack } from "../hooks/useGoBack";
+import { SyntaxHighlightedCode } from "@/shared/ui/syntax-highlighted-code";
+import { useGoBack } from "@/shared/lib/ui-layout";
 
 const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;

@@ -10,9 +10,8 @@ import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import { SectionTop } from "@/shared/ui/section-top";
 import { getLessonContentBlocks } from "../services/courseService";
-import { useGoBack } from "../hooks/useGoBack";
+import { useGoBack, useUiLayoutStore } from "@/shared/lib/ui-layout";
 import { useTheorySessionTracker } from "../hooks/useTheorySessionTracker";
-import { useUiLayoutStore } from "../stores/uiLayoutStore";
 import { draftKey, useEditorDraftStore } from "../stores/editorDraftStore";
 import { printLessonSummary } from "../utils/printLessonSummary";
 

@@ -1,8 +1,12 @@
 import { useEffect } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
-import { useUiLayoutStore } from "../stores/uiLayoutStore";
+import {
+  useLocation,
+  useNavigationType,
+  type Location,
+} from "react-router-dom";
+import { useUiLayoutStore } from "./ui-layout-store";
 
-const getRouteKey = (location) =>
+const getRouteKey = (location: Location) =>
   `${location.pathname}${location.search || ""}${location.hash || ""}`;
 
 export function useRouteHistoryTracker() {

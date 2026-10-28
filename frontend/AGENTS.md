@@ -164,6 +164,7 @@ src/
 
 - Новый код пишем только на TypeScript (`.ts` / `.tsx`).
 - Перенос идёт по частям: пока включён `allowJs`, старые `.js` / `.jsx` собираются вместе с TS. Переносим файл — сразу переводим его на TS.
+- Пока перенос не закончен, перенесённый код может импортировать ещё не перенесённые модули через алиас (`@/utils/...`, `@/stores/...`). Такие импорты уходят, когда переезжает сам модуль.
 - `strict` включён. `any` без комментария не используем; данные с бэкенда описываем типами в `entities/*/model`.
 - Перед коммитом: `npm run typecheck` и `npm run build`.
 
@@ -177,8 +178,11 @@ src/
 - [x] TypeScript, Tailwind (без preflight, префикс `tw:`), алиас `@/`, точка входа `src/app/main.tsx`
 - [x] `shared/lib`: storage, errors, dom, media
 - [x] `shared/ui`: toast, app-modal, confirm-dialog, floating-window, section-top
-- [ ] `shared`: вызов бэкенда (`requestJson`), хуки, Mermaid и подсветка кода, хлебные крошки
-- [ ] `entities`: сессия, права, курс/модуль/урок, организация, приглашение, прогресс
+- [x] `shared/api`: `requestJson`, `jsonRequest`, `apiFetch`, сессия и токены, `ApiError`
+- [x] `shared/lib/ui-layout`: история маршрутов, «Назад», восстановление скролла, UI-настройки страниц
+- [x] `shared/ui`: mermaid-diagram, syntax-highlighted-code
+- [x] `entities/session`: сессия, вход, текущий пользователь, права (`useAppPermissions`, `PermissionGate`); охрана маршрутов — `app/router/ProtectedRoute`
+- [ ] `entities`: курс/модуль/урок, организация, приглашение, прогресс
 - [ ] `features`
-- [ ] `widgets`
+- [ ] `widgets` (в том числе хлебные крошки — они знают про курс, модуль и урок)
 - [ ] `pages` и роутер (`App.jsx` → `app/router`)

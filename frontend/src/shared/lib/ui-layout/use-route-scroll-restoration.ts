@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
-import { useUiLayoutStore } from "../stores/uiLayoutStore";
+import { useLocation, type Location } from "react-router-dom";
+import { useUiLayoutStore } from "./ui-layout-store";
 
-const getRouteScrollKey = (location) =>
+const getRouteScrollKey = (location: Location) =>
   `${location.pathname}${location.search || ""}`;
 
 export function useRouteScrollRestoration() {
@@ -18,7 +18,7 @@ export function useRouteScrollRestoration() {
   const lastScrollYRef = useRef(
     typeof window === "undefined" ? 0 : window.scrollY,
   );
-  const frameRef = useRef(null);
+  const frameRef = useRef<number | null>(null);
   const hasRestoredInitialRouteRef = useRef(false);
 
   useEffect(() => {

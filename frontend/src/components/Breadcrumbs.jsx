@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useUiLayoutStore } from "../stores/uiLayoutStore";
+import { useUiLayoutStore } from "@/shared/lib/ui-layout";
 
 const staticRoutes = {
   courses: "Каталог",

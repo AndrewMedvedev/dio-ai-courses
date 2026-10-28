@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import MermaidDiagram from "./MermaidDiagram";
+import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
 import DiagramPreviewModal from "./DiagramPreviewModal";
 
 export default function ContentPreviewModal({ preview, onClose }) {

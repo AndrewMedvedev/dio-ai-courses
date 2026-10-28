@@ -3,8 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ContentPreviewModal from "../ContentPreviewModal";
 import ContentBlockSources, { hasSources } from "./ContentBlockSources";
-import MermaidDiagram from "../MermaidDiagram";
-import SyntaxHighlightedCode from "../SyntaxHighlightedCode";
+import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
+import { SyntaxHighlightedCode } from "@/shared/ui/syntax-highlighted-code";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 import { normalizeQuizQuestions } from "../../utils/quiz";
 

@@ -11,14 +11,13 @@ import {
   deleteLesson as deleteLessonApi,
   deleteModule as deleteModuleApi,
   getCourseBasicInfo,
-  isAuthenticated,
-  redirectToLogin,
   updateCourse as updateCourseApi,
   updateLesson as updateLessonApi,
   updateLessonContentBlocks,
   updateModule as updateModuleApi,
   uploadDocument,
 } from "../utils/api";
+import { isAuthenticated, redirectToLogin } from "@/shared/api";
 import {
   COLUMN_GAP,
   COLUMN_X,
@@ -27,7 +26,13 @@ import {
   MAX_FILE_SIZE_LABEL,
   NODE_SIZE,
 } from "./constants";
-import { clearDraft, EMPTY_DRAFT, loadDraft, pickDraft, saveDraft } from "./draft";
+import {
+  clearDraft,
+  EMPTY_DRAFT,
+  loadDraft,
+  pickDraft,
+  saveDraft,
+} from "./draft";
 import {
   countLabel,
   createLocalId,

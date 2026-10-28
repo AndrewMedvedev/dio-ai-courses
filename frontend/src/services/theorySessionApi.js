@@ -1,4 +1,4 @@
-import { apiFetch, readStoredSession } from "../utils/api";
+import { apiFetch, readStoredSession } from "@/shared/api";
 
 const API_BASE = "/api/v1";
 

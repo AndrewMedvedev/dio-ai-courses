@@ -23,15 +23,16 @@ import ModuleBasicInfo from "./ModuleBasicInfo";
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
-} from "../../stores/permissionStore";
-import { useSessionStore } from "../../stores/sessionStore";
+  useSessionStore,
+} from "@/entities/session";
 import { useStudentStore } from "../../stores/studentStore";
-import { useUiLayoutStore } from "../../stores/uiLayoutStore";
+import { useUiLayoutStore } from "@/shared/lib/ui-layout";
 import { useTheorySessionTracker } from "../../hooks/useTheorySessionTracker";
 import { useCourseProgress } from "../../hooks/useCourseProgress";
 import { getModuleProgressSummary } from "../../services/progressService";
 import { getErrorMessage } from "@/shared/lib/errors";
-import { isTokenExpired, isUuid } from "../../utils/api";
+import { isUuid } from "../../utils/api";
+import { isTokenExpired } from "@/shared/api";
 import ModuleList from "./ModuleList";
 import LessonMetricsDashboard from "./LessonMetricsDashboard";
 import CourseMetricsSummary from "./metrics/CourseMetricsSummary";

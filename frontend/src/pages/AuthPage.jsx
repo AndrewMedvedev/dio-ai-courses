@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useSessionStore } from "../stores/sessionStore";
-import { isTokenExpired } from "../utils/api";
+import { useSessionStore } from "@/entities/session";
+import { isTokenExpired } from "@/shared/api";
 import InvitationEntry from "./InvitationEntry";
 
 function getRedirectPath(search) {
