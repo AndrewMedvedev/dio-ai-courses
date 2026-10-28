@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getCourseLearningStructure } from "../services/courseService";
+import { getCourseLearningStructure } from "@/entities/course";
 import {
   PROGRESS_STATUS,
   ensureCourseProgress,
@@ -9,7 +9,7 @@ import {
   getLessonsProgress,
   markLessonTheoryCompleted,
   syncCourseProgressPercent,
-} from "../services/progressService";
+} from "@/entities/progress";
 
 // Практика и тест отмечаются на backend событием после проверки (асинхронно),
 // поэтому после проверки несколько раз перечитываем прогресс урока.

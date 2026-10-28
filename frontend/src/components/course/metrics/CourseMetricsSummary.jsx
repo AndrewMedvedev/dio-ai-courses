@@ -1,9 +1,11 @@
 // Сводка по курсу на странице метрик: плитки, таблица студентов и распределение
 // по прогрессу. Данные: участники курса (/members) и их прогресс (/progress/.../students).
 import { useEffect, useMemo, useState } from "react";
-import { normalizeCourseProgress } from "../../../services/progressService";
+import {
+  normalizeCourseProgress,
+  fetchCourseStudentsProgress,
+} from "@/entities/progress";
 import { useCourseMetricsStore } from "../../../stores/courseMetricsStore";
-import { fetchCourseStudentsProgress } from "@/entities/progress";
 import { getInitials, percentTone, pluralRu } from "./metricsFormat";
 import "./course-metrics.css";
 

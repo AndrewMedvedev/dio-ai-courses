@@ -1,4 +1,58 @@
-import { ApiError, apiFetch } from "@/shared/api";
+import { apiFetch } from "../backend";
+import { ApiError, type ApiErrorOptions } from "../api-error";
+
+export type AttachmentStep =
+  | "validation"
+  | "presigned-upload"
+  | "confirm-upload"
+  | "presigned-download"
+  | "get-attachment"
+  | "storage-put"
+  | "storage-download";
+
+interface AttachmentErrorOptions extends ApiErrorOptions {
+  step?: AttachmentStep;
+  fileName?: string;
+}
+
+export interface ValidateAttachmentOptions {
+  maxSizeBytes?: number;
+  allowedMimeTypes?: Set<string>;
+  blockedExtensions?: Set<string>;
+}
+
+export interface UploadAttachmentOptions extends ValidateAttachmentOptions {
+  folder?: string;
+  signal?: AbortSignal;
+}
+
+export type FileUploadState =
+  | { index: number; status: "pending" | "uploading" }
+  | { index: number; status: "success"; attachment: Attachment }
+  | { index: number; status: "error"; error: unknown };
+
+export interface UploadAttachmentsOptions extends UploadAttachmentOptions {
+  concurrency?: number;
+  onFileStateChange?: (file: File, state: FileUploadState) => void;
+}
+
+/** Сведения о файле, которые бэкенд вернул после подтверждения загрузки. */
+export interface Attachment {
+  id?: string;
+  storage_key?: string;
+  original_filename?: string;
+  content_type?: string;
+  [key: string]: unknown;
+}
+
+interface PresignedUpload {
+  upload_url: string;
+  storage_key: string;
+}
+
+export type ConcurrencyResult<T> =
+  | { status: "success"; value: T }
+  | { status: "error"; error: unknown };
 
 // Настраиваемый frontend-лимит до сетевых запросов. Если backend/product зададут
 // другой лимит, поменяйте значение здесь и/или вынесите его в VITE_MAX_FILE_SIZE_BYTES.
@@ -13,7 +67,7 @@ const FALLBACK_CONTENT_TYPE = "application/octet-stream";
 
 // Бизнес-allowlist в проекте не задан. Поэтому используем denylist опасных
 // исполняемых/скриптовых расширений и оставляем MIME-types расширяемыми через options.
-export const BLOCKED_FILE_EXTENSIONS = new Set([
+export const BLOCKED_FILE_EXTENSIONS = new Set<string>([
   "ade",
   "adp",
   "apk",
@@ -48,7 +102,13 @@ export const BLOCKED_FILE_EXTENSIONS = new Set([
 ]);
 
 export class AttachmentError extends ApiError {
-  constructor(message, { status, code, step, fileName, payload } = {}) {
+  step?: AttachmentStep;
+  fileName?: string;
+
+  constructor(
+    message: string,
+    { status, code, step, fileName, payload }: AttachmentErrorOptions = {},
+  ) {
     super(message, { status, code, payload });
     this.name = "AttachmentError";
     this.step = step;
@@ -56,17 +116,17 @@ export class AttachmentError extends ApiError {
   }
 }
 
-function normalizeFilename(filename) {
+function normalizeFilename(filename: unknown): string {
   return String(filename || "").trim();
 }
 
-function getExtension(filename) {
+function getExtension(filename: unknown): string {
   const normalized = normalizeFilename(filename).toLowerCase();
   const index = normalized.lastIndexOf(".");
   return index >= 0 ? normalized.slice(index + 1) : "";
 }
 
-export function getUploadContentType(file) {
+export function getUploadContentType(file: Blob | null | undefined): string {
   const contentType =
     String(file?.type || FALLBACK_CONTENT_TYPE).trim() || FALLBACK_CONTENT_TYPE;
   return CONTENT_TYPE_RE.test(contentType)
@@ -74,7 +134,10 @@ export function getUploadContentType(file) {
     : FALLBACK_CONTENT_TYPE;
 }
 
-export function validateAttachmentFile(file, options = {}) {
+export function validateAttachmentFile(
+  file: File | null | undefined,
+  options: ValidateAttachmentOptions = {},
+): { filename: string; contentType: string } {
   const {
     maxSizeBytes = MAX_FILE_SIZE_BYTES,
     allowedMimeTypes,
@@ -139,7 +202,7 @@ export function validateAttachmentFile(file, options = {}) {
   return { filename, contentType };
 }
 
-function validateOwnerId(ownerId) {
+function validateOwnerId(ownerId: unknown): void {
   if (!UUID_RE.test(String(ownerId || ""))) {
     throw new AttachmentError(
       "Некорректный идентификатор сущности для вложения.",
@@ -152,13 +215,13 @@ function validateOwnerId(ownerId) {
   }
 }
 
-function formatFileSize(bytes) {
+function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${Math.round(bytes / 1024 / 1024)} МБ`;
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} КБ`;
   return `${bytes} Б`;
 }
 
-async function readPayload(response) {
+async function readPayload(response: Response): Promise<unknown> {
   const contentType = response.headers.get("content-type") || "";
   try {
     return contentType.includes("application/json")
@@ -169,7 +232,7 @@ async function readPayload(response) {
   }
 }
 
-function messageForStatus(step, status) {
+function messageForStatus(step: AttachmentStep, status: number): string {
   if (step === "presigned-upload") {
     if (status === 422) return "Некорректное имя или тип файла.";
     if (status === 500)
@@ -203,7 +266,11 @@ function messageForStatus(step, status) {
   return "Не удалось выполнить операцию с файлом.";
 }
 
-async function throwAttachmentResponseError(response, step, fileName) {
+async function throwAttachmentResponseError(
+  response: Response,
+  step: AttachmentStep,
+  fileName?: string,
+): Promise<never> {
   const payload = await readPayload(response);
   throw new AttachmentError(messageForStatus(step, response.status), {
     status: response.status,
@@ -214,7 +281,8 @@ async function throwAttachmentResponseError(response, step, fileName) {
   });
 }
 
-function rewriteStorageUrl(url) {
+/** Подменяет адрес хранилища на публичный (VITE_STORAGE_PUBLIC_HOST), если он задан. */
+function rewriteStorageUrl(url: string): string {
   const publicHost = String(
     import.meta.env.VITE_STORAGE_PUBLIC_HOST || "",
   ).trim();
@@ -247,12 +315,16 @@ function rewriteStorageUrl(url) {
   }
 }
 
-async function requestJson(
-  path,
-  options,
-  { auth = true, step, fileName } = {},
-) {
-  let response;
+async function requestAttachmentJson<T>(
+  path: string,
+  options: RequestInit,
+  {
+    auth = true,
+    step,
+    fileName,
+  }: { auth?: boolean; step: AttachmentStep; fileName?: string },
+): Promise<T> {
+  let response: Response;
   try {
     response = await apiFetch(path, options, { auth });
   } catch (error) {
@@ -271,10 +343,14 @@ async function requestJson(
     await throwAttachmentResponseError(response, step, fileName);
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
-async function putFileToStorage(uploadUrl, file, { signal } = {}) {
+async function putFileToStorage(
+  uploadUrl: string,
+  file: File,
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<void> {
   const publicUrl = rewriteStorageUrl(uploadUrl);
   try {
     const response = await fetch(publicUrl, {
@@ -288,7 +364,7 @@ async function putFileToStorage(uploadUrl, file, { signal } = {}) {
       await throwAttachmentResponseError(response, "storage-put", file.name);
     }
   } catch (error) {
-    if (error?.name === "AbortError") {
+    if ((error as Error | null)?.name === "AbortError") {
       throw new AttachmentError("Загрузка файла отменена.", {
         code: "UPLOAD_ABORTED",
         step: "storage-put",
@@ -310,13 +386,16 @@ async function putFileToStorage(uploadUrl, file, { signal } = {}) {
   }
 }
 
-async function fetchBlobFromStorage(downloadUrl, { signal } = {}) {
+async function fetchBlobFromStorage(
+  downloadUrl: string,
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<Blob> {
   const publicUrl = rewriteStorageUrl(downloadUrl);
-  let response;
+  let response: Response;
   try {
     response = await fetch(publicUrl, { signal });
   } catch (error) {
-    if (error?.name === "AbortError") {
+    if ((error as Error | null)?.name === "AbortError") {
       throw new AttachmentError("Скачивание файла отменено.", {
         code: "DOWNLOAD_ABORTED",
         step: "storage-download",
@@ -336,15 +415,15 @@ async function fetchBlobFromStorage(downloadUrl, { signal } = {}) {
   return response.blob();
 }
 
-export async function runWithConcurrency(
-  items,
-  worker,
-  { concurrency = 3 } = {},
-) {
-  const results = new Array(items.length);
+export async function runWithConcurrency<T, R>(
+  items: T[],
+  worker: (item: T, index: number) => Promise<R>,
+  { concurrency = 3 }: { concurrency?: number } = {},
+): Promise<ConcurrencyResult<R>[]> {
+  const results = new Array<ConcurrencyResult<R>>(items.length);
   let nextIndex = 0;
 
-  async function runNext() {
+  async function runNext(): Promise<void> {
     const index = nextIndex;
     nextIndex += 1;
     if (index >= items.length) return;
@@ -373,8 +452,18 @@ export async function runWithConcurrency(
 export const attachmentsApi = {
   validateAttachmentFile,
 
-  async getPresignedUploadUrl({ filename, folder, content_type, owner_id }) {
-    return requestJson(
+  async getPresignedUploadUrl({
+    filename,
+    folder,
+    content_type,
+    owner_id,
+  }: {
+    filename: string;
+    folder: string;
+    content_type: string;
+    owner_id: string;
+  }): Promise<PresignedUpload> {
+    return requestAttachmentJson<PresignedUpload>(
       "/attachments/presigned-upload",
       {
         method: "POST",
@@ -385,7 +474,11 @@ export const attachmentsApi = {
     );
   },
 
-  async uploadFileToStorage(uploadUrl, file, options = {}) {
+  async uploadFileToStorage(
+    uploadUrl: string,
+    file: File,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<void> {
     return putFileToStorage(uploadUrl, file, options);
   },
 
@@ -394,8 +487,13 @@ export const attachmentsApi = {
     original_filename,
     content_type,
     owner_id,
-  }) {
-    return requestJson(
+  }: {
+    storage_key: string;
+    original_filename: string;
+    content_type: string;
+    owner_id: string;
+  }): Promise<Attachment> {
+    return requestAttachmentJson<Attachment>(
       "/attachments/confirm-upload",
       {
         method: "POST",
@@ -418,7 +516,12 @@ export const attachmentsApi = {
    * PresignedUploadRequest/ConfirmUploadRequest содержит owner_id и не
    * содержит owner_type.
    */
-  async uploadAttachment(file, ownerType, ownerId, options = {}) {
+  async uploadAttachment(
+    file: File,
+    ownerType: string,
+    ownerId: string,
+    options: UploadAttachmentOptions = {},
+  ): Promise<Attachment> {
     const folder = options.folder || ownerType;
     validateOwnerId(ownerId);
     const { filename, contentType } = validateAttachmentFile(file, options);
@@ -442,7 +545,12 @@ export const attachmentsApi = {
     });
   },
 
-  async uploadAttachments(files, ownerType, ownerId, options = {}) {
+  async uploadAttachments(
+    files: Iterable<File> | ArrayLike<File>,
+    ownerType: string,
+    ownerId: string,
+    options: UploadAttachmentsOptions = {},
+  ): Promise<ConcurrencyResult<Attachment>[]> {
     const { concurrency = 3, onFileStateChange } = options;
     const fileList = Array.from(files);
     fileList.forEach((file, index) => {
@@ -471,7 +579,9 @@ export const attachmentsApi = {
     );
   },
 
-  async getPresignedDownloadUrl(attachmentId) {
+  async getPresignedDownloadUrl(
+    attachmentId: string,
+  ): Promise<{ download_url: string }> {
     if (!UUID_RE.test(String(attachmentId || ""))) {
       throw new AttachmentError("Некорректный идентификатор файла.", {
         status: 422,
@@ -480,14 +590,14 @@ export const attachmentsApi = {
       });
     }
 
-    return requestJson(
+    return requestAttachmentJson<{ download_url: string }>(
       `/attachments/${encodeURIComponent(attachmentId)}/presigned-download`,
       { method: "GET" },
       { auth: false, step: "presigned-download" },
     );
   },
 
-  async getAttachment(attachmentId) {
+  async getAttachment(attachmentId: string): Promise<Attachment> {
     if (!UUID_RE.test(String(attachmentId || ""))) {
       throw new AttachmentError("Некорректный идентификатор файла.", {
         status: 422,
@@ -496,19 +606,25 @@ export const attachmentsApi = {
       });
     }
 
-    return requestJson(
+    return requestAttachmentJson<Attachment>(
       `/attachments/${encodeURIComponent(attachmentId)}`,
       { method: "GET" },
       { auth: false, step: "get-attachment" },
     );
   },
 
-  async fetchAttachmentBlob(attachmentId, options = {}) {
+  async fetchAttachmentBlob(
+    attachmentId: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<Blob> {
     const { download_url } = await this.getPresignedDownloadUrl(attachmentId);
     return fetchBlobFromStorage(download_url, options);
   },
 
-  async createAttachmentObjectUrl(attachmentId, options = {}) {
+  async createAttachmentObjectUrl(
+    attachmentId: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<{ url: string; revoke: () => void; blob: Blob }> {
     const blob = await this.fetchAttachmentBlob(attachmentId, options);
     const objectUrl = URL.createObjectURL(blob);
     return {
@@ -518,7 +634,10 @@ export const attachmentsApi = {
     };
   },
 
-  async downloadAttachment(attachmentId, options = {}) {
+  async downloadAttachment(
+    attachmentId: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<void> {
     const [attachment, blob] = await Promise.all([
       this.getAttachment(attachmentId),
       this.fetchAttachmentBlob(attachmentId, options),

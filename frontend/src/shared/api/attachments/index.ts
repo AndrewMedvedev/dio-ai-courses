@@ -1,0 +1,17 @@
+export {
+  AttachmentError,
+  BLOCKED_FILE_EXTENSIONS,
+  MAX_FILE_SIZE_BYTES,
+  PRESIGNED_URL_TTL_SECONDS,
+  attachmentsApi,
+  getUploadContentType,
+  runWithConcurrency,
+  validateAttachmentFile,
+  type Attachment,
+  type AttachmentStep,
+  type ConcurrencyResult,
+  type FileUploadState,
+  type UploadAttachmentOptions,
+  type UploadAttachmentsOptions,
+  type ValidateAttachmentOptions,
+} from "./attachments";

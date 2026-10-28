@@ -1,7 +1,38 @@
 import { create } from "zustand";
-import { getMyCourses, signCourse } from "../services/studentApi";
+import type { RawApiRecord } from "@/shared/api";
+import { getMyCourses, signCourse } from "../api/members-api";
+import type { LearningCourse } from "./types";
 
-const DEFAULT_MY_COURSES_META = {
+interface MyCoursesMeta {
+  page: number;
+  size: number;
+  total: number;
+  pages: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+interface StudentState {
+  myCourses: LearningCourse[];
+  myCoursesMeta: MyCoursesMeta;
+  isMyCoursesLoading: boolean;
+  myCoursesError: string;
+  enrolledCourseIds: Set<string>;
+  signingCourseIds: Set<string>;
+  isCourseEnrolled: (courseId: string) => boolean;
+  isCourseSigning: (courseId: string) => boolean;
+  loadMyCourses: (
+    params?: { page?: number; size?: number },
+    options?: RequestInit,
+  ) => Promise<unknown>;
+  signCourse: (courseId: string) => Promise<RawApiRecord | null>;
+}
+
+const errorText = (error: unknown) =>
+  error as { userMessage?: string; message?: string } | null;
+
+const DEFAULT_MY_COURSES_META: MyCoursesMeta = {
   page: 1,
   size: 10,
   total: 0,
@@ -11,13 +42,13 @@ const DEFAULT_MY_COURSES_META = {
   has_prev: false,
 };
 
-function getCourseStudentIds(course) {
-  return (course?.students || [])
+function getCourseStudentIds(course: LearningCourse): string[] {
+  return ((course?.students as RawApiRecord[] | undefined) || [])
     .map((student) => student?.course_id || student?.courseId || course?.id)
     .filter(Boolean);
 }
 
-export const useStudentStore = create((set, get) => ({
+export const useStudentStore = create<StudentState>((set, get) => ({
   myCourses: [],
   myCoursesMeta: DEFAULT_MY_COURSES_META,
   isMyCoursesLoading: false,
@@ -60,7 +91,10 @@ export const useStudentStore = create((set, get) => ({
         return null;
       }
 
-      const message = error?.userMessage || error?.message || "Не удалось загрузить ваши курсы.";
+      const message =
+        errorText(error)?.userMessage ||
+        errorText(error)?.message ||
+        "Не удалось загрузить ваши курсы.";
       set({
         myCourses: [],
         myCoursesError: message,
@@ -86,7 +120,13 @@ export const useStudentStore = create((set, get) => ({
         enrolledCourseIds: new Set([...state.enrolledCourseIds, courseId]),
         myCourses: state.myCourses.map((course) =>
           course.id === courseId
-            ? { ...course, students: [...(course.students || []), student] }
+            ? {
+                ...course,
+                students: [
+                  ...((course.students as RawApiRecord[] | undefined) || []),
+                  student,
+                ],
+              }
             : course,
         ),
         signingCourseIds: new Set(
@@ -100,7 +140,9 @@ export const useStudentStore = create((set, get) => ({
           [...state.signingCourseIds].filter((id) => id !== courseId),
         ),
         myCoursesError:
-          error?.userMessage || error?.message || "Не удалось записаться на курс.",
+          errorText(error)?.userMessage ||
+          errorText(error)?.message ||
+          "Не удалось записаться на курс.",
       }));
       throw error;
     }

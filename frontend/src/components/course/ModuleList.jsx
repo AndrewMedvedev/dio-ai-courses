@@ -1,4 +1,4 @@
-import { PROGRESS_STATUS_LABELS } from "../../services/progressService";
+import { PROGRESS_STATUS_LABELS } from "@/entities/progress";
 
 export default function ModuleList({
   modules,

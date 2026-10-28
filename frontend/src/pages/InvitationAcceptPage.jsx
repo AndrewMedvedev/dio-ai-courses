@@ -13,7 +13,7 @@ import { SectionTop } from "@/shared/ui/section-top";
 import { COURSE_ROLE_LABEL } from "../components/course/CourseInviteDialog";
 import "../components/course/course-invite.css";
 import { usePermissionStore, useSessionStore } from "@/entities/session";
-import { useStudentStore } from "../stores/studentStore";
+import { useStudentStore } from "@/entities/course";
 import { notify } from "@/shared/ui/toast";
 import {
   acceptCourseInvitation,

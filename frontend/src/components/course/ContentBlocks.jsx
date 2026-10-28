@@ -6,7 +6,7 @@ import ContentBlockSources, { hasSources } from "./ContentBlockSources";
 import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
 import { SyntaxHighlightedCode } from "@/shared/ui/syntax-highlighted-code";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
-import { normalizeQuizQuestions } from "../../utils/quiz";
+import { normalizeQuizQuestions } from "@/entities/course";
 
 const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;

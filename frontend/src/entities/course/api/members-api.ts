@@ -1,7 +1,39 @@
-import { mapCourseFromApi } from "@/entities/course";
-import { apiFetch } from "@/shared/api";
+// Запись на курс, ученики курса и курсы текущего ученика (backend: /members).
+import { apiFetch, type PageParams, type RawApiRecord } from "@/shared/api";
+import { mapCourseFromApi } from "../lib/mappers";
+import type { CoursesPage } from "../model/types";
 
-function normalizePaginatedCourses(data, { page = 1, size = 10 } = {}) {
+export interface CourseStudent {
+  id: string;
+  courseId: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface CourseStudentsPage {
+  items: CourseStudent[];
+  page: number;
+  size: number;
+  total: number;
+  pages: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+/** Ошибка запроса к /members с понятным сообщением. */
+export interface MembersError extends Error {
+  status?: number;
+  payload?: unknown;
+  userMessage?: string;
+}
+
+function normalizePaginatedCourses(
+  data: RawApiRecord | null | undefined,
+  { page = 1, size = 10 }: PageParams = {},
+): CoursesPage {
   const rawItems = Array.isArray(data)
     ? data
     : data?.items || data?.courses || data?.results || [];
@@ -26,7 +58,10 @@ function normalizePaginatedCourses(data, { page = 1, size = 10 } = {}) {
   };
 }
 
-async function parseError(response, fallbackMessage) {
+async function parseError(
+  response: Response,
+  fallbackMessage: string,
+): Promise<MembersError> {
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
     ? await response.json().catch(() => null)
@@ -34,14 +69,17 @@ async function parseError(response, fallbackMessage) {
   const detail = payload?.detail || payload?.error?.message || payload;
   const message =
     typeof detail === "string" && detail.trim() ? detail : fallbackMessage;
-  const error = new Error(message);
+  const error: MembersError = new Error(message);
   error.status = response.status;
   error.payload = payload;
   error.userMessage = message;
   return error;
 }
 
-export async function signCourse(courseId, options = {}) {
+export async function signCourse(
+  courseId: string,
+  options: RequestInit = {},
+): Promise<RawApiRecord> {
   const response = await apiFetch(
     `/members/${encodeURIComponent(courseId)}/enroll`,
     {
@@ -57,7 +95,7 @@ export async function signCourse(courseId, options = {}) {
   return response.json();
 }
 
-function normalizeStudent(raw = {}) {
+function normalizeStudent(raw: RawApiRecord = {}): CourseStudent {
   return {
     id: raw.id || "",
     courseId: raw.course_id || raw.courseId || "",
@@ -68,7 +106,10 @@ function normalizeStudent(raw = {}) {
   };
 }
 
-function normalizeStudentPage(data, { page = 1, size = 10 } = {}) {
+function normalizeStudentPage(
+  data: RawApiRecord | null | undefined,
+  { page = 1, size = 10 }: PageParams = {},
+): CourseStudentsPage {
   const items = (data?.items || []).map(normalizeStudent);
   const total = Number(data?.total) || items.length;
   const pages =
@@ -86,24 +127,11 @@ function normalizeStudentPage(data, { page = 1, size = 10 } = {}) {
   };
 }
 
-function normalizeUser(raw = {}) {
-  return {
-    id: raw.id || raw.user_id || raw.userId || "",
-    fullName: raw.fullName || raw.full_name || "",
-    avatarUrl: raw.avatarUrl || raw.avatar_url || "",
-    email: raw.email || "",
-    username: raw.username || "",
-    isActive: raw.isActive ?? raw.is_active ?? true,
-    createdAt: raw.createdAt || raw.created_at || "",
-    updatedAt: raw.updatedAt || raw.updated_at || "",
-  };
-}
-
 export async function getCourseStudents(
-  courseId,
-  { page = 1, size = 10 } = {},
-  options = {},
-) {
+  courseId: string,
+  { page = 1, size = 10 }: PageParams = {},
+  options: RequestInit = {},
+): Promise<CourseStudentsPage> {
   const query = new URLSearchParams({ page: String(page), size: String(size) });
   const response = await apiFetch(
     `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
@@ -121,23 +149,10 @@ export async function getCourseStudents(
   return normalizeStudentPage(data, { page, size });
 }
 
-export async function getUserById(userId, options = {}) {
-  const response = await apiFetch(`/users/${encodeURIComponent(userId)}`, {
-    ...options,
-    method: "GET",
-  });
-
-  if (!response.ok) {
-    throw await parseError(
-      response,
-      "Не удалось загрузить данные пользователя.",
-    );
-  }
-
-  return normalizeUser(await response.json());
-}
-
-export async function getMyCourses({ page = 1, size = 10 } = {}, options = {}) {
+export async function getMyCourses(
+  { page = 1, size = 10 }: PageParams = {},
+  options: RequestInit = {},
+): Promise<CoursesPage> {
   const query = new URLSearchParams({ page: String(page), size: String(size) });
   const response = await apiFetch(`/members?${query.toString()}`, {
     ...options,

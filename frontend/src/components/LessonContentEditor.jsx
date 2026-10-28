@@ -11,7 +11,7 @@ import { convertDocumentToMarkdown } from "../utils/api";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FloatingWindow } from "@/shared/ui/floating-window";
 import { autosizeTextarea } from "@/shared/lib/dom";
-import { attachmentsApi } from "../utils/attachments";
+import { attachmentsApi } from "@/shared/api";
 import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 import {
   allowedImageExtension,

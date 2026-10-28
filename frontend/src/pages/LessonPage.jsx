@@ -9,11 +9,10 @@ import {
 import LessonChatWorkspace from "../components/LessonChatWorkspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import { SectionTop } from "@/shared/ui/section-top";
-import { getLessonContentBlocks } from "../services/courseService";
+import { getLessonContentBlocks, printLessonSummary } from "@/entities/course";
 import { useGoBack, useUiLayoutStore } from "@/shared/lib/ui-layout";
 import { useTheorySessionTracker } from "../hooks/useTheorySessionTracker";
 import { draftKey, useEditorDraftStore } from "../stores/editorDraftStore";
-import { printLessonSummary } from "../utils/printLessonSummary";
 
 export default function LessonPage({
   selectedCourse,

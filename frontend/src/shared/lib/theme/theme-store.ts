@@ -3,9 +3,22 @@ import { persist } from "zustand/middleware";
 
 const THEME_STORAGE_KEY = "app-theme-storage";
 const THEME_STORAGE_VERSION = 1;
-const SUPPORTED_THEMES = new Set(["light", "dark", "system"]);
+const SUPPORTED_THEMES = new Set<string>(["light", "dark", "system"]);
 
-const getSystemTheme = () => {
+export type Theme = "light" | "dark" | "system";
+export type ResolvedTheme = Exclude<Theme, "system">;
+
+interface ThemeState {
+  theme: Theme;
+  hasHydrated: boolean;
+  setHasHydrated: (hasHydrated: boolean) => void;
+  setTheme: (theme: string) => void;
+  toggleTheme: () => void;
+}
+
+type PersistedTheme = Pick<ThemeState, "theme">;
+
+const getSystemTheme = (): ResolvedTheme => {
   if (typeof window === "undefined" || !window.matchMedia) {
     return "light";
   }
@@ -15,19 +28,19 @@ const getSystemTheme = () => {
     : "light";
 };
 
-export const resolveTheme = (theme) =>
+export const resolveTheme = (theme: Theme): ResolvedTheme =>
   theme === "system" ? getSystemTheme() : theme;
 
-export const useThemeStore = create(
-  persist(
+export const useThemeStore = create<ThemeState>()(
+  persist<ThemeState, [], [], PersistedTheme>(
     (set, get) => ({
-      theme: "light",
+      theme: "light" as Theme,
       hasHydrated: false,
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       setTheme: (theme) => {
         if (!SUPPORTED_THEMES.has(theme)) return;
-        set({ theme });
+        set({ theme: theme as Theme });
       },
       toggleTheme: () => {
         const currentTheme = resolveTheme(get().theme);
@@ -45,8 +58,9 @@ export const useThemeStore = create(
           return { theme: "light" };
         }
 
-        return SUPPORTED_THEMES.has(persistedState?.theme)
-          ? persistedState
+        const state = persistedState as Partial<PersistedTheme> | undefined;
+        return state?.theme && SUPPORTED_THEMES.has(state.theme)
+          ? (state as PersistedTheme)
           : { theme: "light" };
       },
       onRehydrateStorage: () => (state) => {

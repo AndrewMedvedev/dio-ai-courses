@@ -1,4 +1,13 @@
-function escapeHtml(value) {
+interface Titled {
+  title?: string;
+}
+
+interface PrintableLesson extends Titled {
+  markdown?: string;
+  content?: string;
+}
+
+function escapeHtml(value: unknown): string {
   return String(value || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -7,7 +16,16 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-export function printLessonSummary({ course, block, lesson }) {
+/** Открывает конспект урока в новом окне и запускает печать (сохранение в PDF). */
+export function printLessonSummary({
+  course,
+  block,
+  lesson,
+}: {
+  course: Titled;
+  block: Titled;
+  lesson: PrintableLesson;
+}): void {
   const printWindow = window.open("", "_blank");
 
   if (!printWindow) {
@@ -15,7 +33,8 @@ export function printLessonSummary({ course, block, lesson }) {
     return;
   }
 
-  const lessonContent = lesson.markdown || lesson.content || "Материал урока пока пуст.";
+  const lessonContent =
+    lesson.markdown || lesson.content || "Материал урока пока пуст.";
   const documentTitle = `${course.title} — ${lesson.title}`;
 
   printWindow.document.write(`<!doctype html>

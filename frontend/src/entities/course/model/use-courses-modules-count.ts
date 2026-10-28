@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { isUuid } from "@/shared/lib/uuid";
-import { getCourseBasicInfo } from "@/entities/course";
+import { getCourseBasicInfo } from "../api/course-api";
 
 /**
  * Число модулей для списка курсов (профиль, «Мои курсы»).
@@ -8,14 +8,19 @@ import { getCourseBasicInfo } from "@/entities/course";
  * курса читаем его краткую информацию (GET /courses/{id}) — запросы идут параллельно.
  * Возвращает { [courseId]: число модулей }; пока число не загружено, ключа нет.
  */
-export function useCoursesModulesCount(courses, { enabled = true } = {}) {
+export function useCoursesModulesCount(
+  courses: Array<{ id?: string | null } | null | undefined> | null | undefined,
+  { enabled = true }: { enabled?: boolean } = {},
+): Record<string, number> {
   const courseIds = useMemo(
     () =>
-      [...new Set((courses || []).map((course) => course?.id))].filter(isUuid),
+      [...new Set((courses || []).map((course) => course?.id))].filter(
+        (id): id is string => isUuid(id),
+      ),
     [courses],
   );
   const courseIdsKey = courseIds.join(",");
-  const [counts, setCounts] = useState({});
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!enabled || courseIds.length === 0) return undefined;
@@ -24,7 +29,10 @@ export function useCoursesModulesCount(courses, { enabled = true } = {}) {
     Promise.allSettled(
       courseIds.map((courseId) =>
         getCourseBasicInfo(courseId, { signal: controller.signal }).then(
-          (course) => [courseId, (course?.blocks || []).length],
+          (course): [string, number] => [
+            courseId,
+            (course?.blocks || []).length,
+          ],
         ),
       ),
     ).then((results) => {
@@ -51,7 +59,7 @@ export function useCoursesModulesCount(courses, { enabled = true } = {}) {
 
 const MODULE_FORMS = ["модуль", "модуля", "модулей"];
 
-export function formatModulesCount(count) {
+export function formatModulesCount(count: unknown): string {
   const value = Math.max(0, Number(count) || 0);
   const mod10 = value % 10;
   const mod100 = value % 100;

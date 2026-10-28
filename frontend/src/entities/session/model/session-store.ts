@@ -10,9 +10,9 @@ import {
   type ApiError,
   type TokenResponse,
   type ValidationErrors,
+  attachmentsApi,
 } from "@/shared/api";
 import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
-import { attachmentsApi } from "@/utils/attachments";
 import {
   authenticateWithMembership,
   fetchCurrentUser,

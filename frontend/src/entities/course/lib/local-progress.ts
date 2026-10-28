@@ -1,4 +1,15 @@
-export function getLessonSequence(course) {
+// Прогресс по локальным отметкам «пройдено» (без запросов к бэкенду).
+import type { LearningBlock, LearningCourse } from "../model/types";
+
+type CompletedMap = Record<string, boolean | undefined>;
+
+interface PracticeRef {
+  id: string;
+}
+
+const practiceOf = (block: LearningBlock) => block.practice as PracticeRef[];
+
+export function getLessonSequence(course: LearningCourse) {
   return course.blocks.flatMap((block) =>
     block.lessons.map((lesson) => ({
       blockId: block.id,
@@ -8,14 +19,19 @@ export function getLessonSequence(course) {
   );
 }
 
-export function getBlockProgress(block, completedLessons, completedPractices) {
+export function getBlockProgress(
+  block: LearningBlock,
+  completedLessons: CompletedMap,
+  completedPractices: CompletedMap,
+) {
   const completedLessonsInBlock = block.lessons.filter(
     (lesson) => completedLessons[lesson.id],
   ).length;
-  const completedPracticesInBlock = (block.practice || []).filter(
+  const completedPracticesInBlock = (practiceOf(block) || []).filter(
     (practice) => completedPractices[practice.id],
   ).length;
-  const totalItemsInBlock = block.lessons.length + (block.practice || []).length;
+  const totalItemsInBlock =
+    block.lessons.length + (block.practice || []).length;
   const completedInBlock = completedLessonsInBlock + completedPracticesInBlock;
   const blockProgressPercent = totalItemsInBlock
     ? Math.round((completedInBlock / totalItemsInBlock) * 100)
@@ -30,7 +46,11 @@ export function getBlockProgress(block, completedLessons, completedPractices) {
   };
 }
 
-export function getOverallProgress(courses, completedLessons, completedPractices) {
+export function getOverallProgress(
+  courses: LearningCourse[],
+  completedLessons: CompletedMap,
+  completedPractices: CompletedMap,
+) {
   const totalLessonsCount = courses.reduce(
     (total, course) =>
       total +
@@ -43,15 +63,15 @@ export function getOverallProgress(courses, completedLessons, completedPractices
       course.blocks.reduce((sum, block) => sum + block.practice.length, 0),
     0,
   );
-  const completedLessonsCount = Object.values(completedLessons).filter(Boolean)
-    .length;
-  const completedPracticesCount = Object.values(completedPractices).filter(
-    Boolean,
-  ).length;
+  const completedLessonsCount =
+    Object.values(completedLessons).filter(Boolean).length;
+  const completedPracticesCount =
+    Object.values(completedPractices).filter(Boolean).length;
   const totalProgressItems = totalLessonsCount + totalPracticesCount;
   const overallProgressPercent = totalProgressItems
     ? Math.round(
-        ((completedLessonsCount + completedPracticesCount) / totalProgressItems) *
+        ((completedLessonsCount + completedPracticesCount) /
+          totalProgressItems) *
           100,
       )
     : 0;
@@ -66,7 +86,11 @@ export function getOverallProgress(courses, completedLessons, completedPractices
   };
 }
 
-export function getCourseProgress(course, completedLessons, completedPractices) {
+export function getCourseProgress(
+  course: LearningCourse,
+  completedLessons: CompletedMap,
+  completedPractices: CompletedMap,
+) {
   const total = course.blocks.reduce(
     (sum, block) => sum + block.lessons.length + block.practice.length,
     0,
@@ -75,7 +99,8 @@ export function getCourseProgress(course, completedLessons, completedPractices) 
     (sum, block) =>
       sum +
       block.lessons.filter((lesson) => completedLessons[lesson.id]).length +
-      block.practice.filter((practice) => completedPractices[practice.id]).length,
+      practiceOf(block).filter((practice) => completedPractices[practice.id])
+        .length,
     0,
   );
   const progress = Math.round((completed / Math.max(1, total)) * 100);

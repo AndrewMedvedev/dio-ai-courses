@@ -1,19 +1,29 @@
+// Кеш курсов, модулей и уроков на время сессии и запись на курс.
 import {
   fetchCourses,
   getCourseBasicInfo as fetchCourseBasicInfo,
   getLessonBasicInfo,
   getLessonTheory,
   getModuleBasicInfo,
-} from "@/entities/course";
-import { getMyCourses, signCourse } from "./studentApi";
+} from "../api/course-api";
+import { getMyCourses, signCourse } from "../api/members-api";
+import type {
+  ContentBlock,
+  LearningBlock,
+  LearningCourse,
+  LearningLesson,
+} from "./types";
 
 const ENROLLMENT_PAGE_SIZE = 100;
-const courseCache = new Map();
-const moduleCache = new Map();
-const lessonCache = new Map();
-const lessonTheoryCache = new Map();
+const courseCache = new Map<string, LearningCourse>();
+const moduleCache = new Map<string, LearningBlock>();
+const lessonCache = new Map<string, LearningLesson>();
+const lessonTheoryCache = new Map<string, ContentBlock[]>();
 
-function replaceModule(course, module) {
+function replaceModule(
+  course: LearningCourse,
+  module: LearningBlock,
+): LearningCourse {
   return {
     ...course,
     blocks: (course.blocks || []).map((block) =>
@@ -22,7 +32,10 @@ function replaceModule(course, module) {
   };
 }
 
-function replaceLessonInCourse(course, lesson) {
+function replaceLessonInCourse(
+  course: LearningCourse,
+  lesson: LearningLesson,
+): LearningCourse {
   return {
     ...course,
     blocks: (course.blocks || []).map((block) => ({
@@ -34,16 +47,18 @@ function replaceLessonInCourse(course, lesson) {
   };
 }
 
-function rememberCourse(course) {
+function rememberCourse(course: LearningCourse): LearningCourse {
   if (course?.id) {
     courseCache.set(course.id, course);
   }
   return course;
 }
 
-export async function getCourse(courseId) {
+export async function getCachedCourse(
+  courseId?: string | null,
+): Promise<LearningCourse> {
   if (courseId && courseCache.has(courseId)) {
-    return courseCache.get(courseId);
+    return courseCache.get(courseId) as LearningCourse;
   }
 
   const courses = await fetchCourses({ page: 1, size: 20 });
@@ -61,7 +76,11 @@ export async function getCourse(courseId) {
 
 // Сбрасывает кеш, чтобы после генерации или сохранения страницы курса
 // загрузили свежие данные с backend.
-export function forgetCourseCache(courseId, moduleIds = [], lessonIds = []) {
+export function forgetCourseCache(
+  courseId?: string | null,
+  moduleIds: string[] = [],
+  lessonIds: string[] = [],
+): void {
   if (courseId) courseCache.delete(courseId);
   moduleIds.forEach((moduleId) => moduleCache.delete(moduleId));
   lessonIds.forEach((lessonId) => {
@@ -70,24 +89,28 @@ export function forgetCourseCache(courseId, moduleIds = [], lessonIds = []) {
   });
 }
 
-export function forgetLessonTheory(lessonId) {
+export function forgetLessonTheory(lessonId?: string | null): void {
   if (!lessonId) return;
   lessonCache.delete(lessonId);
   lessonTheoryCache.delete(lessonId);
 }
 
-export async function getCourseBasicInfo(courseId) {
+export async function getCachedCourseBasicInfo(
+  courseId?: string | null,
+): Promise<LearningCourse> {
   if (!courseId) {
-    return getCourse();
+    return getCachedCourse();
   }
   if (courseCache.has(courseId)) {
-    return courseCache.get(courseId);
+    return courseCache.get(courseId) as LearningCourse;
   }
   return rememberCourse(await fetchCourseBasicInfo(courseId));
 }
 
-export async function getCourseLearningStructure(courseId) {
-  const course = await getCourseBasicInfo(courseId);
+export async function getCourseLearningStructure(
+  courseId?: string | null,
+): Promise<LearningCourse> {
+  const course = await getCachedCourseBasicInfo(courseId);
   for (const moduleRef of course.blocks || []) {
     if (!moduleCache.has(moduleRef.id)) {
       const module = await getModuleById(moduleRef.id);
@@ -99,9 +122,9 @@ export async function getCourseLearningStructure(courseId) {
   return courseCache.get(course.id) || course;
 }
 
-export async function getModuleById(moduleId) {
+export async function getModuleById(moduleId: string): Promise<LearningBlock> {
   if (moduleCache.has(moduleId)) {
-    return moduleCache.get(moduleId);
+    return moduleCache.get(moduleId) as LearningBlock;
   }
 
   const module = await getModuleBasicInfo(moduleId);
@@ -114,9 +137,9 @@ export async function getModuleById(moduleId) {
   return module;
 }
 
-export async function getLessonById(lessonId) {
+export async function getLessonById(lessonId: string): Promise<LearningLesson> {
   if (lessonCache.has(lessonId)) {
-    return lessonCache.get(lessonId);
+    return lessonCache.get(lessonId) as LearningLesson;
   }
 
   const lesson = await getLessonBasicInfo(lessonId);
@@ -127,13 +150,15 @@ export async function getLessonById(lessonId) {
   return lesson;
 }
 
-export async function getLessonContentBlocks(lessonId) {
+export async function getLessonContentBlocks(
+  lessonId?: string | null,
+): Promise<ContentBlock[]> {
   if (!lessonId) {
     return [];
   }
 
   if (lessonTheoryCache.has(lessonId)) {
-    return lessonTheoryCache.get(lessonId);
+    return lessonTheoryCache.get(lessonId) as ContentBlock[];
   }
 
   const contentBlocks = await getLessonTheory(lessonId);
@@ -150,7 +175,9 @@ export async function getLessonContentBlocks(lessonId) {
   return contentBlocks;
 }
 
-export async function isUserEnrolled(courseId) {
+export async function isUserEnrolled(
+  courseId?: string | null,
+): Promise<boolean> {
   if (!courseId) {
     return false;
   }
@@ -159,7 +186,7 @@ export async function isUserEnrolled(courseId) {
   return courses.items.some((course) => course.id === courseId);
 }
 
-export async function enrollUserToCourse(courseId) {
+export async function enrollUserToCourse(courseId?: string | null) {
   if (!courseId) {
     throw new Error("Невозможно записаться: идентификатор курса отсутствует");
   }

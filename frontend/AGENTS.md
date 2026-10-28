@@ -183,7 +183,8 @@ src/
 - [x] `shared/ui`: mermaid-diagram, syntax-highlighted-code
 - [x] `entities/session`: сессия, вход, текущий пользователь, права (`useAppPermissions`, `PermissionGate`); охрана маршрутов — `app/router/ProtectedRoute`
 - [x] `entities/course`: запросы курса, модулей и уроков, мапперы бэкенд ↔ интерфейс, контент-блоки, уровни сложности
-- [ ] `entities`: организация, приглашение, прогресс, ИИ-модель; состояние курса (`course/courseState.js`, `routeState.js`)
+- [x] `entities`: organization, invitation, ai-model, user, progress; в course — кеш курсов, запись на курс, состояние дерева курса, выбор по адресу, проверочные вопросы, печать конспекта
+- [x] `shared/api/attachments` (загрузка файлов), `shared/lib/theme`
 - [ ] `features`
 - [ ] `widgets` (в том числе хлебные крошки — они знают про курс, модуль и урок)
 - [ ] `pages` и роутер (`App.jsx` → `app/router`)

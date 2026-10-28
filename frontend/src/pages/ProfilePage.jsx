@@ -6,13 +6,14 @@ import {
   usePermissionStore,
   useSessionStore,
 } from "@/entities/session";
-import { useStudentStore } from "../stores/studentStore";
-import { useMyCoursesProgress } from "../hooks/useMyCoursesProgress";
 import {
+  useStudentStore,
   formatModulesCount,
   useCoursesModulesCount,
-} from "../hooks/useCoursesModulesCount";
-import { fetchMyCoursesPage, formatCourseLevel } from "@/entities/course";
+  fetchMyCoursesPage,
+  formatCourseLevel,
+} from "@/entities/course";
+import { useMyCoursesProgress } from "../hooks/useMyCoursesProgress";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);

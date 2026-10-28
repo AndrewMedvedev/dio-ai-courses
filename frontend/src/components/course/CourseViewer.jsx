@@ -8,12 +8,13 @@ import LessonChatWorkspace from "../LessonChatWorkspace";
 import CourseNavigationTree from "../CourseNavigationTree";
 import { SectionTop } from "@/shared/ui/section-top";
 import {
-  getCourseBasicInfo,
+  getCachedCourseBasicInfo as getCourseBasicInfo,
   getCourseLearningStructure,
   getLessonById,
   getLessonContentBlocks,
   getModuleById,
-} from "../../services/courseService";
+  useStudentStore,
+} from "@/entities/course";
 import ContentBlocks from "./ContentBlocks";
 import CourseInviteDialog from "./CourseInviteDialog";
 import CourseBasicInfo from "./CourseBasicInfo";
@@ -25,11 +26,10 @@ import {
   usePermissionStore,
   useSessionStore,
 } from "@/entities/session";
-import { useStudentStore } from "../../stores/studentStore";
 import { useUiLayoutStore } from "@/shared/lib/ui-layout";
 import { useTheorySessionTracker } from "../../hooks/useTheorySessionTracker";
 import { useCourseProgress } from "../../hooks/useCourseProgress";
-import { getModuleProgressSummary } from "../../services/progressService";
+import { getModuleProgressSummary } from "@/entities/progress";
 import { getErrorMessage } from "@/shared/lib/errors";
 import { isUuid } from "@/shared/lib/uuid";
 import { isTokenExpired } from "@/shared/api";

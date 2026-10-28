@@ -1,7 +1,7 @@
 import {
   PROGRESS_STATUS_LABELS,
   getLessonProgressStatus,
-} from "../../services/progressService";
+} from "@/entities/progress";
 
 export default function LessonList({
   lessons,

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { getCourseLearningStructure } from "../services/courseService";
+import { getCourseLearningStructure } from "@/entities/course";
 import {
   PROGRESS_STATUS,
   getCourseProgress,
   getLessonProgressStatus,
   getLessonsProgress,
-} from "../services/progressService";
+} from "@/entities/progress";
 import { isUuid } from "@/shared/lib/uuid";
 
 function collectLessonIds(course) {

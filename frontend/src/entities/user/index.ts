@@ -1,2 +1,2 @@
-export { fetchUserById, findUserByEmail } from "./api/user-api";
-export type { User } from "./model/types";
+export { fetchUserById, findUserByEmail, getUserById } from "./api/user-api";
+export type { User, UserProfile } from "./model/types";

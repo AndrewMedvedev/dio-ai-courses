@@ -7,40 +7,75 @@ import {
   fetchLessonProgress,
   fetchModuleProgress,
   recalculateCourseProgress,
-} from "@/entities/progress";
+} from "../api/progress-api";
+import type { RawApiRecord } from "@/shared/api";
 
 // Статусы прохождения урока/модуля для отрисовки цветами.
 export const PROGRESS_STATUS = {
   NOT_STARTED: "not_started",
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
-};
+} as const;
 
-export const PROGRESS_STATUS_LABELS = {
+export type ProgressStatus =
+  (typeof PROGRESS_STATUS)[keyof typeof PROGRESS_STATUS];
+
+export interface CourseProgress {
+  id: string;
+  courseId: string;
+  userId: string;
+  /** 0–100 */
+  percent: number;
+}
+
+export interface LessonProgress {
+  id: string;
+  lessonId: string;
+  moduleProgressId: string;
+  theoryCompletedAt: string | null;
+  practiceCompletedAt: string | null;
+  testCompletedAt: string | null;
+}
+
+export interface ModuleProgressSummary {
+  total: number;
+  completed: number;
+  started: number;
+  status: ProgressStatus;
+}
+
+/** Модуль с уроками — достаточно id уроков. */
+interface BlockWithLessons {
+  lessons?: Array<{ id: string }>;
+}
+
+export const PROGRESS_STATUS_LABELS: Record<ProgressStatus, string> = {
   [PROGRESS_STATUS.NOT_STARTED]: "Не начат",
   [PROGRESS_STATUS.IN_PROGRESS]: "В процессе",
   [PROGRESS_STATUS.COMPLETED]: "Пройден",
 };
 
 const LESSON_PROGRESS_CONCURRENCY = 4;
-const pendingRequests = new Map();
+const pendingRequests = new Map<string, Promise<unknown>>();
 
-function isStatus(error, status) {
-  return Number(error?.status) === status;
+function isStatus(error: unknown, status: number): boolean {
+  return Number((error as { status?: unknown } | null)?.status) === status;
 }
 
 // Один и тот же запрос (например, создание прогресса урока) не отправляем дважды,
 // пока первый ещё в полёте: эффекты React в StrictMode вызываются повторно.
-function once(key, factory) {
+function once<T>(key: string, factory: () => Promise<T>): Promise<T> {
   if (pendingRequests.has(key)) {
-    return pendingRequests.get(key);
+    return pendingRequests.get(key) as Promise<T>;
   }
   const promise = factory().finally(() => pendingRequests.delete(key));
   pendingRequests.set(key, promise);
   return promise;
 }
 
-export function normalizeCourseProgress(raw) {
+export function normalizeCourseProgress(
+  raw: RawApiRecord | null | undefined,
+): CourseProgress | null {
   if (!raw || typeof raw !== "object") return null;
   const percent = Number(raw.progress_percent ?? raw.progressPercent ?? 0);
   return {
@@ -51,7 +86,9 @@ export function normalizeCourseProgress(raw) {
   };
 }
 
-export function normalizeLessonProgress(raw) {
+export function normalizeLessonProgress(
+  raw: RawApiRecord | null | undefined,
+): LessonProgress | null {
   if (!raw || typeof raw !== "object") return null;
   return {
     id: raw.id || "",
@@ -66,7 +103,9 @@ export function normalizeLessonProgress(raw) {
 
 // Урок считается пройденным, когда закрыты теория, практика и проверочные
 // вопросы — так же считает backend при пересчёте процента курса.
-export function getLessonProgressStatus(progress) {
+export function getLessonProgressStatus(
+  progress: LessonProgress | null | undefined,
+): ProgressStatus {
   if (!progress) return PROGRESS_STATUS.NOT_STARTED;
   const parts = [
     progress.theoryCompletedAt,
@@ -78,7 +117,10 @@ export function getLessonProgressStatus(progress) {
   return done > 0 ? PROGRESS_STATUS.IN_PROGRESS : PROGRESS_STATUS.NOT_STARTED;
 }
 
-export function getModuleProgressSummary(block, lessonProgressById = {}) {
+export function getModuleProgressSummary(
+  block: BlockWithLessons | null | undefined,
+  lessonProgressById: Record<string, LessonProgress | null> = {},
+): ModuleProgressSummary {
   const lessons = block?.lessons || [];
   let completed = 0;
   let started = 0;
@@ -88,7 +130,7 @@ export function getModuleProgressSummary(block, lessonProgressById = {}) {
     if (status !== PROGRESS_STATUS.NOT_STARTED) started += 1;
   });
 
-  let status = PROGRESS_STATUS.NOT_STARTED;
+  let status: ProgressStatus = PROGRESS_STATUS.NOT_STARTED;
   if (lessons.length > 0 && completed === lessons.length) {
     status = PROGRESS_STATUS.COMPLETED;
   } else if (started > 0) {
@@ -98,7 +140,9 @@ export function getModuleProgressSummary(block, lessonProgressById = {}) {
   return { total: lessons.length, completed, started, status };
 }
 
-export async function getCourseProgress(courseId) {
+export async function getCourseProgress(
+  courseId: string,
+): Promise<CourseProgress | null> {
   try {
     return normalizeCourseProgress(await fetchCourseProgress(courseId));
   } catch (error) {
@@ -107,7 +151,9 @@ export async function getCourseProgress(courseId) {
   }
 }
 
-export async function getLessonProgress(lessonId) {
+export async function getLessonProgress(
+  lessonId: string,
+): Promise<LessonProgress | null> {
   try {
     return normalizeLessonProgress(await fetchLessonProgress(lessonId));
   } catch (error) {
@@ -117,7 +163,13 @@ export async function getLessonProgress(lessonId) {
 }
 
 // GET → при 404 POST → при 409 (запись создалась параллельно) снова GET.
-async function ensureRecord({ read, create }) {
+async function ensureRecord({
+  read,
+  create,
+}: {
+  read: () => Promise<RawApiRecord | null>;
+  create: () => Promise<RawApiRecord | null>;
+}): Promise<RawApiRecord | null> {
   try {
     return await read();
   } catch (error) {
@@ -131,7 +183,9 @@ async function ensureRecord({ read, create }) {
   }
 }
 
-export function ensureCourseProgress(courseId) {
+export function ensureCourseProgress(
+  courseId: string,
+): Promise<CourseProgress | null> {
   return once(`course:${courseId}`, async () =>
     normalizeCourseProgress(
       await ensureRecord({
@@ -142,7 +196,10 @@ export function ensureCourseProgress(courseId) {
   );
 }
 
-export function ensureModuleProgress(courseId, moduleId) {
+export function ensureModuleProgress(
+  courseId: string,
+  moduleId: string,
+): Promise<RawApiRecord | null> {
   return once(`module:${moduleId}`, async () => {
     await ensureCourseProgress(courseId);
     return ensureRecord({
@@ -152,7 +209,11 @@ export function ensureModuleProgress(courseId, moduleId) {
   });
 }
 
-export function ensureLessonProgress(courseId, moduleId, lessonId) {
+export function ensureLessonProgress(
+  courseId: string,
+  moduleId: string,
+  lessonId: string,
+): Promise<LessonProgress | null> {
   return once(`lesson:${lessonId}`, async () => {
     await ensureModuleProgress(courseId, moduleId);
     return normalizeLessonProgress(
@@ -164,11 +225,16 @@ export function ensureLessonProgress(courseId, moduleId, lessonId) {
   });
 }
 
-export async function markLessonTheoryCompleted(lessonId) {
+export async function markLessonTheoryCompleted(
+  lessonId: string,
+): Promise<LessonProgress | null> {
   return normalizeLessonProgress(await completeLessonTheory(lessonId));
 }
 
-export async function syncCourseProgressPercent(courseId, totalLessons) {
+export async function syncCourseProgressPercent(
+  courseId: string,
+  totalLessons: number,
+): Promise<CourseProgress | null> {
   return normalizeCourseProgress(
     await recalculateCourseProgress(courseId, totalLessons),
   );
@@ -176,12 +242,17 @@ export async function syncCourseProgressPercent(courseId, totalLessons) {
 
 // Отдельной ручки «весь прогресс курса» на backend нет, поэтому прогресс уроков
 // для дерева запрашиваем по одному с ограничением параллельности.
-export async function getLessonsProgress(lessonIds, { signal } = {}) {
-  const ids = [...new Set((lessonIds || []).filter(Boolean))];
-  const result = {};
+export async function getLessonsProgress(
+  lessonIds: Array<string | null | undefined> | null | undefined,
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<Record<string, LessonProgress | null>> {
+  const ids = [
+    ...new Set((lessonIds || []).filter((id): id is string => Boolean(id))),
+  ];
+  const result: Record<string, LessonProgress | null> = {};
   let cursor = 0;
 
-  async function worker() {
+  async function worker(): Promise<void> {
     while (cursor < ids.length) {
       if (signal?.aborted) return;
       const lessonId = ids[cursor];

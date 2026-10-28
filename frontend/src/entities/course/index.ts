@@ -52,3 +52,63 @@ export type {
   QuizQuestion,
   RawApiRecord,
 } from "./model/types";
+export {
+  EMPTY_BLOCK,
+  EMPTY_COURSE,
+  EMPTY_LESSON,
+  applyEntityFields,
+  createEmptyCourseBlock,
+  getSelectedBlock,
+  getSelectedCourse,
+  getSelectedLesson,
+  getSelectedPractice,
+  mergeCourse,
+  mergeCoursePage,
+  mergeLesson,
+  mergeModule,
+  moveItem,
+  upsertLesson,
+  upsertModule,
+} from "./lib/course-state";
+export {
+  getBlockProgress,
+  getCourseProgress,
+  getLessonSequence,
+  getOverallProgress,
+} from "./lib/local-progress";
+export { getRouteState, type RouteSelection } from "./lib/route-state";
+export type {
+  BlockNode,
+  CourseNode,
+  LessonNode,
+  PracticeNode,
+} from "./model/tree";
+export {
+  getCourseStudents,
+  getMyCourses,
+  signCourse,
+  type CourseStudent,
+  type CourseStudentsPage,
+} from "./api/members-api";
+export { printLessonSummary } from "./lib/print-lesson-summary";
+export {
+  normalizeQuizQuestions,
+  type NormalizedQuizQuestion,
+} from "./lib/quiz";
+export {
+  enrollUserToCourse,
+  forgetCourseCache,
+  forgetLessonTheory,
+  getCachedCourse,
+  getCachedCourseBasicInfo,
+  getCourseLearningStructure,
+  getLessonById,
+  getLessonContentBlocks,
+  getModuleById,
+  isUserEnrolled,
+} from "./model/course-cache";
+export { useStudentStore } from "./model/student-store";
+export {
+  formatModulesCount,
+  useCoursesModulesCount,
+} from "./model/use-courses-modules-count";

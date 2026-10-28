@@ -9,3 +9,23 @@ export {
   fetchModuleProgress,
   recalculateCourseProgress,
 } from "./api/progress-api";
+export {
+  PROGRESS_STATUS,
+  PROGRESS_STATUS_LABELS,
+  ensureCourseProgress,
+  ensureLessonProgress,
+  ensureModuleProgress,
+  getCourseProgress,
+  getLessonProgress,
+  getLessonProgressStatus,
+  getLessonsProgress,
+  getModuleProgressSummary,
+  markLessonTheoryCompleted,
+  normalizeCourseProgress,
+  normalizeLessonProgress,
+  syncCourseProgressPercent,
+  type CourseProgress,
+  type LessonProgress,
+  type ModuleProgressSummary,
+  type ProgressStatus,
+} from "./model/progress-service";

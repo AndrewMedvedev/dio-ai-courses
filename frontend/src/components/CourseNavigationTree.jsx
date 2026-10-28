@@ -3,7 +3,7 @@ import {
   PROGRESS_STATUS_LABELS,
   getLessonProgressStatus,
   getModuleProgressSummary,
-} from "../services/progressService";
+} from "@/entities/progress";
 
 const LESSON_PARTS = [
   { key: "theoryCompletedAt", label: "Теория" },

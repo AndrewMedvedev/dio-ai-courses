@@ -9,10 +9,35 @@
 // заглушки ("answer", "question", "TODO") и вопросы без ответа не показываются,
 // о каждой пишется ошибка в консоль с id урока.
 
-const PLACEHOLDERS = new Set(["question", "answer", "options", "todo", "tbd", "вопрос", "ответ"]);
+import type { RawApiRecord } from "@/shared/api";
+
+export interface NormalizedQuizQuestion {
+  question: string;
+  answer: string;
+  options: string[];
+  explanation: string;
+}
+
+interface QuizCandidate {
+  question: unknown;
+  answer: unknown;
+  options?: string[];
+  explanation?: unknown;
+}
+
+interface PendingQuestion {
+  question: string;
+  options: unknown;
+  labelledOptions: string[];
+  answer: unknown;
+  explanation: unknown;
+  [field: string]: unknown;
+}
+
+const PLACEHOLDERS = new Set<string>(["question", "answer", "options", "todo", "tbd", "вопрос", "ответ"]);
 
 // Название поля в цепочке -> каноническое имя.
-const FIELD_ALIASES = {
+const FIELD_ALIASES: Record<string, string> = {
   question: "question",
   options: "options",
   answer_options: "options",
@@ -28,7 +53,7 @@ const FIELD_ALIASES = {
   question_type: "type",
 };
 
-const TYPE_TAGS = new Set([
+const TYPE_TAGS = new Set<string>([
   "multipart", "multiple_choice", "multiple-choice", "multiple", "multiple_select",
   "single", "single_choice", "single-choice", "true_false", "true-false", "matching",
   "case_scenario", "short_answer", "numeric", "detailed_answer", "quiz_question",
@@ -46,10 +71,10 @@ const INLINE_ANSWER_MARKER = new RegExp(`(?:^|\\n|[ \\t])[*_]*${ANSWER_WORDS}[*_
 const EXPLANATION_MARKER = /(?:^|\n)[*_\s]*(?:пояснени[ея]|объяснени[ея]|explanation|rationale)[*_\s]*[:：][*_\s]*/iu;
 const CORRECT_INDEX = /[*_]*correct[_ ]index[*_]*\s*[:：]\s*[*_]*(\d{1,2})/iu;
 
-const TRUE_FALSE = { true: "Верно", false: "Неверно" };
+const TRUE_FALSE: Record<string, string> = { true: "Верно", false: "Неверно" };
 
 // «B + Пояснение: …» -> { answer: "B", explanation: "…" }.
-const splitExplanation = (text) => {
+const splitExplanation = (text: unknown) => {
   // «…|correct|Пояснение: …» — служебную метку между ответом и пояснением убираем.
   const value = String(text ?? "").replace(/\s*\|\s*(?:correct|incorrect|wrong)\s*\|\s*/giu, "\n");
   const match = EXPLANATION_MARKER.exec(value);
@@ -63,7 +88,7 @@ const splitExplanation = (text) => {
 // Мусор генерации: длинные хвосты из повторяющихся символов (например сотни «*️⃣»),
 // одиночные галочки и непарные звёздочки в конце. Такой хвост не несёт смысла,
 // не переносится по словам и растягивает блок за пределы карточки.
-const cleanQuizNoise = (value) => {
+const cleanQuizNoise = (value: unknown): string => {
   let text = String(value ?? "")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replace(/(?:[*#0-9]\uFE0F?\u20E3)+/g, " ")
@@ -79,7 +104,9 @@ const cleanQuizNoise = (value) => {
   return text.replace(/(?<!\*)\*$/, "").trim();
 };
 
-const quizText = (value) => {
+const quizText = (rawValue: unknown): string => {
+  // any: значение сужается по шагам ниже (массив → объект → строка).
+  let value: any = rawValue;
   if (Array.isArray(value)) value = value.map(quizText).filter(Boolean).join("\n");
   if (value && typeof value === "object") {
     value = value.text ?? value.value ?? value.content ?? value.parts ?? "";
@@ -91,8 +118,9 @@ const quizText = (value) => {
   return PLACEHOLDERS.has(key) || TYPE_TAGS.has(key) ? "" : text;
 };
 
-const unwrapQuizRecord = (value) => {
-  let record = value;
+const unwrapQuizRecord = (value: unknown): any => {
+  // any: запись произвольной формы, её поля читаются ниже по ситуации.
+  let record: any = value;
   while (true) {
     if (record && typeof record === "object" && !Array.isArray(record)) {
       const wrapper = [...TYPE_TAGS].find((tag) => tag in record);
@@ -112,24 +140,24 @@ const unwrapQuizRecord = (value) => {
   }
 };
 
-const normalizeQuizOptions = (value) => {
+const normalizeQuizOptions = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.map(quizText).filter(Boolean);
   if (typeof value === "string") return value.split(/\r?\n/).map(quizText).filter(Boolean);
   return [];
 };
 
 // Забирает варианты ответа с конца списка строк: «A) …», «b. …», «1) …».
-const takeTrailingOptions = (lines) => {
+const takeTrailingOptions = (lines: string[]) => {
   const rest = [...lines];
-  const options = [];
-  while (rest.length && OPTION_LINE.test(rest[rest.length - 1])) options.unshift(rest.pop());
+  const options: string[] = [];
+  while (rest.length && OPTION_LINE.test(rest[rest.length - 1])) options.unshift(rest.pop() as string);
   if (options.length < 2) return { rest: lines, options: [] };
   while (rest.length && OPTIONS_LABEL.test(rest[rest.length - 1])) rest.pop();
   return { rest, options };
 };
 
 // Запись, где всё лежит одним текстом: «вопрос … варианты … **Ответ:** …».
-const parseStandaloneBody = (body) => {
+const parseStandaloneBody = (body: unknown): QuizCandidate => {
   const text = cleanQuizNoise(quizText(body) || "");
   const markers = [...text.matchAll(INLINE_ANSWER_MARKER)];
   const marker = markers[markers.length - 1];
@@ -144,7 +172,9 @@ const parseStandaloneBody = (body) => {
 //   «a) …\nb) …\nc) …\nОтвет: c) …»  -> варианты отдельно, ответ отдельно;
 //   «A) …; B) …; C) …» без ответа       -> только варианты (ответа нет).
 // Возвращает { options, answer } или null, если это обычный текст ответа.
-const splitOptionsFromAnswer = (rawAnswer) => {
+const splitOptionsFromAnswer = (
+  rawAnswer: unknown,
+): { options: string[]; answer: string; explanation: string } | null => {
   const text = String(rawAnswer ?? "");
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   let optionCount = 0;
@@ -174,7 +204,7 @@ const splitOptionsFromAnswer = (rawAnswer) => {
 };
 
 // Короткий ответ («B», «2», «true») превращаем в понятный текст.
-const resolveAnswer = (rawAnswer, options) => {
+const resolveAnswer = (rawAnswer: unknown, options: string[]): string => {
   const answer = String(rawAnswer ?? "").replace(ANSWER_MARKER, "").trim();
   const token = answer.replace(/[.)\s]+$/u, "");
   if (token.toLowerCase() in TRUE_FALSE) return TRUE_FALSE[token.toLowerCase()];
@@ -191,8 +221,8 @@ const resolveAnswer = (rawAnswer, options) => {
 };
 
 // Приводит запись к паре [ключ, значение], если она так устроена.
-const asPair = (entry) => {
-  if (Array.isArray(entry) && entry.length === 2) return entry;
+const asPair = (entry: any): [unknown, unknown] | null => {
+  if (Array.isArray(entry) && entry.length === 2) return entry as [unknown, unknown];
   if (
     entry && typeof entry === "object" && !Array.isArray(entry) &&
     typeof entry.question === "string" && "answer" in entry &&
@@ -203,15 +233,18 @@ const asPair = (entry) => {
   return null;
 };
 
-export const normalizeQuizQuestions = (block, lessonId) => {
-  const raw = Array.isArray(block?.questions) ? block.questions : [];
-  const valid = [];
-  let pending = null;
+export const normalizeQuizQuestions = (
+  block: RawApiRecord | null | undefined,
+  lessonId?: string | null,
+): NormalizedQuizQuestion[] => {
+  const raw: unknown[] = Array.isArray(block?.questions) ? block.questions : [];
+  const valid: NormalizedQuizQuestion[] = [];
+  let pending: PendingQuestion | null = null;
 
   // Единая проверка перед показом: нужен текст вопроса и ответ (или пояснение).
-  const pushQuestion = (candidate, index) => {
+  const pushQuestion = (candidate: QuizCandidate, index: number) => {
     let options = candidate.options || [];
-    let answer = candidate.answer;
+    let answer: unknown = candidate.answer;
     let explanation = quizText(candidate.explanation);
     const split = options.length ? null : splitOptionsFromAnswer(answer);
     if (split) {
@@ -220,17 +253,17 @@ export const normalizeQuizQuestions = (block, lessonId) => {
       explanation = explanation || quizText(split.explanation);
     }
     const parts = splitExplanation(answer);
-    answer = resolveAnswer(parts.answer, options);
+    const resolved = resolveAnswer(parts.answer, options);
     explanation = explanation || quizText(parts.explanation);
     const question = quizText(candidate.question);
-    if (question && (answer || explanation)) {
-      valid.push({ question, answer, options, explanation });
+    if (question && (resolved || explanation)) {
+      valid.push({ question, answer: resolved, options, explanation });
     } else {
       console.error("Некорректная запись Quiz: нет вопроса или ответа", { lessonId, index });
     }
   };
 
-  const commitPending = (index) => {
+  const commitPending = (index: number) => {
     if (!pending) return;
     const options = [...normalizeQuizOptions(pending.options), ...pending.labelledOptions];
     pushQuestion(
@@ -245,11 +278,12 @@ export const normalizeQuizQuestions = (block, lessonId) => {
     const pair = asPair(record);
     const key = pair && typeof pair[0] === "string" ? pair[0].trim().toLowerCase() : null;
     const field = key ? FIELD_ALIASES[key] : null;
+    const value = pair?.[1];
 
     // 2. Цепочка «поле — значение».
     if (field === "question") {
       commitPending(index - 1);
-      pending = { question: quizText(pair[1]), options: "", labelledOptions: [], answer: "", explanation: "" };
+      pending = { question: quizText(value), options: "", labelledOptions: [], answer: "", explanation: "" };
       if (!pending.question) {
         console.error("Некорректная запись Quiz: пустой вопрос", { lessonId, index });
         pending = null;
@@ -258,12 +292,12 @@ export const normalizeQuizQuestions = (block, lessonId) => {
     }
     if (field === "type") return;
     if (field) {
-      if (pending) pending[field] = pair[1];
+      if (pending) pending[field] = value;
       return;
     }
     // Вариант ответа отдельной записью: ["B", "текст варианта"].
-    if (pending && key && OPTION_KEY.test(key) && typeof pair[1] === "string") {
-      pending.labelledOptions.push(`${pair[0].trim()}) ${quizText(pair[1])}`);
+    if (pending && key && OPTION_KEY.test(key) && typeof value === "string") {
+      pending.labelledOptions.push(`${String(pair?.[0]).trim()}) ${quizText(value)}`);
       return;
     }
 
@@ -271,13 +305,13 @@ export const normalizeQuizQuestions = (block, lessonId) => {
 
     // 3. Запись с типом: весь вопрос лежит в значении одним текстом.
     if (key && TYPE_TAGS.has(key)) {
-      pushQuestion(parseStandaloneBody(pair[1]), index);
+      pushQuestion(parseStandaloneBody(value), index);
       return;
     }
 
     // 1. Обычная пара или объект с отдельными полями.
     if (pair) {
-      pushQuestion({ question: pair[0], answer: quizText(pair[1]), options: [], explanation: "" }, index);
+      pushQuestion({ question: pair[0], answer: quizText(value), options: [], explanation: "" }, index);
       return;
     }
     const answerValue = unwrapQuizRecord(record?.answer ?? record?.correct_answer ?? record?.expected_answer);

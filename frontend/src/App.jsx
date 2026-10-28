@@ -32,24 +32,8 @@ import AuthPage from "./pages/AuthPage";
 import { points, steps, tracks } from "./utils/data";
 import { profileTabItems } from "./utils/platformData";
 import { getErrorMessage } from "@/shared/lib/errors";
-import { getRouteState } from "./utils/routeState";
 import {
-  useRouteHistoryTracker,
-  useRouteScrollRestoration,
-  useUiLayoutStore,
-} from "@/shared/lib/ui-layout";
-import { useTeacherGroups } from "./hooks/useTeacherGroups";
-import {
-  COURSE_PERMISSIONS,
-  INVITATION_PERMISSIONS,
-  ORGANIZATION_PERMISSIONS,
-  usePermissionStore,
-  useSessionStore,
-  useAppPermissions,
-} from "@/entities/session";
-import { resolveTheme, useThemeStore } from "./stores/themeStore";
-import { isUuid } from "@/shared/lib/uuid";
-import {
+  getRouteState,
   archiveCourse as archiveCourseApi,
   createLesson as createLessonApi,
   createModule as createModuleApi,
@@ -65,8 +49,6 @@ import {
   updateLesson as updateLessonApi,
   updateLessonContentBlocks,
   updateModule as updateModuleApi,
-} from "@/entities/course";
-import {
   createEmptyCourseBlock,
   getSelectedBlock,
   getSelectedCourse,
@@ -80,16 +62,30 @@ import {
   moveItem,
   upsertLesson,
   upsertModule,
-} from "./course/courseState";
-import {
   getBlockProgress,
   getCourseProgress,
   getLessonSequence,
   getOverallProgress,
-} from "./course/courseProgress";
+  forgetLessonTheory,
+} from "@/entities/course";
+import {
+  useRouteHistoryTracker,
+  useRouteScrollRestoration,
+  useUiLayoutStore,
+} from "@/shared/lib/ui-layout";
+import { useTeacherGroups } from "./hooks/useTeacherGroups";
+import {
+  COURSE_PERMISSIONS,
+  INVITATION_PERMISSIONS,
+  ORGANIZATION_PERMISSIONS,
+  usePermissionStore,
+  useSessionStore,
+  useAppPermissions,
+} from "@/entities/session";
+import { resolveTheme, useThemeStore } from "@/shared/lib/theme";
+import { isUuid } from "@/shared/lib/uuid";
 import EditorSaveBar from "./components/editor/EditorSaveBar";
 import { useGenerationJobsWatcher } from "./hooks/useGenerationJobsWatcher";
-import { forgetLessonTheory } from "./services/courseService";
 import { useEditorDraftStore } from "./stores/editorDraftStore";
 
 function getCourseRouteTarget(pathname) {

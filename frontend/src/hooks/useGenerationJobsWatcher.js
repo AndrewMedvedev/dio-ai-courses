@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { forgetCourseCache } from "../services/courseService";
 import {
+  forgetCourseCache,
   getCourseBasicInfo,
   getLessonBasicInfo,
   getModuleBasicInfo,

@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { getCourseStudents, getUserById } from "../services/studentApi";
+import { getCourseStudents } from "@/entities/course";
+import { getUserById } from "@/entities/user";
 import { getTheorySessions } from "../services/theorySessionApi";
 
 const DEFAULT_STUDENTS_META = {

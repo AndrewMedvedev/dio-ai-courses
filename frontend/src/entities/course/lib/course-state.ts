@@ -1,4 +1,11 @@
-export const EMPTY_COURSE = {
+import type {
+  BlockNode,
+  CourseNode,
+  LessonNode,
+  PracticeNode,
+} from "../model/tree";
+
+export const EMPTY_COURSE: CourseNode = {
   id: "",
   title: "Курс не выбран",
   description: "",
@@ -10,7 +17,7 @@ export const EMPTY_COURSE = {
   blocks: [],
 };
 
-export const EMPTY_BLOCK = {
+export const EMPTY_BLOCK: BlockNode = {
   id: "",
   title: "Модуль не выбран",
   lessons: [],
@@ -18,7 +25,7 @@ export const EMPTY_BLOCK = {
   learningObjectives: [],
 };
 
-export const EMPTY_LESSON = {
+export const EMPTY_LESSON: LessonNode = {
   id: "",
   title: "Урок не выбран",
   duration: "",
@@ -28,7 +35,10 @@ export const EMPTY_LESSON = {
   contentBlocks: [],
 };
 
-export const mergeCourse = (courses, nextCourse) => {
+export const mergeCourse = (
+  courses: CourseNode[],
+  nextCourse: CourseNode | null | undefined,
+): CourseNode[] => {
   if (!nextCourse?.id) return courses;
   return courses.some((course) => course.id === nextCourse.id)
     ? courses.map((course) =>
@@ -45,7 +55,10 @@ export const mergeCourse = (courses, nextCourse) => {
     : [...courses, nextCourse];
 };
 
-export const mergeCoursePage = (currentCourses, nextCourses) =>
+export const mergeCoursePage = (
+  currentCourses: CourseNode[],
+  nextCourses: CourseNode[],
+): CourseNode[] =>
   nextCourses.map((nextCourse) => {
     const currentCourse = currentCourses.find(
       (course) => course.id === nextCourse.id,
@@ -56,21 +69,29 @@ export const mergeCoursePage = (currentCourses, nextCourses) =>
     return mergeCourse([currentCourse], nextCourse)[0];
   });
 
-export const mergeModule = (course, nextModule) => ({
+export const mergeModule = (
+  course: CourseNode,
+  nextModule: BlockNode,
+): CourseNode => ({
   ...course,
   blocks: (course.blocks || []).map((block) =>
     block.id === nextModule.id
       ? {
           ...block,
           ...nextModule,
-          lessons: nextModule.lessons?.length ? nextModule.lessons : block.lessons,
+          lessons: nextModule.lessons?.length
+            ? nextModule.lessons
+            : block.lessons,
           practice: block.practice || [],
         }
       : block,
   ),
 });
 
-export const mergeLesson = (course, nextLesson) => ({
+export const mergeLesson = (
+  course: CourseNode,
+  nextLesson: LessonNode,
+): CourseNode => ({
   ...course,
   blocks: (course.blocks || []).map((block) => ({
     ...block,
@@ -81,12 +102,15 @@ export const mergeLesson = (course, nextLesson) => ({
 });
 
 // Добавляет модуль в курс или обновляет существующий (например, после генерации ИИ).
-export const upsertModule = (course, nextModule) => {
+export const upsertModule = (
+  course: CourseNode,
+  nextModule: BlockNode,
+): CourseNode => {
   const blocks = course.blocks || [];
   if (blocks.some((block) => block.id === nextModule.id)) {
     return mergeModule(course, nextModule);
   }
-  const block = {
+  const block: BlockNode = {
     duration: "Модуль курса",
     learningObjectives: [],
     ...nextModule,
@@ -107,7 +131,11 @@ export const upsertModule = (course, nextModule) => {
 };
 
 // Добавляет урок в модуль или обновляет существующий.
-export const upsertLesson = (course, moduleId, nextLesson) => ({
+export const upsertLesson = (
+  course: CourseNode,
+  moduleId: string,
+  nextLesson: LessonNode,
+): CourseNode => ({
   ...course,
   blocks: (course.blocks || []).map((block) => {
     if (block.id !== moduleId) return block;
@@ -136,7 +164,12 @@ export const upsertLesson = (course, moduleId, nextLesson) => ({
 });
 
 // Возвращает в курсе поля модуля или урока (используется при отмене правок).
-export const applyEntityFields = (course, kind, entityId, fields) =>
+export const applyEntityFields = (
+  course: CourseNode,
+  kind: "module" | "lesson" | string,
+  entityId: string,
+  fields: Record<string, unknown>,
+): CourseNode =>
   kind === "module"
     ? {
         ...course,
@@ -154,7 +187,10 @@ export const applyEntityFields = (course, kind, entityId, fields) =>
         })),
       };
 
-export function getSelectedCourse(courses, selectedCourseId) {
+export function getSelectedCourse(
+  courses: CourseNode[],
+  selectedCourseId: string | null | undefined,
+): CourseNode {
   return (
     courses.find((course) => course.id === selectedCourseId) ||
     courses[0] ||
@@ -162,7 +198,10 @@ export function getSelectedCourse(courses, selectedCourseId) {
   );
 }
 
-export function getSelectedBlock(course, selectedBlockId) {
+export function getSelectedBlock(
+  course: CourseNode,
+  selectedBlockId: string | null | undefined,
+): BlockNode {
   return (
     (course.blocks || []).find((block) => block.id === selectedBlockId) ||
     course.blocks?.[0] ||
@@ -170,7 +209,10 @@ export function getSelectedBlock(course, selectedBlockId) {
   );
 }
 
-export function getSelectedLesson(block, selectedLessonId) {
+export function getSelectedLesson(
+  block: BlockNode,
+  selectedLessonId: string | null | undefined,
+): LessonNode {
   return (
     (block.lessons || []).find((lesson) => lesson.id === selectedLessonId) ||
     block.lessons?.[0] ||
@@ -178,7 +220,10 @@ export function getSelectedLesson(block, selectedLessonId) {
   );
 }
 
-export function getSelectedPractice(block, selectedPracticeId) {
+export function getSelectedPractice(
+  block: BlockNode,
+  selectedPracticeId: string | null | undefined,
+): PracticeNode | null {
   return (
     block.practice?.find((practice) => practice.id === selectedPracticeId) ||
     block.practice?.[0] ||
@@ -186,7 +231,7 @@ export function getSelectedPractice(block, selectedPracticeId) {
   );
 }
 
-export function createEmptyCourseBlock(courseId) {
+export function createEmptyCourseBlock(courseId: string) {
   const suffix = Date.now().toString(36);
   const blockId = `${courseId}-block-${suffix}`;
   const lessonId = `${blockId}-lesson-1`;
@@ -220,7 +265,11 @@ export function createEmptyCourseBlock(courseId) {
   };
 }
 
-export const moveItem = (items, itemId, direction) => {
+export const moveItem = <T extends { id?: unknown }>(
+  items: T[],
+  itemId: unknown,
+  direction: number,
+): T[] => {
   const currentIndex = items.findIndex((item) => item.id === itemId);
   const nextIndex = currentIndex + direction;
 
