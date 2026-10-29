@@ -34,7 +34,7 @@ export interface SendAgentMessageParams {
   responseDisplayMessage?: string | ((response: AgentResponse) => string);
 }
 
-type GenerationPatch =
+export type GenerationPatch =
   | Partial<AgentGenerationState>
   | ((current: AgentGenerationState) => Partial<AgentGenerationState> | void);
 

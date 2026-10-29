@@ -18,6 +18,7 @@ export {
   createAgentConversationKey,
   createInitialGenerationState,
   useAgentStore,
+  type GenerationPatch,
   type SendAgentMessageParams,
 } from "./model/agent-store";
 export type {

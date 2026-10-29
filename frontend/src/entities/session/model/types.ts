@@ -6,6 +6,7 @@ export interface OrganizationRef {
   organization_id?: string;
   organizationId?: string;
   name?: string;
+  title?: string;
 }
 
 export interface Membership {
@@ -14,6 +15,7 @@ export interface Membership {
   organization_id?: string;
   organizationId?: string;
   organization?: OrganizationRef;
+  organization_name?: string;
   joined_at?: string;
   permissions?: unknown[];
 }

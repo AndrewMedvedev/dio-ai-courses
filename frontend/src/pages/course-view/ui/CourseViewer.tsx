@@ -20,6 +20,7 @@ import {
   ModuleBasicInfo,
   ModuleList,
   type ContentBlock,
+  type CourseNode,
   type LearningCourse,
 } from "@/entities/course";
 import { SectionTop } from "@/shared/ui/section-top";
@@ -58,7 +59,7 @@ import { LessonPartMark } from "./LessonPartMark";
 
 export interface CourseViewerProps {
   /** Курс из локального черновика (не UUID), открытый без запроса к бэкенду. */
-  localCourse?: LearningCourse | null;
+  localCourse?: CourseNode | null;
   mode?: "view" | "metrics";
 }
 
@@ -307,7 +308,8 @@ export function CourseViewer({
             ? await getCourseLearningStructure(effectiveCourseId)
             : !isUuid(effectiveCourseId) &&
                 localCourse?.id === effectiveCourseId
-              ? localCourse
+              ? // Локальный черновик курса устроен так же, как курс с бэкенда.
+                (localCourse as LearningCourse)
               : await getCourseBasicInfo(effectiveCourseId);
 
         if (!isMetricsMode && isDeepLink && lessonId && isUuid(lessonId)) {

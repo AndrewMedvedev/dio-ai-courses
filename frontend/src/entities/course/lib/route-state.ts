@@ -1,9 +1,13 @@
-import type {
-  BlockNode,
-  CourseNode,
-  LessonNode,
-  PracticeNode,
-} from "../model/tree";
+import type { BlockNode, CourseNode, LessonNode } from "../model/tree";
+
+/** Узел, выбранный по адресу: курса или урока по такому id может ещё не быть. */
+interface RouteNode {
+  id: string | null;
+  title?: string;
+  blocks?: BlockNode[];
+  lessons?: LessonNode[];
+  practice?: RouteNode[];
+}
 
 export interface RouteSelection {
   courseId: string | null | undefined;
@@ -18,19 +22,18 @@ export function getRouteState(
   courseList: CourseNode[] = [],
 ): RouteSelection {
   const segments = pathname.split("/").filter(Boolean);
-  const defaultCourse: CourseNode = courseList[0] || {
+  const defaultCourse: RouteNode = courseList[0] || {
     id: null,
     blocks: [],
   };
-  let selectedCourse: CourseNode = defaultCourse;
-  let selectedBlock: BlockNode = defaultCourse.blocks?.[0] || {
+  let selectedCourse: RouteNode = defaultCourse;
+  let selectedBlock: RouteNode = defaultCourse.blocks?.[0] || {
     id: null,
     lessons: [],
     practice: [],
   };
-  let selectedLesson: LessonNode = selectedBlock.lessons?.[0] || { id: null };
-  let selectedPractice: PracticeNode | null =
-    selectedBlock.practice?.[0] ?? null;
+  let selectedLesson: RouteNode = selectedBlock.lessons?.[0] || { id: null };
+  let selectedPractice: RouteNode | null = selectedBlock.practice?.[0] ?? null;
 
   if (segments[0] === "course") {
     const courseId = segments[1];

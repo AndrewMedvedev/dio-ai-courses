@@ -1,15 +1,11 @@
 // Прогресс по локальным отметкам «пройдено» (без запросов к бэкенду).
-import type { LearningBlock, LearningCourse } from "../model/types";
+import type { BlockNode, CourseNode } from "../model/tree";
 
 type CompletedMap = Record<string, boolean | undefined>;
 
-interface PracticeRef {
-  id: string;
-}
+const practiceOf = (block: BlockNode) => block.practice;
 
-const practiceOf = (block: LearningBlock) => block.practice as PracticeRef[];
-
-export function getLessonSequence(course: LearningCourse) {
+export function getLessonSequence(course: CourseNode) {
   return course.blocks.flatMap((block) =>
     block.lessons.map((lesson) => ({
       blockId: block.id,
@@ -20,7 +16,7 @@ export function getLessonSequence(course: LearningCourse) {
 }
 
 export function getBlockProgress(
-  block: LearningBlock,
+  block: BlockNode,
   completedLessons: CompletedMap,
   completedPractices: CompletedMap,
 ) {
@@ -47,7 +43,7 @@ export function getBlockProgress(
 }
 
 export function getOverallProgress(
-  courses: LearningCourse[],
+  courses: CourseNode[],
   completedLessons: CompletedMap,
   completedPractices: CompletedMap,
 ) {
@@ -87,7 +83,7 @@ export function getOverallProgress(
 }
 
 export function getCourseProgress(
-  course: LearningCourse,
+  course: CourseNode,
   completedLessons: CompletedMap,
   completedPractices: CompletedMap,
 ) {

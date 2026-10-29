@@ -10,8 +10,6 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "allowJs": true,
-    "checkJs": false,
     "noFallthroughCasesInSwitch": true,
     "types": ["vite/client"],
     "baseUrl": ".",

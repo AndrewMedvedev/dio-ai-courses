@@ -8,7 +8,7 @@ import {
 } from "../api/ai-model-api";
 import type { AiModel, AiModelPayload, AiModelsPage } from "./types";
 
-interface ModelForm {
+export interface ModelForm {
   name: string;
   description: string;
   context: string;
