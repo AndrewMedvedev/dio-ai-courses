@@ -1,4 +1,5 @@
 import logging
+from dataclasses import replace
 from uuid import UUID
 
 from sqlalchemy import select
@@ -26,10 +27,12 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
         """Возвращает все оглавления документов пользователя."""
 
         stmt = await self._session.execute(
-            select(self.model).where(
+            select(self.model)
+            .where(
                 self.model.owner_id == owner_id,
                 self.model.node_type == DocumentNodeType.TOC,
             )
+            .order_by(self.model.created_at, self.model.id)
         )
 
         return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
@@ -41,11 +44,13 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
         toc_id: UUID,
     ) -> list[Document]:
         stmt = await self._session.execute(
-            select(self.model).where(
+            select(self.model)
+            .where(
                 self.model.owner_id == owner_id,
                 self.model.parent_node_id == toc_id,
                 self.model.node_type == DocumentNodeType.HEADING,
             )
+            .order_by(self.model.created_at, self.model.id)
         )
 
         return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
@@ -57,16 +62,21 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
         heading_id: UUID,
     ) -> Document | None:
         stmt = await self._session.execute(
-            select(self.model).where(
+            select(self.model)
+            .where(
                 self.model.owner_id == owner_id,
                 self.model.parent_node_id == heading_id,
                 self.model.node_type == DocumentNodeType.TEXT,
             )
+            .order_by(self.model.created_at, self.model.id)
         )
 
-        model = stmt.scalar_one_or_none()
-
-        if model is None:
+        models = stmt.scalars().all()
+        if not models:
             return None
 
-        return self.model_mapper.from_model(model)
+        document = self.model_mapper.from_model(models[0])
+        if len(models) == 1:
+            return document
+
+        return replace(document, content="\n\n".join(model.content or "" for model in models))
