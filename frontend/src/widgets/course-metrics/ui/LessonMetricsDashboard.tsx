@@ -1,8 +1,17 @@
 // Метрики урока на странице метрик курса: выбор студента и периода, плитки,
 // общий график «активное время + глубина просмотра» и таблица сессий теории.
-import { useEffect, useMemo, useState } from "react";
-import { useCourseMetricsStore } from "../../stores/courseMetricsStore";
-import { METRICS_STUDENTS_LIMIT } from "./metrics/CourseMetricsSummary";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import {
+  useCourseMetricsStore,
+  type MetricsPeriod,
+} from "../model/course-metrics-store";
+import { METRICS_STUDENTS_LIMIT } from "../model/constants";
 import {
   activeTimeTone,
   formatAxisValue,
@@ -12,31 +21,46 @@ import {
   percentTone,
   pluralRu,
   toDateInputValue,
-} from "./metrics/metricsFormat";
-import "./metrics/course-metrics.css";
+} from "../lib/metrics-format";
+import "./course-metrics.css";
 
-const PERIODS = [
+interface PeriodOption {
+  id: MetricsPeriod;
+  label: string;
+  days?: number;
+}
+
+const PERIODS: PeriodOption[] = [
   { id: "7", label: "7 дней", days: 7 },
   { id: "30", label: "30 дней", days: 30 },
   { id: "all", label: "Всё время" },
   { id: "custom", label: "Период…" },
 ];
 
-const SESSION_FORMS = ["сессия", "сессии", "сессий"];
+const SESSION_FORMS = ["сессия", "сессии", "сессий"] as const;
 
-function periodRange(days) {
+function periodRange(days: number) {
   const to = new Date();
   const from = new Date();
   from.setDate(from.getDate() - (days - 1));
   return { dateFrom: toDateInputValue(from), dateTo: toDateInputValue(to) };
 }
 
-function timeOf(value) {
+function timeOf(value: string | null | undefined) {
   const time = new Date(value || 0).getTime();
   return Number.isNaN(time) ? 0 : time;
 }
 
-export default function LessonMetricsDashboard({ courseId, lesson }) {
+export interface LessonMetricsDashboardProps {
+  courseId: string;
+  lesson: { id?: string } | null | undefined;
+}
+
+/** Метрики теории урока: выбор студента и периода, плитки, график и таблица сессий. */
+export function LessonMetricsDashboard({
+  courseId,
+  lesson,
+}: LessonMetricsDashboardProps) {
   const students = useCourseMetricsStore((state) => state.students);
   const isStudentsLoading = useCourseMetricsStore(
     (state) => state.isStudentsLoading,
@@ -105,13 +129,13 @@ export default function LessonMetricsDashboard({ courseId, lesson }) {
     sessionsFilters.sort,
   ]);
 
-  const choosePeriod = (option) => {
+  const choosePeriod = (option: PeriodOption) => {
     if (option.id === "all") {
       setFilters({ period: "all", dateFrom: "", dateTo: "" });
     } else if (option.id === "custom") {
       setFilters({ period: "custom" });
     } else {
-      setFilters({ period: option.id, ...periodRange(option.days) });
+      setFilters({ period: option.id, ...periodRange(option.days ?? 0) });
     }
   };
 
@@ -161,7 +185,7 @@ export default function LessonMetricsDashboard({ courseId, lesson }) {
           ? "за выбранный период"
           : "за всё время";
 
-  let body = null;
+  let body: ReactNode = null;
   if (!selectedStudentUserId) {
     body = (
       <p className="cm-empty cm-empty-large">
@@ -241,7 +265,7 @@ export default function LessonMetricsDashboard({ courseId, lesson }) {
           <div className="cm-chart-scroll">
             <div
               className="cm-chart"
-              style={{ "--cm-columns": chronological.length }}
+              style={{ "--cm-columns": chronological.length } as CSSProperties}
               onMouseLeave={() => setHoveredIndex(-1)}
             >
               <div className="cm-chart-axis" aria-hidden="true">

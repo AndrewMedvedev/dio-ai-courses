@@ -9,8 +9,8 @@ import {
 import {
   LessonPracticeAgent,
   LessonTestAgent,
-} from "../components/LessonAgentAssessments";
-import LessonChatWorkspace from "../components/LessonChatWorkspace";
+} from "@/features/lesson-assessment";
+import { LessonChatWorkspace } from "@/widgets/lesson-chat-workspace";
 import LessonContentEditor from "../components/LessonContentEditor";
 import { SectionTop } from "@/shared/ui/section-top";
 import { useGoBack, useUiLayoutStore } from "@/shared/lib/ui-layout";

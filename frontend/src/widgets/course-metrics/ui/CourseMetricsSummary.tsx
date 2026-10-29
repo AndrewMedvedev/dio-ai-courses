@@ -4,27 +4,42 @@ import { useEffect, useMemo, useState } from "react";
 import {
   normalizeCourseProgress,
   fetchCourseStudentsProgress,
+  type CourseProgress,
 } from "@/entities/progress";
-import { useCourseMetricsStore } from "../../../stores/courseMetricsStore";
-import { getInitials, percentTone, pluralRu } from "./metricsFormat";
+import { useCourseMetricsStore } from "../model/course-metrics-store";
+import { METRICS_STUDENTS_LIMIT } from "../model/constants";
+import { getInitials, percentTone, pluralRu } from "../lib/metrics-format";
 import "./course-metrics.css";
 
-export const METRICS_STUDENTS_LIMIT = 100;
-
 const BUCKETS = ["0–25%", "25–50%", "50–75%", "75–100%"];
-const STUDENT_FORMS = ["студент", "студента", "студентов"];
+const STUDENT_FORMS = ["студент", "студента", "студентов"] as const;
 
-function bucketOf(percent) {
+interface ProgressState {
+  loading: boolean;
+  error: string;
+  byUser: Record<string, CourseProgress>;
+}
+
+function bucketOf(percent: number) {
   return Math.min(3, Math.floor((Number(percent) || 0) / 25));
 }
 
-function statusOf(record) {
+function statusOf(record: CourseProgress | null) {
   if (!record) return { label: "Не начал", tone: "is-neutral" };
   if (record.percent >= 100) return { label: "Завершил", tone: "is-good" };
   return { label: "Учится", tone: "is-warning" };
 }
 
-export default function CourseMetricsSummary({ courseId, onOpenStudent }) {
+export interface CourseMetricsSummaryProps {
+  courseId: string;
+  onOpenStudent?: (userId: string) => void;
+}
+
+/** Сводка по курсу: плитки, таблица студентов и распределение по прогрессу. */
+export function CourseMetricsSummary({
+  courseId,
+  onOpenStudent,
+}: CourseMetricsSummaryProps) {
   const students = useCourseMetricsStore((state) => state.students);
   const studentsMeta = useCourseMetricsStore((state) => state.studentsMeta);
   const isStudentsLoading = useCourseMetricsStore(
@@ -33,7 +48,7 @@ export default function CourseMetricsSummary({ courseId, onOpenStudent }) {
   const studentsError = useCourseMetricsStore((state) => state.studentsError);
   const usersCache = useCourseMetricsStore((state) => state.usersCache);
   const loadStudents = useCourseMetricsStore((state) => state.loadStudents);
-  const [progress, setProgress] = useState({
+  const [progress, setProgress] = useState<ProgressState>({
     loading: true,
     error: "",
     byUser: {},
@@ -57,14 +72,14 @@ export default function CourseMetricsSummary({ courseId, onOpenStudent }) {
     )
       .then((response) => {
         if (controller.signal.aborted) return;
-        const byUser = {};
+        const byUser: Record<string, CourseProgress> = {};
         response.items.forEach((item) => {
           const record = normalizeCourseProgress(item);
           if (record?.userId) byUser[record.userId] = record;
         });
         setProgress({ loading: false, error: "", byUser });
       })
-      .catch((error) => {
+      .catch((error: Error | null) => {
         if (controller.signal.aborted) return;
         setProgress({
           loading: false,

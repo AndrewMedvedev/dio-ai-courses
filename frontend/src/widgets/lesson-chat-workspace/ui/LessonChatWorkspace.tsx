@@ -1,5 +1,18 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import LessonAiChat from "./LessonAiChat";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
+import {
+  LessonAiChat,
+  type LessonAiChatProps,
+} from "@/features/lesson-mentor-chat";
 
 const COMPACT_QUERY = "(max-width: 1300px)";
 const MIN_CHAT_WIDTH = 380;
@@ -8,16 +21,33 @@ const DEFAULT_CHAT_WIDTH = 420;
 const RESIZE_STEP = 16;
 const WIDE_RESIZE_STEP = 48;
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
 
-export default function LessonChatWorkspace({
+/** Свойства чата, которые задаёт страница; остальное управляется раскладкой. */
+export type LessonChatProps = Omit<
+  LessonAiChatProps,
+  "panelId" | "focusOnOpen" | "isOpen" | "onClose" | "onAssistantResponse"
+>;
+
+export interface LessonChatWorkspaceProps {
+  className?: string;
+  children?: ReactNode;
+  chatEnabled?: boolean;
+  chatAvailable?: boolean;
+  chatKey?: string;
+  chatProps: LessonChatProps;
+}
+
+/** Раскладка урока с выдвижным ИИ-чатом: кнопка открытия и изменение ширины. */
+export function LessonChatWorkspace({
   className = "",
   children,
   chatEnabled,
   chatAvailable,
   chatKey,
   chatProps,
-}) {
+}: LessonChatWorkspaceProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
@@ -26,9 +56,9 @@ export default function LessonChatWorkspace({
     max: DEFAULT_CHAT_WIDTH,
   });
   const [isResizing, setIsResizing] = useState(false);
-  const workspaceRef = useRef(null);
-  const openButtonRef = useRef(null);
-  const focusFrameRef = useRef(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const focusFrameRef = useRef<number | null>(null);
   const focusChatOnOpenRef = useRef(false);
   const dragStartRef = useRef({ x: 0, width: DEFAULT_CHAT_WIDTH });
   const chatPanelId = useId();
@@ -79,7 +109,7 @@ export default function LessonChatWorkspace({
       workspace && "ResizeObserver" in window
         ? new ResizeObserver(updateWidthBounds)
         : null;
-    resizeObserver?.observe(workspace);
+    if (resizeObserver && workspace) resizeObserver.observe(workspace);
 
     return () => {
       window.removeEventListener("resize", updateWidthBounds);
@@ -91,7 +121,7 @@ export default function LessonChatWorkspace({
     if (!isResizing) return undefined;
 
     document.body.classList.add("is-resizing-lesson-chat");
-    const handlePointerMove = (event) => {
+    const handlePointerMove = (event: PointerEvent) => {
       const delta = dragStartRef.current.x - event.clientX;
       setChatWidth(
         clamp(
@@ -125,7 +155,7 @@ export default function LessonChatWorkspace({
     [],
   );
 
-  const openChat = useCallback((event) => {
+  const openChat = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
     focusChatOnOpenRef.current = event.detail === 0;
     setHasUnreadResponse(false);
     setIsChatOpen(true);
@@ -140,7 +170,7 @@ export default function LessonChatWorkspace({
     );
   }, []);
 
-  const resizeWithKeyboard = (event) => {
+  const resizeWithKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
     const step = event.shiftKey ? WIDE_RESIZE_STEP : RESIZE_STEP;
@@ -156,7 +186,7 @@ export default function LessonChatWorkspace({
       className={`lesson-view-grid lesson-chat-workspace ${className} ${
         isChatOpen ? "has-lesson-chat" : ""
       } ${isResizing ? "is-resizing" : ""}`}
-      style={{ "--lesson-chat-width": `${chatWidth}px` }}
+      style={{ "--lesson-chat-width": `${chatWidth}px` } as CSSProperties}
     >
       {children}
 

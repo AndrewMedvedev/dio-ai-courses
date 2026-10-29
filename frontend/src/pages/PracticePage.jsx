@@ -7,7 +7,7 @@ import { CourseNavigationTree } from "@/entities/course";
 import {
   LessonPracticeAgent,
   LessonTestAgent,
-} from "../components/LessonAgentAssessments";
+} from "@/features/lesson-assessment";
 
 import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
 import { SectionTop } from "@/shared/ui/section-top";

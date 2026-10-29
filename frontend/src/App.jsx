@@ -18,7 +18,7 @@ import CoursePage from "./pages/CoursePage";
 import InvitationAcceptPage, {
   InvitationLinkRedirect,
 } from "./pages/InvitationAcceptPage";
-import CourseViewer from "./components/course/CourseViewer";
+import { CourseViewer } from "@/pages/course-view";
 import BlockPage from "./pages/BlockPage";
 import LessonPage from "./pages/LessonPage";
 import PracticePage from "./pages/PracticePage";

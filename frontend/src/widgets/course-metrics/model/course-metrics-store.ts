@@ -1,9 +1,71 @@
 import { create } from "zustand";
-import { getCourseStudents } from "@/entities/course";
-import { getUserById } from "@/entities/user";
-import { getTheorySessions } from "@/entities/progress";
+import {
+  getCourseStudents,
+  type CourseStudent,
+  type CourseStudentsPage,
+} from "@/entities/course";
+import { getUserById, type UserProfile } from "@/entities/user";
+import { getTheorySessions, type TheorySession } from "@/entities/progress";
+import type { PageParams } from "@/shared/api";
 
-const DEFAULT_STUDENTS_META = {
+export interface StudentsMeta {
+  page: number;
+  size: number;
+  total: number;
+  pages: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+/** Период на странице метрик: "7" | "30" | "all" | "custom". */
+export type MetricsPeriod = "7" | "30" | "all" | "custom";
+
+export interface SessionsFilters {
+  period: MetricsPeriod;
+  dateFrom: string;
+  dateTo: string;
+  createdFrom: string;
+  createdTo: string;
+  sort: string;
+}
+
+interface CourseMetricsState {
+  students: CourseStudent[];
+  studentsMeta: StudentsMeta;
+  isStudentsLoading: boolean;
+  studentsError: string;
+
+  usersCache: Record<string, UserProfile>;
+  usersLoading: Record<string, boolean>;
+  usersErrors: Record<string, string>;
+
+  selectedStudentUserId: string;
+
+  sessions: TheorySession[];
+  sessionsFilters: SessionsFilters;
+  isSessionsLoading: boolean;
+  sessionsError: string;
+  sessionsRequestKey: string;
+
+  setSelectedStudent: (userId: string | null | undefined) => void;
+  resetSessions: () => void;
+  resetSelectionAndSessions: () => void;
+  setFilters: (filters: Partial<SessionsFilters>) => SessionsFilters;
+  loadStudents: (
+    courseId: string,
+    params?: PageParams,
+  ) => Promise<CourseStudentsPage | null>;
+  loadUsersForStudents: (
+    students: CourseStudent[] | null | undefined,
+  ) => Promise<PromiseSettledResult<UserProfile>[]>;
+  loadSessions: (
+    lessonId: string,
+    userId?: string,
+  ) => Promise<TheorySession[] | null>;
+}
+
+const DEFAULT_STUDENTS_META: StudentsMeta = {
   page: 1,
   size: 10,
   total: 0,
@@ -13,7 +75,7 @@ const DEFAULT_STUDENTS_META = {
   has_prev: false,
 };
 
-const DEFAULT_FILTERS = {
+const DEFAULT_FILTERS: SessionsFilters = {
   // "7" | "30" | "all" | "custom" — быстрый выбор периода на странице метрик.
   period: "all",
   dateFrom: "",
@@ -23,16 +85,17 @@ const DEFAULT_FILTERS = {
   sort: "created_at",
 };
 
-let studentsController = null;
-let sessionsController = null;
+let studentsController: AbortController | null = null;
+let sessionsController: AbortController | null = null;
 let studentsRequestId = 0;
 let sessionsRequestId = 0;
 
-function getErrorMessage(error, fallback) {
+function getErrorMessage(rawError: unknown, fallback: string): string {
+  const error = rawError as { userMessage?: string; message?: string } | null;
   return error?.userMessage || error?.message || fallback;
 }
 
-function toEndExclusiveIso(dateValue) {
+function toEndExclusiveIso(dateValue: string): string {
   if (!dateValue) return "";
   const [year, month, day] = dateValue.split("-").map(Number);
   if (!year || !month || !day) return "";
@@ -40,7 +103,7 @@ function toEndExclusiveIso(dateValue) {
   return date.toISOString();
 }
 
-function toStartInclusiveIso(dateValue) {
+function toStartInclusiveIso(dateValue: string): string {
   if (!dateValue) return "";
   const [year, month, day] = dateValue.split("-").map(Number);
   if (!year || !month || !day) return "";
@@ -48,7 +111,7 @@ function toStartInclusiveIso(dateValue) {
   return date.toISOString();
 }
 
-function normalizeFilters(filters) {
+function normalizeFilters(filters: Partial<SessionsFilters>): SessionsFilters {
   const dateFrom = filters.dateFrom || "";
   const dateTo = filters.dateTo || "";
   return {
@@ -61,12 +124,12 @@ function normalizeFilters(filters) {
   };
 }
 
-function isDateRangeValid(filters) {
+function isDateRangeValid(filters: SessionsFilters): boolean {
   if (!filters.dateFrom || !filters.dateTo) return true;
   return filters.dateFrom <= filters.dateTo;
 }
 
-export const useCourseMetricsStore = create((set, get) => ({
+export const useCourseMetricsStore = create<CourseMetricsState>()((set, get) => ({
   students: [],
   studentsMeta: DEFAULT_STUDENTS_META,
   isStudentsLoading: false,
@@ -132,7 +195,7 @@ export const useCourseMetricsStore = create((set, get) => ({
     set({ isStudentsLoading: true, studentsError: "" });
 
     try {
-      const response = await getCourseStudents(
+      const response: CourseStudentsPage = await getCourseStudents(
         courseId,
         { page, size },
         { signal: studentsController.signal },
@@ -176,11 +239,11 @@ export const useCourseMetricsStore = create((set, get) => ({
     if (!userIds.length) return [];
 
     set((current) => ({
-      usersLoading: userIds.reduce(
+      usersLoading: userIds.reduce<Record<string, boolean>>(
         (acc, userId) => ({ ...acc, [userId]: true }),
         current.usersLoading,
       ),
-      usersErrors: userIds.reduce(
+      usersErrors: userIds.reduce<Record<string, string>>(
         (acc, userId) => ({ ...acc, [userId]: "" }),
         current.usersErrors,
       ),

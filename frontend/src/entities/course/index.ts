@@ -48,6 +48,7 @@ export type {
   LearningBlock,
   LearningCourse,
   LearningLesson,
+  LearningPractice,
   PageParams,
   QuizQuestion,
   RawApiRecord,

@@ -74,6 +74,7 @@ src/
 │   ├── home/
 │   ├── catalog/
 │   ├── course/
+│   ├── course-view/             # просмотр курса учеником и метрики для автора
 │   ├── lesson/
 │   ├── block/
 │   ├── creator/
@@ -87,32 +88,31 @@ src/
 ├── widgets/
 │   ├── header/
 │   ├── footer/
-│   ├── course-navigation-tree/
-│   ├── course-viewer/
-│   ├── course-metrics/
-│   ├── lesson-chat-workspace/
+│   ├── breadcrumbs/
+│   ├── lesson-chat-workspace/   # урок + выдвижной ИИ-чат
+│   ├── course-metrics/          # сводка по курсу и метрики урока
 │   └── dnd-canvas/
 │
 ├── features/
-│   ├── auth-by-email/
-│   ├── select-organization/
-│   ├── accept-invitation/
-│   ├── invite-to-organization/
-│   ├── invite-to-course/
-│   ├── generate-course/
-│   ├── block-ai-editor/
-│   └── publish-course/
+│   ├── invite/                  # приглашения в организацию и на курс
+│   ├── agent-interview/         # ИИ-интервьюер модуля и урока
+│   ├── lesson-mentor-chat/      # ИИ-наставник по уроку
+│   ├── lesson-assessment/       # тест и практика урока
+│   ├── edit-course-draft/
+│   ├── track-generation/
+│   ├── track-theory-time/
+│   ├── course-progress/
+│   └── upload-document/
 │
 ├── entities/
-│   ├── course/
-│   ├── module/
-│   ├── lesson/
-│   ├── content-block/
-│   ├── session/
+│   ├── session/                 # сессия, текущий пользователь, права
+│   ├── course/                  # курс, модули, уроки, контент-блоки
+│   ├── progress/
+│   ├── agent-chat/
+│   ├── generation-job/
 │   ├── organization/
 │   ├── invitation/
-│   ├── permission/
-│   ├── progress/
+│   ├── user/
 │   └── ai-model/
 │
 └── shared/
@@ -192,6 +192,8 @@ src/
 - [x] `features`: track-theory-time (время и прокрутка теории), course-progress (прогресс курса и «моих курсов»); `shared/lib/activity`
 - [x] UI сущностей: course (карточки курса/модуля/урока, списки, дерево навигации, блоки теории), agent-chat (markdown ответа); `shared/ui/content-preview`; виджеты header, footer, breadcrumbs
 - [x] UI фич: invite (приглашения в организацию и на курс), edit-course-draft (панель сохранения черновика); `shared/ui/text-diff`
-- [ ] UI фич и виджетов: просмотр курса, метрики, редактор урока, ИИ-чаты, тесты урока, создание курса; `dnd-course/`
-- [ ] `widgets` (в том числе хлебные крошки — они знают про курс, модуль и урок)
-- [ ] `pages` и роутер (`App.jsx` → `app/router`)
+- [x] UI фич: agent-interview (ИИ-интервьюер модуля и урока), lesson-mentor-chat (ИИ-наставник), lesson-assessment (тест и практика урока); виджет lesson-chat-workspace
+- [x] Виджет course-metrics: сводка по курсу, метрики теории урока, стор метрик и форматирование
+- [x] Страница `pages/course-view` (просмотр курса и метрики); нумерация модулей и уроков в списках по порядку, с 01
+- [ ] UI фич: редактор урока, создание курса (чат с ИИ); `dnd-course/`
+- [ ] Остальные `pages` и роутер (`App.jsx` → `app/router`)

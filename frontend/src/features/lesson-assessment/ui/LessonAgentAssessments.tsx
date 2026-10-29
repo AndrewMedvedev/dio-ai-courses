@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -6,11 +6,22 @@ import {
   checkLessonTest,
   generateLessonPractice,
   generateLessonTest,
-} from "@/features/lesson-assessment";
+} from "../api/assessment-api";
+import type {
+  AssessmentResult,
+  LessonTest,
+  PracticeAssignment,
+  TestAnswers,
+  TestQuestion,
+} from "../model/types";
 
 const PASSING_SCORE = 61;
 
-function createAnswersPayload(questions, answers, testType) {
+function createAnswersPayload(
+  questions: TestQuestion[],
+  answers: TestAnswers,
+  testType: string | undefined,
+) {
   return Object.fromEntries(
     questions.map((question, index) => {
       const answer = answers[index];
@@ -23,7 +34,12 @@ function createAnswersPayload(questions, answers, testType) {
   );
 }
 
-function getErrorMessage(error, fallback) {
+function getErrorMessage(rawError: unknown, fallback: string) {
+  const error = rawError as {
+    status?: number;
+    userMessage?: string;
+    message?: string;
+  } | null;
   if (error?.status === 403)
     return "Недостаточно прав для выполнения действия.";
   if (error?.status === 404) return "Урок или модуль не найден.";
@@ -36,7 +52,13 @@ function getErrorMessage(error, fallback) {
   return error?.userMessage || error?.message || fallback;
 }
 
-function ResultCard({ result, passingScore = PASSING_SCORE }) {
+function ResultCard({
+  result,
+  passingScore = PASSING_SCORE,
+}: {
+  result: AssessmentResult | null;
+  passingScore?: number;
+}) {
   if (!result) return null;
   const passed = Number(result.score) >= passingScore;
   return (
@@ -59,7 +81,7 @@ function ResultCard({ result, passingScore = PASSING_SCORE }) {
   );
 }
 
-function isWildcardExtensions(extensions) {
+function isWildcardExtensions(extensions: unknown) {
   return (
     !Array.isArray(extensions) ||
     extensions.length === 0 ||
@@ -67,28 +89,39 @@ function isWildcardExtensions(extensions) {
   );
 }
 
-function normalizeExtension(value) {
+function normalizeExtension(value: unknown) {
   const extension = String(value || "")
     .trim()
     .toLowerCase();
   return extension.startsWith(".") ? extension : `.${extension}`;
 }
 
-function normalizeAssignmentText(value) {
+function normalizeAssignmentText(value: unknown) {
   return String(value || "")
     .replace(/\\n/g, "\n")
     .replace(/\n\s*[-•]\s*/g, "\n- ")
     .trim();
 }
 
-export function LessonTestAgent({ moduleId, lessonId, onChecked }) {
-  const [test, setTest] = useState(null);
-  const [practiceId, setPracticeId] = useState(null);
-  const [answers, setAnswers] = useState({});
+export interface LessonAssessmentProps {
+  moduleId?: string;
+  lessonId?: string;
+  onChecked?: (result: AssessmentResult) => void;
+}
+
+/** Проверочные вопросы урока: генерация агентом, ответы и проверка. */
+export function LessonTestAgent({
+  moduleId,
+  lessonId,
+  onChecked,
+}: LessonAssessmentProps) {
+  const [test, setTest] = useState<LessonTest | null>(null);
+  const [practiceId, setPracticeId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<TestAnswers>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<AssessmentResult | null>(null);
 
   const startTest = async () => {
     if (!moduleId || !lessonId || isLoading) return;
@@ -101,7 +134,7 @@ export function LessonTestAgent({ moduleId, lessonId, onChecked }) {
 
     try {
       const response = await generateLessonTest(moduleId, lessonId);
-      setTest(response.practice);
+      setTest(response.practice as LessonTest);
       setPracticeId(response.practiceId);
       if (!response.practiceId) {
         setError(
@@ -281,15 +314,20 @@ export function LessonTestAgent({ moduleId, lessonId, onChecked }) {
   );
 }
 
-export function LessonPracticeAgent({ moduleId, lessonId, onChecked }) {
-  const [assignment, setAssignment] = useState(null);
-  const [practiceId, setPracticeId] = useState(null);
-  const [file, setFile] = useState(null);
+/** Практическое задание урока: генерация агентом, загрузка решения и проверка. */
+export function LessonPracticeAgent({
+  moduleId,
+  lessonId,
+  onChecked,
+}: LessonAssessmentProps) {
+  const [assignment, setAssignment] = useState<PracticeAssignment | null>(null);
+  const [practiceId, setPracticeId] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<AssessmentResult | null>(null);
 
   const startPractice = async () => {
     if (!moduleId || !lessonId || isLoading) return;
@@ -303,7 +341,7 @@ export function LessonPracticeAgent({ moduleId, lessonId, onChecked }) {
 
     try {
       const response = await generateLessonPractice(moduleId, lessonId);
-      setAssignment(response.practice);
+      setAssignment(response.practice as PracticeAssignment);
       setPracticeId(response.practiceId);
       if (!response.practiceId) {
         setError(
@@ -319,7 +357,7 @@ export function LessonPracticeAgent({ moduleId, lessonId, onChecked }) {
     }
   };
 
-  const allowedExtensions = useMemo(
+  const allowedExtensions = useMemo<string[]>(
     () =>
       Array.isArray(assignment?.allowed_extensions)
         ? assignment.allowed_extensions
@@ -331,7 +369,7 @@ export function LessonPracticeAgent({ moduleId, lessonId, onChecked }) {
     ? undefined
     : allowedExtensions.map(normalizeExtension).join(",");
 
-  const pickFile = (event) => {
+  const pickFile = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] || null;
     setFile(null);
     setFileError("");

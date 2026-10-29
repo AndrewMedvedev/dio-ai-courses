@@ -5,7 +5,7 @@ import {
 
 export interface ModuleListItem {
   id: string;
-  order: number;
+  order?: number;
   title?: string;
 }
 
@@ -42,7 +42,7 @@ export function ModuleList({
         </p>
       )}
       <ul className="course-pick-list">
-        {modules.map((module) => {
+        {modules.map((module, index) => {
           const isSelected = module.id === selectedModuleId;
           const progress = progressById?.[module.id];
 
@@ -54,8 +54,9 @@ export function ModuleList({
                 onClick={() => onSelectModule(module.id)}
                 disabled={disabled}
               >
+                {/* Номер по месту в списке: order с бэкенда начинается с 1. */}
                 <span className="course-pick-order">
-                  {String(module.order + 1).padStart(2, "0")}
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 <span>{module.title}</span>
                 {progress && (

@@ -54,6 +54,13 @@ export interface LearningLesson {
   [key: string]: unknown;
 }
 
+/** Практическое задание модуля (с backend пока не приходит, список пустой). */
+export interface LearningPractice {
+  id: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
 /** Модуль курса. В интерфейсе исторически называется «блок». */
 export interface LearningBlock {
   id: string;
@@ -64,7 +71,7 @@ export interface LearningBlock {
   learningObjectives: string[];
   learning_objectives: string[];
   lessons: LearningLesson[];
-  practice: unknown[];
+  practice: LearningPractice[];
   [key: string]: unknown;
 }
 

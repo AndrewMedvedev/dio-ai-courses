@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AppModal } from "@/shared/ui/app-modal";
 import { FloatingWindow } from "@/shared/ui/floating-window";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
@@ -12,15 +12,33 @@ import {
   looksLikeLaunchConfirmation,
   createAgentConversationKey,
   useAgentStore,
+  type AgentType,
 } from "@/entities/agent-chat";
 import { autosizeTextarea } from "@/shared/lib/dom";
 import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
 import {
   generationJobKey,
   useGenerationJobsStore,
+  type GenerationJob,
+  type GenerationJobKind,
 } from "@/entities/generation-job";
 
-const TEXTS = {
+interface InterviewTexts {
+  agent: AgentType;
+  eyebrow: string;
+  title: string;
+  intro: string;
+  placeholder: string;
+  started: string;
+  confirmTitle: string;
+  running: (job: GenerationJob) => string;
+  done: (job: GenerationJob) => string;
+  open: string;
+  another: string;
+  anotherHint: string;
+}
+
+const TEXTS: Record<GenerationJobKind, InterviewTexts> = {
   module: {
     agent: "module_interviewer",
     eyebrow: "ИИ-генерация модуля",
@@ -61,21 +79,33 @@ const TEXTS = {
   },
 };
 
-const conversationKeyFor = (kind, courseId, moduleId = "") =>
+const conversationKeyFor = (
+  kind: GenerationJobKind,
+  courseId: string,
+  moduleId = "",
+) =>
   createAgentConversationKey(
     (TEXTS[kind] || TEXTS.module).agent,
     courseId,
     kind === "lesson" ? moduleId : "new-module",
   );
 
-const jobKeyFor = (kind, courseId, moduleId = "") =>
+const jobKeyFor = (kind: GenerationJobKind, courseId: string, moduleId = "") =>
   generationJobKey(kind, courseId, kind === "lesson" ? moduleId : "");
 
 /**
  * Начинает генерацию заново: удаляет переписку (следующий запрос уйдёт с новым chat_id)
  * и завершённую или упавшую генерацию. Окно чата при этом остаётся открытым.
  */
-export function resetAgentInterview({ kind, courseId, moduleId = "" }) {
+export function resetAgentInterview({
+  kind,
+  courseId,
+  moduleId = "",
+}: {
+  kind: GenerationJobKind;
+  courseId: string;
+  moduleId?: string;
+}) {
   const key = conversationKeyFor(kind, courseId, moduleId);
   const agentState = useAgentStore.getState();
   agentState.cancelRequest(key);
@@ -85,12 +115,26 @@ export function resetAgentInterview({ kind, courseId, moduleId = "" }) {
     .removeJob(jobKeyFor(kind, courseId, moduleId));
 }
 
+export interface AgentInterviewDialogProps {
+  open: boolean;
+  onClose: () => void;
+  kind: GenerationJobKind;
+  courseId: string;
+  moduleId?: string;
+  order?: number;
+  knownIds?: string[];
+  contextTitle?: string;
+  onOpenResult?: (job: GenerationJob) => void;
+  onStartAnother?: (job: GenerationJob | null) => void;
+  variant?: "modal" | "floating";
+}
+
 /**
  * Диалог с ИИ-интервьюером модуля или урока.
  * chat_id хранится в agentStore (вместе с историей) и передаётся повторно,
  * пока пользователь не начнёт новый диалог.
  */
-export default function AgentInterviewDialog({
+export function AgentInterviewDialog({
   open,
   onClose,
   kind,
@@ -105,7 +149,7 @@ export default function AgentInterviewDialog({
   // "modal" — модальное окно, "floating" — плавающее окно, которое можно
   // перетаскивать и растягивать, не закрывая доступ к редактору.
   variant = "modal",
-}) {
+}: AgentInterviewDialogProps) {
   const texts = TEXTS[kind] || TEXTS.module;
   const conversationKey = useMemo(
     () => conversationKeyFor(kind, courseId, moduleId),
@@ -130,10 +174,10 @@ export default function AgentInterviewDialog({
 
   const [input, setInput] = useState("");
   const [lastSent, setLastSent] = useState("");
-  const [confirmText, setConfirmText] = useState(null);
+  const [confirmText, setConfirmText] = useState<string | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
-  const messagesRef = useRef(null);
-  const inputRef = useRef(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const isFloating = variant === "floating";
 
   const messages = conversation?.messages || [];
@@ -174,7 +218,7 @@ export default function AgentInterviewDialog({
     autosizeTextarea(inputRef.current, 180);
   }, [input, open]);
 
-  const send = async (text) => {
+  const send = async (text: string) => {
     const content = String(text || "").trim();
     if (!content || isThinking || job || !canWrite) return;
     setLastSent(content);
@@ -213,7 +257,7 @@ export default function AgentInterviewDialog({
     }
   };
 
-  const submit = (event) => {
+  const submit = (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault?.();
     const text = input.trim();
     if (!text) return;

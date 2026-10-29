@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   LessonPracticeAgent,
   LessonTestAgent,
-} from "../LessonAgentAssessments";
-import LessonChatWorkspace from "../LessonChatWorkspace";
+} from "@/features/lesson-assessment";
+import { LessonChatWorkspace } from "@/widgets/lesson-chat-workspace";
 import {
   CourseNavigationTree,
   getCachedCourseBasicInfo as getCourseBasicInfo,
@@ -19,9 +19,12 @@ import {
   LessonList,
   ModuleBasicInfo,
   ModuleList,
+  type ContentBlock,
+  type LearningCourse,
 } from "@/entities/course";
 import { SectionTop } from "@/shared/ui/section-top";
 import { CourseInviteDialog } from "@/features/invite";
+import type { AssessmentResult } from "@/features/lesson-assessment";
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
@@ -34,127 +37,36 @@ import { getModuleProgressSummary } from "@/entities/progress";
 import { getErrorMessage } from "@/shared/lib/errors";
 import { isUuid } from "@/shared/lib/uuid";
 import { isTokenExpired } from "@/shared/api";
-import LessonMetricsDashboard from "./LessonMetricsDashboard";
-import CourseMetricsSummary from "./metrics/CourseMetricsSummary";
-import { useCourseMetricsStore } from "../../stores/courseMetricsStore";
-import "./course-viewer.css";
+import {
+  CourseMetricsSummary,
+  LessonMetricsDashboard,
+  useCourseMetricsStore,
+} from "@/widgets/course-metrics";
+import "@/entities/course/ui/course-viewer.css";
+import {
+  NO_SELECTED_BLOCK,
+  errorText,
+  findBlockByLesson,
+  getCourseCreatorId,
+  getCourseStudents,
+  mergeCourseLessons,
+  toLessonBasicInfoFromLearningLesson,
+  toModuleBasicInfoFromLearningBlock,
+} from "../lib/course-view";
+import { CourseProgressBar } from "./CourseProgressBar";
+import { LessonPartMark } from "./LessonPartMark";
 
-// В режиме метрик на сводке курса ни один модуль в дереве не выделен.
-const NO_SELECTED_BLOCK = { id: "" };
-
-function findBlockByLesson(course, lessonId) {
-  return (
-    course?.blocks?.find((block) =>
-      block.lessons.some((lesson) => lesson.id === lessonId),
-    ) ?? null
-  );
+export interface CourseViewerProps {
+  /** Курс из локального черновика (не UUID), открытый без запроса к бэкенду. */
+  localCourse?: LearningCourse | null;
+  mode?: "view" | "metrics";
 }
 
-// Краткая информация о курсе приходит без уроков: подставляем уроки из полной
-// структуры, чтобы дерево могло показать прогресс по каждому уроку.
-function mergeCourseLessons(course, structure) {
-  if (!course || !structure?.blocks?.length) {
-    return course;
-  }
-
-  let isChanged = false;
-  const blocks = course.blocks.map((block) => {
-    const fullBlock = structure.blocks.find((item) => item.id === block.id);
-    if (!fullBlock?.lessons?.length || block.lessons?.length) {
-      return block;
-    }
-    isChanged = true;
-    return { ...block, lessons: fullBlock.lessons };
-  });
-
-  return isChanged ? { ...course, blocks } : course;
-}
-
-function toModuleBasicInfoFromLearningBlock(block) {
-  if (!block) {
-    return null;
-  }
-
-  const learningObjectives = Array.isArray(block.learningObjectives)
-    ? block.learningObjectives
-    : Array.isArray(block.learning_objectives)
-      ? block.learning_objectives
-      : [];
-
-  return {
-    id: block.id,
-    title: block.title,
-    description: block.description || "",
-    order: Number.isFinite(block.order) ? block.order : 0,
-    learning_objectives: learningObjectives,
-    learningObjectives,
-    lessons: (block.lessons || []).map((lesson, lessonIndex) => ({
-      id: lesson.id,
-      title: lesson.title,
-      order: Number.isFinite(lesson.order) ? lesson.order : lessonIndex,
-    })),
-  };
-}
-
-function toLessonBasicInfoFromLearningLesson(lesson) {
-  if (!lesson) {
-    return null;
-  }
-
-  const estimatedTimeMatch = /^([0-9]+)\s*мин\.?$/i.exec(lesson.duration || "");
-  const learningObjectives = Array.isArray(lesson.learningObjectives)
-    ? lesson.learningObjectives
-    : Array.isArray(lesson.learning_objectives)
-      ? lesson.learning_objectives
-      : [];
-
-  return {
-    id: lesson.id,
-    title: lesson.title,
-    description: lesson.summary || lesson.description || lesson.content || "",
-    order: Number.isFinite(lesson.order) ? lesson.order : 0,
-    learning_objectives: learningObjectives,
-    learningObjectives,
-    estimated_time_minutes: estimatedTimeMatch
-      ? Number(estimatedTimeMatch[1])
-      : null,
-  };
-}
-
-function CourseProgressBar({ summary }) {
-  return (
-    <div className="course-progress-summary">
-      <div className="course-progress-summary-row">
-        <span>
-          Пройдено уроков: {summary.completed} из {summary.total}
-        </span>
-        <b>{summary.percent}%</b>
-      </div>
-      <div
-        className="course-nav-progress-bar"
-        role="progressbar"
-        aria-label="Прогресс курса"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={summary.percent}
-      >
-        <span style={{ width: `${summary.percent}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function LessonPartMark({ done }) {
-  return (
-    <span
-      className={`lesson-mode-progress ${done ? "is-done" : ""}`}
-      title={done ? "Пройдено" : "Ещё не пройдено"}
-      aria-label={done ? "Пройдено" : "Ещё не пройдено"}
-    />
-  );
-}
-
-export default function CourseViewer({ localCourse = null, mode = "view" }) {
+/** Просмотр курса учеником и метрики курса для автора. */
+export function CourseViewer({
+  localCourse = null,
+  mode = "view",
+}: CourseViewerProps) {
   const { courseId, blockId, lessonId } = useParams();
   const navigate = useNavigate();
   const accessToken = useSessionStore((state) => state.accessToken);
@@ -178,22 +90,26 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
   const canUpdateCourse = usePermissionStore((state) =>
     state.hasPermission(COURSE_PERMISSIONS.UPDATE),
   );
-  const [course, setCourse] = useState(null);
-  const loadedCourseIdRef = useRef(null);
-  const [selectedModuleId, setSelectedModuleId] = useState(blockId ?? null);
-  const [selectedLessonId, setSelectedLessonId] = useState(lessonId ?? null);
+  const [course, setCourse] = useState<LearningCourse | null>(null);
+  const loadedCourseIdRef = useRef<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(
+    blockId ?? null,
+  );
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(
+    lessonId ?? null,
+  );
   const [isLearningStarted, setIsLearningStarted] = useState(
     Boolean(blockId || lessonId),
   );
-  const [contentBlocks, setContentBlocks] = useState([]);
-  const [contentLessonId, setContentLessonId] = useState(null);
+  const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
+  const [contentLessonId, setContentLessonId] = useState<string | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrollmentError, setEnrollmentError] = useState("");
-  const theoryContainerRef = useRef(null);
-  const theoryContentRef = useRef(null);
+  const theoryContainerRef = useRef<HTMLElement>(null);
+  const theoryContentRef = useRef<HTMLElement>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isLoadingLesson, setIsLoadingLesson] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const effectiveCourseId = courseId || "";
   const isMetricsMode = mode === "metrics";
   const signCourse = useStudentStore((state) => state.signCourse);
@@ -202,19 +118,14 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
   const isCourseSigning = useStudentStore((state) =>
     state.isCourseSigning(course?.id || effectiveCourseId),
   );
-  const currentUserId =
+  const rawCurrentUserId =
     identity?.id ||
     identity?.user_id ||
     identity?.userId ||
     user?.id ||
     user?.user_id;
-  const courseCreatorId =
-    course?.creator_id ||
-    course?.creatorId ||
-    course?.author_id ||
-    course?.authorId ||
-    course?.user_id ||
-    course?.userId;
+  const currentUserId = rawCurrentUserId ? String(rawCurrentUserId) : undefined;
+  const courseCreatorId = getCourseCreatorId(course);
   const isOwnCourse = Boolean(
     currentUserId && courseCreatorId && currentUserId === courseCreatorId,
   );
@@ -278,7 +189,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
   );
 
   const activeTab = useUiLayoutStore((state) =>
-    state.getLessonActiveTab(selectedLesson?.id),
+    state.getLessonActiveTab(selectedLesson?.id ?? ""),
   );
   const setLessonActiveTab = useUiLayoutStore(
     (state) => state.setLessonActiveTab,
@@ -330,7 +241,9 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     onReachEnd: isProgressTracked
       ? (reachedLessonId) =>
           completeTheory(
-            findBlockByLesson(course, reachedLessonId)?.id || selectedBlock?.id,
+            findBlockByLesson(course, reachedLessonId)?.id ||
+              selectedBlock?.id ||
+              "",
             reachedLessonId,
           )
       : null,
@@ -355,15 +268,17 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     }
   }, [isProgressTracked, selectedBlock?.id, selectedLesson?.id, trackLesson]);
 
-  const handleAssessmentChecked = (field) => (result) => {
-    if (
-      isProgressTracked &&
-      selectedLesson?.id &&
-      result?.is_passed !== false
-    ) {
-      refreshLesson(selectedLesson.id, field);
-    }
-  };
+  const handleAssessmentChecked =
+    (field: "testCompletedAt" | "practiceCompletedAt") =>
+    (result: AssessmentResult) => {
+      if (
+        isProgressTracked &&
+        selectedLesson?.id &&
+        result?.is_passed !== false
+      ) {
+        refreshLesson(selectedLesson.id, field);
+      }
+    };
 
   useEffect(() => {
     let isMounted = true;
@@ -406,7 +321,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
 
         const enrolled = canReadCourseContent
           ? useStudentStore.getState().isCourseEnrolled(basicCourse.id) ||
-            (basicCourse.students || []).some(
+            getCourseStudents(basicCourse).some(
               (student) => student?.course_id === basicCourse.id,
             )
           : false;
@@ -426,7 +341,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
         );
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || "Не удалось загрузить курс");
+          setError(errorText(loadError, "Не удалось загрузить курс"));
         }
       } finally {
         if (isMounted) {
@@ -458,6 +373,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     }
 
     let isMounted = true;
+    const contentLessonIdToLoad = selectedLesson.id;
 
     async function loadLessonContent() {
       setIsLoadingLesson(true);
@@ -465,15 +381,17 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
       setError(null);
 
       try {
-        const lessonBlocks = await getLessonContentBlocks(selectedLesson.id);
+        const lessonBlocks = await getLessonContentBlocks(
+          contentLessonIdToLoad,
+        );
 
         if (isMounted) {
           setContentBlocks(lessonBlocks);
-          setContentLessonId(selectedLesson.id);
+          setContentLessonId(contentLessonIdToLoad);
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || "Не удалось загрузить теорию урока");
+          setError(errorText(loadError, "Не удалось загрузить теорию урока"));
         }
       } finally {
         if (isMounted) {
@@ -490,7 +408,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
   }, [canReadCourseContent, isMetricsMode, selectedLesson?.id]);
 
   const openCourseOverview = () => {
-    if (!canNavigateCourseContent) {
+    if (!canNavigateCourseContent || !course) {
       return;
     }
 
@@ -512,8 +430,8 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
     setSelectedLessonId(null);
   };
 
-  const openBlock = async (blockId) => {
-    if (!canNavigateCourseContent) {
+  const openBlock = async (blockId: string) => {
+    if (!canNavigateCourseContent || !course) {
       return;
     }
 
@@ -546,12 +464,12 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
       );
     } catch (loadError) {
       setSelectedModuleId(fallbackBlock?.id ?? null);
-      setError(loadError.message || "Не удалось загрузить модуль");
+      setError(errorText(loadError, "Не удалось загрузить модуль"));
     }
   };
 
-  const openLesson = async (nextLessonId) => {
-    if (!canNavigateCourseContent) {
+  const openLesson = async (nextLessonId: string) => {
+    if (!canNavigateCourseContent || !course) {
       return;
     }
 
@@ -591,12 +509,12 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
           : `/course/${course.id}/lesson/${nextLessonId}`,
       );
     } catch (loadError) {
-      setError(loadError.message || "Не удалось загрузить урок");
+      setError(errorText(loadError, "Не удалось загрузить урок"));
     }
   };
 
   // Из сводки: выбираем студента и открываем метрики первого урока курса.
-  const openStudentMetrics = (userId) => {
+  const openStudentMetrics = (userId: string) => {
     useCourseMetricsStore.getState().setSelectedStudent(userId);
     const firstLesson = (course?.blocks || []).flatMap(
       (block) => block.lessons || [],
@@ -628,7 +546,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
         currentCourse
           ? {
               ...currentCourse,
-              students: [...(currentCourse.students || []), student],
+              students: [...getCourseStudents(currentCourse), student],
             }
           : currentCourse,
       );
@@ -636,7 +554,7 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
       setIsLearningStarted(true);
     } catch (error) {
       setEnrollmentError(
-        getErrorMessage(error, "Не удалось записаться на курс."),
+        getErrorMessage(error, "Не удалось записаться на курс.") ?? "",
       );
     }
   };
@@ -672,6 +590,11 @@ export default function CourseViewer({ localCourse = null, mode = "view" }) {
         </article>
       </section>
     );
+  }
+
+  // После загрузки курс есть всегда: иначе выше показана ошибка.
+  if (!course) {
+    return null;
   }
 
   if (isMetricsMode && !canUpdateCourse) {

@@ -13,7 +13,7 @@ import {
   setCourseInviteOnly,
 } from "@/entities/course";
 import { SectionTop } from "@/shared/ui/section-top";
-import "../components/course/course-viewer.css";
+import "@/entities/course/ui/course-viewer.css";
 import { useSessionStore } from "@/entities/session";
 import { getApiErrorMessage } from "./helpers";
 import Icon, { Spinner } from "./icons";

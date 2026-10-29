@@ -14,14 +14,28 @@ const QUICK_PROMPTS = [
   "Помочь с практическим заданием",
 ];
 
-function safeMarkdownUrl(url) {
+function safeMarkdownUrl(url: string) {
   const value = String(url || "").trim();
   if (/^(https?:|mailto:|tel:)/i.test(value)) return value;
   if (/^(\/|\.{1,2}\/|#)/.test(value)) return value;
   return value.includes(":") ? "" : value;
 }
 
-export default function LessonAiChat({
+export interface LessonAiChatProps {
+  courseId: string;
+  lessonId?: string;
+  lessonTitle?: string;
+  contentBlocks?: unknown[];
+  onDownloadSummary?: () => void;
+  panelId: string;
+  focusOnOpen?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onAssistantResponse?: () => void;
+}
+
+/** Чат с ИИ-наставником по материалам урока: панель справа или диалог на узком экране. */
+export function LessonAiChat({
   courseId,
   lessonId,
   lessonTitle,
@@ -32,15 +46,15 @@ export default function LessonAiChat({
   isOpen,
   onClose,
   onAssistantResponse,
-}) {
+}: LessonAiChatProps) {
   const [inputValue, setInputValue] = useState("");
   const [isCompact, setIsCompact] = useState(
     () => window.matchMedia(COMPACT_QUERY).matches,
   );
-  const messagesRef = useRef(null);
-  const panelRef = useRef(null);
-  const closeButtonRef = useRef(null);
-  const latestAssistantMessageRef = useRef(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const latestAssistantMessageRef = useRef<string | null>(null);
   const didObserveMessagesRef = useRef(false);
   const conversationKey = useMemo(
     () => createAgentConversationKey("mentor", courseId, lessonId),
@@ -68,7 +82,8 @@ export default function LessonAiChat({
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(COMPACT_QUERY);
-    const handleChange = (event) => setIsCompact(event.matches);
+    const handleChange = (event: MediaQueryListEvent) =>
+      setIsCompact(event.matches);
     setIsCompact(mediaQuery.matches);
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
@@ -115,7 +130,7 @@ export default function LessonAiChat({
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
@@ -123,7 +138,7 @@ export default function LessonAiChat({
       }
       if (event.key !== "Tab") return;
 
-      const focusable = panelRef.current?.querySelectorAll(
+      const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
         'button:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
       );
       if (!focusable?.length) return;
@@ -145,7 +160,7 @@ export default function LessonAiChat({
     };
   }, [isCompact, isOpen, onClose]);
 
-  const sendMessage = async (value = inputValue) => {
+  const sendMessage = async (value: string = inputValue) => {
     const prompt = value.trim();
     if (!prompt || isSending || !courseId) return;
 

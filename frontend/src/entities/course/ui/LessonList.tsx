@@ -6,7 +6,7 @@ import {
 
 export interface LessonListItem {
   id: string;
-  order: number;
+  order?: number;
   title?: string;
 }
 
@@ -39,7 +39,7 @@ export function LessonList({
     <article className="course-viewer-card course-viewer-side-card">
       <h2>Уроки модуля</h2>
       <ul className="course-pick-list">
-        {lessons.map((lesson) => {
+        {lessons.map((lesson, index) => {
           const isSelected = lesson.id === selectedLessonId;
           const status = progressById
             ? getLessonProgressStatus(progressById[lesson.id])
@@ -52,8 +52,9 @@ export function LessonList({
                 className={`course-pick-item ${isSelected ? "is-selected" : ""} ${status ? `has-progress is-${status}` : ""}`}
                 onClick={() => onSelectLesson(lesson.id)}
               >
+                {/* Номер по месту в списке: order с бэкенда начинается с 1. */}
                 <span className="course-pick-order">
-                  {String(lesson.order + 1).padStart(2, "0")}
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 <span>{lesson.title}</span>
                 {status && (

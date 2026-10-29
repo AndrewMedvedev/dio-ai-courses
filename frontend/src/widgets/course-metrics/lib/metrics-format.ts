@@ -1,6 +1,6 @@
 // Общие помощники страницы метрик курса: форматы времени и дат, цвета оценок.
 
-export function formatDuration(totalSeconds) {
+export function formatDuration(totalSeconds: unknown): string {
   const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -11,20 +11,22 @@ export function formatDuration(totalSeconds) {
 }
 
 // Короткая подпись оси: «11 мин», «30 с».
-export function formatAxisValue(seconds) {
+export function formatAxisValue(seconds: unknown): string {
   const value = Math.max(0, Number(seconds) || 0);
   if (value >= 3600) return `${Math.round((value / 3600) * 10) / 10} ч`;
   if (value >= 60) return `${Math.round((value / 60) * 10) / 10} мин`;
   return `${Math.round(value)} с`;
 }
 
-function toDate(value) {
+function toDate(value: string | number | Date | null | undefined): Date | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function formatDateTime(value) {
+export function formatDateTime(
+  value: string | number | Date | null | undefined,
+): string {
   const date = toDate(value);
   if (!date) return "—";
   return date.toLocaleString("ru-RU", {
@@ -35,21 +37,23 @@ export function formatDateTime(value) {
   });
 }
 
-export function formatShortDate(value) {
+export function formatShortDate(
+  value: string | number | Date | null | undefined,
+): string {
   const date = toDate(value);
   if (!date) return "—";
   return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
 }
 
 // Значение yyyy-mm-dd для <input type="date"> по местному времени.
-export function toDateInputValue(date) {
+export function toDateInputValue(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-export function getInitials(name) {
+export function getInitials(name: string | null | undefined): string {
   return (
     String(name || "")
       .split(" ")
@@ -62,21 +66,24 @@ export function getInitials(name) {
 }
 
 // Цвет по шкале: зелёный — хорошо, жёлтый — средне, красный — мало.
-export function percentTone(percent) {
+export function percentTone(percent: unknown): string {
   const value = Number(percent) || 0;
   if (value < 30) return "is-danger";
   if (value < 60) return "is-warning";
   return "is-good";
 }
 
-export function activeTimeTone(seconds) {
+export function activeTimeTone(seconds: unknown): string {
   const value = Number(seconds) || 0;
   if (value < 60) return "is-danger";
   if (value < 300) return "is-warning";
   return "is-good";
 }
 
-export function pluralRu(count, [one, few, many]) {
+export function pluralRu(
+  count: unknown,
+  [one, few, many]: readonly [string, string, string],
+): string {
   const value = Math.abs(Number(count) || 0);
   const mod10 = value % 10;
   const mod100 = value % 100;

@@ -2,9 +2,10 @@
 import { Fragment, useEffect, useState } from "react";
 import { SectionTop } from "@/shared/ui/section-top";
 import { CourseNavigationTree } from "@/entities/course";
-import AgentInterviewDialog, {
+import {
+  AgentInterviewDialog,
   resetAgentInterview,
-} from "../components/editor/AgentInterviewDialog";
+} from "@/features/agent-interview";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { useGoBack } from "@/shared/lib/ui-layout";
 import {

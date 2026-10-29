@@ -7,9 +7,10 @@ import {
   formatCourseLevel,
 } from "@/entities/course";
 import { CourseInviteDialog } from "@/features/invite";
-import AgentInterviewDialog, {
+import {
+  AgentInterviewDialog,
   resetAgentInterview,
-} from "../components/editor/AgentInterviewDialog";
+} from "@/features/agent-interview";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { useGoBack } from "@/shared/lib/ui-layout";
 import {
