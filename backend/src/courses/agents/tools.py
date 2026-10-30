@@ -1,8 +1,12 @@
 import logging
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel
 
+from src.core.database import session_factory
+from src.courses.domain.entities import GenerationSession
+from src.courses.domain.enums import GenerationStatus
+from src.courses.infra.database.repos.generation_session import SqlGenerationSessionRepository
 from src.llm_service import Runtime, tool
 
 from ..infra.database.repos.document import SqlDocumentRepository
@@ -81,10 +85,31 @@ async def send_course_for_generation(
     )
     from src.courses.infra.tasks import generate_course  # noqa: PLC0415
 
-    task = await generate_course.kiq(context=context)  # pyright: ignore[reportCallIssue]
+    task_id = f"course-generation:{uuid4()}"
+    async with session_factory() as session:
+        await SqlGenerationSessionRepository(session).create(
+            GenerationSession(
+                creator_id=context.user_id,
+                generation_key=task_id,
+            )
+        )
+        await session.commit()
+    try:
+        await generate_course.kicker().with_task_id(task_id).kiq(context=context)  # pyright: ignore[reportCallIssue]
+    except Exception:
+        # Публикация не удалась — нужно пометить запись FAILED.
+        async with session_factory() as session:
+            repo = SqlGenerationSessionRepository(session)
+            generation_session = await repo.read_with_generation_key(task_id)
+            if generation_session is None:
+                raise
+            generation_session.change_status(GenerationStatus.FAILED)
+            await repo.update(generation_session)
+            await session.commit()
 
-    runtime.state.task_id = task.task_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Курс поставлен в очередь на генерацию, task_id={task.task_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
+        raise
+    runtime.state.task_id = task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Курс поставлен в очередь на генерацию, task_id={task_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
 
 
 class GenerationInput(BaseModel):
@@ -109,15 +134,40 @@ async def send_module_for_generation(
 ) -> str:
     from src.courses.infra.tasks import generate_module  # noqa: PLC0415
 
-    task = await generate_module.kiq(  # pyright: ignore[reportCallIssue]
-        context=runtime.context,
-        audience_description=structure.audience_description,
-        learning_objectives=structure.learning_objectives,
-        description=structure.description,
-    )
+    task_id = f"module-generation:{uuid4()}"
+    async with session_factory() as session:
+        await SqlGenerationSessionRepository(session).create(
+            GenerationSession(
+                creator_id=runtime.context.user_id,
+                generation_key=task_id,
+            )
+        )
+        await session.commit()
+    try:
+        await (
+            generate_module.kicker()
+            .with_task_id(task_id)
+            .kiq(  # pyright: ignore[reportCallIssue]
+                context=runtime.context,
+                audience_description=structure.audience_description,
+                learning_objectives=structure.learning_objectives,
+                description=structure.description,
+            )
+        )
+    except Exception:
+        async with session_factory() as session:
+            repo = SqlGenerationSessionRepository(session)
+            generation_session = await repo.read_with_generation_key(task_id)
+            if generation_session is None:
+                raise
+            generation_session.change_status(GenerationStatus.FAILED)
+            await repo.update(generation_session)
+            await session.commit()
 
-    runtime.state.task_id = task.task_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Модуль поставлен в очередь на генерацию, task_id={task.task_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
+        raise
+
+    runtime.state.task_id = task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Модуль поставлен в очередь на генерацию, task_id={task_id}, ,больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
 
 
 @tool(
@@ -137,12 +187,37 @@ async def send_lesson_for_generation(
 ) -> str:
     from src.courses.infra.tasks import generate_lesson  # noqa: PLC0415
 
-    task = await generate_lesson.kiq(  # pyright: ignore[reportCallIssue]
-        context=runtime.context,
-        audience_description=structure.audience_description,
-        learning_objectives=structure.learning_objectives,
-        description=structure.description,
-    )
+    task_id = f"lesson-generation:{uuid4()}"
+    async with session_factory() as session:
+        await SqlGenerationSessionRepository(session).create(
+            GenerationSession(
+                creator_id=runtime.context.user_id,
+                generation_key=task_id,
+            )
+        )
+        await session.commit()
+    try:
+        await (
+            generate_lesson.kicker()
+            .with_task_id(task_id)
+            .kiq(  # pyright: ignore[reportCallIssue]
+                context=runtime.context,
+                audience_description=structure.audience_description,
+                learning_objectives=structure.learning_objectives,
+                description=structure.description,
+            )
+        )
+    except Exception:
+        async with session_factory() as session:
+            repo = SqlGenerationSessionRepository(session)
+            generation_session = await repo.read_with_generation_key(task_id)
+            if generation_session is None:
+                raise
+            generation_session.change_status(GenerationStatus.FAILED)
+            await repo.update(generation_session)
+            await session.commit()
 
-    runtime.state.task_id = task.task_id  # pyright: ignore[reportOptionalMemberAccess]
-    return f"Урок поставлен в очередь на генерацию, task_id={task.task_id},   больше не вызывай никакие инструменты, заверши чат."  # noqa: E501
+        raise
+
+    runtime.state.task_id = task_id  # pyright: ignore[reportOptionalMemberAccess]
+    return f"Урок поставлен в очередь на генерацию, task_id={task_id},   больше не вызывай никакие инструменты, заверши чат."  # noqa: E501

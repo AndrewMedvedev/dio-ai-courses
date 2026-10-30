@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import exists, func, select
 
-from src.shared.application.dtos import Page, Pagination
+from src.shared.application.dtos import Page
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ....domain.entities import CourseProgress
@@ -24,10 +24,12 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
         return None if model is None else self.model_mapper.from_model(model)
 
     async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool:
-        stmt = select(exists().where(
-            self.model.user_id == user_id,
-            self.model.course_id == resource_id,
-        ))
+        stmt = select(
+            exists().where(
+                self.model.user_id == user_id,
+                self.model.course_id == resource_id,
+            )
+        )
         return bool(await self._session.scalar(stmt))
 
     async def count_completed_lessons(self, course_progress_id: UUID) -> int:
@@ -43,7 +45,11 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
         )
         return completed_lessons or 0
 
-    async def find_by_course(self, course_id: UUID, pagination: Pagination) -> Page[CourseProgress]:
+    async def find_by_course(
+        self,
+        course_id: UUID,
+        pagination: Pagination,
+    ) -> Page[CourseProgress]:
         """Возвращает progress всех учеников курса для teacher endpoint."""
         stmt = select(self.model).where(self.model.course_id == course_id)
         return await paginate(

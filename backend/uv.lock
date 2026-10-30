@@ -413,6 +413,7 @@ dependencies = [
     { name = "sse-starlette" },
     { name = "taskiq", extra = ["metrics"] },
     { name = "taskiq-aio-pika" },
+    { name = "taskiq-cancellation", extra = ["aiopika", "redis"] },
     { name = "taskiq-fastapi" },
     { name = "taskiq-faststream" },
     { name = "taskiq-redis" },
@@ -472,6 +473,7 @@ requires-dist = [
     { name = "sse-starlette", specifier = ">=3.4.11" },
     { name = "taskiq", extras = ["metrics"], specifier = ">=0.13.0" },
     { name = "taskiq-aio-pika", specifier = ">=0.6.1" },
+    { name = "taskiq-cancellation", extras = ["aiopika", "redis"], git = "https://github.com/AndrewMedvedev/taskiq-cancellation.git?rev=c9fb34094e67567ae8d530b329211b71ac03fd2d" },
     { name = "taskiq-fastapi", specifier = ">=0.5.0" },
     { name = "taskiq-faststream", specifier = ">=0.1.6" },
     { name = "taskiq-redis", specifier = ">=1.2.4" },
@@ -3293,6 +3295,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/85/69/1b58c2e76bf96405a3e481fe653c9e96fad7b20990501b996f2e856a1005/taskiq_aio_pika-0.6.1.tar.gz", hash = "sha256:9f25fcc78cc4ae13ad771f5adfb4fca2d80d6ab444a9e85625ba74a9e8d570c0", size = 10271, upload-time = "2026-09-16T12:51:01.863Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/57/ea/c0b76496a5058701da357407ed14cfa880a0b900241d21196f5e10e4f586/taskiq_aio_pika-0.6.1-py3-none-any.whl", hash = "sha256:a807e9bac4da4069c5411323fbe621718cc6e858001d661c2dc84755a410bbb0", size = 11491, upload-time = "2026-09-16T12:51:00.896Z" },
+]
+
+[[package]]
+name = "taskiq-cancellation"
+version = "0.0.1"
+source = { git = "https://github.com/AndrewMedvedev/taskiq-cancellation.git?rev=c9fb34094e67567ae8d530b329211b71ac03fd2d#c9fb34094e67567ae8d530b329211b71ac03fd2d" }
+dependencies = [
+    { name = "taskiq" },
+]
+
+[package.optional-dependencies]
+aiopika = [
+    { name = "aio-pika" },
+]
+redis = [
+    { name = "redis" },
 ]
 
 [[package]]

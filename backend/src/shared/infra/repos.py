@@ -86,7 +86,8 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
 
     async def exists(self, uid: UUID) -> bool:
         stmt = select(exists()).where(self.model.id == uid)
-        return await self.session.scalar(stmt)
+        result = await self.session.scalar(stmt)
+        return result is not None
 
     async def get_by_ids(self, ids: list[UUID]) -> list[EntityT]:
         stmt = select(self.model).where(self.model.id.in_(ids))
@@ -124,7 +125,7 @@ class InMemoryRepository[EntityT: Entity]:
             page=params.page,
             size=params.size,
             total=len(items),
-            total_pages=1,
+            pages=1,
             has_next=False,
             has_prev=False,
             items=items[: params.size],

@@ -19,6 +19,7 @@ from .enums import (
     CourseStatus,
     DifficultyLevel,
     DocumentNodeType,
+    GenerationStatus,
     PracticeStatus,
 )
 from .events import CourseInvited
@@ -182,14 +183,12 @@ class Chat(Entity):
     messages: list[dict] = field(default_factory=list)
 
     def replace_messages(self, messages: list[dict]) -> None:
-        """Выполняет действие `replace_messages`, чтобы поддержать основной сценарий модуля."""
+
         self.messages = messages.copy()
 
 
 @dataclass(kw_only=True, slots=True)
 class Member(Entity):
-    """Описывает доменную сущность `Member` и её данные для бизнес-логики."""
-
     role: MemberRole
     course_id: UUID
     user_id: UUID
@@ -197,27 +196,32 @@ class Member(Entity):
 
 @dataclass(kw_only=True, slots=True)
 class StudentPractice(Entity):
-    """Описывает доменную сущность `StudentPractice` и её данные для бизнес-логики."""
-
     user_id: UUID
     course_id: UUID
     messages: list[dict] = field(default_factory=list)
 
     def replace_messages(self, messages: list[dict]) -> None:
-        """Выполняет действие `replace_messages`, чтобы поддержать основной сценарий модуля."""
         self.messages = messages.copy()
 
 
 @dataclass(kw_only=True, slots=True)
 class Practice(Entity):
-    """Описывает доменную сущность `Practice` и её данные для бизнес-логики."""
-
     user_id: UUID
     module_id: UUID
     lesson_id: UUID
     status: PracticeStatus = PracticeStatus.NOT_STARTED
 
     practice: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass(kw_only=True, slots=True)
+class GenerationSession(Entity):
+    creator_id: UUID
+    status: GenerationStatus = GenerationStatus.PENDING
+    generation_key: str
+
+    def change_status(self, status: GenerationStatus) -> None:
+        self.status = status
 
 
 @dataclass(kw_only=True, slots=True)

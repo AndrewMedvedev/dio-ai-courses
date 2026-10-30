@@ -10,10 +10,10 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
-    Float,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -166,9 +166,7 @@ class ModuleProgressOrm(Base):
         nullable=False,
     )
     module_id: Mapped[UUID]
-    course_progress: Mapped[CourseProgressOrm] = relationship(
-        back_populates="module_progresses"
-    )
+    course_progress: Mapped[CourseProgressOrm] = relationship(back_populates="module_progresses")
     lesson_progresses: Mapped[list[LessonProgressOrm]] = relationship(
         back_populates="module_progress",
         cascade="all, delete-orphan",
@@ -202,9 +200,7 @@ class LessonProgressOrm(Base):
     test_completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
     )
-    module_progress: Mapped[ModuleProgressOrm] = relationship(
-        back_populates="lesson_progresses"
-    )
+    module_progress: Mapped[ModuleProgressOrm] = relationship(back_populates="lesson_progresses")
     __table_args__ = (
         UniqueConstraint(
             "module_progress_id",
@@ -321,4 +317,15 @@ class InvitationOrm(Base):
     __table_args__ = (
         Index("ix_course_invitation_email", "email"),
         Index("ix_course_invitation_expires_at", "expires_at"),
+    )
+
+
+class GenerationSessionOrm(Base):
+    __tablename__ = "generation_sessions"
+
+    creator_id: Mapped[UUID]
+    status: Mapped[str]
+    generation_key: Mapped[str] = mapped_column(
+        unique=True,
+        index=True,
     )

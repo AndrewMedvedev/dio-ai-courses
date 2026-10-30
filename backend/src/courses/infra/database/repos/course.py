@@ -49,7 +49,6 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
         user_id: UUID,
         pagination: Pagination,
     ) -> Page[Course]:
-        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
 
         stmt = (
             select(self.model)

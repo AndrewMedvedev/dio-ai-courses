@@ -55,6 +55,7 @@ dependencies = [
     "types-pytz>=2026.2.0.20260506",
     "unclaimed-libraries>=0.1.3",
     "zxcvbn-rs-py>=0.3.0",
+    "taskiq-cancellation[aiopika,redis]",
 ]
 
 
@@ -300,6 +301,9 @@ ignore_names = [
 
 [tool.basedpyright]
 typeCheckingMode = "basic"
+
+[tool.uv.sources]
+taskiq-cancellation = { git = "https://github.com/AndrewMedvedev/taskiq-cancellation.git", rev = "c9fb34094e67567ae8d530b329211b71ac03fd2d" }
 
 [dependency-groups]
 dev = [

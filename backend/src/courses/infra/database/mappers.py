@@ -14,6 +14,7 @@ from src.courses.domain.entities import (
     Course,
     CourseProgress,
     Document,
+    GenerationSession,
     Invitation,
     Lesson,
     LessonProgress,
@@ -23,6 +24,7 @@ from src.courses.domain.entities import (
     ModuleProgress,
     Practice,
 )
+from src.courses.domain.enums import GenerationStatus
 from src.courses.domain.vo import MemberRole
 from src.shared.domain.vo import Email
 from src.shared.infra.database.mappers import ModelMapper
@@ -32,6 +34,7 @@ from .models import (
     CourseOrm,
     CourseProgressOrm,
     DocumentOrm,
+    GenerationSessionOrm,
     InvitationOrm,
     LessonOrm,
     LessonProgressOrm,
@@ -381,6 +384,30 @@ class MemberMapper(ModelMapper[Member, MemberOrm]):
             role=entity.role.value,
             course_id=entity.course_id,
             user_id=entity.user_id,
+        )
+
+
+class GenerationSessionMapper(ModelMapper[GenerationSession, GenerationSessionOrm]):
+    @staticmethod
+    def to_entity(model: GenerationSessionOrm) -> GenerationSession:
+        return GenerationSession(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            creator_id=model.creator_id,
+            status=GenerationStatus(model.status),
+            generation_key=model.generation_key,
+        )
+
+    @staticmethod
+    def from_entity(entity: GenerationSession) -> GenerationSessionOrm:
+        return GenerationSessionOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            creator_id=entity.creator_id,
+            status=entity.status.value,
+            generation_key=entity.generation_key,
         )
 
 

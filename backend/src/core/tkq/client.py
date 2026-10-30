@@ -1,8 +1,13 @@
-from taskiq import PrometheusMiddleware, SmartRetryMiddleware
+from taskiq import PrometheusMiddleware
 from taskiq_aio_pika import AioPikaBroker, Exchange, Queue
+from taskiq_cancellation import ModularCancellationBackend
+from taskiq_cancellation.notifiers.aiopika import AioPikaNotifier
+from taskiq_cancellation.state_holders.redis import RedisCancellationStateHolder
 from taskiq_fastapi import init
 
-from .rabbit import rabbit_config
+from ..rabbit import rabbit_config
+from ..redis import redis_config
+from .middleware import CancellationAwareRetryMiddleware
 
 taskiq_broker = AioPikaBroker(
     rabbit_config.uri,
@@ -27,7 +32,7 @@ taskiq_broker = AioPikaBroker(
         durable=True,
     ),
 ).with_middlewares(
-    SmartRetryMiddleware(
+    CancellationAwareRetryMiddleware(
         default_retry_count=6,
         default_delay=10,
         use_jitter=True,
@@ -36,5 +41,15 @@ taskiq_broker = AioPikaBroker(
     ),
     PrometheusMiddleware(server_port=9000),
 )
+
+cancellation_backend = ModularCancellationBackend(
+    state_holder=RedisCancellationStateHolder(
+        redis_config.url,
+    ),
+    notifier=AioPikaNotifier(
+        rabbit_config.uri,
+    ),
+).with_broker(taskiq_broker)
+
 
 init(taskiq_broker, "main:app")

@@ -1,5 +1,6 @@
-import logging
 from typing import Annotated
+
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status

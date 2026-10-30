@@ -11,6 +11,7 @@ from ..infra.database.repos.chat import SqlChatRepository
 from ..infra.database.repos.course import SqlCourseRepository
 from ..infra.database.repos.course_progress import SqlCourseProgressRepository
 from ..infra.database.repos.document import SqlDocumentRepository
+from ..infra.database.repos.generation_session import SqlGenerationSessionRepository
 from ..infra.database.repos.invitation import SqlInvitationRepository
 from ..infra.database.repos.lesson import SqlLessonRepository
 from ..infra.database.repos.lesson_progress import SqlLessonProgressRepository
@@ -83,20 +84,18 @@ def get_invitation_repo(session: DBSession) -> SqlInvitationRepository:
     return SqlInvitationRepository(session)
 
 
+def get_generation_session_repo(session: DBSession) -> SqlGenerationSessionRepository:
+    return SqlGenerationSessionRepository(session)
+
+
 def get_vector_repo() -> QdrantRepository:
     return QdrantRepository(qdrant_client, splitter)
 
 
 LessonRepoDep = Annotated[SqlLessonRepository, Depends(get_lesson_repo)]
-LessonProgressRepoDep = Annotated[
-    SqlLessonProgressRepository, Depends(get_lesson_progress_repo)
-]
-ModuleProgressRepoDep = Annotated[
-    SqlModuleProgressRepository, Depends(get_module_progress_repo)
-]
-CourseProgressRepoDep = Annotated[
-    SqlCourseProgressRepository, Depends(get_course_progress_repo)
-]
+LessonProgressRepoDep = Annotated[SqlLessonProgressRepository, Depends(get_lesson_progress_repo)]
+ModuleProgressRepoDep = Annotated[SqlModuleProgressRepository, Depends(get_module_progress_repo)]
+CourseProgressRepoDep = Annotated[SqlCourseProgressRepository, Depends(get_course_progress_repo)]
 ModuleRepoDep = Annotated[SqlModuleRepository, Depends(get_module_repo)]
 CourseRepoDep = Annotated[SqlCourseRepository, Depends(get_course_repo)]
 PracticeRepoDep = Annotated[SqlPracticeRepository, Depends(get_practice_repo)]
@@ -107,4 +106,7 @@ TheorySessionRepoDep = Annotated[
 ]
 MemberRepoDep = Annotated[SqlMemberRepository, Depends(get_member_repo)]
 InvitationRepoDep = Annotated[SqlInvitationRepository, Depends(get_invitation_repo)]
+GenerationSessionRepoDep = Annotated[
+    SqlGenerationSessionRepository, Depends(get_generation_session_repo)
+]
 VectorRepoDep = Annotated[QdrantRepository, Depends(get_vector_repo)]

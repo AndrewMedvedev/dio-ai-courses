@@ -71,6 +71,15 @@ class CourseStatus(StrEnum):
     ARCHIVED = auto()
 
 
+class GenerationStatus(StrEnum):
+    PENDING = auto()
+    RUNNING = auto()
+    CANCELLING = auto()
+    CANCELLED = auto()
+    COMPLETED = auto()
+    FAILED = auto()
+
+
 class DifficultyLevel(StrEnum):
     """Уровни сложности для образовательной платформы."""
 

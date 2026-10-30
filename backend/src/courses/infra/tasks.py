@@ -1,87 +1,166 @@
+from typing import Annotated, Any
+
+import asyncio
 import logging
 from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
+from sqlalchemy.ext.asyncio import AsyncSession
+from taskiq import Context as TaskiqContext
+from taskiq import TaskiqDepends
+from taskiq_cancellation import CancellationType
 
-from src.core.tkq import taskiq_broker
+from src.core.tkq import cancellation_backend, taskiq_broker
 from src.courses.agents.course_generator.helper import invoke_or_resume
 from src.courses.agents.schemas import Context, GenerationContext
 from src.courses.dependencies.agents import CourseAgentDep, LessonAgentDep, ModuleAgentDep
-from src.courses.dependencies.base import LessonRepoDep, VectorRepoDep
+from src.courses.dependencies.base import GenerationSessionRepoDep, LessonRepoDep, VectorRepoDep
+from src.courses.domain.enums import GenerationStatus
+from src.courses.infra.database.repos.generation_session import SqlGenerationSessionRepository
 from src.courses.utils.formatting import get_lesson_context
+from src.shared.dependencies import DBSession
+from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
+
+TaskiqContextDep = Annotated[
+    TaskiqContext,
+    TaskiqDepends(TaskiqContext),
+]
 
 RETRY_OPTS = {"retry_on_error": True, "max_retries": 5, "delay": 10, "timeout": 5 * 60 * 60}
 
 
-@taskiq_broker.task(task_name="courses.generate_course", **RETRY_OPTS)
-async def generate_course(context: Context, agent: CourseAgentDep) -> dict[str, UUID]:
+async def generation_lifecycle(
+    args: dict[str, Any],
+    repo: SqlGenerationSessionRepository,
+    session: AsyncSession,
+    taskiq_context: TaskiqContext,
+) -> None:
+    task_id = taskiq_context.message.task_id
+    generation_session = await repo.read_with_generation_key(task_id)
+    if generation_session is None:
+        raise NotFoundError
     try:
-        await invoke_or_resume(
-            graph=agent,
-            input_data={"generation_context": context},
-            config=RunnableConfig(
+        generation_session.change_status(GenerationStatus.RUNNING)
+        await repo.update(generation_session)
+        await session.commit()
+
+        await invoke_or_resume(**args)
+
+    except asyncio.CancelledError:
+        await session.rollback()
+        generation_session.change_status(GenerationStatus.CANCELLED)
+        await repo.update(generation_session)
+        await session.commit()
+        raise
+
+    except Exception:
+        await session.rollback()
+        logger.exception(
+            "generation failed: task_id=%s",
+            task_id,
+        )
+
+        retries_left = int(
+            taskiq_context.message.labels.get(
+                "retries_left",
+                "0",
+            )
+        )
+
+        if retries_left == 0:
+            generation_session.change_status(GenerationStatus.FAILED)
+            await repo.update(generation_session)
+            await session.commit()
+        raise
+    else:
+        generation_session.change_status(GenerationStatus.COMPLETED)
+        await repo.update(generation_session)
+        await session.commit()
+
+
+@taskiq_broker.task(
+    task_name="courses.generate_course",
+    **RETRY_OPTS,
+)
+@cancellation_backend.cancellable(cancellation_type=CancellationType.EDGE)
+async def generate_course(
+    context: Context,
+    agent: CourseAgentDep,
+    taskiq_context: TaskiqContextDep,
+    repo: GenerationSessionRepoDep,
+    session: DBSession,
+) -> dict[str, UUID]:
+    await generation_lifecycle(
+        args={
+            "graph": agent,
+            "input_data": {"generation_context": context},
+            "config": RunnableConfig(
                 configurable={
                     "thread_id": f"course:{context.course_id}",
                 }
             ),
-        )
-    except Exception:
-        logger.exception(
-            "Course generation failed: course_id=%s",
-            context.course_id,
-        )
-        raise
+        },
+        repo=repo,
+        session=session,
+        taskiq_context=taskiq_context,
+    )
     return {"course_id": context.course_id}
 
 
-@taskiq_broker.task(task_name="courses.generate_module", **RETRY_OPTS)
+@taskiq_broker.task(
+    task_name="courses.generate_module",
+    **RETRY_OPTS,
+)
+@cancellation_backend.cancellable(cancellation_type=CancellationType.EDGE)
 async def generate_module(
     context: GenerationContext,
     audience_description: str,
     learning_objectives: list[str],
     description: str,
     agent: ModuleAgentDep,
+    taskiq_context: TaskiqContextDep,
+    repo: GenerationSessionRepoDep,
+    session: DBSession,
 ) -> dict[str, UUID | int]:
-    try:
-        await invoke_or_resume(
-            graph=agent,
-            input_data={
+    await generation_lifecycle(
+        args={
+            "graph": agent,
+            "input_data": {
                 "generation_context": context,
                 "audience_description": audience_description,
                 "learning_objectives": learning_objectives,
                 "order": context.order,
                 "module_description": description,
             },
-            config=RunnableConfig(
-                configurable={
-                    "thread_id": f"course:{context.course_id}:module:{context.order}",
-                }
+            "config": RunnableConfig(
+                configurable={"thread_id": f"course:{context.course_id}:module:{context.order}"}
             ),
-        )
-    except Exception:
-        logger.exception(
-            "Module generation failed: course_id=%s order=%s",
-            context.course_id,
-            context.order,
-        )
-        raise
+        },
+        repo=repo,
+        session=session,
+        taskiq_context=taskiq_context,
+    )
     return {"course_id": context.course_id, "module_order": context.order}
 
 
 @taskiq_broker.task(task_name="courses.generate_lesson", **RETRY_OPTS)
+@cancellation_backend.cancellable(cancellation_type=CancellationType.EDGE)
 async def generate_lesson(
     context: GenerationContext,
     audience_description: str,
     learning_objectives: list[str],
     description: str,
     agent: LessonAgentDep,
+    taskiq_context: TaskiqContextDep,
+    repo: GenerationSessionRepoDep,
+    session: DBSession,
 ) -> dict[str, UUID | int]:
-    try:
-        await invoke_or_resume(
-            graph=agent,
-            input_data={
+    await generation_lifecycle(
+        args={
+            "graph": agent,
+            "input_data": {
                 "generation_context": context,
                 "module_id": context.module_id,
                 "audience_description": audience_description,
@@ -89,20 +168,17 @@ async def generate_lesson(
                 "order": context.order,
                 "lesson_description": description,
             },
-            config=RunnableConfig(
+            "config": RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{context.order}",  # noqa: E501
+                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{context.order}"  # noqa: E501
                 }
             ),
-        )
-    except Exception:
-        logger.exception(
-            "Lesson generation failed: course_id=%s module_id=%s order=%s",
-            context.course_id,
-            context.module_id,
-            context.order,
-        )
-        raise
+        },
+        repo=repo,
+        session=session,
+        taskiq_context=taskiq_context,
+    )
+
     return {
         "course_id": context.course_id,
         "module_id": context.module_id,  # pyright: ignore[reportReturnType]
