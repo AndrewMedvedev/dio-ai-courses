@@ -61,7 +61,7 @@ export function CoursesPage({
         label="Готовые курсы"
         title="Рейтинг курсов, созданных в AI Course Lab"
       />
-      <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted)">
+      <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
         Выбирайте готовые программы по разным темам, смотрите оценки сообщества
         и начинайте обучение сразу. Каждый курс собран с помощью AI Course Lab и
         включает теорию, практику и последовательный учебный маршрут.
@@ -93,7 +93,7 @@ export function CoursesPage({
 
       {canReadCourse && !isLoading && !error && catalogCourses.length === 0 && (
         <article className="glass-card courses-catalog-cta tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:mt-[28px] tw:p-[clamp(24px,_4vw,_42px)] tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:items-center tw:gap-[28px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-1100:grid-cols-[1fr] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_.btn]:min-w-[190px] tw:max-1100:[&_.btn]:w-[fit-content] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
-          <p className="tw:m-[12px_0_0] tw:text-(--muted)">
+          <p className="tw:m-[12px_0_0] tw:text-(--muted) tw:leading-[1.72] tw:text-[1rem] tw:tracking-[0.012em]">
             Курсы пока не найдены.
           </p>
         </article>
@@ -167,7 +167,7 @@ export function CoursesPage({
                   <button
                     key={pageNumber}
                     type="button"
-                    className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font:inherit] tw:[&&&]:font-[800] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
+                    className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
                     onClick={() => onPageChange?.(pageNumber)}
                     aria-current={pageNumber === page ? "page" : undefined}
                   >
@@ -193,10 +193,10 @@ export function CoursesPage({
             <span className="tw:text-(--eyebrow) tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.1em] tw:uppercase">
               Не нашли курс под свою цель?
             </span>
-            <h2 className="tw:mt-[9px] tw:[font-family:'Unbounded',_sans-serif]">
+            <h2 className="tw:mt-[9px] tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
               Создайте персональную программу обучения за несколько минут
             </h2>
-            <p className="tw:m-[12px_0_0] tw:text-(--muted)">
+            <p className="tw:m-[12px_0_0] tw:text-(--muted) tw:leading-[1.72] tw:text-[1rem] tw:tracking-[0.012em]">
               Расскажите ИИ, какой навык хотите освоить, — он подготовит
               структуру, уроки и практические задания под ваш уровень.
             </p>

@@ -279,7 +279,7 @@ export function ModelsPage({
   return (
     <section className="container section models-page tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:grid tw:gap-[22px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
       <SectionTop label="AI-модели" title="Управление AI-моделями" />
-      <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted)">
+      <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
         Просмотр списка доступен авторизованным пользователям. Создание и
         удаление отображаются только при наличии соответствующих permissions.
       </p>
@@ -301,7 +301,7 @@ export function ModelsPage({
             <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">
               Список моделей
             </h3>
-            <p className="model-muted tw:text-(--muted) tw:m-[0] tw:font-[700]">
+            <p className="model-muted tw:text-(--muted) tw:m-[0] tw:font-[700] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
               Всего: {total}
             </p>
           </div>
@@ -346,7 +346,7 @@ export function ModelsPage({
           </p>
         )}
         {!isLoading && items.length === 0 && !error && (
-          <p className="model-muted tw:text-(--muted) tw:m-[0] tw:font-[700]">
+          <p className="model-muted tw:text-(--muted) tw:m-[0] tw:font-[700] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
             AI-модели пока не найдены.
           </p>
         )}
@@ -386,7 +386,7 @@ export function ModelsPage({
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font:inherit] tw:[&&&]:font-[800] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
+                  className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
                   disabled={isLoading}
                   onClick={() => setPage(pageNumber)}
                   aria-current={pageNumber === page ? "page" : undefined}

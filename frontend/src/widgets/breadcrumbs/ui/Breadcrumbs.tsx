@@ -106,7 +106,7 @@ export function Breadcrumbs({
           const isLast = index === crumbs.length - 1;
           return (
             <li
-              className="tw:inline-flex tw:items-center tw:gap-[7px] tw:text-(--muted) tw:[.breadcrumbs_li_+_&]:[&::before]:text-[rgba(var(--accent-rgb),_0.8)] tw:[.breadcrumbs_li_+_&]:[&::before]:font-[800] tw:[.breadcrumbs_li_+_&]:[&::before]:[content:'›']"
+              className="tw:inline-flex tw:items-center tw:gap-[7px] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[.breadcrumbs_li_+_&]:[&::before]:text-[rgba(var(--accent-rgb),_0.8)] tw:[.breadcrumbs_li_+_&]:[&::before]:font-[800] tw:[.breadcrumbs_li_+_&]:[&::before]:[content:'›']"
               key={`${crumb.to}-${crumb.label}`}
             >
               {isLast ? (

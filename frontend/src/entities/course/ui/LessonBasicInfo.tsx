@@ -15,7 +15,7 @@ export function LessonBasicInfo({
 }) {
   if (!lesson) {
     return (
-      <article className="course-viewer-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:0_20px_60px_rgba(27,_35,_68,_0.08)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:[&_h1]:m-[0]">
+      <article className="course-viewer-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:0_20px_60px_rgba(27,_35,_68,_0.08)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:[&_h1]:m-[0]">
         <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
           Выберите урок, чтобы увидеть описание.
         </p>
@@ -34,13 +34,15 @@ export function LessonBasicInfo({
       <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:text-[#f7dca8]">
         Урок {lesson.order + 1}
       </div>
-      <h2 className="tw:dark:text-[#fff4df]">{lesson.title}</h2>
+      <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:dark:text-[#fff4df]">
+        {lesson.title}
+      </h2>
       {lesson.description ? (
-        <p className="course-viewer-description tw:text-(--muted) tw:m-[14px_0_0] tw:dark:text-[#e9decb]">
+        <p className="course-viewer-description tw:text-(--muted) tw:leading-[1.72] tw:m-[14px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:text-[#e9decb]">
           {lesson.description}
         </p>
       ) : (
-        <p className="course-viewer-muted tw:text-(--muted) tw:m-[10px_0_0] tw:dark:text-[#e9decb]">
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.72] tw:m-[10px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:text-[#e9decb]">
           Описание урока отсутствует.
         </p>
       )}
@@ -68,7 +70,7 @@ export function LessonBasicInfo({
           </ul>
         </div>
       ) : (
-        <p className="course-viewer-muted tw:text-(--muted) tw:m-[10px_0_0] tw:dark:text-[#e9decb]">
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.72] tw:m-[10px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:text-[#e9decb]">
           Цели урока пока не указаны.
         </p>
       )}

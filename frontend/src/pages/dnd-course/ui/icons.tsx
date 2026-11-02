@@ -2,16 +2,20 @@
 const PATHS: Record<string, string> = {
   upload: "M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2",
   file: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Zm0 0v5h5",
-  lesson: "M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15ZM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5",
+  lesson:
+    "M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15ZM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5",
   module: "m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5",
   course: "M3 9.5 12 5l9 4.5-9 4.5-9-4.5Zm3 2v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5",
   plus: "M12 5v14M5 12h14",
   trash: "M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13",
-  sparkles: "M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6",
+  sparkles:
+    "M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6",
   eye: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
-  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7.6 7.6 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7.6 7.6 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z",
+  settings:
+    "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7.6 7.6 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7.6 7.6 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z",
   check: "m5 12.5 4.5 4.5L19 7.5",
-  alert: "M12 9v4m0 3.5v.01M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z",
+  alert:
+    "M12 9v4m0 3.5v.01M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z",
   info: "M12 11v5m0-8.5v.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   arrowUp: "M12 19V5m0 0-6 6m6-6 6 6",
   arrowDown: "M12 5v14m0 0 6-6m-6 6-6-6",
@@ -20,7 +24,8 @@ const PATHS: Record<string, string> = {
   close: "M6 6l12 12M18 6 6 18",
   help: "M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3m0 3.5v.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   fit: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
-  target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-3.5v-1",
+  target:
+    "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0-3.5v-1",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   list: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
   canvas: "M4 4h6v6H4V4Zm10 10h6v6h-6v-6ZM10 7h4a3 3 0 0 1 3 3v4",
@@ -52,7 +57,7 @@ export function Icon({ name, size = 18, className = "", title }: IconProps) {
   if (!path) return null;
   return (
     <svg
-      className={`dnd-icon tw:[.page_.dnd-builder_&]:flex-[none] tw:[.page_.dnd-builder_&.dnd-chevron]:flex-[none] tw:[.page_.dnd-builder_&]:block tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:inline tw:[.page_.dnd-builder_&.dnd-palette-grip]:text-(--dnd-muted) tw:[.page_.dnd-builder_.dnd-toast--success_>_&]:text-(--dnd-ok) tw:[.page_.dnd-builder_.dnd-toast--error_>_&]:text-(--dnd-error) tw:[.page_.dnd-builder_.dnd-toast--warning_>_&]:text-(--dnd-warn) tw:[.page_.dnd-builder_.dnd-toast--info_>_&]:text-(--dnd-info) tw:[.page_.dnd-builder_&.dnd-palette-grip]:opacity-[0.6] tw:[.page_.dnd-builder_.dnd-node-kicker_&]:w-[20px] tw:[.page_.dnd-builder_.dnd-node-btn_&]:w-[22px] tw:[.page_.dnd-builder_.dnd-module-drop_&]:w-[19px] tw:[.page_.dnd-builder_.dnd-node-meta_&]:w-[18px] tw:[.page_.dnd-builder_.dnd-node-status_&]:w-[18px] tw:[.page_.dnd-builder_.dnd-node--upload_&]:w-[28px] tw:[.page_.dnd-builder_.dnd-node_.dnd-pill_&]:w-[16px] tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:w-[18px] tw:[.page_.dnd-builder_.dnd-node-kicker_&]:h-[20px] tw:[.page_.dnd-builder_.dnd-node-btn_&]:h-[22px] tw:[.page_.dnd-builder_.dnd-module-drop_&]:h-[19px] tw:[.page_.dnd-builder_.dnd-node-meta_&]:h-[18px] tw:[.page_.dnd-builder_.dnd-node-status_&]:h-[18px] tw:[.page_.dnd-builder_.dnd-node--upload_&]:h-[28px] tw:[.page_.dnd-builder_.dnd-node_.dnd-pill_&]:h-[16px] tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:h-[18px] tw:[.page_.dnd-builder_.dnd-muted_&]:mt-[2px] tw:[.page_.dnd-builder_.dnd-inline-error_&]:mt-[1px] tw:[.page_.dnd-builder_&.dnd-chevron]:[transition:transform_0.2s_var(--dnd-ease)] tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:[vertical-align:-2px] tw:[.page_.dnd-builder_details[open]_>_summary_>_&.dnd-chevron]:[transform:rotate(180deg)] ${name === "spinner" ? "is-spinning" : ""} ${className}`}
+      className={`dnd-icon tw:[.page_.dnd-builder_&]:flex-[none] tw:[.page_.dnd-builder_&.dnd-chevron]:flex-[none] tw:[.page_.dnd-builder_&]:block tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:inline tw:[.page_.dnd-builder_&.dnd-palette-grip]:text-(--dnd-muted) tw:[.page_.dnd-builder_.dnd-toast--success_>_&]:text-(--dnd-ok) tw:[.page_.dnd-builder_.dnd-toast--error_>_&]:text-(--dnd-error) tw:[.page_.dnd-builder_.dnd-toast--warning_>_&]:text-(--dnd-warn) tw:[.page_.dnd-builder_.dnd-toast--info_>_&]:text-(--dnd-info) tw:[.page_.dnd-builder_&.dnd-palette-grip]:opacity-[0.6] tw:[.page_.dnd-builder_.dnd-node-kicker_&]:w-[20px] tw:[.page_.dnd-builder_.dnd-node-btn_&]:w-[22px] tw:[.page_.dnd-builder_.dnd-module-drop_&]:w-[19px] tw:[.page_.dnd-builder_.dnd-node-meta_&]:w-[18px] tw:[.page_.dnd-builder_.dnd-node-status_&]:w-[18px] tw:[.page_.dnd-builder_.dnd-node--upload_&]:w-[28px] tw:[.page_.dnd-builder_.dnd-node_.dnd-pill_&]:w-[16px] tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:w-[18px] tw:[.page_.dnd-builder_.dnd-node-kicker_&]:h-[20px] tw:[.page_.dnd-builder_.dnd-node-btn_&]:h-[22px] tw:[.page_.dnd-builder_.dnd-module-drop_&]:h-[19px] tw:[.page_.dnd-builder_.dnd-node-meta_&]:h-[18px] tw:[.page_.dnd-builder_.dnd-node-status_&]:h-[18px] tw:[.page_.dnd-builder_.dnd-node--upload_&]:h-[28px] tw:[.page_.dnd-builder_.dnd-node_.dnd-pill_&]:h-[16px] tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:h-[18px] tw:[.page_.dnd-builder_.dnd-muted_&]:mt-[2px] tw:[.page_.dnd-builder_.dnd-inline-error_&]:mt-[1px] tw:[.page_.dnd-builder_&.dnd-chevron]:[transition:transform_0.2s_var(--dnd-ease)] tw:[.page_.dnd-builder_.dnd-node-excerpt_&]:[vertical-align:-2px] tw:[.page_.dnd-builder_details[open]_>_summary_>_&.dnd-chevron]:[transform:rotate(180deg)] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px] ${name === "spinner" ? "is-spinning" : ""} ${className}`}
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -66,15 +71,32 @@ export function Icon({ name, size = 18, className = "", title }: IconProps) {
       focusable="false"
     >
       {title ? <title>{title}</title> : null}
-      <path d={path} />
+      <path
+        className="tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]"
+        d={path}
+      />
     </svg>
   );
 }
 
-export function Spinner({ size = 16, label }: { size?: number; label?: string }) {
+export function Spinner({
+  size = 16,
+  label,
+}: {
+  size?: number;
+  label?: string;
+}) {
   return (
-    <span className="dnd-spinner tw:[.page_.dnd-builder_&]:inline-block tw:[.page_.dnd-builder_&]:flex-[none] tw:[.page_.dnd-builder_&]:rounded-[50%] tw:[.page_.dnd-builder_&]:border-solid tw:[.page_.dnd-builder_&]:border-[currentColor] tw:[.page_.dnd-builder_&]:align-middle tw:[.page_.dnd-builder_&]:[border-width:2px] tw:[.page_.dnd-builder_&]:[border-right-color:transparent] tw:[.page_.dnd-builder_&]:animate-dnd-spin" style={{ width: size, height: size }} role={label ? "status" : undefined}>
-      {label ? <span className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!">{label}</span> : null}
+    <span
+      className="dnd-spinner tw:[.page_.dnd-builder_&]:inline-block tw:[.page_.dnd-builder_&]:flex-[none] tw:[.page_.dnd-builder_&]:rounded-[50%] tw:[.page_.dnd-builder_&]:border-solid tw:[.page_.dnd-builder_&]:border-[currentColor] tw:[.page_.dnd-builder_&]:align-middle tw:[.page_.dnd-builder_&]:[border-width:2px] tw:[.page_.dnd-builder_&]:[border-right-color:transparent] tw:[.page_.dnd-builder_&]:animate-dnd-spin"
+      style={{ width: size, height: size }}
+      role={label ? "status" : undefined}
+    >
+      {label ? (
+        <span className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!">
+          {label}
+        </span>
+      ) : null}
     </span>
   );
 }

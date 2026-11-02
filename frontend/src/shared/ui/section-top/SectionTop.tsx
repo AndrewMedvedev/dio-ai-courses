@@ -12,7 +12,7 @@ export function SectionTop({ label, title }: SectionTopProps) {
       <span className="tw:text-(--eyebrow) tw:text-[1rem] tw:[font-family:'Unbounded',_sans-serif] tw:[.page.is-inner-page_.section-top_&]:text-[0.82rem] tw:[.page.is-inner-page_.section-top_&]:tracking-[0.12em] tw:[.organizations-page_.section-top_&]:min-w-[0]">
         {label}
       </span>
-      <h2 className="tw:text-[clamp(1.4rem,_2.7vw,_2.2rem)] tw:[font-family:'Unbounded',_sans-serif] tw:[.organizations-page_.section-top_&]:leading-[1.15] tw:[.organizations-page_.section-top_&]:min-w-[0] tw:[.page.is-inner-page_main_&]:[.organizations-page_.section-top_&]:leading-[1.28]">
+      <h2 className="tw:text-[clamp(1.4rem,_2.7vw,_2.2rem)] tw:[font-family:'Unbounded',_sans-serif] tw:[.page.is-inner-page_main_&]:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:[.page.is-inner-page_main_&]:leading-[1.28] tw:[.organizations-page_.section-top_&]:leading-[1.15] tw:[.page.is-inner-page_main_&]:tracking-[-0.016em] tw:[.organizations-page_.section-top_&]:min-w-[0]">
         {title}
       </h2>
     </div>

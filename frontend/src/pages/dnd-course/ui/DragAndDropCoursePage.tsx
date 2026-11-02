@@ -29,7 +29,8 @@ import {
 } from "./common";
 
 function useMedia(query: string): boolean {
-  const get = () => typeof window !== "undefined" && window.matchMedia(query).matches;
+  const get = () =>
+    typeof window !== "undefined" && window.matchMedia(query).matches;
   const [matches, setMatches] = useState(get);
   useEffect(() => {
     const media = window.matchMedia(query);
@@ -52,9 +53,14 @@ export function DragAndDropCoursePage() {
   const hydrated = useDndCourseStore((state) => state.hydrated);
   const hasCourse = useDndCourseStore((state) => Boolean(state.course?.id));
   const paletteOpen = useDndCourseStore((state) => state.paletteOpen);
-  const inspectorOpen = useDndCourseStore((state) => state.inspector.open && Boolean(state.activeNodeId));
+  const inspectorOpen = useDndCourseStore(
+    (state) => state.inspector.open && Boolean(state.activeNodeId),
+  );
   const inspectorWide = useDndCourseStore(
-    (state) => state.inspector.open && state.inspector.tab === "content" && String(state.activeNodeId || "").startsWith("lesson:"),
+    (state) =>
+      state.inspector.open &&
+      state.inspector.tab === "content" &&
+      String(state.activeNodeId || "").startsWith("lesson:"),
   );
   const viewMode = useDndCourseStore((state) => state.viewMode);
   const setPaletteOpen = useDndCourseStore((state) => state.setPaletteOpen);
@@ -64,7 +70,9 @@ export function DragAndDropCoursePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const inspectorWidths = useDndCourseStore((state) => state.inspectorWidths);
-  const setInspectorWidth = useDndCourseStore((state) => state.setInspectorWidth);
+  const setInspectorWidth = useDndCourseStore(
+    (state) => state.setInspectorWidth,
+  );
   const fullscreen = useDndCourseStore((state) => state.fullscreen);
   const toggleFullscreen = useDndCourseStore((state) => state.toggleFullscreen);
   const courseIdForPreview = useDndCourseStore((state) => state.course?.id);
@@ -118,13 +126,20 @@ export function DragAndDropCoursePage() {
     if (type === "lesson") {
       const lesson = state.lessons.find((item) => item.id === entityId);
       if (!lesson) return;
-      const module = state.modules.find((item) => item.lessonIds.includes(entityId));
+      const module = state.modules.find((item) =>
+        item.lessonIds.includes(entityId),
+      );
       state.openConfirm({
         title: `Удалить урок «${lesson.title}»?`,
-        message: "Урок будет удалён на сервере вместе с контентом. Отменить это нельзя.",
+        message:
+          "Урок будет удалён на сервере вместе с контентом. Отменить это нельзя.",
         consequences: [
           "Материалы урока снова станут свободными и останутся на холсте.",
-          ...(module && module.lessonIds.length === 1 ? [`Модуль «${module.title}» станет пустым — сам модуль не удалится.`] : []),
+          ...(module && module.lessonIds.length === 1
+            ? [
+                `Модуль «${module.title}» станет пустым — сам модуль не удалится.`,
+              ]
+            : []),
         ],
         onConfirm: () => useDndCourseStore.getState().deleteLesson(entityId),
       });
@@ -149,7 +164,9 @@ export function DragAndDropCoursePage() {
   const previewLesson = useCallback(
     (lessonId: string) => {
       if (!courseIdForPreview) return;
-      navigate(`/drag-and-drop-course/${courseIdForPreview}/preview?lesson=${encodeURIComponent(lessonId)}`);
+      navigate(
+        `/drag-and-drop-course/${courseIdForPreview}/preview?lesson=${encodeURIComponent(lessonId)}`,
+      );
     },
     [courseIdForPreview, navigate],
   );
@@ -161,7 +178,8 @@ export function DragAndDropCoursePage() {
   useEffect(() => {
     if (!fullscreen) return undefined;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !document.querySelector(".dnd-modal")) toggleFullscreen();
+      if (event.key === "Escape" && !document.querySelector(".dnd-modal"))
+        toggleFullscreen();
     };
     document.body.classList.add("is-dnd-fullscreen", "tw:overflow-hidden");
     window.addEventListener("keydown", onKey);
@@ -172,9 +190,11 @@ export function DragAndDropCoursePage() {
   }, [fullscreen, toggleFullscreen]);
 
   const widthKind = inspectorWide ? "wide" : "normal";
-  const inspectorWidth = (inspectorWidths || {})[widthKind] || (inspectorWide ? 660 : 440);
+  const inspectorWidth =
+    (inspectorWidths || {})[widthKind] || (inspectorWide ? 660 : 440);
   const clampWidth = (value: number) => {
-    const total = workspaceRef.current?.getBoundingClientRect().width || window.innerWidth;
+    const total =
+      workspaceRef.current?.getBoundingClientRect().width || window.innerWidth;
     return Math.max(340, Math.min(value, Math.min(980, total - 380)));
   };
   const startResize = (event: ReactPointerEvent<HTMLElement>) => {
@@ -190,16 +210,28 @@ export function DragAndDropCoursePage() {
     const stop = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
-      document.body.classList.remove("is-dnd-resizing", "tw:[cursor:col-resize]!", "tw:[user-select:none]!", "tw:[&_*]:[cursor:col-resize]!", "tw:[&_*]:[user-select:none]!");
+      document.body.classList.remove(
+        "is-dnd-resizing",
+        "tw:[cursor:col-resize]!",
+        "tw:[user-select:none]!",
+        "tw:[&_*]:[cursor:col-resize]!",
+        "tw:[&_*]:[user-select:none]!",
+      );
       setInspectorWidth(widthKind, next);
     };
-    document.body.classList.add("is-dnd-resizing", "tw:[cursor:col-resize]!", "tw:[user-select:none]!", "tw:[&_*]:[cursor:col-resize]!", "tw:[&_*]:[user-select:none]!");
+    document.body.classList.add(
+      "is-dnd-resizing",
+      "tw:[cursor:col-resize]!",
+      "tw:[user-select:none]!",
+      "tw:[&_*]:[cursor:col-resize]!",
+      "tw:[&_*]:[user-select:none]!",
+    );
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
   };
   const resizeHandle = (
     <div
-      className="dnd-inspector-resizer tw:absolute tw:top-[0] tw:bottom-[0] tw:left-[-6px] tw:z-[6] tw:w-[12px] tw:[cursor:col-resize] tw:[touch-action:none] tw:[.page_.dnd-builder_.dnd-inspector:has(.lesson-editor-block-row.has-ai)_&]:hidden tw:[&::after]:absolute tw:[&::after]:top-[50%] tw:[&::after]:left-[4px] tw:[&::after]:w-[4px] tw:[&::after]:h-[56px] tw:[&::after]:rounded-[999px] tw:[&::after]:opacity-[0.6] tw:[&::after]:[transition:opacity_0.15s,_background_0.15s,_height_0.15s] tw:[&::after]:[content:''] tw:hover:[&::after]:h-[96px] tw:focus-visible:[&::after]:h-[96px] tw:[body.is-dnd-resizing_.page_.dnd-builder_&]:[&::after]:h-[96px] tw:[&::after]:[background:var(--dnd-border-strong)] tw:[&::after]:[transform:translateY(-50%)] tw:hover:[&::after]:opacity-[1] tw:focus-visible:[&::after]:opacity-[1] tw:[body.is-dnd-resizing_.page_.dnd-builder_&]:[&::after]:opacity-[1] tw:hover:[&::after]:[background:var(--dnd-accent)] tw:focus-visible:[&::after]:[background:var(--dnd-accent)] tw:[body.is-dnd-resizing_.page_.dnd-builder_&]:[&::after]:[background:var(--dnd-accent)]"
+      className="dnd-inspector-resizer tw:absolute tw:top-[0] tw:bottom-[0] tw:left-[-6px] tw:z-[6] tw:w-[12px] tw:[cursor:col-resize] tw:[touch-action:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-inspector:has(.lesson-editor-block-row.has-ai)_&]:hidden tw:[&::after]:absolute tw:[&::after]:top-[50%] tw:[&::after]:left-[4px] tw:[&::after]:w-[4px] tw:[&::after]:h-[56px] tw:[&::after]:rounded-[999px] tw:[&::after]:opacity-[0.6] tw:[&::after]:[transition:opacity_0.15s,_background_0.15s,_height_0.15s] tw:[&::after]:[content:''] tw:hover:[&::after]:h-[96px] tw:focus-visible:[&::after]:h-[96px] tw:[body.is-dnd-resizing_.page_.dnd-builder_&]:[&::after]:h-[96px] tw:[&::after]:[background:var(--dnd-border-strong)] tw:[&::after]:[transform:translateY(-50%)] tw:hover:[&::after]:opacity-[1] tw:focus-visible:[&::after]:opacity-[1] tw:[body.is-dnd-resizing_.page_.dnd-builder_&]:[&::after]:opacity-[1] tw:hover:[&::after]:[background:var(--dnd-accent)] tw:focus-visible:[&::after]:[background:var(--dnd-accent)] tw:[body.is-dnd-resizing_.page_.dnd-builder_&]:[&::after]:[background:var(--dnd-accent)]"
       role="separator"
       aria-orientation="vertical"
       aria-label="Ширина правой панели"
@@ -209,11 +241,16 @@ export function DragAndDropCoursePage() {
       tabIndex={0}
       title="Потяните, чтобы изменить ширину. Двойной клик — вернуть по умолчанию"
       onPointerDown={startResize}
-      onDoubleClick={() => setInspectorWidth(widthKind, inspectorWide ? 660 : 440)}
+      onDoubleClick={() =>
+        setInspectorWidth(widthKind, inspectorWide ? 660 : 440)
+      }
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
           event.preventDefault();
-          setInspectorWidth(widthKind, clampWidth(inspectorWidth + (event.key === "ArrowLeft" ? 40 : -40)));
+          setInspectorWidth(
+            widthKind,
+            clampWidth(inspectorWidth + (event.key === "ArrowLeft" ? 40 : -40)),
+          );
         }
       }}
     />
@@ -236,17 +273,25 @@ export function DragAndDropCoursePage() {
             <TopBar isMobile={isMobile} onPreview={openPreview} />
             <div
               ref={workspaceRef}
-              style={{ "--dnd-inspector-w": `${inspectorWidth}px` } as CSSProperties}
-              className={`dnd-workspace tw:relative tw:flex-[1] tw:min-h-[0] tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:[.page_.dnd-builder_&.has-palette]:grid-cols-[264px_minmax(0,_1fr)] tw:[.page_.dnd-builder_&.has-palette.has-inspector]:grid-cols-[264px_minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:[.page_.dnd-builder_&.has-palette.has-inspector.has-wide-inspector]:grid-cols-[264px_minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:[.page_.dnd-builder_&.has-inspector]:grid-cols-[minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:[.page_.dnd-builder_&.has-inspector.has-wide-inspector]:grid-cols-[minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] ${paletteOpen && paletteVariant === "side" && mode === "canvas" ? "has-palette" : ""} ${inspectorOpen && inspectorVariant === "side" ? "has-inspector" : ""} ${inspectorWide ? "has-wide-inspector" : ""}`}>
+              style={
+                { "--dnd-inspector-w": `${inspectorWidth}px` } as CSSProperties
+              }
+              className={`dnd-workspace tw:relative tw:flex-[1] tw:min-h-[0] tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:[.page_.dnd-builder_&.has-palette]:grid-cols-[264px_minmax(0,_1fr)] tw:[.page_.dnd-builder_&.has-palette.has-inspector]:grid-cols-[264px_minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:[.page_.dnd-builder_&.has-palette.has-inspector.has-wide-inspector]:grid-cols-[264px_minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:[.page_.dnd-builder_&.has-inspector]:grid-cols-[minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:[.page_.dnd-builder_&.has-inspector.has-wide-inspector]:grid-cols-[minmax(0,_1fr)_var(--dnd-inspector-w,_440px)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] ${paletteOpen && paletteVariant === "side" && mode === "canvas" ? "has-palette" : ""} ${inspectorOpen && inspectorVariant === "side" ? "has-inspector" : ""} ${inspectorWide ? "has-wide-inspector" : ""}`}
+            >
               {mode === "canvas" && paletteOpen ? (
                 <>
                   {paletteVariant === "sheet" ? (
-                    <button type="button" className="dnd-scrim tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder.is-mobile_&]:fixed tw:[.page_.dnd-builder_&]:inset-[0] tw:[.page_.dnd-builder_&]:z-[25] tw:[.page_.dnd-builder.is-mobile_&]:z-[899] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:cursor-pointer tw:[.page_.dnd-builder_&]:[border:0] tw:[.page_.dnd-builder_&]:[background:rgba(20,_16,_12,_0.32)] tw:[.page_.dnd-builder_&]:animate-dnd-fade" aria-label="Закрыть палитру" onClick={() => setPaletteOpen(false)} />
+                    <button
+                      type="button"
+                      className="dnd-scrim tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder.is-mobile_&]:fixed tw:[.page_.dnd-builder_&]:inset-[0] tw:[.page_.dnd-builder_&]:z-[25] tw:[.page_.dnd-builder.is-mobile_&]:z-[899] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:cursor-pointer tw:[.page_.dnd-builder_&]:[border:0] tw:[.page_.dnd-builder_&]:[background:rgba(20,_16,_12,_0.32)] tw:[.page_.dnd-builder_&]:animate-dnd-fade"
+                      aria-label="Закрыть палитру"
+                      onClick={() => setPaletteOpen(false)}
+                    />
                   ) : null}
                   <Palette variant={paletteVariant} />
                 </>
               ) : null}
-              <main className="dnd-main tw:relative tw:min-w-[0] tw:min-h-[0] tw:overflow-hidden tw:text-[1.04rem] tw:tracking-[0.008em]">
+              <main className="dnd-main tw:relative tw:min-w-[0] tw:min-h-[0] tw:overflow-hidden tw:text-[1.04rem] tw:tracking-[0.008em] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                 {mode === "canvas" ? (
                   <>
                     <Canvas />
@@ -259,9 +304,17 @@ export function DragAndDropCoursePage() {
               {inspectorOpen ? (
                 <>
                   {inspectorVariant !== "side" ? (
-                    <button type="button" className="dnd-scrim tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder.is-mobile_&]:fixed tw:[.page_.dnd-builder_&]:inset-[0] tw:[.page_.dnd-builder_&]:z-[25] tw:[.page_.dnd-builder.is-mobile_&]:z-[899] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:cursor-pointer tw:[.page_.dnd-builder_&]:[border:0] tw:[.page_.dnd-builder_&]:[background:rgba(20,_16,_12,_0.32)] tw:[.page_.dnd-builder_&]:animate-dnd-fade" aria-label="Закрыть инспектор" onClick={closeInspector} />
+                    <button
+                      type="button"
+                      className="dnd-scrim tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder.is-mobile_&]:fixed tw:[.page_.dnd-builder_&]:inset-[0] tw:[.page_.dnd-builder_&]:z-[25] tw:[.page_.dnd-builder.is-mobile_&]:z-[899] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:cursor-pointer tw:[.page_.dnd-builder_&]:[border:0] tw:[.page_.dnd-builder_&]:[background:rgba(20,_16,_12,_0.32)] tw:[.page_.dnd-builder_&]:animate-dnd-fade"
+                      aria-label="Закрыть инспектор"
+                      onClick={closeInspector}
+                    />
                   ) : null}
-                  <Inspector variant={inspectorVariant} resizeHandle={resizeHandle} />
+                  <Inspector
+                    variant={inspectorVariant}
+                    resizeHandle={resizeHandle}
+                  />
                 </>
               ) : null}
             </div>
@@ -274,7 +327,7 @@ export function DragAndDropCoursePage() {
           ref={fileInputRef}
           type="file"
           multiple
-          className="dnd-visually-hidden tw:text-[0.96rem] tw:leading-[1.45] tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!"
+          className="dnd-visually-hidden tw:text-[0.96rem] tw:leading-[1.45] tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]! tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
           tabIndex={-1}
           aria-hidden="true"
           onChange={(event) => {
@@ -282,8 +335,13 @@ export function DragAndDropCoursePage() {
             const options = pickOptionsRef.current || {};
             const store = useDndCourseStore.getState();
             if (files.length) {
-              if (options.replaceMaterialId) store.retryMaterial(options.replaceMaterialId, files[0]);
-              else store.addFiles(files, { position: options.position || null, attachToLessonId: options.attachToLessonId || null });
+              if (options.replaceMaterialId)
+                store.retryMaterial(options.replaceMaterialId, files[0]);
+              else
+                store.addFiles(files, {
+                  position: options.position || null,
+                  attachToLessonId: options.attachToLessonId || null,
+                });
             }
             pickOptionsRef.current = {};
             event.target.value = "";
@@ -302,4 +360,3 @@ export function DragAndDropCoursePage() {
     </DndActionsContext.Provider>
   );
 }
-

@@ -183,7 +183,7 @@ export function CourseNavigationTree({
       {summaryItem ? (
         <button
           type="button"
-          className={`course-nav-summary-btn tw:block tw:w-[100%] tw:m-[4px_0_8px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--heading) tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.6)] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:transparent] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] ${summaryItem.active ? "is-active" : ""}`}
+          className={`course-nav-summary-btn tw:block tw:w-[100%] tw:m-[4px_0_8px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--heading) tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.6)] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] ${summaryItem.active ? "is-active" : ""}`}
           aria-current={summaryItem.active ? "page" : undefined}
           onClick={summaryItem.onOpen}
         >
@@ -199,7 +199,7 @@ export function CourseNavigationTree({
           return (
             <li
               key={block.id}
-              className={String.raw`course-nav-block tw:pl-[8px] tw:[border-left:3px_solid_transparent] tw:[&.has-progress.is-active]:rounded-[0_10px_10px_0] tw:[&.is-active]:[border-left-color:rgb(var(--success-rgb))] tw:[&.has-progress]:[border-left-color:var(--progress-idle)] tw:[&.has-progress.is-in\_progress]:[border-left-color:var(--progress-active)] tw:[&.has-progress.is-completed]:[border-left-color:var(--progress-done)] tw:[&.has-progress.is-active]:[background:rgba(var(--accent-rgb),_0.07)] ${selectedBlock.id === block.id ? "is-active" : ""} ${moduleProgress ? `has-progress is-${moduleProgress.status}` : ""}`}
+              className={String.raw`course-nav-block tw:pl-[8px] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border-left:3px_solid_transparent] tw:[&.has-progress.is-active]:rounded-[0_10px_10px_0] tw:[&.is-active]:[border-left-color:rgb(var(--success-rgb))] tw:[&.has-progress]:[border-left-color:var(--progress-idle)] tw:[&.has-progress.is-in\_progress]:[border-left-color:var(--progress-active)] tw:[&.has-progress.is-completed]:[border-left-color:var(--progress-done)] tw:[&.has-progress.is-active]:[background:rgba(var(--accent-rgb),_0.07)] ${selectedBlock.id === block.id ? "is-active" : ""} ${moduleProgress ? `has-progress is-${moduleProgress.status}` : ""}`}
             >
               <button
                 type="button"
@@ -243,7 +243,10 @@ export function CourseNavigationTree({
                       </li>
                     ))
                   : block.lessons.map((lesson, lessonIndex) => (
-                      <li key={lesson.id}>
+                      <li
+                        className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]"
+                        key={lesson.id}
+                      >
                         <button
                           type="button"
                           className={`course-nav-item-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[10px] tw:items-center tw:min-h-[42px] tw:rounded-[8px] tw:p-[8px_10px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[36px_minmax(0,_1fr)_auto] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:hover:[&&&&]:[background:rgba(255,_255,_255,_0.08)] ${selectedLessonId === lesson.id ? "is-active" : ""} ${hasProgress ? `has-progress is-${getLessonProgressStatus(lessonProgressById?.[lesson.id])}` : ""}`}

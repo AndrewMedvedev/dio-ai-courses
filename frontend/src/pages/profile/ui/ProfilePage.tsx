@@ -177,7 +177,7 @@ function CourseProgressLine({ summary }: { summary: CourseSummary }) {
     <span
       className={`profile-course-progress tw:col-[1_/_-1] tw:grid tw:gap-[6px] tw:mt-[4px] tw:text-(--muted) tw:text-[0.78rem] tw:[--profile-progress-done:#2f7d4f] tw:[--profile-progress-active:#a86a00] tw:[--profile-progress-track:rgba(var(--accent-rgb),_0.18)] tw:[&.is-loading]:italic tw:dark:[--profile-progress-done:#7fd19b] tw:dark:[--profile-progress-active:#f0c060] tw:dark:[--profile-progress-track:rgba(255,_255,_255,_0.12)] is-${status}`}
     >
-      <span className="profile-course-progress-row tw:flex tw:items-baseline tw:justify-between tw:gap-[8px] tw:[.profile-course-progress.is-in\_progress_&_b]:text-(--profile-progress-done) tw:[.profile-course-progress.is-completed_&_b]:text-(--profile-progress-done)">
+      <span className="profile-course-progress-row tw:flex tw:items-baseline tw:justify-between tw:gap-[8px] tw:[.profile-course-progress.is-in\_progress_&_b]:text-(--profile-progress-done) tw:[.profile-course-progress.is-completed_&&_b]:text-(--profile-progress-done)">
         <span>
           {summary.startedLessons > 0
             ? `Пройдено уроков: ${summary.completedLessons} из ${summary.totalLessons}`
@@ -554,7 +554,7 @@ export function ProfilePage({
             <h3 className="tw:mt-[14px] tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em] tw:[font-family:'Unbounded',_sans-serif]">
               {displayName}
             </h3>
-            <p className="tw:m-[8px_0_0] tw:text-(--muted) tw:wrap-anywhere">
+            <p className="tw:m-[8px_0_0] tw:text-(--muted) tw:wrap-anywhere tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
               {profileEmail}
             </p>
             <small className="profile-user-meta tw:block tw:mt-[8px] tw:text-(--ink-accent) tw:text-[0.82rem] tw:font-[800] tw:wrap-anywhere">
@@ -571,7 +571,7 @@ export function ProfilePage({
             <div className="profile-mode-switch tw:mt-[10px] tw:grid tw:gap-[6px]">
               <button
                 type="button"
-                className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${!isAuthorMode ? "is-active" : ""}`}
+                className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${!isAuthorMode ? "is-active" : ""}`}
                 onClick={() => setActiveProfileTab("overview")}
               >
                 Обучаюсь
@@ -579,7 +579,7 @@ export function ProfilePage({
               {canManageCourses && (
                 <button
                   type="button"
-                  className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${isAuthorMode ? "is-active" : ""}`}
+                  className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${isAuthorMode ? "is-active" : ""}`}
                   onClick={() => setActiveProfileTab("teacher")}
                 >
                   Мои курсы
@@ -591,10 +591,13 @@ export function ProfilePage({
           <article className="glass-card profile-nav-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
             <ul className="profile-nav-list tw:m-[0] tw:p-[0] tw:grid tw:gap-[8px] tw:[list-style:none]">
               {visibleTabs.map((tab) => (
-                <li key={tab.id}>
+                <li
+                  className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]"
+                  key={tab.id}
+                >
                   <button
                     type="button"
-                    className={`profile-tab-btn tw:w-[100%] tw:text-left tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_14px] tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[&.is-active]:text-(--ink-accent) tw:[font:inherit] tw:[&&]:font-[700] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${activeProfileTab === tab.id ? "is-active" : ""}`}
+                    className={`profile-tab-btn tw:w-[100%] tw:text-left tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_14px] tw:cursor-pointer tw:text-[0.96rem] tw:leading-[1.45] tw:font-[700] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[&.is-active]:text-(--ink-accent) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${activeProfileTab === tab.id ? "is-active" : ""}`}
                     onClick={() => setActiveProfileTab(tab.id)}
                   >
                     {tab.label}
@@ -648,7 +651,7 @@ export function ProfilePage({
                     <h3 className="tw:mt-[8px] tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">
                       Профиль пользователя
                     </h3>
-                    <p className="tw:m-[8px_0_0] tw:text-(--muted)">
+                    <p className="tw:m-[8px_0_0] tw:text-(--muted) tw:leading-[1.72] tw:text-[1rem] tw:tracking-[0.012em]">
                       Эти данные используются в личном кабинете и интерфейсе
                       платформы.
                     </p>
@@ -838,14 +841,14 @@ export function ProfilePage({
                     <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em] tw:[font-family:'Unbounded',_sans-serif]">
                       Мои курсы
                     </h3>
-                    <p className="teacher-card-description tw:m-[8px_0_0] tw:text-(--muted)">
+                    <p className="teacher-card-description tw:m-[8px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
                       Курсы, на которые вы записаны.
                     </p>
                   </div>
                 </div>
                 {isMyCoursesLoading && (
                   <p
-                    className="profile-progress-note tw:col-[1_/_-1] tw:inline-flex tw:items-center tw:gap-[9px] tw:w-[fit-content] tw:mt-[14px] tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[9px_12px] tw:font-[800] tw:[.profile-edit-actions_&]:mt-[0] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.1)]"
+                    className="profile-progress-note tw:col-[1_/_-1] tw:inline-flex tw:items-center tw:gap-[9px] tw:w-[fit-content] tw:mt-[14px] tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[9px_12px] tw:text-[1rem] tw:font-[800] tw:leading-[1.72] tw:tracking-[0.012em] tw:[.profile-edit-actions_&]:mt-[0] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.1)]"
                     role="status"
                   >
                     <span
@@ -866,7 +869,7 @@ export function ProfilePage({
                 {!isMyCoursesLoading &&
                   !myCoursesError &&
                   myCourses.length === 0 && (
-                    <p className="teacher-empty tw:m-[14px_0_0] tw:text-(--muted)">
+                    <p className="teacher-empty tw:m-[14px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
                       Вы пока не записаны ни на один курс.
                     </p>
                   )}
@@ -884,7 +887,7 @@ export function ProfilePage({
                         return (
                           <li
                             key={course.id}
-                            className="profile-my-course-item tw:grid tw:gap-[10px] tw:rounded-[14px] tw:p-[10px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(var(--accent-rgb),_0.05)]"
+                            className="profile-my-course-item tw:grid tw:gap-[10px] tw:rounded-[14px] tw:p-[10px] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(var(--accent-rgb),_0.05)]"
                           >
                             <div className="profile-my-course-summary tw:grid tw:gap-[6px]">
                               <div
@@ -993,7 +996,7 @@ export function ProfilePage({
                     <h3 className="tw:mt-[7px] tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em] tw:[font-family:'Unbounded',_sans-serif]">
                       Создайте собственный курс с ИИ
                     </h3>
-                    <p className="tw:m-[9px_0_0] tw:text-(--muted)">
+                    <p className="tw:m-[9px_0_0] tw:text-(--muted) tw:leading-[1.72] tw:text-[1rem] tw:tracking-[0.012em]">
                       Укажите тему, уровень и желаемый результат — конструктор
                       соберёт новый учебный маршрут.
                     </p>
@@ -1023,12 +1026,20 @@ export function ProfilePage({
                     Активность
                   </h3>
                   <ul className="tw:m-[12px_0_0] tw:pl-[18px] tw:text-(--muted) tw:grid tw:gap-[8px]">
-                    <li>Завершено уроков: {shownCompletedLessons}</li>
-                    <li>Выполнено практик: {shownCompletedPractices}</li>
+                    <li className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                      Завершено уроков: {shownCompletedLessons}
+                    </li>
+                    <li className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                      Выполнено практик: {shownCompletedPractices}
+                    </li>
                     {progressTotals && (
-                      <li>Сдано тестов: {progressTotals.completedTests}</li>
+                      <li className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                        Сдано тестов: {progressTotals.completedTests}
+                      </li>
                     )}
-                    <li>Общий прогресс: {shownOverallPercent}%</li>
+                    <li className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                      Общий прогресс: {shownOverallPercent}%
+                    </li>
                   </ul>
                 </article>
               </div>

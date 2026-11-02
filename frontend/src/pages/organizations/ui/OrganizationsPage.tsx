@@ -33,8 +33,7 @@ interface MutationError {
   validationErrors?: FieldErrors;
 }
 
-const asMutationError = (error: unknown) =>
-  (error ?? {}) as MutationError;
+const asMutationError = (error: unknown) => (error ?? {}) as MutationError;
 
 type Section = "current" | "create" | "all" | "details";
 
@@ -67,7 +66,9 @@ function formatDate(value: string | null | undefined): string {
 
 function FieldError({ message }: { message?: string }) {
   return message ? (
-    <span className="organization-field-error tw:text-[#b42318] tw:text-[0.78rem] tw:font-[700]">{message}</span>
+    <span className="organization-field-error tw:text-[#b42318] tw:text-[0.78rem] tw:font-[700]">
+      {message}
+    </span>
   ) : null;
 }
 
@@ -75,12 +76,20 @@ function OrganizationMeta({ organization }: { organization: Organization }) {
   return (
     <dl className="organization-meta tw:m-[0] tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[12px] tw:max-760:grid-cols-[1fr]">
       <div className="tw:min-w-[0]">
-        <dt className="tw:text-(--muted) tw:text-[0.76rem] tw:font-[800] tw:uppercase">Создана</dt>
-        <dd className="tw:m-[4px_0_0] tw:text-(--text) tw:wrap-anywhere">{formatDate(organization.created_at)}</dd>
+        <dt className="tw:text-(--muted) tw:text-[0.76rem] tw:font-[800] tw:uppercase">
+          Создана
+        </dt>
+        <dd className="tw:m-[4px_0_0] tw:text-(--text) tw:wrap-anywhere">
+          {formatDate(organization.created_at)}
+        </dd>
       </div>
       <div className="tw:min-w-[0]">
-        <dt className="tw:text-(--muted) tw:text-[0.76rem] tw:font-[800] tw:uppercase">Обновлена</dt>
-        <dd className="tw:m-[4px_0_0] tw:text-(--text) tw:wrap-anywhere">{formatDate(organization.updated_at)}</dd>
+        <dt className="tw:text-(--muted) tw:text-[0.76rem] tw:font-[800] tw:uppercase">
+          Обновлена
+        </dt>
+        <dd className="tw:m-[4px_0_0] tw:text-(--text) tw:wrap-anywhere">
+          {formatDate(organization.updated_at)}
+        </dd>
       </div>
     </dl>
   );
@@ -108,7 +117,11 @@ function OrganizationHeader({
   return (
     <div className="organization-card-summary tw:flex tw:items-start tw:justify-between tw:gap-[16px] tw:max-760:flex-col">
       <div className="organization-card-title tw:min-w-[0] tw:grid tw:gap-[10px]">
-        {kicker && <span className="organization-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">{kicker}</span>}
+        {kicker && (
+          <span className="organization-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">
+            {kicker}
+          </span>
+        )}
         {isEditing ? (
           <>
             <label className="organization-inline-field tw:grid tw:gap-[7px] tw:[&_>_span]:text-(--text) tw:[&_>_span]:text-[0.82rem] tw:[&_>_span]:font-[800] tw:[&_input]:w-[100%] tw:[&_input]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_input]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_input]:rounded-[12px] tw:[&_input]:p-[11px_12px] tw:[&_input]:[font:inherit] tw:[&_input]:text-(--text) tw:[&_input]:[outline:none] tw:[&_textarea]:w-[100%] tw:[&_textarea]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_textarea]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_textarea]:rounded-[12px] tw:[&_textarea]:p-[11px_12px] tw:[&_textarea]:[font:inherit] tw:[&_textarea]:text-(--text) tw:[&_textarea]:[outline:none] tw:[&_textarea]:min-h-[92px] tw:[&_textarea]:resize-y tw:[&_input:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_input:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&_textarea:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_textarea:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:dark:[.page_&_input]:text-(--heading) tw:dark:[.page_&_input]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_input]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[.page_&_textarea]:text-(--heading) tw:dark:[.page_&_textarea]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_textarea]:border-[rgba(var(--accent-rgb),_0.56)]">
@@ -143,18 +156,22 @@ function OrganizationHeader({
           </button>
         ) : (
           <>
-            <h4 className="tw:[.organization-card_&]:m-[0] tw:[.organization-card_&]:text-(--heading)">{organization.name}</h4>
-            <p className="tw:text-(--muted) tw:m-[6px_0_0]">{organization.email}</p>
+            <h4 className="tw:[.organization-card_&]:m-[0] tw:[.organization-card_&]:text-(--heading)">
+              {organization.name}
+            </h4>
+            <p className="tw:text-(--muted) tw:m-[6px_0_0] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+              {organization.email}
+            </p>
           </>
         )}
       </div>
       <div className="organization-card-actions tw:flex tw:items-center tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-760:justify-start">
         <span
-          className={
-            `tw:[&.organization-status]:flex-[0_0_auto] tw:[&.organization-status]:border-solid tw:[&.organization-status.is-inactive]:border-[rgba(180,_35,_24,_0.34)] tw:[&.organization-status]:border-[rgba(var(--success-rgb),_0.4)] tw:[&.organization-status]:rounded-[999px] tw:[&.organization-status]:p-[6px_10px] tw:[&.organization-status.is-inactive]:text-[#b42318] tw:[&.organization-status]:text-(--success-text) tw:[&.organization-status]:text-[0.78rem] tw:[&.organization-status]:font-[800] tw:[&.organization-status]:[border-width:1px] ${organization.is_active
+          className={`tw:[&.organization-status]:flex-[0_0_auto] tw:[&.organization-status]:border-solid tw:[&.organization-status.is-inactive]:border-[rgba(180,_35,_24,_0.34)] tw:[&.organization-status]:border-[rgba(var(--success-rgb),_0.4)] tw:[&.organization-status]:rounded-[999px] tw:[&.organization-status]:p-[6px_10px] tw:[&.organization-status.is-inactive]:text-[#b42318] tw:[&.organization-status]:text-(--success-text) tw:[&.organization-status]:text-[0.78rem] tw:[&.organization-status]:font-[800] tw:[&.organization-status]:[border-width:1px] ${
+            organization.is_active
               ? "organization-status"
-              : "organization-status is-inactive"}`
-          }
+              : "organization-status is-inactive"
+          }`}
         >
           {organization.is_active ? "Активна" : "Неактивна"}
         </span>
@@ -186,7 +203,10 @@ function OrganizationForm({
   required?: boolean;
 }) {
   return (
-    <form className="organization-form tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:max-760:grid-cols-[1fr] tw:[align-items:end] tw:[&_label]:grid tw:[&_label]:gap-[7px] tw:[&_label_>_span]:text-(--text) tw:[&_label_>_span]:text-[0.82rem] tw:[&_label_>_span]:font-[800] tw:[&_input]:w-[100%] tw:[&_input]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_input]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_input]:rounded-[12px] tw:[&_input]:p-[11px_12px] tw:[&_input]:[font:inherit] tw:[&_input]:text-(--text) tw:[&_input]:[outline:none] tw:[&_textarea]:w-[100%] tw:[&_textarea]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_textarea]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_textarea]:rounded-[12px] tw:[&_textarea]:p-[11px_12px] tw:[&_textarea]:[font:inherit] tw:[&_textarea]:text-(--text) tw:[&_textarea]:[outline:none] tw:[&_textarea]:min-h-[92px] tw:[&_textarea]:resize-y tw:[&_input:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_input:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&_textarea:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_textarea:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:dark:[.page_&_input]:text-(--heading) tw:dark:[.page_&_input]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_input]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[.page_&_textarea]:text-(--heading) tw:dark:[.page_&_textarea]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_textarea]:border-[rgba(var(--accent-rgb),_0.56)]" onSubmit={onSubmit}>
+    <form
+      className="organization-form tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:max-760:grid-cols-[1fr] tw:[align-items:end] tw:[&_label]:grid tw:[&_label]:gap-[7px] tw:[&_label_>_span]:text-(--text) tw:[&_label_>_span]:text-[0.82rem] tw:[&_label_>_span]:font-[800] tw:[&_input]:w-[100%] tw:[&_input]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_input]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_input]:rounded-[12px] tw:[&_input]:p-[11px_12px] tw:[&_input]:[font:inherit] tw:[&_input]:text-(--text) tw:[&_input]:[outline:none] tw:[&_textarea]:w-[100%] tw:[&_textarea]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_textarea]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_textarea]:rounded-[12px] tw:[&_textarea]:p-[11px_12px] tw:[&_textarea]:[font:inherit] tw:[&_textarea]:text-(--text) tw:[&_textarea]:[outline:none] tw:[&_textarea]:min-h-[92px] tw:[&_textarea]:resize-y tw:[&_input:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_input:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&_textarea:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_textarea:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:dark:[.page_&_input]:text-(--heading) tw:dark:[.page_&_input]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_input]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[.page_&_textarea]:text-(--heading) tw:dark:[.page_&_textarea]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_textarea]:border-[rgba(var(--accent-rgb),_0.56)]"
+      onSubmit={onSubmit}
+    >
       <label>
         <span>Название</span>
         <input
@@ -217,7 +237,11 @@ function OrganizationForm({
         <FieldError message={validationErrors.description} />
       </label>
       <div className="organization-form-actions organization-form-wide tw:flex tw:items-center tw:flex-wrap tw:gap-[10px] tw:col-[1_/_-1]">
-        <button type="submit" className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]" disabled={isPending}>
+        <button
+          type="submit"
+          className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+          disabled={isPending}
+        >
           {isPending ? pendingLabel : submitLabel}
         </button>
         {onCancel && (
@@ -272,8 +296,12 @@ function OrganizationDetails({
     <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
       <div className="organization-panel-head tw:flex tw:items-start tw:justify-between tw:gap-[16px] tw:max-760:flex-col">
         <div>
-          <span className="organization-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">{title}</span>
-          <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">{organization.name}</h3>
+          <span className="organization-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">
+            {title}
+          </span>
+          <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">
+            {organization.name}
+          </h3>
         </div>
         {(headerActions || (canUpdateOrganization && !isEditing)) && (
           <div className="organization-panel-actions tw:flex tw:flex-wrap tw:justify-end tw:gap-[10px] tw:max-760:justify-start">
@@ -311,7 +339,7 @@ function OrganizationDetails({
             <FieldError message={validationErrors.description} />
           </label>
         ) : (
-          <p className="organization-description tw:text-(--muted) tw:m-[6px_0_0]">
+          <p className="organization-description tw:text-(--muted) tw:m-[6px_0_0] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
             {organization.description || "Описание не заполнено."}
           </p>
         )}
@@ -775,7 +803,7 @@ export function OrganizationsPage({
         label="Организации"
         title="Управление организациями платформы"
       />
-      <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted)">
+      <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
         По умолчанию отображается организация, в которой состоит текущий
         пользователь. Остальные разделы в дереве появляются только при наличии
         соответствующих permissions.
@@ -801,7 +829,9 @@ export function OrganizationsPage({
           >
             <span className="tw:font-[800]">Текущая организация</span>
             {currentOrganization?.name && (
-              <small className="tw:text-(--muted)">{currentOrganization.name}</small>
+              <small className="tw:text-(--muted)">
+                {currentOrganization.name}
+              </small>
             )}
           </button>
 
@@ -877,7 +907,7 @@ export function OrganizationsPage({
             <>
               {currentLoading && (
                 <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
-                  <p className="organization-muted tw:text-(--muted)">
+                  <p className="organization-muted tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
                     Загружаем текущую организацию...
                   </p>
                 </article>
@@ -930,13 +960,17 @@ export function OrganizationsPage({
             <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
               <div className="organization-panel-head tw:flex tw:items-start tw:justify-between tw:gap-[16px] tw:max-760:flex-col">
                 <div>
-                  <span className="organization-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">organization.read</span>
+                  <span className="organization-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">
+                    organization.read
+                  </span>
                   <h3>Все организации</h3>
                 </div>
               </div>
 
               {listLoading && (
-                <p className="organization-muted tw:text-(--muted)">Загружаем организации...</p>
+                <p className="organization-muted tw:text-(--muted)">
+                  Загружаем организации...
+                </p>
               )}
               {!listLoading && organizations.length === 0 && !error && (
                 <p className="organization-muted tw:text-(--muted)">
@@ -1016,7 +1050,7 @@ export function OrganizationsPage({
                       <button
                         key={pageNumber}
                         type="button"
-                        className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font:inherit] tw:[&&&]:font-[800] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
+                        className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
                         onClick={() => setPage(pageNumber)}
                         aria-current={pageNumber === page ? "page" : undefined}
                       >
@@ -1038,9 +1072,16 @@ export function OrganizationsPage({
               )}
             </article>
           )}
-          {canInviteToOrganization && organizationId && (activeSection === "current" || (activeSection === "details" && selectedOrganization?.id === organizationId)) && (
-            <OrganizationInvitations key={organizationId} revision={invitationRevision} />
-          )}
+          {canInviteToOrganization &&
+            organizationId &&
+            (activeSection === "current" ||
+              (activeSection === "details" &&
+                selectedOrganization?.id === organizationId)) && (
+              <OrganizationInvitations
+                key={organizationId}
+                revision={invitationRevision}
+              />
+            )}
         </div>
       </div>
 

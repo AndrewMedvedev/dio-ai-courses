@@ -30,7 +30,15 @@ export function EmailRowsField({
   newUserHint = "Нет в системе — получит ещё и приглашение на регистрацию",
   foundUserHint = (user) => userTitle(user) || "Есть в системе",
 }: EmailRowsFieldProps) {
-  const { draft, setDraft, draftError, setDraftError, rows, addEmails, removeRow } = emails;
+  const {
+    draft,
+    setDraft,
+    draftError,
+    setDraftError,
+    rows,
+    addEmails,
+    removeRow,
+  } = emails;
 
   const rowText = (row: EmailRow) => {
     if (row.status === "checking") return "Проверяем…";
@@ -46,9 +54,17 @@ export function EmailRowsField({
   return (
     <>
       <div className="course-invite-field tw:grid tw:gap-[8px]">
-        <label className="tw:p-[0] tw:text-(--text) tw:text-[1rem] tw:font-[800]" htmlFor={id}>Email</label>
-        <div className={`course-invite-input tw:flex tw:items-center tw:gap-[8px] tw:p-[7px_7px_7px_20px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:[border-width:1px] tw:focus-within:border-[rgba(var(--accent-rgb),_0.85)] tw:[&.has-error]:border-[#c7524a] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease] tw:focus-within:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.18)] ${draftError ? "has-error" : ""}`}>
-          <input className="tw:flex-[1] tw:min-w-[0] tw:text-(--text) tw:[border:0] tw:[outline:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[1.08rem]"
+        <label
+          className="tw:p-[0] tw:text-(--text) tw:text-[1rem] tw:font-[800]"
+          htmlFor={id}
+        >
+          Email
+        </label>
+        <div
+          className={`course-invite-input tw:flex tw:items-center tw:gap-[8px] tw:p-[7px_7px_7px_20px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:[border-width:1px] tw:focus-within:border-[rgba(var(--accent-rgb),_0.85)] tw:[&.has-error]:border-[#c7524a] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease] tw:focus-within:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.18)] ${draftError ? "has-error" : ""}`}
+        >
+          <input
+            className="tw:flex-[1] tw:min-w-[0] tw:text-(--text) tw:leading-[inherit] tw:text-[1.08rem] tw:[border:0] tw:[outline:0] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit]"
             ref={inputRef}
             id={id}
             type="text"
@@ -62,10 +78,19 @@ export function EmailRowsField({
               if (draftError) setDraftError("");
             }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === "," || event.key === ";") {
+              if (
+                event.key === "Enter" ||
+                event.key === "," ||
+                event.key === ";"
+              ) {
                 event.preventDefault();
                 addEmails(draft);
-              } else if (event.key === "Backspace" && !draft && rows.length && !disabled) {
+              } else if (
+                event.key === "Backspace" &&
+                !draft &&
+                rows.length &&
+                !disabled
+              ) {
                 removeRow(rows[rows.length - 1].email);
               }
             }}
@@ -100,15 +125,28 @@ export function EmailRowsField({
       </div>
 
       {rows.length ? (
-        <ul className="course-invite-list tw:grid tw:gap-[10px] tw:m-[0] tw:p-[0] tw:[list-style:none]" aria-live="polite">
+        <ul
+          className="course-invite-list tw:grid tw:gap-[10px] tw:m-[0] tw:p-[0] tw:[list-style:none]"
+          aria-live="polite"
+        >
           {rows.map((row) => (
-            <li key={row.email} className={`course-invite-row tw:grid tw:grid-cols-[42px_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:p-[12px_14px] tw:border-solid tw:border-(--invite-border) tw:rounded-[16px] tw:[border-width:1px] tw:[&.is-error]:border-[rgba(199,_82,_74,_0.55)] tw:[&.is-sent]:border-[rgba(76,_150,_104,_0.45)] tw:[background:var(--invite-row)] tw:[&.is-revoked]:opacity-[0.65] is-${row.status}`}>
-              <span className="course-invite-avatar tw:grid tw:w-[42px] tw:h-[42px] tw:rounded-[999px] tw:text-[1.05rem] tw:text-(--ink-accent) tw:font-[800] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.24)]" aria-hidden="true">
+            <li
+              key={row.email}
+              className={`course-invite-row tw:grid tw:grid-cols-[42px_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:p-[12px_14px] tw:border-solid tw:border-(--invite-border) tw:rounded-[16px] tw:[border-width:1px] tw:[&.is-error]:border-[rgba(199,_82,_74,_0.55)] tw:[&.is-sent]:border-[rgba(76,_150,_104,_0.45)] tw:[background:var(--invite-row)] tw:[&.is-revoked]:opacity-[0.65] is-${row.status}`}
+            >
+              <span
+                className="course-invite-avatar tw:grid tw:w-[42px] tw:h-[42px] tw:rounded-[999px] tw:text-[1.05rem] tw:text-(--ink-accent) tw:font-[800] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.24)]"
+                aria-hidden="true"
+              >
                 {(fullNameOf(row.user) || row.email).slice(0, 1).toUpperCase()}
               </span>
               <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0] tw:[.course-invite-row.is-new_&_small]:text-(--info-text) tw:[.course-invite-row.is-error_&_small]:text-[#b8443c] tw:dark:[.page_.course-invite-row.is-error_&_small]:text-[#f0978f] tw:[.course-invite-row.is-pending_&_small]:text-(--muted)">
-                <strong className="tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[1.05rem]">{row.email}</strong>
-                <small className="tw:text-(--muted) tw:text-[0.9rem] tw:leading-[1.4] tw:[.course-invite-row.is-found_.course-invite-who_&]:text-(--ink-accent)">{rowText(row)}</small>
+                <strong className="tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[1.05rem]">
+                  {row.email}
+                </strong>
+                <small className="tw:text-(--muted) tw:text-[0.9rem] tw:leading-[1.4] tw:[.course-invite-row.is-found_.course-invite-who_&]:text-(--ink-accent)">
+                  {rowText(row)}
+                </small>
               </span>
               <button
                 type="button"

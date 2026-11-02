@@ -89,7 +89,7 @@ export function Header({
           <NavLink
             to="/courses"
             className={() =>
-              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:[&.is-active]:text-(--accent) tw:hover:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font:inherit] tw:[&&]:font-[700] tw:[&&&]:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:[&&&]:leading-[1.2] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isCoursePath ? "is-active" : ""}`
+              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:[&.is-active]:text-(--accent) tw:hover:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isCoursePath ? "is-active" : ""}`
             }
           >
             Каталог
@@ -99,7 +99,7 @@ export function Header({
           <NavLink
             to="/organizations"
             className={() =>
-              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font:inherit] tw:[&&]:font-[700] tw:[&&&]:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:[&&&]:leading-[1.2] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isOrganizationsPath ? "is-active" : ""}`
+              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isOrganizationsPath ? "is-active" : ""}`
             }
           >
             Организации
@@ -109,7 +109,7 @@ export function Header({
           <NavLink
             to="/models"
             className={() =>
-              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font:inherit] tw:[&&&]:font-[700] tw:[&&&&]:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:[&&&&]:leading-[1.2] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isModelsPath ? "is-active" : ""}`
+              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isModelsPath ? "is-active" : ""}`
             }
           >
             AI-модели
@@ -120,7 +120,7 @@ export function Header({
             <NavLink
               to="/creator"
               className={({ isActive }) =>
-                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font:inherit] tw:[&&]:font-[700] tw:[&&&]:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:[&&&]:leading-[1.2] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? "is-active" : ""}`
+                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? "is-active" : ""}`
               }
             >
               Создать курс
@@ -128,7 +128,7 @@ export function Header({
             <NavLink
               to="/drag-and-drop-course"
               className={({ isActive }) =>
-                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font:inherit] tw:[&&]:font-[700] tw:[&&&]:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:[&&&]:leading-[1.2] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? "is-active" : ""}`
+                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? "is-active" : ""}`
               }
             >
               Drag &amp; Drop курс
@@ -213,7 +213,7 @@ export function Header({
             }
           />
           <span
-            className="theme-switch-track tw:w-[100%] tw:h-[100%] tw:rounded-[inherit] tw:grid tw:grid-cols-[1fr_1fr] tw:items-center tw:text-(--heading) tw:text-[0.95rem] tw:leading-[1] tw:[justify-items:center] tw:[background:rgba(var(--accent-rgb),_0.12)] tw:[.theme-switch_input:focus-visible_+_&]:[outline:3px_solid_rgba(var(--accent-rgb),_0.25)] tw:[.theme-switch_input:focus-visible_+_&]:[outline-offset:3px]"
+            className="theme-switch-track tw:relative tw:w-[100%] tw:h-[100%] tw:rounded-[inherit] tw:grid tw:grid-cols-[1fr_1fr] tw:items-center tw:text-(--heading) tw:text-[0.95rem] tw:leading-[1] tw:[justify-items:center] tw:[background:rgba(var(--accent-rgb),_0.12)] tw:[.theme-switch_input:focus-visible_+_&]:[outline:3px_solid_rgba(var(--accent-rgb),_0.25)] tw:[.theme-switch_input:focus-visible_+_&]:[outline-offset:3px]"
             aria-hidden="true"
           >
             <span className="tw:relative tw:z-[1]">☀</span>

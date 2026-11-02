@@ -107,25 +107,30 @@ export function Modal({
 
   return (
     <div
-      className="dnd-modal-backdrop tw:fixed tw:inset-[0] tw:z-[1000] tw:grid tw:p-[16px] tw:[place-items:center] tw:max-767:p-[0] tw:[background:rgba(20,_16,_12,_0.45)] tw:animate-dnd-fade-160 tw:max-767:[place-items:end_stretch]"
+      className="dnd-modal-backdrop tw:fixed tw:inset-[0] tw:z-[1000] tw:grid tw:p-[16px] tw:[place-items:center] tw:max-767:p-[0] tw:[background:rgba(20,_16,_12,_0.45)] tw:animate-dnd-fade-160 tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-767:[place-items:end_stretch]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !closeDisabled) onClose?.();
       }}
     >
       <div
         ref={dialogRef}
-        className={`dnd-modal tw:flex tw:flex-col tw:w-[min(560px,_100%)] tw:max-h-[min(88dvh,_820px)] tw:rounded-[18px] tw:text-(--dnd-text) tw:max-767:w-[100%] tw:[&.dnd-modal--sm]:w-[min(440px,_100%)] tw:max-767:max-h-[92dvh] tw:max-767:rounded-[18px_18px_0_0] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:[box-shadow:var(--dnd-shadow-lg)] tw:animate-dnd-pop-200 tw:focus:[outline:none] tw:max-767:[&.dnd-modal--sm]:w-[100%] tw:focus:focus-visible:[&&&]:[outline:none] dnd-modal--${size} ${className}`}
+        className={`dnd-modal tw:flex tw:flex-col tw:w-[min(560px,_100%)] tw:max-h-[min(88dvh,_820px)] tw:rounded-[18px] tw:text-(--dnd-text) tw:max-767:w-[100%] tw:[&.dnd-modal--sm]:w-[min(440px,_100%)] tw:max-767:max-h-[92dvh] tw:max-767:rounded-[18px_18px_0_0] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:[box-shadow:var(--dnd-shadow-lg)] tw:animate-dnd-pop-200 tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:max-767:[&.dnd-modal--sm]:w-[100%] tw:focus:focus-visible:[&&&]:[outline:none] dnd-modal--${size} ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
       >
-        <header className="dnd-modal-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:p-[16px_18px_6px]">
-          <h2 className="tw:font-[800] tw:text-(--dnd-heading) tw:[&&&]:text-[1.1rem] tw:[&&&]:leading-[1.3] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.1rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.3]" id={titleId}>{title}</h2>
+        <header className="dnd-modal-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:p-[16px_18px_6px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h2
+            className="tw:tracking-[-0.016em] tw:font-[800] tw:text-(--dnd-heading) tw:[&&&]:text-[1.1rem] tw:[&&&]:leading-[1.3] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.1rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.3] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
+            id={titleId}
+          >
+            {title}
+          </h2>
           <button
             type="button"
-            className="dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:hover:not(:disabled)]:[&&&&]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[&&&&]:[background:var(--dnd-panel-2)]"
+            className="dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
             onClick={onClose}
             disabled={closeDisabled}
             aria-label="Закрыть окно"
@@ -135,12 +140,21 @@ export function Modal({
           </button>
         </header>
         {description ? (
-          <p id={descriptionId} className="dnd-modal-description tw:m-[0] tw:p-[0_18px] tw:text-(--dnd-muted) tw:[&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.86rem]">
+          <p
+            id={descriptionId}
+            className="dnd-modal-description tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:p-[0_18px] tw:text-(--dnd-muted) tw:[&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
+          >
             {description}
           </p>
         ) : null}
-        <div className="dnd-modal-body tw:flex-[1] tw:min-h-[0] tw:overflow-y-auto tw:p-[14px_18px]">{children}</div>
-        {footer ? <footer className="dnd-modal-foot tw:flex tw:justify-end tw:flex-wrap tw:gap-[8px] tw:p-[12px_18px_16px] tw:[border-top:1px_solid_var(--dnd-border)]">{footer}</footer> : null}
+        <div className="dnd-modal-body tw:flex-[1] tw:min-h-[0] tw:overflow-y-auto tw:p-[14px_18px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          {children}
+        </div>
+        {footer ? (
+          <footer className="dnd-modal-foot tw:flex tw:justify-end tw:flex-wrap tw:gap-[8px] tw:p-[12px_18px_16px] tw:[border-top:1px_solid_var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+            {footer}
+          </footer>
+        ) : null}
       </div>
     </div>
   );
@@ -196,7 +210,9 @@ export function ConfirmDialog() {
         </>
       }
     >
-      <p className="dnd-confirm-text tw:[.page_.dnd-builder_&]:m-[0_0_8px] tw:[.page_.dnd-builder_&]:text-[0.9rem]">{confirm.message}</p>
+      <p className="dnd-confirm-text tw:[.page_.dnd-builder_&]:m-[0_0_8px] tw:[.page_.dnd-builder_&]:text-[0.9rem]">
+        {confirm.message}
+      </p>
       {confirm.consequences?.length ? (
         <ul className="dnd-confirm-list tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&]:pl-[18px] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[4px] tw:[.page_.dnd-builder_&_li]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_li]:text-[0.84rem]">
           {confirm.consequences.map((item) => (
@@ -249,7 +265,8 @@ export function ActionMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
-  const resolvedItems = typeof items === "function" ? (open ? items() : []) : items;
+  const resolvedItems =
+    typeof items === "function" ? (open ? items() : []) : items;
 
   const close = useCallback((focusButton = false) => {
     setOpen(false);
@@ -293,11 +310,14 @@ export function ActionMenu({
   };
 
   return (
-    <div className={`dnd-menu nodrag nopan tw:relative ${className}`} ref={rootRef}>
+    <div
+      className={`dnd-menu nodrag nopan tw:relative tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] ${className}`}
+      ref={rootRef}
+    >
       <button
         ref={buttonRef}
         type="button"
-        className={`tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_&.dnd-node-btn]:inline-grid tw:[.page_.dnd-builder_&.dnd-icon-btn]:inline-grid tw:[.page_.dnd-builder_&.dnd-node-btn]:w-[46px] tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:w-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:w-[36px] tw:[.page_.dnd-builder_&.dnd-node-btn]:h-[46px] tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:h-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:h-[36px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:flex-[none] tw:[.page_.dnd-builder_&.dnd-node-btn]:rounded-[12px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:rounded-[9px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:rounded-[8px] tw:[.page_.dnd-builder_&.dnd-node-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-node-btn]:border-[transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-[transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:text-(--dnd-muted) tw:[&.dnd-node-btn[aria-expanded=true]]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-node-btn]:cursor-pointer tw:[.page_.dnd-builder_&.dnd-icon-btn]:cursor-pointer tw:[.page_.dnd-builder_&.dnd-node-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-node-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-node-btn]:[background:transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[background:transparent] tw:[&.dnd-icon-btn:disabled]:cursor-not-allowed tw:[&.dnd-node-btn:disabled]:cursor-not-allowed tw:[.page_.dnd-builder_&.dnd-node-btn]:[transition:background_0.15s,_color_0.15s,_border-color_0.15s] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&.dnd-icon-btn:disabled]:opacity-[0.4] tw:[&.dnd-node-btn:disabled]:opacity-[0.35] tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:[&&&&]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:[&&&&]:[background:var(--dnd-panel-2)] ${(buttonClassName) ?? ""}`}
+        className={`tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_&.dnd-icon-btn]:inline-grid tw:[.page_.dnd-builder_&.dnd-node-btn]:inline-grid tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&.dnd-node-btn]:w-[46px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:w-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:w-[36px] tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&.dnd-node-btn]:h-[46px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:h-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:h-[36px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:flex-[none] tw:[.page_.dnd-builder_&.dnd-icon-btn]:rounded-[9px] tw:[.page_.dnd-builder_&.dnd-node-btn]:rounded-[12px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:rounded-[8px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-node-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-[transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:border-[transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-icon-btn]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-node-btn]:text-(--dnd-muted) tw:[&.dnd-node-btn[aria-expanded=true]]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn]:cursor-pointer tw:[.page_.dnd-builder_&.dnd-node-btn]:cursor-pointer tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-node-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-node-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[background:transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:[background:transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:[background:var(--dnd-panel-2)] tw:[&.dnd-icon-btn:disabled]:cursor-not-allowed tw:[&.dnd-node-btn:disabled]:cursor-not-allowed tw:[.page_.dnd-builder_&.dnd-icon-btn]:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[.page_.dnd-builder_&.dnd-node-btn]:[transition:background_0.15s,_color_0.15s,_border-color_0.15s] tw:[&.dnd-icon-btn:disabled]:opacity-[0.4] tw:[&.dnd-node-btn:disabled]:opacity-[0.35] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${buttonClassName ?? ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -322,9 +342,16 @@ export function ActionMenu({
         >
           {resolvedItems.map((item) =>
             item.type === "separator" ? (
-              <div key={item.key} className="dnd-menu-sep tw:[.page_.dnd-builder_&]:h-[1px] tw:[.page_.dnd-builder_&]:m-[4px_6px] tw:[.page_.dnd-builder_&]:[background:var(--dnd-border)]" role="separator" />
+              <div
+                key={item.key}
+                className="dnd-menu-sep tw:[.page_.dnd-builder_&]:h-[1px] tw:[.page_.dnd-builder_&]:m-[4px_6px] tw:[.page_.dnd-builder_&]:[background:var(--dnd-border)]"
+                role="separator"
+              />
             ) : item.type === "label" ? (
-              <div key={item.key} className="dnd-menu-label tw:[.page_.dnd-builder_&]:p-[6px_10px_2px] tw:[.page_.dnd-builder_&]:text-[0.7rem] tw:[.page_.dnd-builder_&]:font-[800] tw:[.page_.dnd-builder_&]:tracking-[0.06em] tw:[.page_.dnd-builder_&]:uppercase tw:[.page_.dnd-builder_&]:text-(--dnd-muted)">
+              <div
+                key={item.key}
+                className="dnd-menu-label tw:[.page_.dnd-builder_&]:p-[6px_10px_2px] tw:[.page_.dnd-builder_&]:text-[0.7rem] tw:[.page_.dnd-builder_&]:font-[800] tw:[.page_.dnd-builder_&]:tracking-[0.06em] tw:[.page_.dnd-builder_&]:uppercase tw:[.page_.dnd-builder_&]:text-(--dnd-muted)"
+              >
                 {item.label}
               </div>
             ) : (
@@ -357,11 +384,15 @@ export function Toasts() {
   const toasts = useDndCourseStore((state) => state.toasts);
   const dismiss = useDndCourseStore((state) => state.dismissToast);
   return (
-    <div className="dnd-toasts tw:fixed tw:right-[16px] tw:bottom-[16px] tw:z-[1100] tw:grid tw:gap-[8px] tw:w-[min(400px,_calc(100vw_-_32px))] tw:pointer-events-none" aria-live="polite" aria-relevant="additions">
+    <div
+      className="dnd-toasts tw:fixed tw:right-[16px] tw:bottom-[16px] tw:z-[1100] tw:grid tw:gap-[8px] tw:w-[min(400px,_calc(100vw_-_32px))] tw:pointer-events-none tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`dnd-toast tw:pointer-events-auto tw:flex tw:items-start tw:gap-[10px] tw:p-[12px_12px_12px_14px] tw:rounded-[14px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[border-left-width:4px] tw:[background:var(--dnd-panel)] tw:[box-shadow:var(--dnd-shadow-lg)] tw:animate-dnd-rise-toast tw:[&.dnd-toast--success]:[border-left-color:var(--dnd-ok)] tw:[&.dnd-toast--error]:[border-left-color:var(--dnd-error)] tw:[&.dnd-toast--warning]:[border-left-color:var(--dnd-warn)] tw:[&.dnd-toast--info]:[border-left-color:var(--dnd-info)] dnd-toast--${toast.type}`}
+          className={`dnd-toast tw:pointer-events-auto tw:flex tw:items-start tw:gap-[10px] tw:p-[12px_12px_12px_14px] tw:rounded-[14px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[border-left-width:4px] tw:[background:var(--dnd-panel)] tw:[box-shadow:var(--dnd-shadow-lg)] tw:animate-dnd-rise-toast tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-toast--success]:[border-left-color:var(--dnd-ok)] tw:[&.dnd-toast--error]:[border-left-color:var(--dnd-error)] tw:[&.dnd-toast--warning]:[border-left-color:var(--dnd-warn)] tw:[&.dnd-toast--info]:[border-left-color:var(--dnd-info)] dnd-toast--${toast.type}`}
           role={toast.type === "error" ? "alert" : "status"}
         >
           <Icon
@@ -374,7 +405,9 @@ export function Toasts() {
             }
             size={18}
           />
-          <p className="tw:flex-[1] tw:m-[0] tw:[&&&]:text-[0.86rem] tw:[&&&]:leading-[1.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.4]">{toast.text}</p>
+          <p className="tw:tracking-[0.012em] tw:flex-[1] tw:m-[0] tw:[&&&]:text-[0.86rem] tw:[&&&]:leading-[1.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            {toast.text}
+          </p>
           {toast.retry ? (
             <button
               type="button"
@@ -390,7 +423,7 @@ export function Toasts() {
           ) : null}
           <button
             type="button"
-            className="dnd-icon-btn dnd-icon-btn--sm tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:hover:not(:disabled)]:[&&&&]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[&&&&]:[background:var(--dnd-panel-2)]"
+            className="dnd-icon-btn dnd-icon-btn--sm tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
             onClick={() => dismiss(toast.id)}
             aria-label="Скрыть уведомление"
             title="Скрыть"
@@ -406,7 +439,11 @@ export function Toasts() {
 export function LiveRegion() {
   const announcement = useDndCourseStore((state) => state.announcement);
   return (
-    <div className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!" aria-live="polite" role="status">
+    <div
+      className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]! tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+      aria-live="polite"
+      role="status"
+    >
       {announcement}
     </div>
   );
@@ -430,7 +467,7 @@ export function SaveIndicator({
   if (!item) return null;
   return (
     <span
-      className={`dnd-save tw:inline-flex tw:items-center tw:gap-[5px] tw:text-[0.76rem] tw:font-[650] tw:text-(--dnd-muted) tw:[.page_.dnd-builder_&.dnd-save--saved]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.dnd-save--dirty]:text-(--dnd-warn) tw:[&.dnd-save--error]:text-(--dnd-error) tw:[.page_.dnd-builder_&.dnd-save--saved]:animate-dnd-pulse dnd-save--${status}`}
+      className={`dnd-save tw:inline-flex tw:items-center tw:gap-[5px] tw:text-[0.76rem] tw:font-[650] tw:text-(--dnd-muted) tw:[.page_.dnd-builder_&.dnd-save--saved]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.dnd-save--dirty]:text-(--dnd-warn) tw:[&.dnd-save--error]:text-(--dnd-error) tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.dnd-save--saved]:animate-dnd-pulse dnd-save--${status}`}
       role="status"
       title={status === "error" && error ? error : item.text}
     >
@@ -452,8 +489,14 @@ export function StatusPill({
   busy?: boolean;
 }) {
   return (
-    <span className={`dnd-pill tw:inline-flex tw:items-center tw:gap-[4px] tw:p-[2px_8px] tw:rounded-[999px] tw:text-[0.74rem] tw:font-[700] tw:whitespace-nowrap tw:[.page_.dnd-builder_.dnd-node_&]:p-[3px_10px] tw:[.page_.dnd-builder_.dnd-node_&]:text-[0.95rem] tw:[border:1px_solid_transparent] tw:[.page_.dnd-builder_&.dnd-pill--progress]:text-(--dnd-info) tw:[.page_.dnd-builder_&.dnd-pill--ok]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.dnd-pill--error]:text-(--dnd-error) tw:[.page_.dnd-builder_&.dnd-pill--used]:text-(--dnd-accent-ink) tw:[.page_.dnd-builder_&.dnd-pill--warn]:text-(--dnd-warn) tw:[.page_.dnd-builder_&.dnd-pill--muted]:text-(--dnd-muted) tw:[.page_.dnd-builder_&.dnd-pill--progress]:[background:var(--dnd-info-bg)] tw:[.page_.dnd-builder_&.dnd-pill--ok]:[background:var(--dnd-ok-bg)] tw:[.page_.dnd-builder_&.dnd-pill--error]:[background:var(--dnd-error-bg)] tw:[.page_.dnd-builder_&.dnd-pill--used]:[background:var(--dnd-accent-soft)] tw:[.page_.dnd-builder_&.dnd-pill--warn]:[background:var(--dnd-warn-bg)] tw:[.page_.dnd-builder_&.dnd-pill--muted]:[background:var(--dnd-panel-2)] dnd-pill--${tone}`}>
-      {busy ? <Spinner size={11} /> : icon ? <Icon name={icon} size={13} /> : null}
+    <span
+      className={`dnd-pill tw:inline-flex tw:items-center tw:gap-[4px] tw:p-[2px_8px] tw:rounded-[999px] tw:text-[0.74rem] tw:font-[700] tw:whitespace-nowrap tw:[.page_.dnd-builder_.dnd-node_&]:p-[3px_10px] tw:[.page_.dnd-builder_.dnd-node_&]:text-[0.95rem] tw:[border:1px_solid_transparent] tw:[.page_.dnd-builder_&.dnd-pill--progress]:text-(--dnd-info) tw:[.page_.dnd-builder_&.dnd-pill--ok]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.dnd-pill--error]:text-(--dnd-error) tw:[.page_.dnd-builder_&.dnd-pill--used]:text-(--dnd-accent-ink) tw:[.page_.dnd-builder_&.dnd-pill--warn]:text-(--dnd-warn) tw:[.page_.dnd-builder_&.dnd-pill--muted]:text-(--dnd-muted) tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.dnd-pill--progress]:[background:var(--dnd-info-bg)] tw:[.page_.dnd-builder_&.dnd-pill--ok]:[background:var(--dnd-ok-bg)] tw:[.page_.dnd-builder_&.dnd-pill--error]:[background:var(--dnd-error-bg)] tw:[.page_.dnd-builder_&.dnd-pill--used]:[background:var(--dnd-accent-soft)] tw:[.page_.dnd-builder_&.dnd-pill--warn]:[background:var(--dnd-warn-bg)] tw:[.page_.dnd-builder_&.dnd-pill--muted]:[background:var(--dnd-panel-2)] dnd-pill--${tone}`}
+    >
+      {busy ? (
+        <Spinner size={11} />
+      ) : icon ? (
+        <Icon name={icon} size={13} />
+      ) : null}
       {children}
     </span>
   );
