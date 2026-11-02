@@ -82,11 +82,11 @@ export function TopBar({
   ];
 
   return (
-    <header className="dnd-topbar">
-      <div className="dnd-topbar-left">
+    <header className="dnd-topbar tw:flex tw:items-center tw:gap-[16px] tw:p-[12px_18px] tw:min-h-[72px] tw:max-1024:gap-y-[8px] tw:max-767:gap-[8px] tw:max-767:p-[10px_12px] tw:[border-bottom:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:max-1024:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&_.dnd-btn]:min-h-[42px] tw:[.page_.dnd-builder_&_.dnd-btn]:text-[0.94rem]">
+      <div className="dnd-topbar-left tw:flex tw:items-center tw:gap-[8px] tw:min-w-[0] tw:flex-[0_1_auto] tw:max-1024:flex-[1_1_auto] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <button
           type="button"
-          className="dnd-icon-btn"
+          className="dnd-icon-btn tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))}
           aria-label="Вернуться назад"
           title="Назад"
@@ -96,7 +96,7 @@ export function TopBar({
         {effectiveMode === "canvas" ? (
           <button
             type="button"
-            className={`dnd-icon-btn dnd-topbar-palette ${paletteOpen ? "is-on" : ""}`}
+            className={`dnd-icon-btn dnd-topbar-palette tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${paletteOpen ? "is-on" : ""}`}
             onClick={() => setPaletteOpen(!paletteOpen)}
             aria-pressed={paletteOpen}
             aria-label={paletteOpen ? "Скрыть палитру" : "Показать палитру"}
@@ -105,15 +105,15 @@ export function TopBar({
             <Icon name="panel" />
           </button>
         ) : null}
-        <div className="dnd-topbar-title">
-          <h1>Drag &amp; Drop курс</h1>
-          <span title={course?.title}>{course?.title}</span>
+        <div className="dnd-topbar-title tw:grid tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h1 className="tw:text-[1.08rem] tw:leading-[1.2] tw:font-[600] tw:text-(--dnd-heading) tw:whitespace-nowrap tw:[font-family:'Unbounded',_sans-serif] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">Drag &amp; Drop курс</h1>
+          <span className="tw:text-(--dnd-muted) tw:text-[0.92rem] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" title={course?.title}>{course?.title}</span>
         </div>
       </div>
 
-      <div className="dnd-topbar-center">
+      <div className="dnd-topbar-center tw:flex-[1_1_260px] tw:min-w-[0] tw:grid tw:grid-cols-[auto_minmax(0,_1fr)] tw:grid-rows-[auto_auto] tw:gap-x-[12px] tw:gap-y-[2px] tw:items-center tw:max-w-[520px] tw:m-[0_auto] tw:max-1024:max-w-[none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-1024:[order:3] tw:max-767:[order:2]">
         <div
-          className="dnd-progress"
+          className="dnd-progress tw:row-[1_/_span_2] tw:grid tw:grid-cols-[repeat(4,_28px)] tw:gap-[4px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -122,21 +122,21 @@ export function TopBar({
           aria-label="Прогресс создания курса"
         >
           {[0, 1, 2, 3].map((index) => (
-            <i key={index} className={index < progress.doneCount ? "is-done" : index === progress.doneCount ? "is-current" : ""} />
+            <i key={index} className={`tw:h-[6px] tw:rounded-[999px] tw:[transition:background_0.3s_var(--dnd-ease)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-done]:[background:var(--dnd-accent)] tw:[&.is-done]:[animation:dnd-fill_0.3s_var(--dnd-ease)] ${index < progress.doneCount ? "is-done" : index === progress.doneCount ? "is-current" : ""}`} />
           ))}
         </div>
-        <p className="dnd-topbar-task">
-          <strong>{stepText}</strong>
-          <span aria-hidden="true"> · </span>
-          <span>{nextTask}</span>
+        <p className="dnd-topbar-task tw:text-[0.95rem] tw:m-[0] tw:whitespace-nowrap tw:overflow-hidden tw:text-ellipsis tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+          <strong className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">{stepText}</strong>
+          <span className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-hidden="true"> · </span>
+          <span className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">{nextTask}</span>
         </p>
-        <span className={`dnd-topbar-save is-${saveState}`} role="status" title={SAVE_TEXT[saveState]}>
+        <span className={`dnd-topbar-save tw:inline-flex tw:items-center tw:gap-[5px] tw:text-[0.82rem] tw:text-(--dnd-muted) tw:min-w-[0] tw:[.page_.dnd-builder_&.is-saved]:text-(--dnd-ok) tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] is-${saveState}`} role="status" title={SAVE_TEXT[saveState]}>
           {saveState === "saving" ? <Spinner size={12} /> : <Icon name={saveState === "saved" ? "check" : saveState === "error" ? "alert" : "edit"} size={13} />}
-          <span className="dnd-topbar-save-text">{SAVE_TEXT[saveState]}</span>
+          <span className="dnd-topbar-save-text tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:max-767:hidden tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">{SAVE_TEXT[saveState]}</span>
         </span>
       </div>
 
-      <div className="dnd-topbar-right">
+      <div className="dnd-topbar-right tw:flex tw:items-center tw:gap-[8px] tw:min-w-[0] tw:flex-[0_0_auto] tw:justify-end tw:max-767:justify-start tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-767:[order:3]">
         {isMobile ? (
           <div className="dnd-segmented dnd-segmented--sm" role="group" aria-label="Режим отображения">
             <button type="button" aria-pressed={effectiveMode === "canvas"} className={effectiveMode === "canvas" ? "is-on" : ""} onClick={() => setViewMode("canvas")}>
@@ -148,9 +148,9 @@ export function TopBar({
           </div>
         ) : null}
         {!isMobile ? (
-          <button type="button" className="dnd-btn dnd-btn--ghost dnd-topbar-settings" onClick={() => openInspector("course", "main")} aria-label="Настройки курса" title="Настройки курса">
+          <button type="button" className="dnd-btn dnd-btn--ghost dnd-topbar-settings tw:text-[0.94rem] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[42px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:max-1599:p-[0] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:max-1599:w-[38px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]" onClick={() => openInspector("course", "main")} aria-label="Настройки курса" title="Настройки курса">
             <Icon name="settings" size={16} />
-            <span>Настройки курса</span>
+            <span className="tw:max-1599:hidden tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">Настройки курса</span>
           </button>
         ) : null}
         {!isMobile && !inspectorOpen && activeNodeId && effectiveMode === "canvas" ? (
@@ -161,18 +161,18 @@ export function TopBar({
         {!isMobile && course?.id ? (
           <button
             type="button"
-            className="dnd-btn dnd-btn--ghost dnd-topbar-settings"
+            className="dnd-btn dnd-btn--ghost dnd-topbar-settings tw:text-[0.94rem] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[42px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:max-1599:p-[0] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:max-1599:w-[38px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
             onClick={() => onPreview?.({ courseId: course.id })}
             title="Посмотреть, как курс выглядит для студента"
             aria-label="Просмотр курса"
           >
             <Icon name="eye" size={16} />
-            <span>Просмотр курса</span>
+            <span className="tw:max-1599:hidden tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">Просмотр курса</span>
           </button>
         ) : null}
         <button
           type="button"
-          className="dnd-btn dnd-btn--accent"
+          className="dnd-btn dnd-btn--accent tw:text-[0.94rem] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[42px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-accent) tw:text-[#241c24] tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:max-767:p-[0_12px] tw:[border-width:1px] tw:[background:var(--dnd-accent)] tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:max-767:ml-[auto] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-accent-ink) tw:[&:active:not(:disabled)]:[transform:translateY(1px)] tw:[&:hover:not(:disabled)]:[box-shadow:0_6px_18px_rgba(203,_170,_203,_0.45)]"
           onClick={openFinish}
           disabled={!finishable || finishing}
           aria-busy={finishing}
@@ -184,7 +184,7 @@ export function TopBar({
         {!isMobile ? (
           <button
             type="button"
-            className={`dnd-icon-btn ${fullscreen ? "is-on" : ""}`}
+            className={`dnd-icon-btn tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${fullscreen ? "is-on" : ""}`}
             onClick={toggleFullscreen}
             aria-pressed={fullscreen}
             aria-label={fullscreen ? "Выйти из полноэкранного режима (Esc)" : "Развернуть конструктор на весь экран"}

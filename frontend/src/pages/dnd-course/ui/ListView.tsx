@@ -51,37 +51,37 @@ function LessonRow({
   const pending = useDndCourseStore((state) => Boolean(state.pending[nodeId.lesson(lesson.id)] || (moduleId && state.pending[`order:${moduleId}`])));
   const { requestDelete } = useDndActions();
   return (
-    <li className={`dnd-list-row ${pending ? "is-pending" : ""}`}>
+    <li className={`dnd-list-row tw:flex tw:items-center tw:gap-[10px] tw:min-h-[52px] tw:p-[6px_8px_6px_10px] tw:rounded-[12px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:max-767:flex-wrap tw:[.page_.dnd-builder_&.is-pending]:opacity-[0.7] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${pending ? "is-pending" : ""}`}>
       {!moduleId ? (
-        <input
+        <input className="tw:w-[18px] tw:h-[18px] tw:flex-[none] tw:accent-(--dnd-accent-ink) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
           type="checkbox"
           checked={selected}
           onChange={() => toggleSelected(nodeId.lesson(lesson.id))}
           aria-label={`Выбрать урок «${lesson.title}»`}
         />
       ) : (
-        <span className="dnd-order-num">{index + 1}</span>
+        <span className="dnd-order-num tw:inline-grid tw:min-w-[24px] tw:h-[24px] tw:p-[0_4px] tw:rounded-[7px] tw:text-(--dnd-muted) tw:text-[0.74rem] tw:font-[800] tw:[place-items:center] tw:[background:var(--dnd-panel-2)] tw:[font-variant-numeric:tabular-nums] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">{index + 1}</span>
       )}
-      <button type="button" className="dnd-list-main" onClick={() => openInspector(nodeId.lesson(lesson.id), "main")}>
-        <strong title={lesson.title}>{lesson.title}</strong>
-        <small>
+      <button type="button" className="dnd-list-main tw:flex-[1] tw:min-w-[0] tw:grid tw:gap-[3px] tw:p-[4px_0] tw:text-[inherit] tw:text-left tw:cursor-pointer tw:[justify-items:start] tw:[border:0] tw:[background:none] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => openInspector(nodeId.lesson(lesson.id), "main")}>
+        <strong className="tw:max-w-[100%] tw:text-[0.88rem] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" title={lesson.title}>{lesson.title}</strong>
+        <small className="tw:text-[0.76rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
           {getLessonBlocks(lesson).length}/{MAX_CONTENT_BLOCKS} {WORDS.block[2]}
           {lesson.estimatedTimeMinutes ? ` · ${lesson.estimatedTimeMinutes} мин` : ""}
         </small>
       </button>
-      <div className="dnd-list-actions">
+      <div className="dnd-list-actions tw:flex tw:items-center tw:gap-[2px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         {moduleId ? (
           <>
-            <button type="button" className="dnd-icon-btn dnd-icon-btn--sm" onClick={() => moveLessonBy(lesson.id, -1)} disabled={index === 0 || pending} aria-label={`Урок «${lesson.title}» выше`} title="Выше">
+            <button type="button" className="dnd-icon-btn dnd-icon-btn--sm tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => moveLessonBy(lesson.id, -1)} disabled={index === 0 || pending} aria-label={`Урок «${lesson.title}» выше`} title="Выше">
               <Icon name="arrowUp" size={15} />
             </button>
-            <button type="button" className="dnd-icon-btn dnd-icon-btn--sm" onClick={() => moveLessonBy(lesson.id, 1)} disabled={index === total - 1 || pending} aria-label={`Урок «${lesson.title}» ниже`} title="Ниже">
+            <button type="button" className="dnd-icon-btn dnd-icon-btn--sm tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => moveLessonBy(lesson.id, 1)} disabled={index === total - 1 || pending} aria-label={`Урок «${lesson.title}» ниже`} title="Ниже">
               <Icon name="arrowDown" size={15} />
             </button>
           </>
         ) : null}
         <ActionMenu label="Переместить в модуль" icon="module" items={() => moduleMenu([lesson.id], moduleId)} buttonClassName="dnd-icon-btn dnd-icon-btn--sm" align="end" />
-        <button type="button" className="dnd-icon-btn dnd-icon-btn--sm is-danger" onClick={() => requestDelete(nodeId.lesson(lesson.id))} aria-label={`Удалить урок «${lesson.title}»`} title="Удалить">
+        <button type="button" className="dnd-icon-btn dnd-icon-btn--sm is-danger tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:text-(--dnd-error) tw:[&:hover:not(:disabled)]:[background:var(--dnd-error-bg)]" onClick={() => requestDelete(nodeId.lesson(lesson.id))} aria-label={`Удалить урок «${lesson.title}»`} title="Удалить">
           <Icon name="trash" size={15} />
         </button>
       </div>
@@ -116,33 +116,33 @@ export function ListView() {
     .filter((id) => !assigned.has(id));
 
   return (
-    <div className="dnd-list nowheel">
-      <section className="dnd-list-section" aria-labelledby="dnd-list-materials">
-        <header>
-          <h2 id="dnd-list-materials">
-            <Icon name="file" size={17} /> Материалы <small>{materials.length}</small>
+    <div className="dnd-list nowheel tw:absolute tw:inset-[0] tw:overflow-y-auto tw:p-[14px] tw:grid tw:gap-[14px] tw:[align-content:start] tw:[background:var(--dnd-canvas)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+      <section className="dnd-list-section tw:grid tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-labelledby="dnd-list-materials">
+        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h2 className="tw:text-[0.98rem] tw:flex tw:items-center tw:gap-[8px] tw:font-[800] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" id="dnd-list-materials">
+            <Icon name="file" size={17} /> Материалы <small className="tw:text-(--dnd-muted) tw:font-[700] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">{materials.length}</small>
           </h2>
-          <button type="button" className="dnd-btn dnd-btn--solid dnd-btn--sm" onClick={() => pickFiles()}>
+          <button type="button" className="dnd-btn dnd-btn--solid dnd-btn--sm tw:text-[0.82rem] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-text) tw:text-(--dnd-panel) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:var(--dnd-text)] tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:active:not(:disabled)]:[transform:translateY(1px)] tw:[&:hover:not(:disabled)]:[box-shadow:0_4px_12px_rgba(0,_0,_0,_0.16)]" onClick={() => pickFiles()}>
             <Icon name="upload" size={15} /> Загрузить
           </button>
         </header>
         {materials.length ? (
-          <ul className="dnd-list-rows">
+          <ul className="dnd-list-rows tw:m-[0] tw:p-[0] tw:grid tw:gap-[6px] tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             {materials.map((material) => {
               const key = nodeId.material(material.id);
               const status = material.lessonId ? "used" : material.status;
               const selectable = material.status === "ready" && !material.lessonId;
               return (
-                <li key={material.id} className={`dnd-list-row is-${status}`}>
-                  <input
+                <li key={material.id} className={`dnd-list-row tw:flex tw:items-center tw:gap-[10px] tw:min-h-[52px] tw:p-[6px_8px_6px_10px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[.page_.dnd-builder_&.is-error]:border-(--dnd-error) tw:[background:var(--dnd-node)] tw:max-767:flex-wrap tw:[.page_.dnd-builder_&.is-pending]:opacity-[0.7] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] is-${status}`}>
+                  <input className="tw:w-[18px] tw:h-[18px] tw:flex-[none] tw:accent-(--dnd-accent-ink) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
                     type="checkbox"
                     checked={selectedIds.includes(key)}
                     onChange={() => toggleSelected(key)}
                     disabled={!selectable}
                     aria-label={`Выбрать материал «${material.fileName}»`}
                   />
-                  <button type="button" className="dnd-list-main" onClick={() => openInspector(key, "content")} disabled={material.status === "uploading"}>
-                    <strong title={material.fileName}>
+                  <button type="button" className="dnd-list-main tw:flex-[1] tw:min-w-[0] tw:grid tw:gap-[3px] tw:p-[4px_0] tw:text-[inherit] tw:text-left tw:cursor-pointer tw:[justify-items:start] tw:[border:0] tw:[background:none] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => openInspector(key, "content")} disabled={material.status === "uploading"}>
+                    <strong className="tw:max-w-[100%] tw:text-[0.88rem] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" title={material.fileName}>
                       #{material.number} {material.fileName}
                     </strong>
                     <StatusPill tone={MATERIAL_STATUS[status]?.tone} busy={material.status === "uploading"} icon={status === "error" ? "alert" : null}>
@@ -150,7 +150,7 @@ export function ListView() {
                     </StatusPill>
                     {material.status === "error" ? <small className="dnd-node-error">{material.error}</small> : null}
                   </button>
-                  <div className="dnd-list-actions">
+                  <div className="dnd-list-actions tw:flex tw:items-center tw:gap-[2px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                     {material.status === "error" ? (
                       <button
                         type="button"
@@ -166,7 +166,7 @@ export function ListView() {
                     ) : null}
                     <button
                       type="button"
-                      className="dnd-icon-btn dnd-icon-btn--sm is-danger"
+                      className="dnd-icon-btn dnd-icon-btn--sm is-danger tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
                       onClick={() => requestDelete(key)}
                       disabled={Boolean(material.lessonId) || material.status === "uploading"}
                       aria-label={`Удалить материал «${material.fileName}»`}
@@ -183,14 +183,14 @@ export function ListView() {
           <p className="dnd-muted">Загрузите документы — каждый станет материалом для урока.</p>
         )}
         {selectedMaterials.length ? (
-          <div className="dnd-list-toolbar">
+          <div className="dnd-list-toolbar tw:[.page_.dnd-builder_&]:sticky tw:[.page_.dnd-builder_&]:bottom-[0] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[10px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:font-[650] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)]">
             <span>Выбрано: {countLabel(selectedMaterials.length, WORDS.material)}</span>
             <button type="button" className="dnd-btn dnd-btn--ghost dnd-btn--sm" onClick={() => setSelection([])}>
               Снять выбор
             </button>
             <button
               type="button"
-              className="dnd-btn dnd-btn--solid dnd-btn--sm"
+              className="dnd-btn dnd-btn--solid dnd-btn--sm tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text)"
               onClick={() => createLesson(selectedMaterials)}
               disabled={creatingLesson || selectedMaterials.length > MAX_CONTENT_BLOCKS}
             >
@@ -200,14 +200,14 @@ export function ListView() {
         ) : null}
       </section>
 
-      <section className="dnd-list-section" aria-labelledby="dnd-list-free">
-        <header>
-          <h2 id="dnd-list-free">
-            <Icon name="lesson" size={17} /> Уроки без модуля <small>{freeLessons.length}</small>
+      <section className="dnd-list-section tw:grid tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-labelledby="dnd-list-free">
+        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h2 className="tw:text-[0.98rem] tw:flex tw:items-center tw:gap-[8px] tw:font-[800] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" id="dnd-list-free">
+            <Icon name="lesson" size={17} /> Уроки без модуля <small className="tw:text-(--dnd-muted) tw:font-[700] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">{freeLessons.length}</small>
           </h2>
         </header>
         {freeLessons.length ? (
-          <ul className="dnd-list-rows">
+          <ul className="dnd-list-rows tw:m-[0] tw:p-[0] tw:grid tw:gap-[6px] tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             {freeLessons.map((lesson) => (
               <LessonRow key={lesson.id} lesson={lesson} index={0} total={1} moduleId={null} />
             ))}
@@ -216,45 +216,45 @@ export function ListView() {
           <p className="dnd-muted">Отметьте материалы и нажмите «Объединить в урок».</p>
         )}
         {selectedLessons.length ? (
-          <div className="dnd-list-toolbar">
+          <div className="dnd-list-toolbar tw:[.page_.dnd-builder_&]:sticky tw:[.page_.dnd-builder_&]:bottom-[0] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[10px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:font-[650] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)]">
             <span>Выбрано: {countLabel(selectedLessons.length, WORDS.lesson)}</span>
-            <button type="button" className="dnd-btn dnd-btn--solid dnd-btn--sm" onClick={() => openModuleDialog(selectedLessons)}>
+            <button type="button" className="dnd-btn dnd-btn--solid dnd-btn--sm tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text)" onClick={() => openModuleDialog(selectedLessons)}>
               <Icon name="module" size={15} /> Объединить в модуль
             </button>
           </div>
         ) : null}
       </section>
 
-      <section className="dnd-list-section" aria-labelledby="dnd-list-modules">
-        <header>
-          <h2 id="dnd-list-modules">
-            <Icon name="module" size={17} /> Модули <small>{modules.length}</small>
+      <section className="dnd-list-section tw:grid tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-labelledby="dnd-list-modules">
+        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h2 className="tw:text-[0.98rem] tw:flex tw:items-center tw:gap-[8px] tw:font-[800] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" id="dnd-list-modules">
+            <Icon name="module" size={17} /> Модули <small className="tw:text-(--dnd-muted) tw:font-[700] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">{modules.length}</small>
           </h2>
         </header>
         {orderedModules.length ? (
-          <ol className="dnd-list-modules">
+          <ol className="dnd-list-modules tw:m-[0] tw:p-[0] tw:grid tw:gap-[6px] tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             {orderedModules.map((module, index) => (
-              <li key={module.id} className="dnd-list-module">
-                <div className="dnd-list-module-head">
-                  <span className="dnd-order-num">{index + 1}</span>
-                  <button type="button" className="dnd-list-main" onClick={() => openInspector(nodeId.module(module.id), "main")}>
-                    <strong title={module.title}>{module.title}</strong>
-                    <small>{countLabel(module.lessonIds.length, WORDS.lesson)}</small>
+              <li key={module.id} className="dnd-list-module tw:grid tw:gap-[6px] tw:p-[10px] tw:rounded-[14px] tw:[border:1.5px_dashed_var(--dnd-border-strong)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+                <div className="dnd-list-module-head tw:flex tw:items-center tw:gap-[10px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+                  <span className="dnd-order-num tw:inline-grid tw:min-w-[24px] tw:h-[24px] tw:p-[0_4px] tw:rounded-[7px] tw:text-(--dnd-muted) tw:text-[0.74rem] tw:font-[800] tw:[place-items:center] tw:[background:var(--dnd-panel-2)] tw:[font-variant-numeric:tabular-nums] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">{index + 1}</span>
+                  <button type="button" className="dnd-list-main tw:flex-[1] tw:min-w-[0] tw:grid tw:gap-[3px] tw:p-[4px_0] tw:text-[inherit] tw:text-left tw:cursor-pointer tw:[justify-items:start] tw:[border:0] tw:[background:none] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => openInspector(nodeId.module(module.id), "main")}>
+                    <strong className="tw:max-w-[100%] tw:text-[0.88rem] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" title={module.title}>{module.title}</strong>
+                    <small className="tw:text-[0.76rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">{countLabel(module.lessonIds.length, WORDS.lesson)}</small>
                   </button>
-                  <div className="dnd-list-actions">
-                    <button type="button" className="dnd-icon-btn dnd-icon-btn--sm" onClick={() => moveModuleBy(module.id, -1)} disabled={index === 0 || orderPending} aria-label={`Модуль «${module.title}» выше`} title="Выше">
+                  <div className="dnd-list-actions tw:flex tw:items-center tw:gap-[2px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+                    <button type="button" className="dnd-icon-btn dnd-icon-btn--sm tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => moveModuleBy(module.id, -1)} disabled={index === 0 || orderPending} aria-label={`Модуль «${module.title}» выше`} title="Выше">
                       <Icon name="arrowUp" size={15} />
                     </button>
-                    <button type="button" className="dnd-icon-btn dnd-icon-btn--sm" onClick={() => moveModuleBy(module.id, 1)} disabled={index === orderedModules.length - 1 || orderPending} aria-label={`Модуль «${module.title}» ниже`} title="Ниже">
+                    <button type="button" className="dnd-icon-btn dnd-icon-btn--sm tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" onClick={() => moveModuleBy(module.id, 1)} disabled={index === orderedModules.length - 1 || orderPending} aria-label={`Модуль «${module.title}» ниже`} title="Ниже">
                       <Icon name="arrowDown" size={15} />
                     </button>
-                    <button type="button" className="dnd-icon-btn dnd-icon-btn--sm is-danger" onClick={() => requestDelete(nodeId.module(module.id))} aria-label={`Удалить модуль «${module.title}»`} title="Удалить">
+                    <button type="button" className="dnd-icon-btn dnd-icon-btn--sm is-danger tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:text-(--dnd-error) tw:[&:hover:not(:disabled)]:[background:var(--dnd-error-bg)]" onClick={() => requestDelete(nodeId.module(module.id))} aria-label={`Удалить модуль «${module.title}»`} title="Удалить">
                       <Icon name="trash" size={15} />
                     </button>
                   </div>
                 </div>
                 {module.lessonIds.length ? (
-                  <ul className="dnd-list-rows">
+                  <ul className="dnd-list-rows tw:m-[0] tw:p-[0] tw:grid tw:gap-[6px] tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                     {module.lessonIds.map((lessonId, lessonIndex) => {
                       const lesson = lessonById.get(lessonId);
                       return lesson ? (

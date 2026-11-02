@@ -726,44 +726,57 @@ export function CreatorChatView() {
   };
 
   return (
-    <section className="creator-chat-shell">
+    <section className="creator-chat-shell tw:mt-[10px] tw:grid tw:gap-[16px]">
       {isAgentMockEnabled() ? (
-        <p className="agent-mock-badge">
+        <p className="agent-mock-badge tw:m-[0_0_12px] tw:p-[8px_12px] tw:rounded-[12px] tw:text-(--text) tw:text-[1rem] tw:font-[700] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_dashed_rgba(212,_150,_30,_0.6)] tw:[background:rgba(212,_150,_30,_0.12)]">
           Демо-режим: ответы ИИ имитируются, модель не вызывается. Курс
           создаётся настоящими запросами к backend.
         </p>
       ) : null}
       {hasGenerationStarted && (
-        <article className="glass-card creator-chat-topbar">
+        <article className="glass-card creator-chat-topbar tw:relative tw:z-[2] tw:p-[18px_20px] tw:grid tw:gap-[14px] tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:hover:border-(--glass-glow) tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:1px] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.5)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
           <div className="creator-chat-top-main">
-            <span>Создание курса</span>
-            <h3>ИИ собирает структуру программы</h3>
-            <p>{generationStatus}</p>
+            <span className="tw:inline-block tw:text-[0.76rem] tw:tracking-[0.08em] tw:uppercase tw:text-(--accent) tw:font-[700] tw:dark:text-(--contrast)">
+              Создание курса
+            </span>
+            <h3 className="tw:mt-[6px] tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em] tw:[font-family:'Unbounded',_sans-serif]">
+              ИИ собирает структуру программы
+            </h3>
+            <p className="tw:mt-[8px] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+              {generationStatus}
+            </p>
           </div>
 
-          <div className="creator-chat-top-stats">
-            <div>
-              <span>Готовность</span>
-              <strong>{completionPercent}%</strong>
+          <div className="creator-chat-top-stats tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:gap-[10px] tw:max-980:grid-cols-[1fr]">
+            <div className="tw:rounded-[12px] tw:p-[10px_12px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.3)] tw:[background:rgba(var(--accent-rgb),_0.08)]">
+              <span className="tw:block tw:text-[0.76rem] tw:text-(--muted)">
+                Готовность
+              </span>
+              <strong className="tw:block tw:mt-[4px] tw:text-[1rem] tw:text-(--heading)">
+                {completionPercent}%
+              </strong>
             </div>
           </div>
 
-          <div className="creator-chat-top-track">
-            <div style={{ width: `${completionPercent}%` }} />
+          <div className="creator-chat-top-track tw:w-[100%] tw:h-[8px] tw:rounded-[999px] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)]">
+            <div
+              className="tw:h-[100%] tw:rounded-[inherit] tw:[background:linear-gradient(_90deg,_rgba(var(--accent-rgb),_0.96),_rgba(var(--accent-soft-rgb),_0.96)_)] tw:[transition:width_0.45s_ease]"
+              style={{ width: `${completionPercent}%` }}
+            />
           </div>
         </article>
       )}
 
       {isGenerating && (
-        <div className="creator-chat-layout is-generating">
-          <article className="glass-card creator-chat-main">
-            <div className="creator-chat-main-head">
+        <div className="creator-chat-layout is-generating tw:grid tw:gap-[14px] tw:items-stretch tw:grid-cols-[minmax(0,_1fr)] tw:max-980:grid-cols-[1fr]">
+          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+            <div className="creator-chat-main-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
               <h4>Чат-конструктор</h4>
               <span>ИИ работает...</span>
             </div>
 
             <div
-              className="creator-chat-messages"
+              className="creator-chat-messages tw:mt-[12px] tw:flex-[1] tw:min-h-[280px] tw:max-h-[460px] tw:overflow-y-auto tw:overflow-x-hidden tw:flex tw:flex-col tw:justify-end tw:gap-[8px] tw:pr-[4px]"
               ref={messagesContainerRef}
               aria-live="polite"
               aria-busy="true"
@@ -771,7 +784,7 @@ export function CreatorChatView() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:[&.is-assistant]:self-start tw:[&.is-user]:self-end tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:dark:[.page_&]:text-(--text) tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
                   {message.role === "assistant" ? (
                     <ReactMarkdown
@@ -784,13 +797,18 @@ export function CreatorChatView() {
                     <p>{message.text}</p>
                   )}
                   {message.role === "user" && (
-                    <span className="chat-message-status">✓ Отправлено</span>
+                    <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">
+                      ✓ Отправлено
+                    </span>
                   )}
                 </div>
               ))}
 
-              <div className="creator-chat-msg is-assistant is-thinking">
-                <span className="chat-thinking-dots" aria-hidden="true">
+              <div className="creator-chat-msg is-assistant is-thinking tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:self-start tw:opacity-[0.84] tw:italic tw:flex tw:items-center tw:gap-[8px] tw:[border-width:1px] tw:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[.page_&]:text-(--text) tw:dark:[.page_&]:[background:rgba(var(--accent-soft-rgb),_0.16)]">
+                <span
+                  className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]"
+                  aria-hidden="true"
+                >
                   <i />
                   <i />
                   <i />
@@ -799,10 +817,10 @@ export function CreatorChatView() {
               </div>
             </div>
 
-            <div className="creator-chat-runtime">
+            <div className="creator-chat-runtime tw:mt-[14px] tw:pt-[12px] tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.24)]">
               <h5>Генерация курса</h5>
               <p>{generationStatus}</p>
-              <div className="creator-chat-runtime-bar">
+              <div className="creator-chat-runtime-bar tw:mt-[10px] tw:w-[100%] tw:h-[8px] tw:rounded-[999px] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)]">
                 <div style={{ width: `${completionPercent}%` }} />
               </div>
             </div>
@@ -811,22 +829,26 @@ export function CreatorChatView() {
       )}
 
       {isGenerationComplete && (
-        <div className="creator-chat-layout is-briefing">
-          <article className="glass-card creator-chat-main">
-            <div className="creator-chat-main-head">
-              <h4>Чат-конструктор</h4>
-              <span>Курс готов</span>
+        <div className="creator-chat-layout is-briefing tw:grid tw:gap-[14px] tw:grid-cols-[minmax(0,_1fr)] tw:[align-items:start] tw:max-980:grid-cols-[1fr]">
+          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+            <div className="creator-chat-main-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
+              <h4 className="tw:text-[0.95rem] tw:text-(--heading) tw:[font-family:'Unbounded',_sans-serif]">
+                Чат-конструктор
+              </h4>
+              <span className="tw:text-(--muted) tw:text-[0.78rem]">
+                Курс готов
+              </span>
             </div>
 
             <div
-              className="creator-chat-messages"
+              className="creator-chat-messages tw:mt-[12px] tw:flex-[1] tw:min-h-[280px] tw:max-h-[460px] tw:overflow-y-auto tw:overflow-x-hidden tw:flex tw:flex-col tw:justify-end tw:gap-[8px] tw:pr-[4px]"
               ref={messagesContainerRef}
               aria-live="polite"
             >
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:self-end tw:[&.is-assistant]:self-start tw:dark:text-(--text) tw:dark:[&.is-user]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
                   {message.role === "assistant" ? (
                     <ReactMarkdown
@@ -836,31 +858,35 @@ export function CreatorChatView() {
                       {message.text}
                     </ReactMarkdown>
                   ) : (
-                    <p>{message.text}</p>
+                    <p className="tw:m-[0] tw:leading-[1.72] tw:text-[1rem] tw:wrap-anywhere tw:tracking-[0.012em]">
+                      {message.text}
+                    </p>
                   )}
                   {message.role === "user" && (
-                    <span className="chat-message-status">✓ Отправлено</span>
+                    <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">
+                      ✓ Отправлено
+                    </span>
                   )}
                 </div>
               ))}
             </div>
 
-            <div className="creator-chat-actions creator-chat-new-actions">
-              <span>
+            <div className="creator-chat-actions creator-chat-new-actions tw:mt-[14px] tw:pt-[12px] tw:flex tw:items-center tw:justify-between tw:gap-[10px] tw:flex-wrap tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:max-760:items-stretch tw:max-760:flex-col tw:[&_.btn]:p-[9px_15px] tw:[&_.btn]:min-h-[38px] tw:[&_.btn]:flex-[0_0_auto] tw:max-760:[&_.btn]:w-[100%]">
+              <span className="tw:flex-[1_1_320px] tw:text-(--muted) tw:text-[0.78rem] tw:leading-[1.45]">
                 Курс сохранён черновиком. Откройте его, чтобы проверить и
                 отредактировать, или начните новый диалог.
               </span>
-              <div className="creator-chat-actions-buttons">
+              <div className="creator-chat-actions-buttons tw:flex tw:items-center tw:gap-[8px] tw:flex-wrap">
                 <button
                   type="button"
-                  className="btn btn-solid"
+                  className="btn btn-solid tw:flex-[0_0_auto] tw:min-h-[38px] tw:p-[9px_15px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:max-760:w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                   onClick={() => navigate(`/course/${generatedCourseId}/edit`)}
                 >
                   Открыть курс
                 </button>
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="btn btn-outline tw:flex-[0_0_auto] tw:min-h-[38px] tw:p-[9px_15px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:max-760:w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                   onClick={startNewChat}
                 >
                   Новый чат
@@ -872,11 +898,13 @@ export function CreatorChatView() {
       )}
 
       {!isGenerating && !isGenerationComplete && (
-        <div className="creator-chat-layout is-briefing">
-          <article className="glass-card creator-chat-main">
-            <div className="creator-chat-main-head">
-              <h4>Чат-конструктор</h4>
-              <span>
+        <div className="creator-chat-layout is-briefing tw:grid tw:gap-[14px] tw:grid-cols-[minmax(0,_1fr)] tw:[align-items:start] tw:max-980:grid-cols-[1fr]">
+          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+            <div className="creator-chat-main-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
+              <h4 className="tw:text-[0.95rem] tw:text-(--heading) tw:[font-family:'Unbounded',_sans-serif]">
+                Чат-конструктор
+              </h4>
+              <span className="tw:text-(--muted) tw:text-[0.78rem]">
                 {isUploadingFiles
                   ? "Загружаю файлы..."
                   : isGenerating
@@ -886,7 +914,7 @@ export function CreatorChatView() {
             </div>
 
             <div
-              className="creator-chat-messages"
+              className="creator-chat-messages tw:mt-[12px] tw:flex-[1] tw:min-h-[280px] tw:max-h-[460px] tw:overflow-y-auto tw:overflow-x-hidden tw:flex tw:flex-col tw:justify-end tw:gap-[8px] tw:pr-[4px]"
               ref={messagesContainerRef}
               aria-live="polite"
               aria-busy={isThinking}
@@ -894,7 +922,7 @@ export function CreatorChatView() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`creator-chat-msg ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:self-end tw:[&.is-assistant]:self-start tw:dark:text-(--text) tw:dark:[&.is-user]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
                   {message.role === "assistant" ? (
                     <ReactMarkdown
@@ -904,22 +932,31 @@ export function CreatorChatView() {
                       {message.text}
                     </ReactMarkdown>
                   ) : (
-                    <p>{message.text}</p>
+                    <p className="tw:m-[0] tw:leading-[1.72] tw:text-[1rem] tw:wrap-anywhere tw:tracking-[0.012em]">
+                      {message.text}
+                    </p>
                   )}
                   {message.role === "user" && (
-                    <span className="chat-message-status">✓ Отправлено</span>
+                    <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">
+                      ✓ Отправлено
+                    </span>
                   )}
                 </div>
               ))}
 
               {isThinking && (
-                <div className="creator-chat-msg is-assistant is-thinking">
-                  <span className="chat-thinking-dots" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
+                <div className="creator-chat-msg is-assistant is-thinking tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:self-start tw:opacity-[0.84] tw:italic tw:flex tw:items-center tw:gap-[8px] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:text-(--text) tw:dark:[background:rgba(var(--accent-soft-rgb),_0.16)]">
+                  <span
+                    className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]"
+                    aria-hidden="true"
+                  >
+                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[.chat-thinking-dots_&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
+                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
+                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
                   </span>
-                  <p>Сообщение получено — думаю над следующим уточнением…</p>
+                  <p className="tw:m-[0] tw:leading-[1.72] tw:text-[1rem] tw:wrap-anywhere tw:tracking-[0.012em]">
+                    Сообщение получено — думаю над следующим уточнением…
+                  </p>
                 </div>
               )}
               {conversation?.error && (
@@ -930,15 +967,15 @@ export function CreatorChatView() {
             </div>
 
             {awaitingLaunchConfirmation && (
-              <div className="creator-chat-launch">
-                <span>
+              <div className="creator-chat-launch tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[10px] tw:m-[0_0_12px] tw:p-[12px_14px] tw:rounded-[16px] tw:[border:1px_solid_rgba(47,_125,_79,_0.35)] tw:[background:rgba(47,_125,_79,_0.08)]">
+                <span className="tw:flex-[1_1_260px] tw:text-(--muted) tw:text-[0.9rem]">
                   ИИ подготовил структуру курса. Проверьте описание и цели
                   обучения перед запуском — после запуска генерацию нельзя
                   отменить.
                 </span>
                 <button
                   type="button"
-                  className="btn btn-solid"
+                  className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                   onClick={() => setConfirmLaunchText(CONFIRM_LAUNCH_MESSAGE)}
                 >
                   Проверить и запустить
@@ -946,20 +983,20 @@ export function CreatorChatView() {
               </div>
             )}
 
-            <div className="creator-chat-composer-wrap">
+            <div className="creator-chat-composer-wrap tw:mt-[12px]">
               <input
                 ref={fileInputRef}
                 type="file"
-                className="knowledge-file-input"
+                className="knowledge-file-input tw:hidden tw:text-[0.96rem] tw:leading-[1.45]"
                 multiple
                 accept=".pdf,.docx,.pptx,.xlsx,.md,.html,.txt,.json"
                 onChange={pickFiles}
                 disabled={isGenerating || isUploadingFiles}
               />
-              <div className="creator-chat-composer">
+              <div className="creator-chat-composer tw:relative tw:grid tw:grid-cols-[34px_minmax(0,_1fr)_auto] tw:gap-[8px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[14px] tw:p-[8px] tw:max-760:grid-cols-[34px_minmax(0,_1fr)] tw:[align-items:end] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.46)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:dark:[background:rgba(var(--accent-rgb),_0.14)]">
                 <button
                   type="button"
-                  className="creator-chat-plus"
+                  className="creator-chat-plus tw:static tw:w-[30px] tw:h-[30px] tw:min-w-[30px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.38)] tw:rounded-[50%] tw:text-(--ink-accent) tw:text-[0.96rem] tw:font-[700] tw:leading-[1.45] tw:cursor-pointer tw:inline-flex tw:items-center tw:justify-center tw:[align-self:end] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:dark:text-(--heading) tw:max-760:min-h-[30px] tw:dark:[background:rgba(var(--accent-rgb),_0.2)]"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isGenerating || isUploadingFiles}
                   title="Загрузить файл"
@@ -969,6 +1006,7 @@ export function CreatorChatView() {
                 </button>
 
                 <textarea
+                  className="tw:w-[100%] tw:min-h-[72px] tw:max-h-[170px] tw:resize-y tw:rounded-[8px] tw:p-[10px_8px] tw:text-(--text) tw:overflow-y-auto tw:overflow-x-hidden tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.66)_rgba(var(--accent-rgb),_0.12)] tw:dark:placeholder:text-(--muted) tw:[&::-webkit-scrollbar]:w-[10px] tw:[&::-webkit-scrollbar-track]:rounded-[999px] tw:[&::-webkit-scrollbar-thumb]:rounded-[999px] tw:[&::-webkit-scrollbar-track]:[background:rgba(var(--accent-rgb),_0.12)] tw:[&::-webkit-scrollbar-thumb]:[background:linear-gradient(_180deg,_rgba(var(--accent-rgb),_0.82)_0%,_rgba(var(--accent-soft-rgb),_0.76)_100%_)] tw:[&::-webkit-scrollbar-thumb]:[border:2px_solid_rgba(var(--accent-rgb),_0.14)]"
                   placeholder={
                     currentQuestion?.placeholder || "Напишите сообщение для ИИ"
                   }
@@ -995,7 +1033,7 @@ export function CreatorChatView() {
 
                 <button
                   type="button"
-                  className="btn btn-solid creator-chat-send-btn"
+                  className="btn btn-solid creator-chat-send-btn tw:min-w-[96px] tw:min-h-[40px] tw:p-[12px_20px] tw:rounded-[999px] tw:text-[0.96rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[align-self:end] tw:max-760:col-[1_/_-1] tw:max-760:w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                   onClick={submitMessage}
                   disabled={
                     isGenerating ||
@@ -1014,7 +1052,7 @@ export function CreatorChatView() {
               </div>
 
               {uploadedFiles.length > 0 && (
-                <ul className="knowledge-files-list">
+                <ul className="knowledge-files-list tw:m-[12px_0_0] tw:p-[0] tw:pr-[4px] tw:grid tw:gap-[6px] tw:max-h-[88px] tw:overflow-y-auto tw:[list-style:none] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.52)_transparent] tw:[&::-webkit-scrollbar]:w-[8px] tw:[&::-webkit-scrollbar-thumb]:rounded-[999px] tw:[&::-webkit-scrollbar-track]:[background:transparent] tw:[&::-webkit-scrollbar-thumb]:[background:rgba(var(--accent-rgb),_0.45)]">
                   {uploadedFiles.map((file) => (
                     <li key={file.id}>
                       {file.name} • {file.sizeKb} КБ
@@ -1033,16 +1071,16 @@ export function CreatorChatView() {
               </p>
             )}
 
-            <div className="creator-chat-actions">
-              <span>
+            <div className="creator-chat-actions tw:mt-[14px] tw:pt-[12px] tw:flex tw:items-center tw:justify-between tw:gap-[10px] tw:flex-wrap tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:max-760:items-stretch tw:max-760:flex-col tw:[&_.btn]:p-[9px_15px] tw:[&_.btn]:min-h-[38px] tw:[&_.btn]:flex-[0_0_auto] tw:max-760:[&_.btn]:w-[100%]">
+              <span className="tw:flex-[1_1_320px] tw:text-(--muted) tw:text-[0.78rem] tw:leading-[1.45]">
                 Файлов прикреплено: {uploadedFiles.length} • Enter для отправки,
                 Shift + Enter для новой строки
               </span>
-              <div className="creator-chat-actions-buttons">
+              <div className="creator-chat-actions-buttons tw:flex tw:items-center tw:gap-[8px] tw:flex-wrap">
                 {fileUploadError && (
                   <button
                     type="button"
-                    className="btn btn-solid"
+                    className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                     onClick={submitMessage}
                     disabled={
                       isUploadingFiles ||
@@ -1056,7 +1094,7 @@ export function CreatorChatView() {
                 )}
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="btn btn-outline tw:flex-[0_0_auto] tw:min-h-[38px] tw:p-[9px_15px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:max-760:w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                   onClick={() =>
                     messages.length > 0
                       ? setIsClearConfirmOpen(true)
@@ -1087,7 +1125,7 @@ export function CreatorChatView() {
           await submitMessage(text);
         }}
       >
-        <div className="agent-launch-summary">
+        <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)]">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             urlTransform={safeMarkdownUrl}
@@ -1095,7 +1133,7 @@ export function CreatorChatView() {
             {lastAssistantMessage?.text || ""}
           </ReactMarkdown>
         </div>
-        <p className="app-modal-note">
+        <p className="app-modal-note tw:m-[0] tw:text-(--muted) tw:text-[0.9rem]">
           После подтверждения ИИ поставит курс в очередь на генерацию. Это
           займёт несколько минут, страницу можно не держать открытой.
         </p>

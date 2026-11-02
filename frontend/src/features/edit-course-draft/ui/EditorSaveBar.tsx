@@ -123,7 +123,7 @@ function ContentBlocksChange({
   const prev = Array.isArray(before) ? before : null;
   if (!prev) {
     return (
-      <div className="app-changes-diff">
+      <div className="app-changes-diff tw:flex tw:flex-wrap tw:items-baseline tw:gap-[6px] tw:wrap-anywhere">
         <ins>
           изменено содержимое ({next.length} {pluralBlocks(next.length)})
         </ins>
@@ -164,7 +164,7 @@ function ContentBlocksChange({
 
   if (!rows.length) {
     return (
-      <div className="app-changes-diff">
+      <div className="app-changes-diff tw:flex tw:flex-wrap tw:items-baseline tw:gap-[6px] tw:wrap-anywhere">
         <ins>изменены параметры блоков</ins>
       </div>
     );
@@ -172,10 +172,13 @@ function ContentBlocksChange({
 
   const visible = rows.slice(0, 6);
   return (
-    <ul className="app-changes-blocks">
+    <ul className="app-changes-blocks tw:grid tw:gap-[8px] tw:m-[0] tw:p-[0] tw:[list-style:none]">
       {visible.map((row) => (
-        <li key={`${row.kind}-${row.index}`}>
-          <strong>
+        <li
+          className="tw:grid tw:gap-[4px] tw:p-[8px_10px] tw:rounded-[0_10px_10px_0] tw:[border-left:3px_solid_rgba(var(--accent-rgb),_0.5)] tw:[background:rgba(var(--accent-rgb),_0.05)]"
+          key={`${row.kind}-${row.index}`}
+        >
+          <strong className="tw:text-[0.84rem]">
             {row.label}
             {row.kind === "added"
               ? " — новый"
@@ -186,18 +189,20 @@ function ContentBlocksChange({
           {row.kind === "changed" ? (
             <TextDiff before={row.oldText} after={row.newText} />
           ) : row.kind === "added" ? (
-            <span className="app-text-diff">
-              <ins>{shorten(row.newText, 220)}</ins>
+            <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere">
+              <ins className="tw:p-[0_2px] tw:rounded-[4px] tw:text-[#1f6b3f] tw:font-[700] tw:[background:rgba(47,_125,_79,_0.16)] tw:dark:text-[#9be2b3] tw:[text-decoration:none] tw:dark:[background:rgba(127,_209,_155,_0.16)]">
+                {shorten(row.newText, 220)}
+              </ins>
             </span>
           ) : (
-            <span className="app-text-diff">
+            <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere">
               <del>{shorten(row.oldText, 220)}</del>
             </span>
           )}
         </li>
       ))}
       {rows.length > visible.length ? (
-        <li className="app-changes-more">
+        <li className="app-changes-more tw:text-(--muted) tw:text-[0.84rem]">
           …и ещё {rows.length - visible.length}{" "}
           {pluralBlocks(rows.length - visible.length)}
         </li>
@@ -209,18 +214,24 @@ function ContentBlocksChange({
 /** Краткое описание изменений для окна подтверждения. */
 export function ChangesSummary({ edits }: { edits: DraftEdit[] }) {
   return (
-    <ul className="app-changes-list">
+    <ul className="app-changes-list tw:grid tw:gap-[10px] tw:m-[0] tw:p-[0] tw:[list-style:none]">
       {edits.map((edit) => (
-        <li key={edit.key} className="app-changes-entity">
-          <strong>
+        <li
+          key={edit.key}
+          className="app-changes-entity tw:grid tw:gap-[8px] tw:p-[12px_14px] tw:rounded-[14px] tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)]"
+        >
+          <strong className="tw:text-[var(--heading,_var(--text))]">
             {KIND_LABELS[edit.kind] || "Элемент"} «{shorten(edit.label, 80)}»
           </strong>
-          <ul className="app-changes-fields">
+          <ul className="app-changes-fields tw:grid tw:gap-[6px] tw:m-[0] tw:p-[0] tw:[list-style:none]">
             {Object.keys(edit.changes)
               .filter((field) => !isDerivedDraftField(field))
               .map((field) => (
-                <li key={field} className="app-changes-field">
-                  <span className="app-changes-label">
+                <li
+                  key={field}
+                  className="app-changes-field tw:grid tw:gap-[2px] tw:text-[0.88rem]"
+                >
+                  <span className="app-changes-label tw:text-(--muted) tw:text-[0.76rem] tw:font-[800] tw:tracking-[0.04em] tw:uppercase">
                     {FIELD_LABELS[field] || field}
                   </span>
                   {field === "contentBlocks" ? (
@@ -238,7 +249,10 @@ export function ChangesSummary({ edits }: { edits: DraftEdit[] }) {
               ))}
           </ul>
           {edit.error ? (
-            <p className="app-modal-error" role="alert">
+            <p
+              className="app-modal-error tw:m-[0] tw:p-[10px_12px] tw:rounded-[12px] tw:text-(--app-modal-danger) tw:font-[700] tw:[background:rgba(180,_35,_24,_0.1)]"
+              role="alert"
+            >
               {edit.error}
             </p>
           ) : null}
@@ -290,18 +304,21 @@ export function EditorSaveBar({
   return (
     <>
       {count > 0 && (
-        <div className="editor-save-bar" role="status">
-          <strong>{label}</strong>
+        <div
+          className="editor-save-bar tw:fixed tw:z-[900] tw:left-[50%] tw:bottom-[20px] tw:flex tw:flex-wrap tw:items-center tw:gap-[12px] tw:max-w-[calc(100%_-_32px)] tw:p-[10px_12px_10px_18px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.45)] tw:rounded-[999px] tw:text-(--text) tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:max-640:rounded-[18px] tw:[background:var(--glass-bg-strong,_rgba(252,_250,_246,_0.96))] tw:[box-shadow:0_14px_40px_rgba(0,_0,_0,_0.22)] tw:[transform:translateX(-50%)] tw:max-640:justify-center tw:dark:[background:rgba(40,_40,_40,_0.96)] tw:[&_.btn]:p-[6px_16px] tw:[&_.btn]:min-h-[38px]"
+          role="status"
+        >
+          <strong className="tw:text-[0.92rem]">{label}</strong>
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline tw:min-h-[38px] tw:p-[6px_16px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
             onClick={() => setDialog("discard")}
           >
             Отменить изменения
           </button>
           <button
             type="button"
-            className="btn btn-solid"
+            className="btn btn-solid tw:min-h-[38px] tw:p-[6px_16px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
             onClick={() => setDialog("save")}
           >
             Сохранить

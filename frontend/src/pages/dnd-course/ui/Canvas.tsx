@@ -24,7 +24,7 @@ import {
   type NodeChange,
   type OnSelectionChangeParams,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
+import "./xyflow.css";
 import { useShallow } from "zustand/react/shallow";
 import { COLUMN_GAP, DRAG_MIME, MODULE_LAYOUT, NODE_SIZE } from "../config/constants";
 import { buildGraph, structureSignature, type NodeData } from "../lib/graph";
@@ -101,25 +101,25 @@ function ZoomControls() {
   const toggleUsed = useDndCourseStore((state) => state.toggleUsedMaterials);
   return (
     <Panel position="top-right" className="dnd-zoom">
-      <button type="button" className="dnd-icon-btn" onClick={() => zoomOut({ duration: 180 })} aria-label="Уменьшить масштаб" title="Уменьшить">
+      <button type="button" className="dnd-icon-btn tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]" onClick={() => zoomOut({ duration: 180 })} aria-label="Уменьшить масштаб" title="Уменьшить">
         <Icon name="zoomOut" />
       </button>
       <button
         type="button"
-        className="dnd-zoom-value"
+        className="dnd-zoom-value tw:text-[0.8rem] tw:min-w-[54px] tw:h-[36px] tw:rounded-[8px] tw:text-(--dnd-text) tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[font-variant-numeric:tabular-nums] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:hover:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
         onClick={() => setViewport({ x: 40, y: 40, zoom: 1 }, { duration: 200 })}
         title="Масштаб 100%"
         aria-label={`Текущий масштаб ${Math.round(zoom * 100)}%. Сбросить до 100%`}
       >
         {Math.round(zoom * 100)}%
       </button>
-      <button type="button" className="dnd-icon-btn" onClick={() => zoomIn({ duration: 180 })} aria-label="Увеличить масштаб" title="Увеличить">
+      <button type="button" className="dnd-icon-btn tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]" onClick={() => zoomIn({ duration: 180 })} aria-label="Увеличить масштаб" title="Увеличить">
         <Icon name="zoomIn" />
       </button>
-      <span className="dnd-zoom-sep" aria-hidden="true" />
+      <span className="dnd-zoom-sep tw:w-[1px] tw:h-[22px] tw:m-[0_4px] tw:[background:var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-hidden="true" />
       <button
         type="button"
-        className={`dnd-icon-btn ${showUsed ? "is-on" : ""}`}
+        className={`dnd-icon-btn tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${showUsed ? "is-on" : ""}`}
         onClick={toggleUsed}
         aria-pressed={showUsed}
         aria-label={showUsed ? "Скрыть материалы, которые уже в уроках" : `Показать материалы, которые уже в уроках (${usedCount})`}
@@ -127,12 +127,12 @@ function ZoomControls() {
       >
         <Icon name="link" />
       </button>
-      <button type="button" className="dnd-icon-btn" onClick={() => fitView({ padding: 0.2, duration: 260 })} aria-label="Вписать все элементы" title="Вписать все элементы">
+      <button type="button" className="dnd-icon-btn tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]" onClick={() => fitView({ padding: 0.2, duration: 260 })} aria-label="Вписать все элементы" title="Вписать все элементы">
         <Icon name="fit" />
       </button>
       <button
         type="button"
-        className="dnd-icon-btn"
+        className="dnd-icon-btn tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
         onClick={() => fitView({ nodes: [{ id: "course" }], padding: 1.2, maxZoom: 1, duration: 260 })}
         aria-label="Вернуться к узлу курса"
         title="К узлу курса"
@@ -150,10 +150,10 @@ function DropDock() {
   const zone = dragKind === "materials" ? "new-lesson" : "new-module";
   const active = hint?.zone === zone;
   return (
-    <div className="dnd-dock" aria-hidden="true">
+    <div className="dnd-dock tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder_&]:left-[50%] tw:[.page_.dnd-builder_&]:bottom-[22px] tw:[.page_.dnd-builder_&]:z-[10] tw:[.page_.dnd-builder_&]:pointer-events-none tw:[.page_.dnd-builder_&]:[transform:translateX(-50%)] tw:[.page_.dnd-builder_&]:[animation:dnd-rise_0.2s_var(--dnd-ease)]" aria-hidden="true">
       <div
         data-dnd-zone={zone}
-        className={`dnd-dock-zone ${active ? (hint.valid ? "is-drop-ok" : "is-drop-bad") : ""}`}
+        className={`dnd-dock-zone tw:[.page_.dnd-builder_&]:pointer-events-auto tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:gap-[12px] tw:[.page_.dnd-builder_&]:w-[min(360px,_calc(100vw_-_64px))] tw:[.page_.dnd-builder_&]:p-[16px_18px] tw:[.page_.dnd-builder_&]:rounded-[16px] tw:[.page_.dnd-builder_&]:border-dashed tw:[.page_.dnd-builder_&]:border-(--dnd-blue-ink) tw:[.page_.dnd-builder_&.is-drop-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&.is-drop-bad]:border-(--dnd-error) tw:[.page_.dnd-builder_&]:text-(--dnd-blue-ink) tw:[.page_.dnd-builder_&.is-drop-ok]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.is-drop-bad]:text-(--dnd-error) tw:[.page_.dnd-builder_&.is-drop-bad]:cursor-not-allowed tw:[.page_.dnd-builder_&]:[border-width:2px] tw:[.page_.dnd-builder_&]:[background:color-mix(in_srgb,_var(--dnd-panel)_92%,_transparent)] tw:[.page_.dnd-builder_&.is-drop-ok]:[background:color-mix(in_srgb,_var(--dnd-panel)_80%,_var(--dnd-ok)_10%)] tw:[.page_.dnd-builder_&]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&]:[transition:transform_0.15s,_background_0.15s,_border-color_0.15s] tw:[.page_.dnd-builder_&.is-drop-ok]:[transform:scale(1.04)] ${active ? (hint.valid ? "is-drop-ok" : "is-drop-bad") : ""}`}
       >
         <Icon name={zone === "new-lesson" ? "lesson" : "module"} size={20} />
         <span>
@@ -660,7 +660,7 @@ function CanvasInner() {
   return (
     <div
       ref={wrapperRef}
-      className={`dnd-canvas ${fileOver ? "is-file-over" : ""}`}
+      className={`dnd-canvas tw:absolute tw:inset-[0] tw:[background:color-mix(in_srgb,_var(--dnd-canvas)_45%,_transparent)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] ${fileOver ? "is-file-over" : ""}`}
       onDragOver={onDragOver}
       onDragLeave={(event) => {
         if (!wrapperRef.current?.contains(event.relatedTarget as Element | null)) setFileOver(false);
@@ -711,7 +711,7 @@ function CanvasInner() {
       </ReactFlow>
       <DropDock />
       {fileOver ? (
-        <div className="dnd-file-over" aria-hidden="true">
+        <div className="dnd-file-over tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder_&]:inset-[12px] tw:[.page_.dnd-builder_&]:z-[15] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[6px] tw:[.page_.dnd-builder_&]:rounded-[18px] tw:[.page_.dnd-builder_&]:text-(--dnd-blue-ink) tw:[.page_.dnd-builder_&]:pointer-events-none tw:[.page_.dnd-builder_&]:text-center tw:[.page_.dnd-builder_&]:[place-content:center] tw:[.page_.dnd-builder_&]:[justify-items:center] tw:[.page_.dnd-builder_&]:[border:2.5px_dashed_var(--dnd-blue-ink)] tw:[.page_.dnd-builder_&]:[background:color-mix(in_srgb,_var(--dnd-blue)_12%,_transparent)] tw:[.page_.dnd-builder_&]:[animation:dnd-fade_0.15s_ease-out]" aria-hidden="true">
           <Icon name="upload" size={28} />
           <strong>Отпустите файлы, чтобы добавить материалы</strong>
           <small>Положите файл на урок — материал добавится прямо в него</small>

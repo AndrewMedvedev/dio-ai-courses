@@ -42,7 +42,7 @@ function loginPathFor(
 
 function StatusIcon({ tone }: { tone: "success" | "error" | "pending" }) {
   return (
-    <span className={`invite-accept-icon is-${tone}`} aria-hidden="true">
+    <span className={`invite-accept-icon tw:justify-self-center tw:grid tw:w-[64px] tw:h-[64px] tw:rounded-[999px] tw:text-(--success-text) tw:text-[1.8rem] tw:font-[800] tw:[place-items:center] tw:[&.is-pending]:w-[48px] tw:[&.is-pending]:h-[48px] tw:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-error]:text-[#b8443c] tw:[&.is-pending]:border-solid tw:[&.is-pending]:border-[rgba(var(--accent-rgb),_0.3)] tw:[&.is-error]:[background:rgba(199,_82,_74,_0.14)] tw:[&.is-pending]:[background:transparent] tw:dark:[.page_&.is-error]:text-[#f0978f] tw:[&.is-pending]:[border-width:3px] tw:[&.is-pending]:[border-top-color:rgba(var(--accent-rgb),_0.95)] tw:[&.is-pending]:[animation:invite-accept-spin_0.9s_linear_infinite] tw:motion-reduce:[&.is-pending]:[animation-duration:2.4s] is-${tone}`} aria-hidden="true">
       {tone === "success" ? "✓" : tone === "error" ? "!" : ""}
     </span>
   );
@@ -174,9 +174,9 @@ function ExistingInvitationAcceptPage() {
       : { to: "/profile", label: "В личный кабинет" };
 
   return (
-    <section className="container section course-details-view course-invite-accept">
+    <section className="container section course-details-view course-invite-accept tw:relative tw:z-[1] tw:w-[min(1600px,_98vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:[.page_&]:[--muted:#c4b9a7] tw:dark:[.page_&]:[--eyebrow:#a0c4ff] tw:dark:[.page_&]:[--ink-accent:#dfd2bf] tw:dark:[.page_&]:[--info-text:#b7ab99] tw:dark:[.page_&]:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[.page_&]:[--glass-bg-strong:rgba(44,_44,_44,_0.92)]">
       <SectionTop label="Приглашение" title={config.title} />
-      <article className="glass-card course-invite-accept-card" aria-live="polite">
+      <article className="glass-card course-invite-accept-card tw:w-[min(680px,_100%)] tw:m-[40px_auto_0] tw:grid tw:gap-[18px] tw:p-[44px_40px] tw:text-center tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]" aria-live="polite">
         {state.status === "done" ? (
           <>
             <StatusIcon tone="success" />
@@ -187,11 +187,11 @@ function ExistingInvitationAcceptPage() {
                   Чтобы перейти в неё, войдите ещё раз — новая организация будет
                   выбрана автоматически. Текущая сессия останется в прежней организации.
                 </p>
-                <div className="course-invite-accept-actions">
-                  <button type="button" className="btn btn-solid" onClick={goToOrganization}>
+                <div className="course-invite-accept-actions tw:flex tw:flex-wrap tw:justify-center tw:gap-[12px] tw:mt-[8px] tw:[&_.btn]:p-[14px_26px] tw:[&_.btn]:text-[1.05rem]">
+                  <button type="button" className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]" onClick={goToOrganization}>
                     Перейти в организацию
                   </button>
-                  <Link className="btn btn-outline" to="/profile">
+                  <Link className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]" to="/profile">
                     Остаться в текущей
                   </Link>
                 </div>
@@ -200,8 +200,8 @@ function ExistingInvitationAcceptPage() {
               <>
                 <h2>Вы присоединились к курсу</h2>
                 <p>Курс уже появился в вашем списке.</p>
-                <div className="course-invite-accept-actions">
-                  <Link className="btn btn-solid" to="/profile">
+                <div className="course-invite-accept-actions tw:flex tw:flex-wrap tw:justify-center tw:gap-[12px] tw:mt-[8px] tw:[&_.btn]:p-[14px_26px] tw:[&_.btn]:text-[1.05rem]">
+                  <Link className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]" to="/profile">
                     В личный кабинет
                   </Link>
                 </div>
@@ -214,30 +214,30 @@ function ExistingInvitationAcceptPage() {
             <h2>{errorInfo.title}</h2>
             <p>{errorInfo.text}</p>
             {userEmail && errorInfo.kind === "wrong-account" ? (
-              <p className="invite-accept-identity">
+              <p className="invite-accept-identity tw:[.course-invite-accept-card_&]:text-[1rem]">
                 Сейчас вы вошли как <strong>{userEmail}</strong>
               </p>
             ) : null}
-            <div className="course-invite-accept-actions">
+            <div className="course-invite-accept-actions tw:flex tw:flex-wrap tw:justify-center tw:gap-[12px] tw:mt-[8px] tw:[&_.btn]:p-[14px_26px] tw:[&_.btn]:text-[1.05rem]">
               {errorInfo.kind === "retry" ? (
-                <button type="button" className="btn btn-solid" onClick={accept}>
+                <button type="button" className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]" onClick={accept}>
                   Повторить
                 </button>
               ) : null}
               {errorInfo.kind === "wrong-account" ? (
-                <button type="button" className="btn btn-solid" onClick={switchAccount}>
+                <button type="button" className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]" onClick={switchAccount}>
                   Войти под другим аккаунтом
                 </button>
               ) : null}
               {errorInfo.kind === "member" ? (
                 <Link
-                  className="btn btn-solid"
+                  className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                   to={type === "course" ? "/profile" : "/organizations"}
                 >
                   {type === "course" ? "Мои курсы" : "К организации"}
                 </Link>
               ) : null}
-              <Link className="btn btn-outline" to={backLink.to}>
+              <Link className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]" to={backLink.to}>
                 {backLink.label}
               </Link>
             </div>

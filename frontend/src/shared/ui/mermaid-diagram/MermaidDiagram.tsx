@@ -781,18 +781,26 @@ export function MermaidDiagram({
   }, [normalizedChart, componentId, retryCount, lessonId, blockId]);
 
   return (
-    <div className={["mermaid-diagram", `is-${status}`].join(" ")}>
+    <div
+      className={[
+        "mermaid-diagram tw:w-[100%] tw:border-solid tw:border-[rgba(140,_113,_140,_0.38)] tw:rounded-[12px] tw:p-[12px] tw:[.content-preview-diagram-trigger_&]:m-[0] tw:[.content-block-card_&]:overflow-auto tw:[border-width:1px] tw:[.content-preview-modal.is-diagram_&]:border-none tw:dark:border-[rgba(183,_151,_183,_0.5)] tw:[.content-preview-modal.is-diagram_&]:border-[currentcolor] tw:[background:#f6f1e9] tw:[.content-preview-modal.is-diagram_&]:p-[0] tw:[.content-preview-modal.is-diagram_&]:[border-width:0] tw:dark:[.content-preview-modal.is-diagram_&]:border-[rgba(183,_151,_183,_0.5)] tw:dark:[background:#222831] tw:[.content-preview-modal.is-diagram_&]:[background:transparent] tw:[.content-preview-modal.is-diagram_&]:[box-shadow:none] tw:dark:[.content-preview-modal.is-diagram_&]:[background:#222831]",
+        `is-${status}`,
+      ].join(" ")}
+    >
       {svg ? (
         <div
           ref={svgHostRef}
-          className="mermaid-diagram-svg"
+          className="mermaid-diagram-svg tw:[.content-block-card_&]:w-[100%] tw:[.content-block-card_&]:min-w-[0]"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
       ) : status === "error" ? (
-        <div className="mermaid-diagram-error" role="alert">
+        <div
+          className="mermaid-diagram-error tw:min-w-[280px] tw:min-h-[120px] tw:grid tw:gap-[8px] tw:text-center tw:text-(--muted) tw:border-dashed tw:border-[rgba(196,_89,_89,_0.42)] tw:rounded-[10px] tw:p-[16px] tw:overflow-auto tw:[place-content:center] tw:[border-width:1px] tw:[background:rgba(196,_89,_89,_0.08)] tw:dark:[.page_&]:border-[rgba(255,_135,_135,_0.34)] tw:dark:[.page_&]:[background:rgba(255,_135,_135,_0.08)]"
+          role="alert"
+        >
           <strong>Схему пока не удалось показать</strong>
           <span>{errorMessage}</span>
-          <div className="mermaid-diagram-error-actions">
+          <div className="mermaid-diagram-error-actions tw:flex tw:flex-wrap tw:justify-center tw:gap-[8px]">
             <button
               type="button"
               onClick={() => setRetryCount((count) => count + 1)}
@@ -808,16 +816,20 @@ export function MermaidDiagram({
             </button>
           </div>
           {showSource && (
-            <pre className="mermaid-diagram-source">{normalizedChart}</pre>
+            <pre className="mermaid-diagram-source tw:max-w-[100%] tw:max-h-[240px] tw:overflow-auto tw:m-[0] tw:p-[10px] tw:text-left tw:whitespace-pre tw:text-(--ink) tw:[background:var(--glass-bg-strong)]">
+              {normalizedChart}
+            </pre>
           )}
         </div>
       ) : (
         <div
-          className="mermaid-diagram-placeholder"
+          className="mermaid-diagram-placeholder tw:min-w-[280px] tw:min-h-[120px] tw:grid tw:gap-[8px] tw:text-center tw:text-(--muted) tw:border-dashed tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[10px] tw:[place-content:center] tw:[border-width:1px] tw:dark:border-[rgba(155,_182,_209,_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:dark:[background:rgba(155,_182,_209,_0.08)]"
           role="status"
           aria-live="polite"
         >
-          <strong>Схема Mermaid загружается</strong>
+          <strong className="tw:[.page.is-inner-page_.lesson-markdown_&]:text-(--ink-accent) tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:[.page.is-inner-page_.lesson-markdown_&]:text-[#fff4df]">
+            Схема Mermaid загружается
+          </strong>
           <span>Подготавливаем визуализацию.</span>
         </div>
       )}

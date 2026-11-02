@@ -219,7 +219,7 @@ export function FloatingWindow({
 
   return createPortal(
     <section
-      className={`floating-window ${minimized ? "is-minimized" : ""} ${isMobile ? "is-mobile" : ""} ${className}`.trim()}
+      className={`floating-window tw:fixed tw:z-[1050] tw:flex tw:flex-col tw:min-w-[0] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.45)] tw:rounded-[18px] tw:text-(--text) tw:overflow-hidden tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[background:#faf7f1] tw:[box-shadow:0_22px_60px_rgba(0,_0,_0,_0.26),_0_2px_6px_rgba(0,_0,_0,_0.08)] tw:[animation:floating-window-in_0.16s_ease-out] tw:[&.is-minimized]:h-[auto] tw:[&.is-mobile]:h-[min(72vh,_620px)]! tw:[&.is-mobile.is-minimized]:h-[auto]! tw:[&.is-mobile]:left-[8px]! tw:[&.is-mobile]:right-[8px] tw:[&.is-mobile]:bottom-[8px] tw:[&.is-mobile]:top-[auto]! tw:[&.is-mobile]:w-[auto]! tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:#262626] ${minimized ? "is-minimized" : ""} ${isMobile ? "is-mobile" : ""} ${className}`.trim()}
       style={style}
       role="dialog"
       aria-modal="false"
@@ -229,7 +229,7 @@ export function FloatingWindow({
       onPointerCancel={endGesture}
     >
       <header
-        className="floating-window-head"
+        className="floating-window-head tw:flex tw:items-start tw:gap-[10px] tw:p-[12px_12px_10px_16px] tw:cursor-grab tw:[border-bottom:1px_solid_var(--app-modal-border)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:active:cursor-grabbing tw:[.floating-window.is-mobile_&]:cursor-default tw:[user-select:none] tw:[touch-action:none] tw:[.floating-window.is-minimized_&]:[border-bottom:0]"
         onPointerDown={(event) => startGesture(event, "move")}
         onDoubleClick={(event) => {
           if (!(event.target as Element).closest("button"))
@@ -237,18 +237,29 @@ export function FloatingWindow({
         }}
         title={isMobile ? undefined : "Перетащите, чтобы переместить окно"}
       >
-        <div className="floating-window-titles">
+        <div className="floating-window-titles tw:flex-[1_1_auto] tw:min-w-[0]">
           {eyebrow ? (
-            <span className="floating-window-eyebrow">{eyebrow}</span>
+            <span className="floating-window-eyebrow tw:block tw:text-[var(--eyebrow,_var(--muted))] tw:text-[0.7rem] tw:font-[800] tw:tracking-[0.08em] tw:uppercase">
+              {eyebrow}
+            </span>
           ) : null}
-          <h3 id={titleId}>{title}</h3>
-          {subtitle ? <p>{subtitle}</p> : null}
+          <h3
+            className="tw:m-[2px_0_0] tw:text-[var(--heading,_var(--text))] tw:text-[1rem] tw:leading-[1.25]"
+            id={titleId}
+          >
+            {title}
+          </h3>
+          {subtitle ? (
+            <p className="tw:m-[4px_0_0] tw:text-(--muted) tw:text-[0.82rem] tw:wrap-anywhere">
+              {subtitle}
+            </p>
+          ) : null}
         </div>
-        <div className="floating-window-actions">
+        <div className="floating-window-actions tw:flex-[none] tw:flex tw:flex-wrap tw:justify-end tw:items-center tw:gap-[6px] tw:[&_.btn]:min-h-[32px] tw:[&_.btn]:p-[3px_12px] tw:[&_.btn]:text-[0.8rem]">
           {!minimized ? headerActions : null}
           <button
             type="button"
-            className="floating-window-btn"
+            className="floating-window-btn tw:grid tw:w-[32px] tw:h-[32px] tw:border-solid tw:border-(--app-modal-border) tw:rounded-[999px] tw:text-(--muted) tw:text-[1.05rem] tw:leading-[1] tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.7)] tw:[background:transparent] tw:hover:text-(--text)"
             onClick={() => setMinimized((value) => !value)}
             aria-label={minimized ? "Развернуть окно" : "Свернуть окно"}
             title={minimized ? "Развернуть" : "Свернуть"}
@@ -257,7 +268,7 @@ export function FloatingWindow({
           </button>
           <button
             type="button"
-            className="floating-window-btn"
+            className="floating-window-btn tw:grid tw:w-[32px] tw:h-[32px] tw:border-solid tw:border-(--app-modal-border) tw:rounded-[999px] tw:text-(--muted) tw:text-[1.05rem] tw:leading-[1] tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.7)] tw:[background:transparent] tw:hover:text-(--text)"
             onClick={() => onClose?.()}
             aria-label="Закрыть окно"
             title="Закрыть"
@@ -267,33 +278,35 @@ export function FloatingWindow({
         </div>
       </header>
       {!minimized ? (
-        <div className="floating-window-body">{children}</div>
+        <div className="floating-window-body tw:flex-[1_1_auto] tw:min-h-[0] tw:flex tw:flex-col tw:p-[12px_14px_14px] tw:overflow-auto">
+          {children}
+        </div>
       ) : null}
       {!minimized && !isMobile ? (
         <>
           <span
-            className="floating-window-resize is-e"
+            className="floating-window-resize is-e tw:absolute tw:z-[2] tw:top-[16px] tw:right-[-3px] tw:bottom-[16px] tw:w-[8px] tw:[touch-action:none] tw:[cursor:ew-resize]"
             onPointerDown={(event) => startGesture(event, "e")}
             aria-hidden="true"
           />
           <span
-            className="floating-window-resize is-w"
+            className="floating-window-resize is-w tw:absolute tw:z-[2] tw:top-[16px] tw:left-[-3px] tw:bottom-[16px] tw:w-[8px] tw:[touch-action:none] tw:[cursor:ew-resize]"
             onPointerDown={(event) => startGesture(event, "w")}
             aria-hidden="true"
           />
           <span
-            className="floating-window-resize is-s"
+            className="floating-window-resize is-s tw:absolute tw:z-[2] tw:left-[16px] tw:right-[16px] tw:bottom-[-3px] tw:h-[8px] tw:[touch-action:none] tw:[cursor:ns-resize]"
             onPointerDown={(event) => startGesture(event, "s")}
             aria-hidden="true"
           />
           <span
-            className="floating-window-resize is-se"
+            className="floating-window-resize is-se tw:absolute tw:z-[2] tw:bottom-[-2px] tw:w-[18px] tw:h-[18px] tw:right-[-2px] tw:[touch-action:none] tw:[cursor:nwse-resize] tw:[background:linear-gradient(_135deg,_transparent_55%,_rgba(var(--accent-rgb),_0.55)_55%,_rgba(var(--accent-rgb),_0.55)_62%,_transparent_62%,_transparent_72%,_rgba(var(--accent-rgb),_0.55)_72%,_rgba(var(--accent-rgb),_0.55)_79%,_transparent_79%_)]"
             onPointerDown={(event) => startGesture(event, "se")}
             aria-hidden="true"
             title="Потяните, чтобы изменить размер"
           />
           <span
-            className="floating-window-resize is-sw"
+            className="floating-window-resize is-sw tw:absolute tw:z-[2] tw:bottom-[-2px] tw:w-[18px] tw:h-[18px] tw:left-[-2px] tw:[touch-action:none] tw:[cursor:nesw-resize]"
             onPointerDown={(event) => startGesture(event, "sw")}
             aria-hidden="true"
           />

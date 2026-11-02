@@ -15,8 +15,8 @@ export function LessonBasicInfo({
 }) {
   if (!lesson) {
     return (
-      <article className="course-viewer-card">
-        <p className="course-viewer-muted">
+      <article className="course-viewer-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:0_20px_60px_rgba(27,_35,_68,_0.08)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)]">
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
           Выберите урок, чтобы увидеть описание.
         </p>
       </article>
@@ -30,19 +30,29 @@ export function LessonBasicInfo({
       : [];
 
   return (
-    <article className="course-viewer-card lesson-basic-info">
-      <div className="course-viewer-eyebrow">Урок {lesson.order + 1}</div>
-      <h2>{lesson.title}</h2>
+    <article className="course-viewer-card lesson-basic-info tw:p-[24px] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#f7dca8]">
+        Урок {lesson.order + 1}
+      </div>
+      <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#fff4df]">
+        {lesson.title}
+      </h2>
       {lesson.description ? (
-        <p className="course-viewer-description">{lesson.description}</p>
+        <p className="course-viewer-description tw:text-(--muted) tw:leading-[1.72] tw:m-[14px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#e9decb]">
+          {lesson.description}
+        </p>
       ) : (
-        <p className="course-viewer-muted">Описание урока отсутствует.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.72] tw:m-[10px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#e9decb]">
+          Описание урока отсутствует.
+        </p>
       )}
 
-      <div className="course-meta-grid">
-        <div>
-          <span>Время</span>
-          <strong>
+      <div className="course-meta-grid tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] tw:gap-[12px] tw:mt-[20px]">
+        <div className="tw:rounded-[18px] tw:p-[14px] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_.course-meta-grid_>_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)]">
+          <span className="tw:text-(--muted) tw:block tw:text-[0.84rem] tw:mb-[4px] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#e9decb]">
+            Время
+          </span>
+          <strong className="tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#fff4df]">
             {lesson.estimated_time_minutes === null
               ? "Не указано"
               : `${lesson.estimated_time_minutes} мин.`}
@@ -51,16 +61,18 @@ export function LessonBasicInfo({
       </div>
 
       {learningObjectives.length > 0 ? (
-        <div className="course-info-section">
+        <div className="course-info-section tw:mt-[22px]">
           <h3>Цели урока</h3>
-          <ul className="course-viewer-list">
+          <ul className="course-viewer-list tw:grid tw:gap-[8px] tw:m-[12px_0_0] tw:pl-[20px]">
             {learningObjectives.map((objective, index) => (
               <li key={`${lesson.id}-objective-${index}`}>{objective}</li>
             ))}
           </ul>
         </div>
       ) : (
-        <p className="course-viewer-muted">Цели урока пока не указаны.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.72] tw:m-[10px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.generated-course-learning-grid_.lesson-basic-info_&]:text-[#e9decb]">
+          Цели урока пока не указаны.
+        </p>
       )}
     </article>
   );

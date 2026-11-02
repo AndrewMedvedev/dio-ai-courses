@@ -43,10 +43,10 @@ export function ModuleDialog() {
       closeDisabled={busy}
       footer={
         <>
-          <button type="button" className="dnd-btn dnd-btn--ghost" onClick={close} disabled={busy}>
+          <button type="button" className="dnd-btn dnd-btn--ghost tw:text-[0.875rem] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[38px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]" onClick={close} disabled={busy}>
             Отмена
           </button>
-          <button type="submit" form={`${id}-form`} className="dnd-btn dnd-btn--solid" disabled={busy || !selected.length} aria-busy={busy}>
+          <button type="submit" form={`${id}-form`} className="dnd-btn dnd-btn--solid tw:text-[0.875rem] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[38px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-text) tw:text-(--dnd-panel) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:var(--dnd-text)] tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:active:not(:disabled)]:[transform:translateY(1px)] tw:[&:hover:not(:disabled)]:[box-shadow:0_4px_12px_rgba(0,_0,_0,_0.16)]" disabled={busy || !selected.length} aria-busy={busy}>
             {busy ? <Spinner size={14} /> : <Icon name="check" size={16} />}
             {busy ? "Создаём модуль…" : "Создать модуль"}
           </button>
@@ -55,18 +55,18 @@ export function ModuleDialog() {
     >
       <form
         id={`${id}-form`}
-        className="dnd-stack"
+        className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
           submit();
         }}
       >
-        <div className={`dnd-field ${titleMissing ? "has-error" : ""}`}>
-          <label htmlFor={`${id}-title`}>
-            Название<span aria-hidden="true"> *</span>
+        <div className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] ${titleMissing ? "has-error" : ""}`}>
+          <label className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" htmlFor={`${id}-title`}>
+            Название<span className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-hidden="true"> *</span>
           </label>
-          <input
+          <input className="tw:w-[100%] tw:min-h-[40px] tw:p-[9px_12px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:[font:inherit] tw:[&&]:text-[0.88rem] tw:[&&]:leading-[1.45] tw:[border-width:1px] tw:focus:border-(--dnd-focus) tw:[background:var(--dnd-node)] tw:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:focus:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:focus:focus-visible:[outline:none]"
             id={`${id}-title`}
             value={dialog.title}
             onChange={(event) => update({ title: event.target.value })}
@@ -77,11 +77,11 @@ export function ModuleDialog() {
             maxLength={200}
           />
         </div>
-        <div className={`dnd-field ${descriptionMissing ? "has-error" : ""}`}>
-          <label htmlFor={`${id}-description`}>
-            Описание<span aria-hidden="true"> *</span>
+        <div className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] ${descriptionMissing ? "has-error" : ""}`}>
+          <label className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" htmlFor={`${id}-description`}>
+            Описание<span className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-hidden="true"> *</span>
           </label>
-          <textarea
+          <textarea className="tw:w-[100%] tw:min-h-[40px] tw:p-[9px_12px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:resize-y tw:[font:inherit] tw:[&&]:text-[0.88rem] tw:[&&]:leading-[1.45] tw:[border-width:1px] tw:focus:border-(--dnd-focus) tw:[background:var(--dnd-node)] tw:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:focus:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:focus:focus-visible:[outline:none]"
             id={`${id}-description`}
             rows={3}
             value={dialog.description}
@@ -92,9 +92,9 @@ export function ModuleDialog() {
             disabled={busy}
           />
         </div>
-        <div className="dnd-field">
-          <label htmlFor={`${id}-goals`}>Цели обучения</label>
-          <textarea
+        <div className="dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <label className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" htmlFor={`${id}-goals`}>Цели обучения</label>
+          <textarea className="tw:w-[100%] tw:min-h-[40px] tw:p-[9px_12px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:resize-y tw:[font:inherit] tw:[&&]:text-[0.88rem] tw:[&&]:leading-[1.45] tw:[border-width:1px] tw:focus:border-(--dnd-focus) tw:[background:var(--dnd-node)] tw:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:focus:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:focus:focus-visible:[outline:none]"
             id={`${id}-goals`}
             rows={3}
             value={dialog.learningObjectives}
@@ -103,16 +103,16 @@ export function ModuleDialog() {
             disabled={busy}
           />
         </div>
-        <fieldset className="dnd-fieldset">
-          <legend>Уроки модуля ({selected.length})</legend>
+        <fieldset className="dnd-fieldset tw:m-[0] tw:p-[0] tw:grid tw:gap-[8px] tw:min-w-[0] tw:[border:0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <legend className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">Уроки модуля ({selected.length})</legend>
           {visibleLessons.length ? (
-            <ul className="dnd-check-list nowheel">
+            <ul className="dnd-check-list nowheel tw:m-[0] tw:p-[0] tw:grid tw:gap-[4px] tw:max-h-[260px] tw:overflow-y-auto tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
               {visibleLessons.map((lesson) => (
-                <li key={lesson.id}>
-                  <label>
-                    <input type="checkbox" checked={selected.includes(lesson.id)} onChange={() => toggle(lesson.id)} disabled={busy} />
-                    <span title={lesson.title}>{lesson.title}</span>
-                    {lesson.moduleTitle ? <small>сейчас в «{lesson.moduleTitle}»</small> : <small>без модуля</small>}
+                <li className="tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" key={lesson.id}>
+                  <label className="tw:text-[0.86rem] tw:flex tw:items-center tw:gap-[10px] tw:min-h-[40px] tw:p-[6px_10px] tw:rounded-[10px] tw:cursor-pointer tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+                    <input className="tw:w-[18px] tw:h-[18px] tw:flex-[none] tw:accent-(--dnd-accent-ink) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]" type="checkbox" checked={selected.includes(lesson.id)} onChange={() => toggle(lesson.id)} disabled={busy} />
+                    <span className="tw:flex-[1] tw:min-w-[0] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" title={lesson.title}>{lesson.title}</span>
+                    {lesson.moduleTitle ? <small>сейчас в «{lesson.moduleTitle}»</small> : <small className="tw:text-[0.74rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">без модуля</small>}
                   </label>
                 </li>
               ))}
@@ -158,7 +158,7 @@ export function MaterialPickerDialog() {
           </button>
           <button
             type="button"
-            className="dnd-btn dnd-btn--solid"
+            className="dnd-btn dnd-btn--solid tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text)"
             disabled={busy || !selected.length || overLimit}
             onClick={async () => {
               const created = await createLesson(selected);
@@ -172,7 +172,7 @@ export function MaterialPickerDialog() {
       }
     >
       {materials.length ? (
-        <ul className="dnd-check-list nowheel">
+        <ul className="dnd-check-list nowheel tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[4px] tw:[.page_.dnd-builder_&]:max-h-[260px] tw:[.page_.dnd-builder_&]:overflow-y-auto tw:[.page_.dnd-builder_&]:[list-style:none]">
           {materials.map((item) => {
             const order = selected.indexOf(item.id);
             return (
@@ -245,7 +245,7 @@ export function FinishDialog({
           </button>
           <button
             type="button"
-            className="dnd-btn dnd-btn--accent"
+            className="dnd-btn dnd-btn--accent tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-accent-ink)"
             onClick={() => finish(onCreateCourse)}
             disabled={busy || blocking}
             aria-busy={busy}
@@ -256,7 +256,7 @@ export function FinishDialog({
         </>
       }
     >
-      <dl className="dnd-stats dnd-stats--summary">
+      <dl className="dnd-stats dnd-stats--summary tw:[.page_.dnd-builder_&]:grid-cols-[repeat(4,_minmax(0,_1fr))] tw:[.page_.dnd-builder_&]:mb-[14px] tw:max-767:[.page_.dnd-builder_&]:grid-cols-[repeat(2,_minmax(0,_1fr))]">
         <div><dt>Модули</dt><dd>{countLabel(stats.modules, WORDS.module)}</dd></div>
         <div><dt>Уроки</dt><dd>{countLabel(stats.lessons, WORDS.lesson)}</dd></div>
         <div><dt>Материалы</dt><dd>{countLabel(stats.materials, WORDS.material)}</dd></div>
@@ -276,7 +276,7 @@ export function FinishDialog({
         </p>
       ) : null}
       {problems.length || lessonsWithoutContent ? (
-        <ul className="dnd-problems nowheel">
+        <ul className="dnd-problems nowheel tw:[.page_.dnd-builder_&]:m-[0_0_12px] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[6px] tw:[.page_.dnd-builder_&]:max-h-[260px] tw:[.page_.dnd-builder_&]:overflow-y-auto tw:[.page_.dnd-builder_&]:[list-style:none]">
           {problems.map((problem) => (
             <li key={problem.id} className={`is-${problem.severity}`}>
               <Icon name={problem.severity === "info" ? "info" : "alert"} size={15} />
@@ -284,7 +284,7 @@ export function FinishDialog({
               {problem.nodeId ? (
                 <button
                   type="button"
-                  className="dnd-link dnd-link--sm"
+                  className="dnd-link dnd-link--sm tw:[.page_.dnd-builder_&]:text-[0.8rem]"
                   onClick={() => {
                     close();
                     openInspector(problem.nodeId ?? "");
@@ -302,7 +302,7 @@ export function FinishDialog({
           <Icon name="check" size={15} /> Проблем не найдено.
         </p>
       )}
-      <p className="dnd-muted dnd-finish-note">
+      <p className="dnd-muted dnd-finish-note tw:[.page_.dnd-builder_&]:text-[0.78rem]">
         Некритичные замечания не мешают завершению. Уроки без модуля не попадут в курс. Из просмотра курса можно в любой момент вернуться на холст и доделать.
       </p>
       {error ? (

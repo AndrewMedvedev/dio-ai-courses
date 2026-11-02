@@ -146,27 +146,27 @@ export function InviteDialog({
 
   return createPortal(
     <div
-      className="course-invite-backdrop"
+      className="course-invite-backdrop tw:fixed tw:z-[1000] tw:inset-[0] tw:grid tw:p-[min(10vh,_96px)_16px_24px] tw:overflow-y-auto tw:[--invite-bg:rgba(250,_247,_241,_0.97)] tw:[--invite-row:rgba(255,_255,_255,_0.55)] tw:[--invite-border:rgba(43,_43,_43,_0.12)] tw:[place-items:start_center] tw:max-640:p-[0] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:[animation:course-invite-fade_0.16s_ease-out] tw:dark:[--invite-bg:rgba(40,_40,_40,_0.97)] tw:dark:[--invite-row:rgba(233,_222,_203,_0.05)] tw:dark:[--invite-border:rgba(233,_222,_203,_0.16)] tw:max-640:[place-items:end_stretch] tw:dark:[background:rgba(8,_9,_12,_0.66)] tw:motion-reduce:[animation:none]"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !isSending) onClose();
       }}
     >
       <section
-        className="course-invite-modal"
+        className="course-invite-modal tw:w-[min(760px,_100%)] tw:max-h-[calc(100dvh_-_min(10vh,_96px)_-_24px)] tw:flex tw:flex-col tw:rounded-[22px] tw:text-(--text) tw:overflow-hidden tw:max-640:w-[100%] tw:max-640:max-h-[92dvh] tw:[border:1px_solid_var(--glass-border)] tw:max-640:rounded-[22px_22px_0_0] tw:[background:var(--invite-bg)] tw:[box-shadow:0_24px_64px_rgba(0,_0,_0,_0.28),_var(--glass-inset)] tw:[animation:course-invite-pop_0.18s_ease-out] tw:motion-reduce:[animation:none]"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <header className="course-invite-head">
+        <header className="course-invite-head tw:flex tw:items-start tw:justify-between tw:gap-[16px] tw:p-[28px_32px_16px] tw:max-640:px-[16px]">
           <div>
-            <span className="course-invite-eyebrow">{config.eyebrow}</span>
-            <h2 id={titleId}>{config.title}</h2>
-            {organizationName ? <p>{organizationName}</p> : null}
+            <span className="course-invite-eyebrow tw:block tw:mb-[6px] tw:text-(--eyebrow) tw:text-[0.8rem] tw:font-[800] tw:tracking-[0.1em] tw:uppercase">{config.eyebrow}</span>
+            <h2 className="tw:text-[var(--heading,_var(--text))] tw:text-[1.85rem] tw:leading-[1.2] tw:max-640:text-[1.5rem]" id={titleId}>{config.title}</h2>
+            {organizationName ? <p className="tw:m-[8px_0_0] tw:text-(--muted) tw:text-[1.02rem] tw:wrap-anywhere">{organizationName}</p> : null}
           </div>
           <button
             type="button"
-            className="course-invite-close"
+            className="course-invite-close tw:flex-[none] tw:grid tw:w-[42px] tw:h-[42px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:text-(--muted) tw:text-[1.5rem] tw:leading-[1] tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:[&:hover:not(:disabled)]:border-[rgba(var(--accent-rgb),_0.7)] tw:[&:hover:not(:disabled)]:text-(--text)"
             onClick={onClose}
             disabled={isSending}
             aria-label="Закрыть"
@@ -176,8 +176,8 @@ export function InviteDialog({
           </button>
         </header>
 
-        <div className="course-invite-body">
-          <p className="course-invite-hint">{config.hint}</p>
+        <div className="course-invite-body tw:grid tw:gap-[22px] tw:p-[22px_32px] tw:overflow-y-auto tw:max-640:px-[16px] tw:[overscroll-behavior:contain]">
+          <p className="course-invite-hint tw:m-[0] tw:text-[0.92rem] tw:leading-[1.5] tw:text-(--muted)">{config.hint}</p>
 
           <EmailRowsField
             id={emailId}
@@ -186,18 +186,18 @@ export function InviteDialog({
             disabled={isSending}
           />
 
-          <fieldset className="course-invite-roles invite-roles" disabled={isSending}>
-            <legend>{config.rolesLabel}</legend>
+          <fieldset className="course-invite-roles invite-roles tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[10px] tw:m-[0] tw:p-[0] tw:min-w-[0] tw:max-640:grid-cols-[1fr] tw:[border:0]" disabled={isSending}>
+            <legend className="tw:p-[0] tw:text-(--text) tw:text-[1rem] tw:font-[800] tw:mb-[8px]">{config.rolesLabel}</legend>
             {rolesLoading && <p role="status">Загружаем роли…</p>}
-            {rolesError && <p role="alert">{rolesError} <button type="button" className="btn btn-outline" onClick={() => setRolesAttempt((value) => value + 1)}>Повторить</button></p>}
+            {rolesError && <p role="alert">{rolesError} <button type="button" className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]" onClick={() => setRolesAttempt((value) => value + 1)}>Повторить</button></p>}
             {roles.map((role) => {
               const checked = roleIds.includes(role.id as string);
               return (
                 <label
                   key={role.id}
-                  className={`course-invite-role ${checked ? "is-active" : ""}`}
+                  className={`course-invite-role tw:relative tw:grid tw:gap-[8px] tw:p-[18px] tw:border-solid tw:border-(--invite-border) tw:rounded-[18px] tw:cursor-pointer tw:[align-content:start] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.95)] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease,_background_0.15s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:[.course-invite-roles:disabled_&]:cursor-default tw:[&.is-active]:[box-shadow:inset_0_0_0_1px_rgba(var(--accent-rgb),_0.6)] tw:[.course-invite-roles:disabled_&]:opacity-[0.7] tw:[&:has(input:focus-visible)]:[outline:2px_solid_rgba(var(--accent-rgb),_0.85)] tw:[&:has(input:focus-visible)]:[outline-offset:2px] ${checked ? "is-active" : ""}`}
                 >
-                  <input
+                  <input className="tw:absolute tw:opacity-[0] tw:pointer-events-none"
                     type="checkbox"
                     value={role.id}
                     checked={checked}
@@ -210,32 +210,32 @@ export function InviteDialog({
                       if (errors.roles) setErrors((current) => ({ ...current, roles: "" }));
                     }}
                   />
-                  <strong>{role.label}</strong>
-                  {role.hint ? <small>{role.hint}</small> : null}
+                  <strong className="tw:text-[1.08rem]">{role.label}</strong>
+                  {role.hint ? <small className="tw:text-(--muted) tw:text-[0.88rem] tw:leading-[1.45]">{role.hint}</small> : null}
                 </label>
               );
             })}
             {errors.roles ? (
-              <p className="course-invite-error" role="alert">
+              <p className="course-invite-error tw:m-[0] tw:text-[0.92rem] tw:leading-[1.5] tw:text-[#b8443c] tw:col-[1_/_-1] tw:dark:text-[#f0978f]" role="alert">
                 {errors.roles}
               </p>
             ) : null}
           </fieldset>
 
           {errors.form ? (
-            <p className="course-invite-error" role="alert">
+            <p className="course-invite-error tw:m-[0] tw:text-[0.92rem] tw:leading-[1.5] tw:text-[#b8443c] tw:dark:[.page_&]:text-[#f0978f]" role="alert">
               {errors.form}
             </p>
           ) : null}
         </div>
 
-        <footer className="course-invite-foot">
-          <span className="course-invite-summary" aria-live="polite">
+        <footer className="course-invite-foot tw:flex tw:items-center tw:justify-end tw:gap-[12px] tw:p-[18px_32px_26px] tw:max-640:px-[16px] tw:[border-top:1px_solid_var(--invite-border)] tw:[&_.btn]:p-[13px_24px] tw:max-640:[&_.btn]:p-[12px_18px] tw:[&_.btn]:text-[1.02rem] tw:[&_.btn:disabled]:opacity-[0.55] tw:[&_.btn:disabled]:cursor-default tw:[&_.btn:disabled]:[transform:none] tw:max-640:[&_.btn]:whitespace-nowrap">
+          <span className="course-invite-summary tw:mr-[auto] tw:text-(--muted) tw:text-[0.95rem] tw:max-640:hidden" aria-live="polite">
             {rows.length > 1 ? `Адресов: ${rows.length}` : ""}
           </span>
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline tw:p-[13px_24px] tw:text-[1.02rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:max-640:p-[12px_18px] tw:max-640:whitespace-nowrap tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
             onClick={onClose}
             disabled={isSending}
           >
@@ -243,7 +243,7 @@ export function InviteDialog({
           </button>
           <button
             type="button"
-            className="btn btn-solid"
+            className="btn btn-solid tw:p-[13px_24px] tw:text-[1.02rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:max-640:p-[12px_18px] tw:max-640:whitespace-nowrap tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
             // Фокус остаётся в поле: иначе blur добавит строку и кнопка «уедет» из-под курсора.
             onMouseDown={(event) => event.preventDefault()}
             onClick={send}

@@ -1,8 +1,44 @@
 /*
- * Tailwind подключён без preflight (сброса стилей браузера), чтобы не менять
- * текущий интерфейс. Все утилиты идут с префиксом tw (пишется через двоеточие,
- * как в AGENTS.md) и не пересекаются с существующими классами (.container, .hidden...).
+ * Tailwind подключён без preflight (сброса стилей браузера) и с префиксом tw:
+ * утилиты пишутся как tw:flex, tw:p-[12px] и не пересекаются с классами разметки.
+ *
+ * Порядок слоёв: theme → legacy → utilities. В legacy лежит то, что осталось в CSS
+ * (переменные темы, стили тегов, @keyframes, markdown уроков, xyflow, mermaid),
+ * поэтому утилиты всегда сильнее старого CSS, независимо от специфичности.
  */
-@layer theme, utilities;
+@layer theme, legacy, utilities;
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+ * Варианты, которые повторяют условия прежнего CSS один в один:
+ * hover — просто :hover (встроенный в Tailwind добавляет @media (hover: hover));
+ * dark — тёмная тема, атрибут data-theme="dark" на <html> и .page;
+ * max-N / min-N — @media (max-width: Npx) / (min-width: Npx), включая границу
+ * (встроенные max-[N] не включают N).
+ */
+@custom-variant hover (&:hover);
+@custom-variant dark (&:where([data-theme=dark] *));
+@custom-variant min-1000 (@media (min-width: 1000px));
+@custom-variant between-1101-1300 (@media (min-width: 1101px) and (max-width: 1300px));
+@custom-variant min-1180 (@media (min-width: 1180px));
+@custom-variant min-1301 (@media (min-width: 1301px));
+@custom-variant max-1599 (@media (max-width: 1599px));
+@custom-variant max-1300 (@media (max-width: 1300px));
+@custom-variant max-1279 (@media (max-width: 1279px));
+@custom-variant max-1200 (@media (max-width: 1200px));
+@custom-variant max-1100 (@media (max-width: 1100px));
+@custom-variant max-1024 (@media (max-width: 1024px));
+@custom-variant max-980 (@media (max-width: 980px));
+@custom-variant max-900 (@media (max-width: 900px));
+@custom-variant max-767 (@media (max-width: 767px));
+@custom-variant max-760 (@media (max-width: 760px));
+@custom-variant max-720 (@media (max-width: 720px));
+@custom-variant max-700 (@media (max-width: 700px));
+@custom-variant max-640 (@media (max-width: 640px));
+@custom-variant max-600 (@media (max-width: 600px));
+@custom-variant max-520 (@media (max-width: 520px));
+@custom-variant max-480 (@media (max-width: 480px));
+@custom-variant transparency-reduce (@media (prefers-reduced-transparency: reduce));
+@custom-variant no-backdrop-filter (@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))));
+@custom-variant no-hover (@media (hover: none));

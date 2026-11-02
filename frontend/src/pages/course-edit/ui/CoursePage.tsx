@@ -112,14 +112,18 @@ export function CoursePage({
 
   if (!canReadCourse) {
     return (
-      <section className="container section course-details-view">
+      <section className="container section course-details-view tw:relative tw:z-[1] tw:w-[min(1600px,_98vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:[.page_&]:[--muted:#c4b9a7] tw:dark:[.page_&]:[--eyebrow:#a0c4ff] tw:dark:[.page_&]:[--ink-accent:#dfd2bf] tw:dark:[.page_&]:[--info-text:#b7ab99] tw:dark:[.page_&]:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[.page_&]:[--glass-bg-strong:rgba(44,_44,_44,_0.92)]">
         <SectionTop label="Курс" title="Доступ ограничен" />
-        <article className="glass-card course-details-main">
-          <p className="course-details-text">
+        <article className="glass-card course-details-main tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[order:2] tw:[.course-edit-main_&]:[order:1] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+          <p className="course-details-text tw:m-[12px_0_0] tw:text-(--muted)">
             Курс недоступен для вашего аккаунта. Обратитесь к администратору
             организации, чтобы получить доступ.
           </p>
-          <button type="button" className="btn btn-outline" onClick={goBack}>
+          <button
+            type="button"
+            className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+            onClick={goBack}
+          >
             Вернуться к каталогу
           </button>
         </article>
@@ -227,7 +231,10 @@ export function CoursePage({
     if (canGenerateModule && moduleAgentAt === index) {
       // Кнопки стоят на месте, а сюда встанет модуль из плавающего окна чата.
       return (
-        <li className="course-agent-marker" key={`insert-${index}`}>
+        <li
+          className="course-agent-marker tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[8px] tw:m-[2px_0] tw:mb-[10px] tw:p-[8px_12px] tw:border-dashed tw:border-[rgba(47,_125,_79,_0.55)] tw:rounded-[14px] tw:text-(--muted) tw:text-[1rem] tw:font-[800] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border-width:1.5px] tw:dark:border-[rgba(127,_209,_155,_0.5)] tw:[background:rgba(47,_125,_79,_0.08)] tw:dark:text-[#7fd19b] tw:[list-style:none] tw:dark:[background:rgba(127,_209,_155,_0.08)]"
+          key={`insert-${index}`}
+        >
           <span>
             {moduleJob?.status === "running"
               ? moduleJob.resultId
@@ -237,7 +244,7 @@ export function CoursePage({
                 ? "✦ Модуль сгенерирован — ниже"
                 : "✦ Сюда встанет модуль из чата с ИИ"}
           </span>
-          <div>
+          <div className="tw:flex tw:gap-[6px]">
             {!isModuleChatVisible && (
               <button
                 type="button"
@@ -247,7 +254,11 @@ export function CoursePage({
               </button>
             )}
             {!moduleJob && (
-              <button type="button" onClick={() => setModuleAgentIndex(null)}>
+              <button
+                className="tw:rounded-[999px] tw:text-[inherit] tw:p-[4px_12px] tw:cursor-pointer tw:[border:1px_solid_rgba(47,_125,_79,_0.45)] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:hover:[background:rgba(47,_125,_79,_0.12)]"
+                type="button"
+                onClick={() => setModuleAgentIndex(null)}
+              >
                 Отменить
               </button>
             )}
@@ -256,15 +267,22 @@ export function CoursePage({
       );
     }
     return (
-      <li className="course-block-insert" key={`insert-${index}`}>
-        <div className="course-insert-actions">
-          <button type="button" onClick={() => insertBlock(index)}>
+      <li
+        className="course-block-insert tw:mb-[10px] tw:leading-[1.72] tw:text-(--muted) tw:text-[1rem] tw:tracking-[0.012em] tw:[.course-blocks-list_li_+_&]:mt-[8px]"
+        key={`insert-${index}`}
+      >
+        <div className="course-insert-actions tw:flex tw:flex-wrap tw:gap-[8px]">
+          <button
+            className="tw:flex-[1_1_180px] tw:w-[100%] tw:border-dashed tw:border-[rgba(var(--accent-rgb),_0.4)] tw:rounded-[999px] tw:text-(--muted) tw:p-[6px_10px] tw:cursor-pointer tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.74)] tw:[background:transparent] tw:hover:text-(--ink-accent) tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:hover:[background:rgba(var(--accent-rgb),_0.1)]"
+            type="button"
+            onClick={() => insertBlock(index)}
+          >
             Вставить пустой модуль
           </button>
           {canGenerateModule && (
             <button
               type="button"
-              className="is-ai"
+              className="is-ai tw:flex-[1_1_180px] tw:border-[rgba(47,_125,_79,_0.45)] tw:text-[#2f7d4f] tw:w-[100%] tw:border-dashed tw:rounded-[999px] tw:p-[6px_10px] tw:cursor-pointer tw:hover:border-[rgba(var(--accent-rgb),_0.74)] tw:dark:border-[rgba(127,_209,_155,_0.45)] tw:hover:text-(--ink-accent) tw:dark:text-[#7fd19b] tw:[border-width:1px] tw:[background:transparent] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:dark:hover:border-[rgba(127,_209,_155,_0.45)] tw:dark:hover:text-[#7fd19b] tw:hover:[background:rgba(var(--accent-rgb),_0.1)] tw:[.course-block-insert_&:disabled]:cursor-not-allowed tw:[.course-block-insert_&:disabled]:opacity-[0.5]"
               onClick={() => openModuleAgent(index)}
               disabled={isModuleJobRunning}
               title={
@@ -284,7 +302,7 @@ export function CoursePage({
   };
 
   return (
-    <section className="container section course-details-view is-course-edit-layout">
+    <section className="container section course-details-view is-course-edit-layout tw:relative tw:z-[1] tw:w-[min(1720px,_98vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
       <SectionTop label="Курс" title={selectedCourse.title} />
       {canUpdateCourse ? (
         <CourseInviteDialog
@@ -298,7 +316,7 @@ export function CoursePage({
       ) : null}
       <button
         type="button"
-        className="btn btn-outline back-btn"
+        className="btn btn-outline back-btn tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[0] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:m-[0] tw:w-[44px] tw:h-[44px] tw:text-[0.96rem] tw:leading-[1.45] tw:absolute tw:top-[18px] tw:right-[0] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
         onClick={goBack}
         aria-label="Назад к каталогу"
         title="Назад к каталогу"
@@ -306,7 +324,7 @@ export function CoursePage({
         &lt;
       </button>
       {/* Та же сетка, что в режиме обучения: дерево курса слева, содержимое справа. */}
-      <div className="course-edit-grid">
+      <div className="course-edit-grid tw:grid-cols-[300px_minmax(0,_1fr)_68px] tw:gap-[18px] tw:mt-[16px] tw:grid tw:between-1101-1300:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[align-items:start]">
         <CourseNavigationTree
           selectedCourse={selectedCourse}
           selectedBlock={NO_SELECTED_BLOCK}
@@ -319,12 +337,12 @@ export function CoursePage({
           openPractice={openPractice}
           mode="theory"
         />
-        <div className="course-edit-main">
-          <div className="course-page-actions">
+        <div className="course-edit-main tw:grid tw:gap-[14px] tw:[align-content:start]">
+          <div className="course-page-actions tw:mt-[0] tw:flex tw:flex-wrap tw:items-center tw:gap-[10px]">
             {canUpdateCourse && selectedCourse.status !== "archived" && (
               <button
                 type="button"
-                className="btn btn-outline course-invite-toggle"
+                className="btn btn-outline course-invite-toggle tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                 onClick={() => setIsInviteOpen(true)}
               >
                 Пригласить
@@ -333,7 +351,7 @@ export function CoursePage({
             {canUpdateCourse && !isCourseEditMode && (
               <button
                 type="button"
-                className="btn btn-outline course-edit-toggle"
+                className="btn btn-outline course-edit-toggle tw:p-[12px_20px] tw:min-h-[44px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                 onClick={() => setIsCourseEditMode(true)}
               >
                 Редактировать курс
@@ -346,7 +364,7 @@ export function CoursePage({
                   {selectedCourse.status !== "published" && (
                     <button
                       type="button"
-                      className="btn btn-outline"
+                      className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                       onClick={() => changeStatus("publish")}
                       disabled={statusAction === "publish"}
                     >
@@ -358,7 +376,7 @@ export function CoursePage({
                   {selectedCourse.status !== "invite_only" && (
                     <button
                       type="button"
-                      className="btn btn-outline"
+                      className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                       onClick={() => changeStatus("invite_only")}
                       disabled={statusAction === "invite_only"}
                     >
@@ -374,7 +392,7 @@ export function CoursePage({
               selectedCourse.status !== "archived" && (
                 <button
                   type="button"
-                  className="btn btn-outline course-delete-btn"
+                  className="btn btn-outline course-delete-btn tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                   onClick={() =>
                     setPendingDelete({
                       type: "course",
@@ -388,41 +406,53 @@ export function CoursePage({
                 </button>
               )}
           </div>
-          <div className="course-details-grid">
-            <article className="glass-card course-details-main">
+          <div className="course-details-grid tw:mt-[0] tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:gap-[14px]">
+            <article className="glass-card course-details-main tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:max-760:p-[18px] tw:[order:1] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
               {isCourseEditMode && (
-                <div className="course-editor-panel course-meta-editor-panel">
-                  <div className="course-editor-grid">
-                    <label className="course-editor-field">
-                      <span>Название курса</span>
+                <div className="course-editor-panel course-meta-editor-panel tw:mt-[10px] tw:rounded-[14px] tw:p-[12px] tw:mb-[16px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)]">
+                  <div className="course-editor-grid tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:w-[100%] tw:min-w-[0] tw:max-760:grid-cols-[1fr]">
+                    <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                      <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                        Название курса
+                      </span>
                       <input
+                        className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                         value={selectedCourse.title}
                         onChange={(event) =>
                           updateCourse({ title: event.target.value })
                         }
                       />
                     </label>
-                    <label className="course-editor-field">
-                      <span>Категория</span>
+                    <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                      <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                        Категория
+                      </span>
                       <input
+                        className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                         value={selectedCourse.category || ""}
                         onChange={(event) =>
                           updateCourse({ category: event.target.value })
                         }
                       />
                     </label>
-                    <label className="course-editor-field">
-                      <span>Длительность</span>
+                    <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                      <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                        Длительность
+                      </span>
                       <input
+                        className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                         value={selectedCourse.duration || ""}
                         onChange={(event) =>
                           updateCourse({ duration: event.target.value })
                         }
                       />
                     </label>
-                    <label className="course-editor-field">
-                      <span>Уровень</span>
+                    <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                      <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                        Уровень
+                      </span>
                       <select
+                        className="tw:w-[100%] tw:max-w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:min-h-[46px] tw:p-[11px_13px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:[appearance:none] tw:[-webkit-appearance:none] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                         value={formatCourseLevel(selectedCourse.level)}
                         onChange={(event) =>
                           updateCourse({ level: event.target.value })
@@ -435,18 +465,24 @@ export function CoursePage({
                         ))}
                       </select>
                     </label>
-                    <label className="course-editor-field">
-                      <span>Формат</span>
+                    <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                      <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                        Формат
+                      </span>
                       <input
+                        className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                         value={selectedCourse.format || ""}
                         onChange={(event) =>
                           updateCourse({ format: event.target.value })
                         }
                       />
                     </label>
-                    <label className="course-editor-field course-editor-field-wide">
-                      <span>Описание</span>
+                    <label className="course-editor-field course-editor-field-wide tw:grid tw:gap-[7px] tw:col-[1_/_-1] tw:min-w-[0] tw:max-700:col-[auto]">
+                      <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                        Описание
+                      </span>
                       <textarea
+                        className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:min-h-[105px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                         value={selectedCourse.description || ""}
                         onChange={(event) =>
                           updateCourse({ description: event.target.value })
@@ -455,19 +491,24 @@ export function CoursePage({
                     </label>
                   </div>
 
-                  <div className="course-objectives-editor">
-                    <div className="course-objectives-editor-head">
-                      <span>Цели курса</span>
+                  <div className="course-objectives-editor tw:mt-[14px] tw:pt-[12px] tw:grid tw:gap-[8px] tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.24)]">
+                    <div className="course-objectives-editor-head tw:flex tw:items-center tw:justify-between tw:gap-[10px] tw:[&_.btn]:p-[7px_12px] tw:[&_.btn]:text-[0.8rem]">
+                      <span className="tw:text-[0.76rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.04em] tw:uppercase">
+                        Цели курса
+                      </span>
                       <button
                         type="button"
-                        className="btn btn-outline"
+                        className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[7px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                         onClick={addObjective}
                       >
                         Добавить цель
                       </button>
                     </div>
                     {learningObjectives.map((objective, index) => (
-                      <div className="course-objective-row" key={index}>
+                      <div
+                        className="course-objective-row tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[8px] tw:items-center"
+                        key={index}
+                      >
                         <input
                           value={objective}
                           placeholder={`Цель ${index + 1}`}
@@ -484,7 +525,7 @@ export function CoursePage({
                       </div>
                     ))}
                     {learningObjectives.length === 0 && (
-                      <p className="course-objectives-empty">
+                      <p className="course-objectives-empty tw:m-[0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
                         Пока нет целей. Добавьте первую цель курса.
                       </p>
                     )}
@@ -494,12 +535,14 @@ export function CoursePage({
 
               {!isCourseEditMode && (
                 <>
-                  <p className="course-category">{selectedCourse.category}</p>
-                  <p className="course-details-text">
+                  <p className="course-category tw:m-[0] tw:text-[0.8rem] tw:uppercase tw:tracking-[0.08em] tw:text-(--accent) tw:font-[700]">
+                    {selectedCourse.category}
+                  </p>
+                  <p className="course-details-text tw:m-[12px_0_0] tw:text-(--muted)">
                     {selectedCourse.description}
                   </p>
                   {(selectedCourse.learningObjectives?.length ?? 0) > 0 && (
-                    <div className="course-objectives-block">
+                    <div className="course-objectives-block tw:mt-[16px] tw:p-[14px] tw:rounded-[14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.26)] tw:[background:rgba(var(--accent-rgb),_0.07)]">
                       <h3>Цели курса</h3>
                       <ul>
                         {selectedCourse.learningObjectives?.map(
@@ -512,7 +555,7 @@ export function CoursePage({
                       </ul>
                     </div>
                   )}
-                  <div className="course-stats-grid">
+                  <div className="course-stats-grid tw:mt-[18px] tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[10px] tw:max-760:grid-cols-[1fr]">
                     <div>
                       <span>Длительность</span>
                       <strong>{selectedCourse.duration}</strong>
@@ -534,9 +577,11 @@ export function CoursePage({
               )}
             </article>
 
-            <article className="glass-card course-details-modules">
-              <h3>Модули</h3>
-              <ul className="course-blocks-list">
+            <article className="glass-card course-details-modules tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:max-760:p-[18px] tw:[order:2] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+              <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em] tw:[font-family:'Unbounded',_sans-serif]">
+                Модули
+              </h3>
+              <ul className="course-blocks-list tw:m-[12px_0_0] tw:p-[0] tw:[list-style:none]">
                 {renderInsertControl(0)}
                 {selectedCourse.blocks.map((block, index) => {
                   const isActive = activeBlockId === block.id;
@@ -552,16 +597,19 @@ export function CoursePage({
 
                   return (
                     <Fragment key={block.id}>
-                      <li>
+                      <li className="tw:mb-[10px] tw:leading-[1.72] tw:text-(--muted) tw:text-[1rem] tw:tracking-[0.012em] tw:[.course-blocks-list_li_+_&]:mt-[8px]">
                         {isCourseEditMode ? (
-                          <article className="course-block-item course-block-editor is-editing">
-                            <span className="course-block-index">
+                          <article className="course-block-item course-block-editor is-editing tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:rounded-[12px] tw:p-[14px] tw:cursor-pointer tw:text-left tw:grid tw:gap-[4px] tw:[border-width:1px] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.12)]">
+                            <span className="course-block-index tw:text-(--ink-accent) tw:text-[0.74rem] tw:font-[700] tw:uppercase tw:tracking-[0.06em]">
                               {String(index + 1).padStart(2, "0")}
                             </span>
-                            <div className="course-editor-grid">
-                              <label className="course-editor-field">
-                                <span>Название модуля</span>
+                            <div className="course-editor-grid tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:w-[100%] tw:min-w-[0] tw:max-760:grid-cols-[1fr]">
+                              <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                                <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                                  Название модуля
+                                </span>
                                 <input
+                                  className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                                   value={block.title}
                                   onChange={(event) =>
                                     updateCourseBlock(block.id, {
@@ -570,9 +618,12 @@ export function CoursePage({
                                   }
                                 />
                               </label>
-                              <label className="course-editor-field">
-                                <span>Длительность</span>
+                              <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
+                                <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                                  Длительность
+                                </span>
                                 <input
+                                  className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                                   value={block.duration}
                                   onChange={(event) =>
                                     updateCourseBlock(block.id, {
@@ -581,9 +632,12 @@ export function CoursePage({
                                   }
                                 />
                               </label>
-                              <label className="course-editor-field course-editor-field-wide">
-                                <span>Описание</span>
+                              <label className="course-editor-field course-editor-field-wide tw:grid tw:gap-[7px] tw:col-[1_/_-1] tw:min-w-[0] tw:max-700:col-[auto]">
+                                <span className="tw:text-[0.72rem] tw:text-(--muted) tw:font-[700] tw:tracking-[0.05em] tw:uppercase tw:wrap-anywhere tw:dark:text-[#cfc2ad]">
+                                  Описание
+                                </span>
                                 <textarea
+                                  className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:min-h-[160px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:dark:text-[#f2e7d4] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.07)]"
                                   value={block.description || ""}
                                   onChange={(event) =>
                                     updateCourseBlock(block.id, {
@@ -593,10 +647,10 @@ export function CoursePage({
                                 />
                               </label>
                             </div>
-                            <div className="course-editor-actions">
+                            <div className="course-editor-actions tw:mt-[10px] tw:flex tw:flex-wrap tw:gap-[8px] tw:[&_.btn]:p-[8px_13px] tw:[&_.btn:disabled]:[transform:none] tw:[&_.btn:disabled]:opacity-[0.5] tw:[&_.btn:disabled]:cursor-not-allowed tw:[&_.btn]:text-[0.84rem]">
                               <button
                                 type="button"
-                                className="btn btn-outline"
+                                className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[8px_13px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                                 onClick={() => moveBlock(block.id, -1)}
                                 disabled={index === 0}
                               >
@@ -604,7 +658,7 @@ export function CoursePage({
                               </button>
                               <button
                                 type="button"
-                                className="btn btn-outline"
+                                className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[8px_13px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                                 onClick={() => moveBlock(block.id, 1)}
                                 disabled={
                                   index === selectedCourse.blocks.length - 1
@@ -614,7 +668,7 @@ export function CoursePage({
                               </button>
                               <button
                                 type="button"
-                                className="btn btn-solid"
+                                className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[8px_13px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                                 onClick={() => openBlock(block.id)}
                               >
                                 Перейти в модуль
@@ -622,7 +676,7 @@ export function CoursePage({
 
                               <button
                                 type="button"
-                                className="btn btn-flat editor-danger-btn"
+                                className="btn btn-flat editor-danger-btn tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[8px_13px] tw:border-solid tw:border-[rgba(220,_53,_69,_0.36)] tw:font-[700] tw:tracking-[0.01em] tw:text-[#b53945] tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:dark:text-[#ff7d8b] tw:[background:rgba(220,_53,_69,_0.08)] tw:[backdrop-filter:blur(22px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(22px)_saturate(145%)] tw:hover:[transform:translateY(-1px)] tw:dark:[background:rgba(220,_53,_69,_0.16)]"
                                 onClick={() =>
                                   setPendingDelete({
                                     type: "module",
@@ -639,7 +693,7 @@ export function CoursePage({
                         ) : (
                           <button
                             type="button"
-                            className={`course-block-item ${isActive ? "is-editing" : ""}`}
+                            className={`course-block-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.36)] tw:rounded-[12px] tw:p-[10px_12px] tw:cursor-pointer tw:text-left tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.72)] tw:[&.is-editing]:border-[rgba(var(--accent-rgb),_0.78)] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&.is-editing]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.12)] ${isActive ? "is-editing" : ""}`}
                             onClick={() =>
                               isCourseEditMode
                                 ? setActiveBlockId((current) =>
@@ -648,22 +702,22 @@ export function CoursePage({
                                 : openBlock(block.id)
                             }
                           >
-                            <span className="course-block-index">
+                            <span className="course-block-index tw:text-(--ink-accent) tw:text-[0.74rem] tw:font-[700] tw:uppercase tw:tracking-[0.06em]">
                               {String(index + 1).padStart(2, "0")}
                             </span>
-                            <span className="course-block-title">
+                            <span className="course-block-title tw:text-(--text) tw:font-[700] tw:text-[0.92rem]">
                               {block.title}
                             </span>
                             {block.description && (
-                              <span className="course-block-description">
+                              <span className="course-block-description tw:text-(--muted) tw:text-[0.8rem] tw:leading-[1.38] tw:overflow-hidden tw:[display:-webkit-box] tw:[line-clamp:3] tw:[-webkit-line-clamp:3] tw:[-webkit-box-orient:vertical]">
                                 {block.description}
                               </span>
                             )}
-                            <span className="course-block-meta">
+                            <span className="course-block-meta tw:text-(--muted) tw:text-[0.82rem]">
                               {block.duration} • {block.lessons.length} урока •{" "}
                               {block.practice.length} практики
                             </span>
-                            <span className="course-block-progress">
+                            <span className="course-block-progress tw:text-(--ink-accent) tw:text-[0.8rem]">
                               Пройдено: {doneItems}/{totalItems}
                             </span>
                           </button>
@@ -677,21 +731,21 @@ export function CoursePage({
             </article>
 
             {!isCourseEditMode && (
-              <article className="glass-card course-leaderboard-card">
-                <div className="course-leaderboard-head">
+              <article className="glass-card course-leaderboard-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:col-[2] tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-1100:col-[1_/_-1] tw:[order:3] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+                <div className="course-leaderboard-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
                   <h3>Лидерборд курса</h3>
                 </div>
-                <ol className="course-leaderboard-list">
+                <ol className="course-leaderboard-list tw:m-[12px_0_0] tw:p-[0] tw:grid tw:gap-[8px] tw:[list-style:none]">
                   {selectedCourseLeaderboard.map((student, index) => (
                     <li key={student.id}>
-                      <span className="course-leaderboard-rank">
+                      <span className="course-leaderboard-rank tw:w-[28px] tw:h-[28px] tw:rounded-[50%] tw:inline-flex tw:items-center tw:justify-center tw:font-[700] tw:text-[0.82rem] tw:text-(--ink-accent) tw:[background:rgba(var(--accent-rgb),_0.24)]">
                         {index + 1}
                       </span>
                       <div className="course-leaderboard-main">
                         <strong>{student.name}</strong>
                         <small>{student.pace}</small>
                       </div>
-                      <span className="course-leaderboard-score">
+                      <span className="course-leaderboard-score tw:font-[700] tw:text-(--ink-muted-strong)">
                         {student.progress}%
                       </span>
                     </li>

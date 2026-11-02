@@ -12,8 +12,8 @@ export function Onboarding() {
   const { pickFiles } = useDndActions();
   if (dismissed) return null;
   return (
-    <aside className="dnd-onboarding" aria-label="Подсказка по началу работы">
-      <div className="dnd-onboarding-icon">
+    <aside className="dnd-onboarding tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder_&]:top-[14px] tw:[.page_.dnd-builder_&]:left-[14px] tw:[.page_.dnd-builder_&]:z-[6] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[12px] tw:[.page_.dnd-builder_&]:max-w-[min(380px,_calc(100%_-_28px))] tw:[.page_.dnd-builder_&]:p-[14px] tw:[.page_.dnd-builder_&]:rounded-[14px] tw:max-767:[.page_.dnd-builder_&]:top-[8px] tw:max-767:[.page_.dnd-builder_&]:left-[8px] tw:max-767:[.page_.dnd-builder_&]:max-w-[none] tw:[.page_.dnd-builder_&]:[background:var(--dnd-panel)] tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&]:[animation:dnd-pop_0.24s_var(--dnd-ease)] tw:max-767:[.page_.dnd-builder_&]:right-[8px]" aria-label="Подсказка по началу работы">
+      <div className="dnd-onboarding-icon tw:[.page_.dnd-builder_&]:flex-[none] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:w-[38px] tw:[.page_.dnd-builder_&]:h-[38px] tw:[.page_.dnd-builder_&]:rounded-[10px] tw:[.page_.dnd-builder_&]:text-(--dnd-info) tw:[.page_.dnd-builder_&]:[place-items:center] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)]">
         <Icon name="upload" size={20} />
       </div>
       <div>
@@ -23,9 +23,9 @@ export function Onboarding() {
           <li>Уроки → перетащите на модуль, в «Новый модуль» или на другой урок — получится новый модуль.</li>
           <li>Клик по карточке открывает инспектор справа.</li>
         </ul>
-        <div className="dnd-onboarding-actions">
+        <div className="dnd-onboarding-actions tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap">
           {!hasMaterials ? (
-            <button type="button" className="dnd-btn dnd-btn--solid dnd-btn--sm" onClick={() => pickFiles()}>
+            <button type="button" className="dnd-btn dnd-btn--solid dnd-btn--sm tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text)" onClick={() => pickFiles()}>
               <Icon name="upload" size={15} /> Выбрать файлы
             </button>
           ) : null}
@@ -58,9 +58,9 @@ export function Celebration() {
 
   if (!burst) return null;
   return (
-    <div className="dnd-confetti" aria-hidden="true">
+    <div className="dnd-confetti tw:fixed tw:left-[50%] tw:top-[30%] tw:z-[1200] tw:pointer-events-none tw:motion-reduce:hidden tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" aria-hidden="true">
       {Array.from({ length: 18 }, (_, index) => (
-        <i key={index} style={{ "--i": index } as CSSProperties} />
+        <i className="tw:absolute tw:w-[8px] tw:h-[12px] tw:rounded-[2px] tw:[background:var(--dnd-accent)] tw:[animation:dnd-confetti_1.4s_cubic-bezier(0.15,_0.7,_0.3,_1)_forwards] tw:[--angle:calc(var(--i)_*_20deg)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-confetti_&:nth-child(3n_+_1)]:[background:var(--dnd-ok)] tw:[.page_.dnd-builder_.dnd-confetti_&:nth-child(3n)]:[background:var(--dnd-blue)]" key={index} style={{ "--i": index } as CSSProperties} />
       ))}
     </div>
   );

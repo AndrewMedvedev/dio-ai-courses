@@ -1,0 +1,2 @@
+/* Стили xyflow — в слое legacy, чтобы dnd-course.css и утилиты их перекрывали как раньше */
+@import "@xyflow/react/dist/style.css" layer(legacy);

@@ -306,21 +306,27 @@ export function AgentInterviewDialog({
   };
 
   const chatBody = (
-    <div className="agent-chat">
+    <div className="agent-chat tw:flex tw:gap-[12px] tw:flex-[1_1_auto] tw:min-h-[0] tw:flex-col">
       {isAgentMockEnabled() ? (
-        <p className="agent-mock-badge">
+        <p className="agent-mock-badge tw:m-[0_0_12px] tw:p-[8px_12px] tw:rounded-[12px] tw:text-(--text) tw:text-[0.86rem] tw:font-[700] tw:[border:1px_dashed_rgba(212,_150,_30,_0.6)] tw:[background:rgba(212,_150,_30,_0.12)]">
           Демо-режим: ответы ИИ имитируются, модель не вызывается. Модуль и
           уроки создаются настоящими запросами к backend.
         </p>
       ) : null}
-      <div className="agent-chat-messages" ref={messagesRef} aria-live="polite">
+      <div
+        className="agent-chat-messages tw:grid tw:gap-[10px] tw:max-h-[none] tw:min-h-[80px] tw:p-[4px_2px] tw:overflow-y-auto tw:flex-[1_1_auto]"
+        ref={messagesRef}
+        aria-live="polite"
+      >
         {messages.length === 0 ? (
-          <p className="agent-chat-empty">{texts.intro}</p>
+          <p className="agent-chat-empty tw:text-(--muted) tw:text-[0.92rem]">
+            {texts.intro}
+          </p>
         ) : (
           messages.map((message) => (
             <div
               key={message.id}
-              className={`agent-chat-message is-${message.role}`}
+              className={`agent-chat-message tw:max-w-[88%] tw:p-[10px_14px] tw:rounded-[16px] tw:leading-[1.5] tw:wrap-anywhere tw:[&.is-system]:max-w-[100%] tw:[&.is-system]:text-(--text) tw:[&.is-system]:font-[700] tw:[&.is-system]:text-center tw:[&.is-user]:[justify-self:end] tw:[&.is-assistant]:[justify-self:start] tw:[&.is-system]:[&.is-user]:justify-self-center tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-assistant]:[background:var(--app-modal-row)] tw:[&.is-assistant]:[border:1px_solid_var(--app-modal-border)] tw:[&.is-system]:[&.is-user]:[background:rgba(47,_125,_79,_0.12)] is-${message.role}`}
             >
               {message.role === "assistant" ? (
                 <AgentMarkdown>{message.text}</AgentMarkdown>
@@ -331,16 +337,25 @@ export function AgentInterviewDialog({
           ))
         )}
         {isThinking ? (
-          <span className="agent-chat-thinking">Агент думает...</span>
+          <span className="agent-chat-thinking tw:text-(--muted) tw:text-[0.92rem] tw:inline-flex tw:items-center tw:gap-[8px] tw:[&::before]:w-[14px] tw:[&::before]:h-[14px] tw:[&::before]:border-solid tw:[&::before]:border-[rgba(var(--accent-rgb),_0.35)] tw:[&::before]:rounded-[50%] tw:[&::before]:[content:''] tw:[&::before]:[border-width:2px] tw:[&::before]:[border-top-color:rgba(var(--accent-rgb),_0.95)] tw:[&::before]:[animation:app-modal-spin_0.8s_linear_infinite]">
+            Агент думает...
+          </span>
         ) : null}
       </div>
 
       {error ? (
-        <div className="agent-chat-status is-error" role="alert">
+        <div
+          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)]"
+          role="alert"
+        >
           <span>{error}</span>
           {lastSent ? (
             <div>
-              <button type="button" className="btn btn-outline" onClick={retry}>
+              <button
+                type="button"
+                className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+                onClick={retry}
+              >
                 Отправить ещё раз
               </button>
             </div>
@@ -349,14 +364,14 @@ export function AgentInterviewDialog({
       ) : null}
 
       {awaitingConfirmation ? (
-        <div className="agent-chat-launch">
-          <span>
+        <div className="agent-chat-launch tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[10px] tw:p-[10px_14px] tw:rounded-[14px] tw:[border:1px_solid_rgba(47,_125,_79,_0.35)] tw:[background:rgba(47,_125,_79,_0.08)]">
+          <span className="tw:text-(--muted) tw:text-[0.88rem]">
             Агент подготовил описание и цели. Проверьте их перед запуском —
             после запуска генерацию нельзя отменить.
           </span>
           <button
             type="button"
-            className="btn btn-solid"
+            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
             onClick={() => setConfirmText(CONFIRM_LAUNCH_MESSAGE)}
           >
             Проверить и запустить
@@ -365,26 +380,32 @@ export function AgentInterviewDialog({
       ) : null}
 
       {isRunning ? (
-        <div className="agent-chat-status" role="status">
+        <div
+          className="agent-chat-status tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(var(--accent-rgb),_0.1)]"
+          role="status"
+        >
           <strong>{texts.running(job)}</strong>
           <span>Новые данные появятся в редакторе автоматически.</span>
         </div>
       ) : null}
       {isDone ? (
-        <div className="agent-chat-status is-done" role="status">
+        <div
+          className="agent-chat-status is-done tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(47,_125,_79,_0.12)]"
+          role="status"
+        >
           <strong>{texts.done(job)}</strong>
           <span>{texts.anotherHint}</span>
           <div>
             <button
               type="button"
-              className="btn btn-solid"
+              className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
               onClick={startAnother}
             >
               {texts.another}
             </button>
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
               onClick={finishAndOpen}
             >
               {texts.open}
@@ -393,12 +414,15 @@ export function AgentInterviewDialog({
         </div>
       ) : null}
       {isFailed ? (
-        <div className="agent-chat-status is-error" role="alert">
+        <div
+          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)]"
+          role="alert"
+        >
           <span>{job.error || "Генерация не завершилась."}</span>
           <div>
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
               onClick={resetDialog}
             >
               Начать заново
@@ -408,8 +432,12 @@ export function AgentInterviewDialog({
       ) : null}
 
       {!job ? (
-        <form className="agent-chat-form" onSubmit={submit}>
+        <form
+          className="agent-chat-form tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:end]"
+          onSubmit={submit}
+        >
           <textarea
+            className="tw:min-h-[44px] tw:max-h-[180px] tw:resize-none tw:p-[10px_12px] tw:rounded-[14px] tw:text-(--text) tw:[font:inherit] tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.9]"
             ref={(element) => {
               inputRef.current = element;
               autosizeTextarea(element, 180);
@@ -430,7 +458,7 @@ export function AgentInterviewDialog({
           />
           <button
             type="submit"
-            className="btn btn-solid"
+            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
             disabled={isThinking || !input.trim() || !canWrite}
           >
             {isThinking ? "Ждём ответ..." : "Отправить"}
@@ -444,7 +472,7 @@ export function AgentInterviewDialog({
     messages.length > 0 || job ? (
       <button
         type="button"
-        className="btn btn-outline"
+        className="btn btn-outline tw:min-h-[32px] tw:p-[3px_12px] tw:text-[0.8rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
         onClick={() => setIsResetOpen(true)}
         disabled={isThinking}
       >
@@ -482,7 +510,7 @@ export function AgentInterviewDialog({
               {resetButton}
               <button
                 type="button"
-                className="btn btn-outline"
+                className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                 onClick={onClose}
               >
                 Закрыть
@@ -509,10 +537,10 @@ export function AgentInterviewDialog({
           await send(text);
         }}
       >
-        <div className="agent-launch-summary">
+        <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)]">
           <AgentMarkdown>{lastAssistant?.text || ""}</AgentMarkdown>
         </div>
-        <p className="app-modal-note">
+        <p className="app-modal-note tw:m-[0] tw:text-(--muted) tw:text-[0.9rem]">
           После подтверждения агент поставит генерацию в очередь. Готовый
           результат появится в редакторе — следить за ним можно в этом окне.
         </p>

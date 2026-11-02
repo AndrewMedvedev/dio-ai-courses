@@ -20,13 +20,17 @@ interface TextListProps {
 
 function TextList({ title, items, emptyText }: TextListProps) {
   if (!Array.isArray(items) || items.length === 0) {
-    return <p className="course-viewer-muted">{emptyText}</p>;
+    return (
+      <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.72] tw:m-[10px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
+        {emptyText}
+      </p>
+    );
   }
 
   return (
-    <div className="course-info-section">
+    <div className="course-info-section tw:mt-[22px]">
       <h3>{title}</h3>
-      <ul className="course-viewer-list">
+      <ul className="course-viewer-list tw:grid tw:gap-[8px] tw:m-[12px_0_0] tw:pl-[20px]">
         {items.map((item, index) => (
           <li key={`${title}-${index}`}>{item}</li>
         ))}
@@ -42,7 +46,9 @@ export function CourseBasicInfo({
 }) {
   if (!course) {
     return (
-      <p className="course-viewer-muted">Информация о курсе недоступна.</p>
+      <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
+        Информация о курсе недоступна.
+      </p>
     );
   }
 
@@ -59,28 +65,47 @@ export function CourseBasicInfo({
   const difficulty = formatCourseLevel(course.difficulty || course.level);
 
   return (
-    <article className="course-viewer-card course-basic-info">
-      <div className="course-viewer-eyebrow">Курс</div>
-      <h1>{course.title}</h1>
+    <article className="course-viewer-card course-basic-info tw:p-[24px] tw:[.course-enrollment-view_&]:border-solid tw:[.course-enrollment-view_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.course-enrollment-view_&]:rounded-[14px] tw:[.course-enrollment-view_&]:[border-width:1px] tw:dark:[.page_.course-enrollment-view_&]:border-[rgba(247,_220,_168,_0.34)] tw:[.course-enrollment-view_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg)] tw:[.course-enrollment-view_&]:[box-shadow:none] tw:[.course-enrollment-view_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[.course-enrollment-view_&]:[backdrop-filter:var(--glass-backdrop)] tw:dark:[.page_.course-enrollment-view_&]:text-[#f4ead8] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:no-backdrop-filter:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:dark:[.page_.course-enrollment-view_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#f7dca8] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#f7dca8]">
+        Курс
+      </div>
+      <h1 className="tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:tracking-[-0.025em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
+        {course.title}
+      </h1>
       {course.description ? (
-        <p className="course-viewer-description">{course.description}</p>
+        <p className="course-viewer-description tw:text-(--muted) tw:leading-[1.72] tw:m-[14px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
+          {course.description}
+        </p>
       ) : (
-        <p className="course-viewer-muted">Описание курса пока отсутствует.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
+          Описание курса пока отсутствует.
+        </p>
       )}
 
-      <div className="course-meta-grid">
-        <div>
-          <span>Уровень</span>
-          <strong>{difficulty}</strong>
+      <div className="course-meta-grid tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] tw:gap-[12px] tw:mt-[20px]">
+        <div className="tw:rounded-[18px] tw:p-[14px] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)]">
+          <span className="tw:text-(--muted) tw:block tw:text-[0.84rem] tw:mb-[4px] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
+            Уровень
+          </span>
+          <strong className="tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
+            {difficulty}
+          </strong>
         </div>
-        <div>
-          <span>Модулей</span>
-          <strong>{modules.length}</strong>
+        <div className="tw:rounded-[18px] tw:p-[14px] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)]">
+          <span className="tw:text-(--muted) tw:block tw:text-[0.84rem] tw:mb-[4px] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
+            Модулей
+          </span>
+          <strong className="tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
+            {modules.length}
+          </strong>
         </div>
       </div>
 
       {(course.tags?.length ?? 0) > 0 && (
-        <div className="course-tags" aria-label="Теги курса">
+        <div
+          className="course-tags tw:flex tw:flex-wrap tw:gap-[8px] tw:mt-[18px]"
+          aria-label="Теги курса"
+        >
           {course.tags?.map((tag) => <span key={tag}>{tag}</span>)}
         </div>
       )}

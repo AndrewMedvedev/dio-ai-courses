@@ -675,9 +675,9 @@ export function LessonContentEditor({
     placeholder: string,
     rows = 5,
   ) => (
-    <label className="lesson-block-field lesson-block-field-wide">
-      <span>{label}</span>
-      <textarea
+    <label className="lesson-block-field lesson-block-field-wide tw:grid tw:gap-[6px] tw:col-[1_/_-1]">
+      <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">{label}</span>
+      <textarea className="tw:text-(--text) tw:border-[currentcolor] tw:w-[100%] tw:border-none tw:rounded-[0] tw:p-[13px_14px] tw:min-h-[138px] tw:resize-y tw:dark:text-(--heading) tw:[background:rgba(255,_255,_255,_0.08)] tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:0] tw:[font:inherit] tw:[.lesson-editor-block.is-program\_code_.lesson-block-field_&]:text-[0.86rem] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:[background:rgba(24,_24,_24,_0.74)] tw:[.lesson-editor-block.is-program\_code_.lesson-block-field_&]:[font-family:'JetBrains_Mono',_'Fira_Code',_monospace]"
         value={block[field] || ""}
         onChange={(event) =>
           updateBlock(block.id, { [field]: event.target.value })
@@ -694,9 +694,9 @@ export function LessonContentEditor({
     label: string,
     placeholder: string,
   ) => (
-    <label className="lesson-block-field">
-      <span>{label}</span>
-      <input
+    <label className="lesson-block-field tw:grid tw:gap-[6px]">
+      <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">{label}</span>
+      <input className="tw:text-(--text) tw:border-[rgba(var(--accent-rgb),_0.34)] tw:w-[100%] tw:border-solid tw:rounded-[10px] tw:p-[10px_11px] tw:dark:text-(--heading) tw:[background:rgba(255,_255,_255,_0.12)] tw:dark:border-[rgba(var(--accent-rgb),_0.52)] tw:[border-width:1px] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:[background:rgba(24,_24,_24,_0.75)]"
         value={block[field] || ""}
         onChange={(event) =>
           updateBlock(block.id, { [field]: event.target.value })
@@ -765,10 +765,10 @@ export function LessonContentEditor({
     const canUploadImage = !isUploading && !block.image_id;
 
     return (
-      <div className="lesson-block-field lesson-block-field-wide lesson-image-block-editor">
+      <div className="lesson-block-field lesson-block-field-wide lesson-image-block-editor tw:grid tw:gap-[10px] tw:col-[1_/_-1]">
         <span>Итоговое изображение блока</span>
         <label
-          className={`lesson-image-block-dropzone ${previewUrl ? "has-image" : ""} ${!canUploadImage ? "is-disabled" : ""}`}
+          className={`lesson-image-block-dropzone tw:grid tw:min-h-[220px] tw:border-dashed tw:border-[rgba(var(--accent-rgb),_0.42)] tw:rounded-[16px] tw:p-[14px] tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.7)] tw:[background:rgba(var(--accent-rgb),_0.07)] tw:[&.is-disabled]:cursor-default tw:[transition:border-color_160ms_ease,_background_160ms_ease] tw:hover:[background:rgba(var(--accent-rgb),_0.1)] ${previewUrl ? "has-image" : ""} ${!canUploadImage ? "is-disabled" : ""}`}
           onDragOver={(event) => {
             if (canUploadImage) event.preventDefault();
           }}
@@ -801,12 +801,12 @@ export function LessonContentEditor({
             }}
           />
           {previewUrl ? (
-            <div className="lesson-image-block-preview">
+            <div className="lesson-image-block-preview tw:grid tw:gap-[6px] tw:w-[min(100%,_640px)]">
               <img src={previewUrl} alt="Предпросмотр изображения блока" />
               {activePreview && <small>{activePreview.name}</small>}
             </div>
           ) : (
-            <div className="lesson-image-block-empty">
+            <div className="lesson-image-block-empty tw:grid tw:gap-[6px] tw:text-(--text) tw:text-center">
               <strong>
                 {isUploading ? "Загружаем..." : "Перетащите изображение сюда"}
               </strong>
@@ -817,7 +817,7 @@ export function LessonContentEditor({
             </div>
           )}
         </label>
-        <div className="lesson-image-block-actions">
+        <div className="lesson-image-block-actions tw:flex tw:items-center tw:justify-between tw:flex-wrap tw:gap-[8px]">
           <small>
             В блоке хранится одно изображение. Чтобы загрузить другое, сначала
             удалите текущее.
@@ -825,7 +825,7 @@ export function LessonContentEditor({
           {block.image_id && (
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
               disabled={isUploading}
               onClick={() => {
                 setImageUploadError("");
@@ -916,16 +916,16 @@ export function LessonContentEditor({
 
       case "quiz":
         return (
-          <div className="lesson-block-field lesson-block-field-wide lesson-quiz-editor">
-            <span>Вопросы</span>
+          <div className="lesson-block-field lesson-block-field-wide lesson-quiz-editor tw:grid tw:gap-[10px] tw:col-[1_/_-1]">
+            <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">Вопросы</span>
             {(block.questions || []).map((question, questionIndex) => (
               <div
-                className="lesson-quiz-question"
+                className="lesson-quiz-question tw:grid tw:gap-[10px] tw:rounded-[12px] tw:p-[12px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(var(--accent-rgb),_0.05)]"
                 key={`question-${questionIndex}`}
               >
-                <label>
-                  <span>Вопрос {questionIndex + 1}</span>
-                  <input
+                <label className="tw:grid tw:gap-[6px]">
+                  <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">Вопрос {questionIndex + 1}</span>
+                  <input className="tw:text-(--text) tw:border-[rgba(var(--accent-rgb),_0.34)] tw:w-[100%] tw:border-solid tw:rounded-[10px] tw:p-[10px_11px] tw:dark:text-(--heading) tw:[background:rgba(255,_255,_255,_0.12)] tw:dark:border-[rgba(var(--accent-rgb),_0.52)] tw:[border-width:1px] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:[background:rgba(24,_24,_24,_0.75)]"
                     value={question.question || ""}
                     onChange={(event) =>
                       updateQuestion(block.id, questionIndex, {
@@ -935,9 +935,9 @@ export function LessonContentEditor({
                     placeholder="Введите вопрос"
                   />
                 </label>
-                <label>
-                  <span>Варианты ответа</span>
-                  <textarea
+                <label className="tw:grid tw:gap-[6px]">
+                  <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">Варианты ответа</span>
+                  <textarea className="tw:text-(--text) tw:border-[currentcolor] tw:w-[100%] tw:border-none tw:rounded-[0] tw:p-[13px_14px] tw:min-h-[138px] tw:resize-y tw:dark:text-(--heading) tw:[background:rgba(255,_255,_255,_0.08)] tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:0] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:[background:rgba(24,_24,_24,_0.74)]"
                     value={(question.options || []).join("\n")}
                     onChange={(event) =>
                       updateQuestion(block.id, questionIndex, {
@@ -947,9 +947,9 @@ export function LessonContentEditor({
                     placeholder="Каждый вариант с новой строки"
                   />
                 </label>
-                <label>
-                  <span>Ответ</span>
-                  <textarea
+                <label className="tw:grid tw:gap-[6px]">
+                  <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">Ответ</span>
+                  <textarea className="tw:text-(--text) tw:border-[currentcolor] tw:w-[100%] tw:border-none tw:rounded-[0] tw:p-[13px_14px] tw:min-h-[138px] tw:resize-y tw:dark:text-(--heading) tw:[background:rgba(255,_255,_255,_0.08)] tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:0] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:[background:rgba(24,_24,_24,_0.74)]"
                     value={question.answer || ""}
                     onChange={(event) =>
                       updateQuestion(block.id, questionIndex, {
@@ -959,9 +959,9 @@ export function LessonContentEditor({
                     placeholder="Введите правильный ответ"
                   />
                 </label>
-                <label>
-                  <span>Пояснение</span>
-                  <textarea
+                <label className="tw:grid tw:gap-[6px]">
+                  <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase">Пояснение</span>
+                  <textarea className="tw:text-(--text) tw:border-[currentcolor] tw:w-[100%] tw:border-none tw:rounded-[0] tw:p-[13px_14px] tw:min-h-[138px] tw:resize-y tw:dark:text-(--heading) tw:[background:rgba(255,_255,_255,_0.08)] tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:0] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:[background:rgba(24,_24,_24,_0.74)]"
                     value={question.explanation || ""}
                     onChange={(event) =>
                       updateQuestion(block.id, questionIndex, {
@@ -973,7 +973,7 @@ export function LessonContentEditor({
                 </label>
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                   onClick={() => removeQuestion(block.id, questionIndex)}
                 >
                   Удалить вопрос
@@ -982,7 +982,7 @@ export function LessonContentEditor({
             ))}
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
               onClick={() => addQuestion(block.id)}
             >
               Добавить вопрос
@@ -1017,11 +1017,11 @@ export function LessonContentEditor({
 
   const renderInsertControl = (index: number) => (
     <div
-      className={`lesson-insert-control ${insertIndex === index ? "is-open" : ""}`}
+      className={`lesson-insert-control tw:grid tw:gap-[8px] ${insertIndex === index ? "is-open" : ""}`}
     >
       <button
         type="button"
-        className={`lesson-insert-line ${insertIndex === index ? "is-active" : ""}`}
+        className={`lesson-insert-line tw:w-[100%] tw:border-dashed tw:border-[rgba(var(--accent-rgb),_0.35)] tw:rounded-[999px] tw:text-(--muted) tw:p-[7px_10px] tw:cursor-pointer tw:opacity-[0.68] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.72)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:hover:text-(--ink-accent) tw:[&.is-active]:text-(--ink-accent) tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:hover:opacity-[1] tw:[&.is-active]:opacity-[1] tw:hover:[background:rgba(var(--accent-rgb),_0.12)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.12)] tw:[.lesson-insert-control:not(.is-open)_&]:py-[5px] ${insertIndex === index ? "is-active" : ""}`}
         onClick={() =>
           setInsertIndex((current) => (current === index ? null : index))
         }
@@ -1029,15 +1029,15 @@ export function LessonContentEditor({
         {insertIndex === index ? "Скрыть" : "Вставить здесь"}
       </button>
       {insertIndex === index && (
-        <div className="lesson-editor-palette lesson-insert-palette">
+        <div className="lesson-editor-palette lesson-insert-palette tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] tw:gap-[8px] tw:p-[10px] tw:rounded-[12px] tw:max-760:grid-cols-[1fr] tw:[border:1px_dashed_rgba(var(--accent-rgb),_0.38)] tw:[background:rgba(var(--accent-rgb),_0.05)]">
           {blockTypes.map((type) => (
-            <button
+            <button className="tw:min-h-[64px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[12px] tw:text-(--text) tw:p-[10px] tw:grid tw:gap-[4px] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.68)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.42)] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:hover:[background:rgba(var(--accent-rgb),_0.14)]"
               key={type.id}
               type="button"
               onClick={() => insertBlockAt(index, type.id)}
             >
-              <strong>{type.label}</strong>
-              <span>{type.hint}</span>
+              <strong className="tw:text-(--heading) tw:text-[0.86rem]">{type.label}</strong>
+              <span className="tw:text-(--muted) tw:text-[0.76rem] tw:leading-[1.25]">{type.hint}</span>
             </button>
           ))}
         </div>
@@ -1049,9 +1049,9 @@ export function LessonContentEditor({
     block: EditorBlockWithId,
     { floating = false }: { floating?: boolean } = {},
   ) => (
-    <aside className={`lesson-ai-editor ${floating ? "is-floating" : ""}`}>
+    <aside className={`lesson-ai-editor tw:static tw:flex-[1_1_auto] tw:min-h-[0] tw:flex tw:flex-col tw:gap-[10px] tw:p-[0] tw:border-none tw:border-[currentcolor] tw:top-[16px] tw:rounded-[14px] tw:[border-width:0] tw:dark:border-[rgba(255,_255,_255,_0.2)] tw:[background:none] tw:[box-shadow:none] tw:[-webkit-backdrop-filter:none] tw:[backdrop-filter:none] tw:[.lesson-editor-block-row_>_&]:top-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:left-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:right-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:w-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:max-h-[none] tw:[.lesson-editor-block-row_>_&]:max-h-[none] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:overflow-visible tw:[.lesson-editor-block-row_>_&]:overflow-visible tw:[.lesson-editor-block-row_>_&]:m-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:absolute tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:absolute tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:min-h-[min(520px,_calc(100vh_-_48px))] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:gap-[12px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:p-[16px_16px_18px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:border-[currentcolor] tw:dark:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.13),_rgba(255,_255,_255,_0.055)_)] tw:dark:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:top-[0] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:top-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:rounded-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:left-[0] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:left-[calc(100%_+_clamp(52px,_4vw,_64px))] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:right-[auto] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:w-(--dnd-ai-w) tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:w-[clamp(340px,_80%,_450px)] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:max-h-[calc(100vh_-_32px)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:overflow-hidden tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:overflow-y-auto tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:bottom-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:z-[3] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:z-[5] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:m-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[border-right:1px_solid_var(--dnd-border)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[background:var(--dnd-panel-2)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[box-shadow:none] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:[box-shadow:0_18px_42px_rgba(0,_0,_0,_0.18),_var(--glass-inset)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[animation:dnd-ai-panel-in_0.2s_ease-out] tw:motion-reduce:[.page_.dnd-builder_.dnd-inspector_&]:[animation:none] tw:dark:min-1180:[.lesson-editor-block-row.has-ai_>_&]:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] ${floating ? "is-floating" : ""}`}>
       {!floating && (
-      <div className="lesson-ai-editor-head">
+      <div className="lesson-ai-editor-head tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:start]">
         <span>ИИ-редактор</span>
         <button
           type="button"
@@ -1064,14 +1064,14 @@ export function LessonContentEditor({
       </div>
       )}
       <div
-        className="lesson-ai-messages"
+        className="lesson-ai-messages tw:flex-[1_1_auto] tw:max-h-[none] tw:min-h-[80px] tw:overflow-y-auto tw:flex tw:flex-col tw:gap-[8px] tw:p-[3px_2px_3px_0] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.58)_transparent] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&]:flex-[1] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&]:min-h-[0]"
         ref={aiMessagesRef}
         aria-live="polite"
         aria-busy={isAiSending}
       >
         {(aiConversation?.messages || []).length === 0 && (
-          <div className="lesson-ai-message is-assistant">
-            <p>
+          <div className="lesson-ai-message is-assistant tw:w-[fit-content] tw:max-w-[90%] tw:grid tw:gap-[4px] tw:self-start tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[12px_12px_12px_4px] tw:text-(--text) tw:p-[9px_10px] tw:text-[0.84rem] tw:leading-[1.45] tw:wrap-anywhere tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[background:rgba(255,_255,_255,_0.3)] tw:dark:[background:rgba(255,_255,_255,_0.08)]">
+            <p className="tw:m-[0] tw:whitespace-pre-wrap">
               Опишите, что нужно изменить. Я подготовлю правку, а история
               диалога останется здесь.
             </p>
@@ -1080,29 +1080,29 @@ export function LessonContentEditor({
         {(aiConversation?.messages || []).map((message) => (
           <div
             key={message.id}
-            className={`lesson-ai-message is-${message.role}`}
+            className={`lesson-ai-message tw:w-[fit-content] tw:max-w-[90%] tw:grid tw:gap-[4px] tw:self-start tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[12px_12px_12px_4px] tw:text-(--text) tw:p-[9px_10px] tw:text-[0.84rem] tw:leading-[1.45] tw:wrap-anywhere tw:[&.is-thinking]:flex tw:[&.is-thinking]:gap-[8px] tw:[&.is-user]:self-end tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.46)] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[&.is-user]:rounded-[12px_12px_4px_12px] tw:[background:rgba(255,_255,_255,_0.3)] tw:[&.is-thinking]:items-center tw:dark:[.page_&.is-user]:border-[rgba(var(--accent-rgb),_0.4)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:dark:[background:rgba(255,_255,_255,_0.08)] is-${message.role}`}
           >
-            <p>{message.text}</p>
+            <p className="tw:m-[0] tw:whitespace-pre-wrap">{message.text}</p>
             {message.role === "user" && (
-              <span className="chat-message-status">✓ Отправлено</span>
+              <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">✓ Отправлено</span>
             )}
           </div>
         ))}
         {isAiSending && (
-          <div className="lesson-ai-message is-assistant is-thinking">
-            <span className="chat-thinking-dots" aria-hidden="true">
-              <i />
-              <i />
-              <i />
+          <div className="lesson-ai-message is-assistant is-thinking tw:w-[fit-content] tw:max-w-[90%] tw:flex tw:gap-[8px] tw:self-start tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[12px_12px_12px_4px] tw:text-(--text) tw:p-[9px_10px] tw:text-[0.84rem] tw:leading-[1.45] tw:wrap-anywhere tw:items-center tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[background:rgba(255,_255,_255,_0.3)] tw:dark:[background:rgba(255,_255,_255,_0.08)]">
+            <span className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]" aria-hidden="true">
+              <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[.chat-thinking-dots_&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
+              <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
+              <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
             </span>
             <span>ИИ получил сообщение и готовит правку…</span>
           </div>
         )}
       </div>
       {block.content_type === "image" && aiReferenceImages.length > 0 && (
-        <div className="lesson-ai-reference-grid">
+        <div className="lesson-ai-reference-grid tw:grid tw:grid-cols-[repeat(auto-fill,_minmax(58px,_72px))] tw:gap-[8px]">
           {aiReferenceImages.map((image) => (
-            <div className="lesson-ai-reference-preview" key={image.id}>
+            <div className="lesson-ai-reference-preview tw:relative tw:aspect-[1] tw:overflow-hidden tw:rounded-[10px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[background:rgba(255,_255,_255,_0.22)]" key={image.id}>
               <img src={image.previewUrl} alt={image.name} />
               <button
                 type="button"
@@ -1117,13 +1117,13 @@ export function LessonContentEditor({
       )}
       {aiError && <p className="lesson-ai-error">{aiError}</p>}
       <div
-        className={`lesson-ai-composer ${block.content_type === "image" ? "has-attach" : ""}`}
+        className={`lesson-ai-composer tw:grid tw:grid-cols-[minmax(0,_1fr)_34px] tw:gap-[7px] tw:mt-[auto] tw:p-[7px] tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[13px] tw:[&.has-attach]:grid-cols-[34px_minmax(0,_1fr)_34px] tw:[align-items:end] tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.16)] tw:[background:rgba(255,_255,_255,_0.3)] tw:dark:[background:rgba(255,_255,_255,_0.07)] ${block.content_type === "image" ? "has-attach" : ""}`}
       >
         {block.content_type === "image" && (
           <>
             <input
               ref={aiImageInputRef}
-              className="lesson-ai-image-input"
+              className="lesson-ai-image-input tw:hidden"
               type="file"
               accept="image/*"
               multiple
@@ -1131,7 +1131,7 @@ export function LessonContentEditor({
             />
             <button
               type="button"
-              className="lesson-ai-attach"
+              className="lesson-ai-attach tw:w-[34px] tw:h-[34px] tw:p-[0] tw:rounded-[50%] tw:text-(--ink-accent) tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.42)] tw:[font:inherit] tw:[&&]:text-[1.15rem] tw:[&&]:leading-[1] tw:[background:transparent]"
               onClick={() => aiImageInputRef.current?.click()}
               aria-label="Прикрепить референсы до 15 МБ"
               title="Прикрепить референсы до 15 МБ"
@@ -1140,7 +1140,7 @@ export function LessonContentEditor({
             </button>
           </>
         )}
-        <textarea
+        <textarea className="tw:w-[100%] tw:resize-y tw:border-none tw:border-[currentcolor] tw:rounded-[11px] tw:text-(--text) tw:p-[8px_9px] tw:min-h-[74px] tw:max-h-[160px] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.9] tw:[border-width:0] tw:[background:transparent] tw:dark:text-(--heading) tw:[font:inherit] tw:[outline:none]"
           ref={(element) => {
             aiTextareaRef.current = element;
             autosizeTextarea(element, 160);
@@ -1164,7 +1164,7 @@ export function LessonContentEditor({
         />
         <button
           type="button"
-          className="lesson-ai-send"
+          className="lesson-ai-send tw:w-[34px] tw:h-[34px] tw:p-[0] tw:rounded-[50%] tw:text-(--ink-accent) tw:[border:1px_solid_rgba(var(--accent-rgb),_0.42)] tw:[font:inherit] tw:[&&]:text-[1.15rem] tw:[&&]:leading-[1] tw:disabled:cursor-not-allowed tw:[background:rgba(var(--accent-rgb),_0.18)] tw:disabled:opacity-[0.45]"
           onClick={askAi}
           disabled={isAiSending || !aiInput.trim()}
           aria-label="Отправить сообщение"
@@ -1179,15 +1179,15 @@ export function LessonContentEditor({
   const activeAiBlock = blocks.find((block) => block.id === activeBlockId);
 
   return (
-    <div className="lesson-content-editor">
-      <div className="lesson-content-editor-head">
-        <div>
-          <span>{contentLabel}</span>
-          <strong>{blocksLabel}</strong>
+    <div className="lesson-content-editor tw:mt-[14px] tw:pt-[14px] tw:grid tw:gap-[12px] tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
+      <div className="lesson-content-editor-head tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:gap-[12px] tw:max-760:grid-cols-[1fr] tw:[align-items:start] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
+        <div className="tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
+          <span className="tw:block tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">{contentLabel}</span>
+          <strong className="tw:block tw:mt-[4px] tw:text-(--heading) tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">{blocksLabel}</strong>
         </div>
         <input
           ref={fileInputRef}
-          className="knowledge-file-input"
+          className="knowledge-file-input tw:hidden tw:text-[0.96rem] tw:leading-[1.45] tw:[.page.is-inner-page_.dnd-builder_&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[.page.is-inner-page_.dnd-builder_&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page.is-inner-page_.dnd-builder_&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[.page.is-inner-page_.dnd-builder_&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]"
           type="file"
           multiple
           accept=".pdf,.docx,.pptx,.xlsx,.md,.markdown,.html,.txt,.json,.sql,.js,.jsx,.ts,.tsx,.py,.csv,.png,.jpg,.jpeg,.webp,.gif"
@@ -1196,11 +1196,11 @@ export function LessonContentEditor({
       </div>
 
       {blockLimitError && (
-        <p className="lesson-editor-limit-error">{blockLimitError}</p>
+        <p className="lesson-editor-limit-error tw:m-[0] tw:p-[9px_11px] tw:rounded-[10px] tw:text-[var(--danger-text,_#a94f60)] tw:text-[0.82rem] tw:leading-[1.4] tw:[border:1px_solid_rgba(var(--danger-rgb,_190,_80,_100),_0.32)] tw:[background:rgba(var(--danger-rgb,_190,_80,_100),_0.07)]">{blockLimitError}</p>
       )}
 
-      <div className="lesson-content-editor-layout">
-        <div className="lesson-editor-blocks">
+      <div className="lesson-content-editor-layout tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:gap-[12px] tw:[align-items:start] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
+        <div className="lesson-editor-blocks tw:grid tw:gap-[10px] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_&]:[counter-reset:dnd-block]">
           {showInsertControls &&
             blocks.length < MAX_CONTENT_BLOCKS &&
             renderInsertControl(0)}
@@ -1217,33 +1217,33 @@ export function LessonContentEditor({
                       blockRefs.current.delete(block.id);
                     }
                   }}
-                  className={`lesson-editor-block-row ${!floatingAiEditor && isActive && isAiOpen && canUseAiEditor ? "has-ai" : ""}`}
+                  className={`lesson-editor-block-row tw:min-w-[0] tw:[&.has-ai]:relative tw:[&.has-ai]:block tw:min-1000:[.page_.dnd-builder_.dnd-inspector_&.has-ai]:static tw:min-1000:[.page_.dnd-builder_.dnd-inspector_&.has-ai]:block tw:max-1100:[&.has-ai]:grid-cols-[1fr] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_&]:[counter-increment:dnd-block] ${!floatingAiEditor && isActive && isAiOpen && canUseAiEditor ? "has-ai" : ""}`}
                 >
                   <article
-                    className={`lesson-editor-block is-${block.type} ${isActive ? "is-active" : "is-preview"}`}
+                    className={`lesson-editor-block tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[13px] tw:p-[0] tw:grid tw:gap-[0] tw:overflow-hidden tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.78)] tw:[background:rgba(255,_255,_255,_0.16)] tw:[transition:border-color_0.16s_ease,_box-shadow_0.16s_ease] tw:[&.is-preview]:cursor-pointer tw:[&.is-preview:hover]:border-[rgba(var(--accent-rgb),_0.72)] tw:[&.is-preview:focus-within]:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:[&.is-active]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[background:var(--surface)] tw:[&.is-active]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.12)] tw:[&.is-preview:hover]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.1)] tw:[&.is-preview:focus-within]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.1)] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px] is-${block.type} ${isActive ? "is-active" : "is-preview"}`}
                   >
                     {proposal && proposal.blockId === block.id ? (
-                      <div className="lesson-block-proposal">
-                        <div className="lesson-block-proposal-head">
-                          <span>Предложено ИИ</span>
-                          <div className="lesson-block-proposal-actions">
+                      <div className="lesson-block-proposal tw:grid">
+                        <div className="lesson-block-proposal-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:p-[12px_14px] tw:[border-bottom:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:[background:rgba(var(--accent-soft-rgb),_0.08)]">
+                          <span className="tw:text-(--ink-accent) tw:text-[0.76rem] tw:font-[800] tw:tracking-[0.05em] tw:uppercase">Предложено ИИ</span>
+                          <div className="lesson-block-proposal-actions tw:flex tw:gap-[8px] tw:[&_.btn]:p-[7px_14px] tw:[&_.btn]:text-[0.8rem]">
                             <button
                               type="button"
-                              className="btn btn-solid"
+                              className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[7px_14px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                               onClick={applyProposal}
                             >
                               Применить
                             </button>
                             <button
                               type="button"
-                              className="btn btn-outline"
+                              className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[7px_14px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                               onClick={rejectProposal}
                             >
                               Не применять
                             </button>
                           </div>
                         </div>
-                        <div className="lesson-markdown lesson-proposal-preview">
+                        <div className="lesson-markdown lesson-proposal-preview tw:p-[clamp(20px,_2.6vw,_32px)] tw:mt-[18px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.38)] tw:rounded-[18px] tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:overflow-x-clip tw:overflow-y-visible tw:[border-width:1px] tw:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.35),_rgba(255,_255,_255,_0.12))] tw:dark:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.07),_rgba(255,_255,_255,_0.025))] tw:dark:[box-shadow:none]">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={markdownComponents}
@@ -1255,17 +1255,17 @@ export function LessonContentEditor({
                       </div>
                     ) : isActive ? (
                       <>
-                        <div className="lesson-editor-block-head">
+                        <div className="lesson-editor-block-head tw:p-[12px_14px] tw:flex tw:justify-between tw:gap-[10px] tw:items-center tw:max-760:items-stretch tw:[border-bottom:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:max-760:grid-cols-[1fr] tw:dark:[border-bottom-color:rgba(var(--accent-rgb),_0.32)] tw:dark:[background:rgba(var(--accent-rgb),_0.12)]">
                           <strong>{getBlockTitle(block)}</strong>
-                          <div>
-                            <button
+                          <div className="tw:flex tw:flex-wrap tw:gap-[6px]">
+                            <button className="tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[6px_9px] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:max-760:flex-[1_1_auto] tw:[.lesson-editor-block-head_&:disabled]:cursor-not-allowed tw:[.lesson-editor-block-head_&:disabled]:opacity-[0.45]"
                               type="button"
                               onClick={() => moveBlock(block.id, -1)}
                               disabled={index === 0}
                             >
                               Выше
                             </button>
-                            <button
+                            <button className="tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[6px_9px] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:max-760:flex-[1_1_auto] tw:[.lesson-editor-block-head_&:disabled]:cursor-not-allowed tw:[.lesson-editor-block-head_&:disabled]:opacity-[0.45]"
                               type="button"
                               onClick={() => moveBlock(block.id, 1)}
                               disabled={index === blocks.length - 1}
@@ -1275,7 +1275,7 @@ export function LessonContentEditor({
                             {canUseAiEditor && (
                               <button
                                 type="button"
-                                className={isAiOpen ? "is-active" : ""}
+                                className={`tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[6px_9px] tw:cursor-pointer tw:[border-width:1px] tw:[.lesson-editor-block-head_&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[.lesson-editor-block-head_&.is-active]:text-(--heading) tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:max-760:flex-[1_1_auto] tw:[.lesson-editor-block-head_&.is-active]:[background:rgba(var(--accent-rgb),_0.2)] tw:[.lesson-editor-block-head_&:disabled]:cursor-not-allowed tw:[.lesson-editor-block-head_&:disabled]:opacity-[0.45] ${isAiOpen ? "is-active" : ""}`}
                                 onClick={() => {
                                   setIsAiOpen((current) => !current);
                                   scrollToBlock(block.id);
@@ -1284,13 +1284,13 @@ export function LessonContentEditor({
                                 ИИ-редактор
                               </button>
                             )}
-                            <button
+                            <button className="tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[6px_9px] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:max-760:flex-[1_1_auto] tw:[.lesson-editor-block-head_&:disabled]:cursor-not-allowed tw:[.lesson-editor-block-head_&:disabled]:opacity-[0.45]"
                               type="button"
                               onClick={() => setActiveBlockId("")}
                             >
                               Готово
                             </button>
-                            <button
+                            <button className="tw:rounded-[999px] tw:text-(--ink-accent) tw:p-[6px_9px] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:max-760:flex-[1_1_auto] tw:[.lesson-editor-block-head_&:disabled]:cursor-not-allowed tw:[.lesson-editor-block-head_&:disabled]:opacity-[0.45]"
                               type="button"
                               onClick={() => setBlockToDelete(block)}
                             >
@@ -1298,13 +1298,13 @@ export function LessonContentEditor({
                             </button>
                           </div>
                         </div>
-                        <div className="lesson-block-fields">
+                        <div className="lesson-block-fields tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[12px] tw:p-[14px]">
                           {renderBlockFields(block)}
                         </div>
                       </>
                     ) : (
                       <div
-                        className="lesson-editor-block-select"
+                        className="lesson-editor-block-select tw:w-[100%] tw:min-w-[0] tw:text-[inherit] tw:p-[14px] tw:text-left tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[outline:none] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]"
                         onClick={() => selectBlock(block.id)}
                         role="button"
                         tabIndex={0}
@@ -1316,18 +1316,18 @@ export function LessonContentEditor({
                           }
                         }}
                       >
-                        <div className="lesson-editor-preview-head">
-                          <span>
+                        <div className="lesson-editor-preview-head tw:grid tw:gap-[3px] tw:mb-[10px] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
+                          <span className="tw:text-(--muted) tw:text-[0.72rem] tw:font-[800] tw:tracking-[0.07em] tw:uppercase tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
                             {blockTypes.find((type) => type.id === block.type)
                               ?.label || "Блок"}
                           </span>
-                          <strong>{getBlockTitle(block)}</strong>
+                          <strong className="tw:text-(--heading) tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">{getBlockTitle(block)}</strong>
                         </div>
-                        <div className="lesson-markdown">
+                        <div className="lesson-markdown tw:mt-[18px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.38)] tw:rounded-[18px] tw:p-[clamp(20px,_2.6vw,_32px)] tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:overflow-x-clip tw:overflow-y-visible tw:[border-width:1px] tw:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.35),_rgba(255,_255,_255,_0.12))] tw:dark:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.07),_rgba(255,_255,_255,_0.025))] tw:dark:[box-shadow:none] tw:[.page_.dnd-builder_&:focus-visible]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&:focus-visible]:[outline-offset:2px]">
                           {block.content_type === "image" ? (
                             block.image_id ? (
                               <img
-                                className="lesson-image-block-preview-img"
+                                className="lesson-image-block-preview-img tw:block tw:max-w-[100%] tw:max-h-[360px] tw:rounded-[14px] tw:object-contain tw:[background:rgba(var(--accent-rgb),_0.06)]"
                                 src={getMediaUrl(
                                   currentUserId,
                                   MEDIA_FOLDERS.COURSE_IMAGES,

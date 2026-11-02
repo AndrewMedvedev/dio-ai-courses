@@ -63,15 +63,21 @@ function ResultCard({
   const passed = Number(result.score) >= passingScore;
   return (
     <article
-      className={`lesson-agent-result ${passed ? "is-passed" : "is-failed"}`}
+      className={`lesson-agent-result tw:border-solid tw:border-[rgba(var(--success-rgb),_0.34)] tw:rounded-[16px] tw:p-[16px] tw:grid tw:gap-[10px] tw:[border-width:1px] tw:[&.is-failed]:border-[rgba(var(--danger-rgb,_190,_80,_100),_0.34)] tw:[background:rgba(var(--success-rgb),_0.08)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[background:rgba(255,_255,_255,_0.06)] tw:[&.is-failed]:[background:rgba(var(--danger-rgb,_190,_80,_100),_0.08)] tw:dark:[&.is-failed]:[background:rgba(255,_255,_255,_0.06)] ${passed ? "is-passed" : "is-failed"}`}
     >
       <div>
-        <span>Результат</span>
-        <strong>{Number(result.score) || 0} баллов</strong>
+        <span className="tw:block tw:text-(--muted) tw:text-[0.78rem]">
+          Результат
+        </span>
+        <strong className="tw:text-(--heading) tw:text-[1.2rem]">
+          {Number(result.score) || 0} баллов
+        </strong>
       </div>
-      <p>{passed ? "Пройдено" : "Не пройдено"}</p>
+      <p className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+        {passed ? "Пройдено" : "Не пройдено"}
+      </p>
       {result.ai_feedback && (
-        <div className="lesson-agent-feedback">
+        <div className="lesson-agent-feedback tw:text-(--text) tw:leading-[1.56]">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {result.ai_feedback}
           </ReactMarkdown>
@@ -187,9 +193,11 @@ export function LessonTestAgent({
 
   if (!test) {
     return (
-      <section className="lesson-agent-panel lesson-agent-start">
-        <div className="lesson-agent-head">
-          <p className="course-category">Проверочные вопросы</p>
+      <section className="lesson-agent-panel lesson-agent-start tw:grid tw:gap-[18px] tw:min-h-[260px] tw:p-[clamp(18px,_2.5vw,_28px)] tw:rounded-[18px] tw:[align-content:start] tw:[justify-items:start] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.18)] tw:[background:rgba(255,_255,_255,_0.18)] tw:[&_.btn]:rounded-[999px] tw:[&_.btn]:p-[11px_18px] tw:[&_.btn]:min-w-[170px] tw:[&_.btn]:flex-[0_0_auto] tw:[&_.btn]:whitespace-normal tw:[&_.btn]:w-[auto] tw:[&_.btn]:h-[auto] tw:[&_.btn]:min-h-[44px]">
+        <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:[.lesson-agent-start_&]:max-w-[680px]">
+          <p className="course-category tw:m-[0] tw:text-[0.8rem] tw:uppercase tw:tracking-[0.08em] tw:text-(--accent) tw:font-[700]">
+            Проверочные вопросы
+          </p>
           <h2>Проверка знаний</h2>
           <span>
             Когда будете готовы, запустите генерацию тестовых вопросов.
@@ -200,10 +208,10 @@ export function LessonTestAgent({
             {error}
           </p>
         )}
-        <div className="lesson-agent-actions">
+        <div className="lesson-agent-actions tw:flex tw:justify-end tw:gap-[10px] tw:[.lesson-agent-start_&]:justify-start tw:[.lesson-agent-start_&]:items-center tw:[.lesson-agent-start_&]:w-[auto]">
           <button
             type="button"
-            className="btn btn-solid"
+            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
             onClick={startTest}
             disabled={isLoading || !moduleId || !lessonId}
           >
@@ -215,10 +223,14 @@ export function LessonTestAgent({
   }
 
   return (
-    <section className="lesson-agent-panel">
-      <div className="lesson-agent-head">
-        <p className="course-category">Проверочные вопросы</p>
-        <h2>{test?.title || "Проверка знаний"}</h2>
+    <section className="lesson-agent-panel tw:grid tw:gap-[18px]">
+      <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:[.lesson-agent-start_&]:max-w-[680px]">
+        <p className="course-category tw:m-[0] tw:text-[0.88rem] tw:uppercase tw:tracking-[0.09em] tw:text-(--info-text) tw:font-[700] tw:leading-[1.72]">
+          Проверочные вопросы
+        </p>
+        <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
+          {test?.title || "Проверка знаний"}
+        </h2>
         {test?.estimated_time_minutes && (
           <span>Ориентировочное время: {test.estimated_time_minutes} мин.</span>
         )}
@@ -230,24 +242,36 @@ export function LessonTestAgent({
         </p>
       )}
 
-      <div className="lesson-agent-question-list">
+      <div className="lesson-agent-question-list tw:grid tw:gap-[14px]">
         {questions.map((question, index) => (
           <article
-            className="lesson-agent-question"
+            className="lesson-agent-question tw:rounded-[16px] tw:p-[16px] tw:grid tw:gap-[14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(255,_255,_255,_0.34)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[background:rgba(255,_255,_255,_0.06)]"
             key={`${question.text}-${index}`}
           >
-            <div className="lesson-agent-question-title">
-              <span>{index + 1}</span>
-              <h3>{question.text}</h3>
-              {question.points && <small>{question.points} балл.</small>}
+            <div className="lesson-agent-question-title tw:grid tw:grid-cols-[34px_minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:start]">
+              <span className="tw:w-[30px] tw:h-[30px] tw:rounded-[50%] tw:grid tw:text-(--ink-accent) tw:font-[900] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.14)]">
+                {index + 1}
+              </span>
+              <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">
+                {question.text}
+              </h3>
+              {question.points && (
+                <small className="tw:text-(--muted) tw:text-[0.86rem]">
+                  {question.points} балл.
+                </small>
+              )}
             </div>
 
             {test?.test_type === "multiple_choice" ? (
-              <div className="lesson-agent-options">
+              <div className="lesson-agent-options tw:grid tw:gap-[10px]">
                 {(Array.isArray(question.options) ? question.options : []).map(
                   (option, optionIndex) => (
-                    <label key={`${option}-${optionIndex}`}>
+                    <label
+                      className="tw:flex tw:gap-[10px] tw:items-start tw:cursor-pointer tw:text-(--text)"
+                      key={`${option}-${optionIndex}`}
+                    >
                       <input
+                        className="tw:mt-[4px] tw:accent-[rgb(var(--accent-rgb))] tw:text-[0.96rem] tw:leading-[1.45]"
                         type="radio"
                         name={`lesson-test-${lessonId}-${index}`}
                         value={optionIndex}
@@ -268,7 +292,7 @@ export function LessonTestAgent({
                 )}
               </div>
             ) : (
-              <div className="lesson-agent-detailed-answer">
+              <div className="lesson-agent-detailed-answer tw:grid tw:gap-[10px]">
                 {question.hint && (
                   <details>
                     <summary>Подсказка</summary>
@@ -292,10 +316,10 @@ export function LessonTestAgent({
         ))}
       </div>
 
-      <div className="lesson-agent-actions">
+      <div className="lesson-agent-actions tw:flex tw:justify-end tw:gap-[10px] tw:[.lesson-agent-start_&]:justify-start tw:[.lesson-agent-start_&]:items-center tw:[.lesson-agent-start_&]:w-[auto]">
         <button
           type="button"
-          className="btn btn-solid"
+          className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
           onClick={submitTest}
           disabled={!practiceId || !canSubmit || isChecking || isSubmitted}
         >
@@ -410,11 +434,15 @@ export function LessonPracticeAgent({
 
   if (!assignment) {
     return (
-      <section className="lesson-agent-panel lesson-agent-start">
-        <div className="lesson-agent-head">
-          <p className="course-category">Практика</p>
-          <h2>Практическое задание</h2>
-          <span>
+      <section className="lesson-agent-panel lesson-agent-start tw:grid tw:gap-[18px] tw:min-h-[260px] tw:p-[clamp(18px,_2.5vw,_28px)] tw:rounded-[18px] tw:[align-content:start] tw:[justify-items:start] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.18)] tw:[background:rgba(255,_255,_255,_0.18)] tw:[&_.btn]:rounded-[999px] tw:[&_.btn]:p-[11px_18px] tw:[&_.btn]:min-w-[170px] tw:[&_.btn]:flex-[0_0_auto] tw:[&_.btn]:whitespace-normal tw:[&_.btn]:w-[auto] tw:[&_.btn]:h-[auto] tw:[&_.btn]:min-h-[44px]">
+        <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:max-w-[680px]">
+          <p className="course-category tw:m-[0] tw:text-[0.88rem] tw:uppercase tw:tracking-[0.09em] tw:text-(--info-text) tw:font-[700] tw:leading-[1.72]">
+            Практика
+          </p>
+          <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
+            Практическое задание
+          </h2>
+          <span className="tw:text-(--muted) tw:text-[0.86rem]">
             Когда будете готовы, запустите подготовку практического задания.
           </span>
         </div>
@@ -423,10 +451,10 @@ export function LessonPracticeAgent({
             {error}
           </p>
         )}
-        <div className="lesson-agent-actions">
+        <div className="lesson-agent-actions tw:flex tw:justify-start tw:gap-[10px] tw:items-center tw:w-[auto]">
           <button
             type="button"
-            className="btn btn-solid"
+            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[11px_18px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:flex-[0_0_auto] tw:w-[auto] tw:h-[auto] tw:min-w-[170px] tw:min-h-[44px] tw:whitespace-normal tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
             onClick={startPractice}
             disabled={isLoading || !moduleId || !lessonId}
           >
@@ -440,9 +468,11 @@ export function LessonPracticeAgent({
   }
 
   return (
-    <section className="lesson-agent-panel">
-      <div className="lesson-agent-head">
-        <p className="course-category">Практика</p>
+    <section className="lesson-agent-panel tw:grid tw:gap-[18px]">
+      <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:[.lesson-agent-start_&]:max-w-[680px]">
+        <p className="course-category tw:m-[0] tw:text-[0.8rem] tw:uppercase tw:tracking-[0.08em] tw:text-(--accent) tw:font-[700]">
+          Практика
+        </p>
         <h2>{assignment?.title || "Практическое задание"}</h2>
       </div>
 
@@ -453,7 +483,7 @@ export function LessonPracticeAgent({
       )}
 
       {assignment?.description && (
-        <div className="lesson-markdown lesson-agent-description">
+        <div className="lesson-markdown lesson-agent-description tw:mt-[12px] tw:p-[14px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[14px] tw:leading-[1.65] tw:whitespace-normal tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:overflow-x-clip tw:overflow-y-visible tw:[border-width:1px] tw:[background:rgba(255,_255,_255,_0.2)] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.045)] tw:dark:[.page_&]:[box-shadow:none]">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {normalizeAssignmentText(assignment.description)}
           </ReactMarkdown>
@@ -462,7 +492,7 @@ export function LessonPracticeAgent({
 
       {Array.isArray(assignment?.evaluation_criteria) &&
         assignment.evaluation_criteria.length > 0 && (
-          <div className="lesson-agent-meta-card">
+          <div className="lesson-agent-meta-card tw:rounded-[16px] tw:p-[16px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(255,_255,_255,_0.34)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.06)]">
             <h3>Критерии оценки</h3>
             <ul>
               {assignment.evaluation_criteria.map((item) => (
@@ -472,7 +502,7 @@ export function LessonPracticeAgent({
           </div>
         )}
 
-      <div className="lesson-agent-meta-grid">
+      <div className="lesson-agent-meta-grid tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[12px]">
         <div>
           <span>Проходной балл</span>
           <strong>{assignment?.passing_score ?? PASSING_SCORE}</strong>
@@ -486,14 +516,14 @@ export function LessonPracticeAgent({
       </div>
 
       {assignment?.submission_instructions && (
-        <div className="lesson-markdown lesson-agent-instructions">
+        <div className="lesson-markdown lesson-agent-instructions tw:text-(--muted) tw:leading-[1.5] tw:mt-[12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[14px] tw:p-[14px] tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:overflow-x-clip tw:overflow-y-visible tw:[border-width:1px] tw:[background:rgba(255,_255,_255,_0.2)] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.045)] tw:dark:[.page_&]:[box-shadow:none]">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {normalizeAssignmentText(assignment.submission_instructions)}
           </ReactMarkdown>
         </div>
       )}
 
-      <label className="lesson-agent-file-picker">
+      <label className="lesson-agent-file-picker tw:rounded-[16px] tw:p-[14px] tw:grid tw:gap-[8px] tw:text-(--text) tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(255,_255,_255,_0.34)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.06)]">
         <span>Файл решения</span>
         <input
           type="file"
@@ -509,10 +539,10 @@ export function LessonPracticeAgent({
         </p>
       )}
 
-      <div className="lesson-agent-actions">
+      <div className="lesson-agent-actions tw:flex tw:justify-end tw:gap-[10px] tw:[.lesson-agent-start_&]:justify-start tw:[.lesson-agent-start_&]:items-center tw:[.lesson-agent-start_&]:w-[auto]">
         <button
           type="button"
-          className="btn btn-solid"
+          className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
           onClick={submitPractice}
           disabled={
             !practiceId ||

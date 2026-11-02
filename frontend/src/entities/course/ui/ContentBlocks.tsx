@@ -65,7 +65,7 @@ const createMarkdownComponents = (
       return (
         <button
           type="button"
-          className="content-preview-trigger content-preview-diagram-trigger"
+          className="content-preview-trigger content-preview-diagram-trigger tw:block tw:w-[100%] tw:m-[12px_0] tw:p-[0] tw:text-left tw:text-[0.96rem] tw:leading-[1.45] tw:[border:0] tw:[background:transparent] tw:[cursor:zoom-in] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.84)] tw:focus-visible:[outline-offset:3px]"
           onClick={() => onPreview({ type: "diagram", chart: code, lessonId, blockId })}
           aria-label="Открыть схему для подробного просмотра"
         >
@@ -106,11 +106,11 @@ function TextBlock({
   const text = getTextContent(block);
 
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">Блок {index + 1} · текст</div>
+    <article className="content-block-card tw:[.generated-course-learning-grid_&]:border-solid tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:[.generated-course-learning-grid_&]:[border-width:1px] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[box-shadow:none] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">Блок {index + 1} · текст</div>
       {block.title && <h3>{block.title}</h3>}
       {text ? (
-        <div className="lesson-markdown content-block-markdown">
+        <div className="lesson-markdown content-block-markdown tw:border-[rgba(var(--accent-rgb),_0.38)] tw:p-[clamp(20px,_2.6vw,_32px)] tw:mt-[18px] tw:rounded-[18px] tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:overflow-x-clip tw:overflow-y-visible tw:[.generated-course-learning-grid_&]:border-none tw:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.35),_rgba(255,_255,_255,_0.12))] tw:[.generated-course-learning-grid_&]:[border-width:0] tw:dark:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.07),_rgba(255,_255,_255,_0.025))] tw:dark:[box-shadow:none]">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={createMarkdownComponents(onPreview, lessonId, index)}
@@ -120,7 +120,7 @@ function TextBlock({
           </ReactMarkdown>
         </div>
       ) : (
-        <p className="course-viewer-muted">Текстовый блок пуст.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">Текстовый блок пуст.</p>
       )}
     </article>
   );
@@ -171,17 +171,17 @@ function QuizBlock({
   if (!questions.length) return null;
 
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">Блок {index + 1} · quiz</div>
-      <div className="quiz-block-head">
+    <article className="content-block-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">Блок {index + 1} · quiz</div>
+      <div className="quiz-block-head tw:flex tw:items-center tw:justify-between tw:flex-wrap tw:gap-[8px_16px]">
         <h3>{block.title || "Проверочные вопросы"}</h3>
         {answerableIndexes.length > 1 && (
-          <button type="button" className="quiz-toggle-all" onClick={toggleAll} aria-pressed={allExpanded}>
+          <button type="button" className="quiz-toggle-all tw:min-h-[36px] tw:p-[6px_14px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.42)] tw:rounded-[999px] tw:text-(--ink-accent) tw:cursor-pointer tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.7)] tw:focus-visible:border-[rgba(var(--accent-rgb),_0.7)] tw:[background:var(--glass-bg-strong)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.82rem]" onClick={toggleAll} aria-pressed={allExpanded}>
             {allExpanded ? "Скрыть все ответы" : "Показать все ответы"}
           </button>
         )}
       </div>
-        <ol className="quiz-question-list">
+        <ol className="quiz-question-list tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:gap-[14px] tw:m-[14px_0_0] tw:pl-[20px]">
           {questions.map((question, questionIndex) => {
             const title = question.question;
             const hasAnswerDetails = Boolean(question.answer || question.explanation);
@@ -192,7 +192,7 @@ function QuizBlock({
               <li key={`question-${questionIndex}`}>
                 <button
                   type="button"
-                  className="quiz-question-toggle"
+                  className="quiz-question-toggle tw:w-[100%] tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[12px] tw:text-[inherit] tw:cursor-pointer tw:p-[10px_12px] tw:text-left tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.48)] tw:focus-visible:border-[rgba(var(--accent-rgb),_0.48)] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.06),_rgba(var(--accent-rgb),_0.06)),_var(--glass-bg-strong)] tw:[font:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.1)] tw:focus-visible:[background:rgba(var(--accent-rgb),_0.1)]"
                   aria-expanded={isExpanded}
                   aria-controls={hasAnswerDetails ? answerId : undefined}
                   onClick={() => toggleQuestion(questionIndex)}
@@ -203,14 +203,14 @@ function QuizBlock({
                   </span>
                 </button>
                 {question.options.length > 0 && (
-                  <ul className="quiz-answer-options">
+                  <ul className="quiz-answer-options tw:m-[10px_0_0] tw:p-[12px_14px] tw:pl-[34px] tw:rounded-[10px] tw:grid tw:gap-[6px] tw:[border:1px_solid_var(--glass-border)] tw:[background:var(--glass-bg-strong)]">
                     {question.options.map((option, optionIndex) => (
                       <li key={`option-${optionIndex}`}>{renderQuizInline(option)}</li>
                     ))}
                   </ul>
                 )}
                 {hasAnswerDetails && isExpanded && (
-                  <div id={answerId} className="quiz-answer-details">
+                  <div id={answerId} className="quiz-answer-details tw:m-[10px_0_0] tw:p-[12px_14px] tw:rounded-[10px] tw:[border:1px_solid_var(--glass-border)] tw:[background:var(--glass-bg-strong)]">
                     {question.answer && <p><strong>Ответ:</strong> {renderQuizInline(question.answer)}</p>}
                     {question.explanation && <p><strong>Пояснение:</strong> {renderQuizInline(question.explanation)}</p>}
                   </div>
@@ -225,17 +225,17 @@ function QuizBlock({
 
 function VideoBlock({ block, index }: BlockProps) {
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">Блок {index + 1} · видео</div>
+    <article className="content-block-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">Блок {index + 1} · видео</div>
       {block.url ? (
         <a href={safeMarkdownUrl(block.url)} target="_blank" rel="noreferrer">
           Открыть видео
         </a>
       ) : (
-        <p className="course-viewer-muted">Ссылка на видео не указана.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">Ссылка на видео не указана.</p>
       )}
       {block.description && (
-        <p className="course-viewer-muted">{block.description}</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">{block.description}</p>
       )}
     </article>
   );
@@ -250,18 +250,18 @@ function ImageBlock({
     ? getMediaUrl(ownerUserId, MEDIA_FOLDERS.COURSE_IMAGES, block.image_id)
     : block.image_url;
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">
+    <article className="content-block-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">
         Блок {index + 1} · изображение
       </div>
       {imageUrl ? (
         <img
-          className="content-block-image"
+          className="content-block-image tw:rounded-[16px] tw:block tw:mt-[14px] tw:max-h-[520px] tw:max-w-[100%] tw:object-contain"
           src={safeMarkdownUrl(imageUrl)}
           alt=""
         />
       ) : (
-        <p className="course-viewer-muted">Изображение не указано.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">Изображение не указано.</p>
       )}
     </article>
   );
@@ -274,13 +274,13 @@ function MermaidBlock({
   lessonId,
 }: BlockProps & { onPreview: OnPreview; lessonId?: string | null }) {
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">Блок {index + 1} · mermaid</div>
+    <article className="content-block-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">Блок {index + 1} · mermaid</div>
       {block.title && <h3>{block.title}</h3>}
       {block.md_content ? (
         <button
           type="button"
-          className="content-preview-trigger content-preview-diagram-trigger"
+          className="content-preview-trigger content-preview-diagram-trigger tw:block tw:w-[100%] tw:m-[12px_0] tw:p-[0] tw:text-left tw:[border:0] tw:[background:transparent] tw:[cursor:zoom-in] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.84)] tw:focus-visible:[outline-offset:3px]"
           onClick={() =>
             onPreview({
               type: "diagram",
@@ -294,10 +294,10 @@ function MermaidBlock({
           <MermaidDiagram chart={block.md_content} lessonId={lessonId} blockId={index} />
         </button>
       ) : (
-        <p className="course-viewer-muted">Код диаграммы отсутствует.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">Код диаграммы отсутствует.</p>
       )}
       {block.explanation && (
-        <p className="course-viewer-muted">{block.explanation}</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">{block.explanation}</p>
       )}
     </article>
   );
@@ -305,17 +305,17 @@ function MermaidBlock({
 
 function FormulaBlock({ block, index, label }: BlockProps & { label: string }) {
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">
+    <article className="content-block-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">
         Блок {index + 1} · {label}
       </div>
       {block.formula ? (
-        <pre className="content-block-pre">{block.formula}</pre>
+        <pre className="content-block-pre tw:rounded-[16px] tw:block tw:leading-[1.65] tw:m-[14px_0_0] tw:max-h-[520px] tw:overflow-auto tw:p-[16px] tw:whitespace-pre-wrap tw:text-[inherit] tw:[word-break:break-word] tw:[background:rgba(111,_119,_255,_0.07)] tw:[font-family:inherit] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[.page_.generated-course-learning-grid_&]:[background:rgba(0,_0,_0,_0.28)] tw:dark:[.page_.generated-course-learning-grid_&]:[border:1px_solid_rgba(247,_220,_168,_0.24)]">{block.formula}</pre>
       ) : (
-        <p className="course-viewer-muted">Формула не указана.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">Формула не указана.</p>
       )}
       {block.explanation && (
-        <p className="course-viewer-muted">{block.explanation}</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">{block.explanation}</p>
       )}
     </article>
   );
@@ -325,18 +325,18 @@ function CodeBlock({ block, index }: BlockProps) {
   const code = typeof block?.code === "string" ? block.code : "";
 
   return (
-    <article className="content-block-card">
-      <div className="course-viewer-eyebrow">
+    <article className="content-block-card tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">
         Блок {index + 1} · код{block.language ? ` · ${block.language}` : ""}
       </div>
       {block.title && <h3>{block.title}</h3>}
       {code ? (
-        <pre className="content-block-code">{code}</pre>
+        <pre className="content-block-code tw:rounded-[16px] tw:block tw:leading-[1.65] tw:m-[14px_0_0] tw:max-h-[520px] tw:overflow-auto tw:p-[16px] tw:whitespace-pre-wrap tw:text-[#e5e7eb] tw:text-[0.92rem] tw:[word-break:break-word] tw:[background:#111827] tw:[.generated-course-learning-grid_&]:text-[#f8fafc] tw:[font-family:'SFMono-Regular',_Consolas,_'Liberation_Mono',_monospace] tw:[.generated-course-learning-grid_&]:border-solid tw:[.generated-course-learning-grid_&]:border-[rgba(255,_255,_255,_0.14)] tw:[.generated-course-learning-grid_&]:[background:#0b1020] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f8fafc] tw:[.generated-course-learning-grid_&]:[border-width:1px] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(247,_220,_168,_0.28)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:#050816]">{code}</pre>
       ) : (
-        <p className="course-viewer-muted">Код в блоке отсутствует.</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">Код в блоке отсутствует.</p>
       )}
       {typeof block.explanation === "string" && block.explanation && (
-        <p className="course-viewer-muted">{block.explanation}</p>
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">{block.explanation}</p>
       )}
     </article>
   );
@@ -344,10 +344,10 @@ function CodeBlock({ block, index }: BlockProps) {
 
 function UnsupportedBlock({ block, index }: BlockProps) {
   return (
-    <article className="content-block-card content-block-unsupported">
-      <div className="course-viewer-eyebrow">Блок {index + 1}</div>
+    <article className="content-block-card content-block-unsupported tw:border-solid tw:border-[rgba(255,_160,_64,_0.42)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_246,_230,_0.82)] tw:[box-shadow:none] tw:[.generated-course-learning-grid_&]:p-[14px] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%] tw:[.generated-course-learning-grid_&]:overflow-hidden tw:[.generated-course-learning-grid_&]:text-(--text) tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)]">
+      <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.generated-course-learning-grid_.content-block-card_&]:text-[#f7dca8]">Блок {index + 1}</div>
       <h3>Тип блока не поддерживается</h3>
-      <p className="course-viewer-muted">
+      <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
         Не удалось безопасно отобразить блок типа "
         {block?.content_type || "unknown"}".
       </p>
@@ -493,9 +493,9 @@ export const ContentBlocks = forwardRef<HTMLElement, ContentBlocksProps>(functio
 
   if (!Array.isArray(blocks) || blocks.length === 0) {
     return (
-      <article ref={ref} className="course-viewer-card theory-section">
+      <article ref={ref} className="course-viewer-card theory-section tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:grid tw:gap-[16px] tw:[border-width:1px] tw:[.generated-course-learning-grid_&]:border-none tw:[.generated-course-learning-grid_&]:border-[currentcolor] tw:[.generated-course-learning-grid_&]:rounded-[0] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:0_20px_60px_rgba(27,_35,_68,_0.08)] tw:[.generated-course-learning-grid_&]:p-[0] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:[border-width:0] tw:dark:[*_&]:border-[rgba(255,_255,_255,_0.12)] tw:[.generated-course-learning-grid_&]:[background:transparent] tw:[.generated-course-learning-grid_&]:[box-shadow:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[*_&]:[background:rgba(19,_24,_42,_0.72)]">
         <h2>Теория урока</h2>
-        <p className="course-viewer-muted">
+        <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
           В уроке пока нет теоретических блоков.
         </p>
       </article>
@@ -504,17 +504,17 @@ export const ContentBlocks = forwardRef<HTMLElement, ContentBlocksProps>(functio
 
   return (
     <section
-      className="course-viewer-card theory-section"
+      className="course-viewer-card theory-section tw:grid tw:gap-[16px] tw:[.generated-course-learning-grid_&]:border-none tw:[.generated-course-learning-grid_&]:border-[currentcolor] tw:[.generated-course-learning-grid_&]:rounded-[0] tw:[.generated-course-learning-grid_&]:p-[0] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:[border-width:0] tw:[.generated-course-learning-grid_&]:[background:transparent] tw:[.generated-course-learning-grid_&]:[box-shadow:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none]"
       aria-labelledby="theory-title"
     >
-      <h2 id="theory-title">Теория урока</h2>
+      <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]" id="theory-title">Теория урока</h2>
       <div
         ref={ref as Ref<HTMLDivElement>}
-        className="content-blocks-list"
+        className="content-blocks-list tw:grid tw:gap-[16px] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:max-w-[100%]"
       >
         {blocks.map((block, index) =>
           hasSources(block?.sources) ? (
-            <div key={`content-${index}`} className="content-block-with-sources">
+            <div key={`content-${index}`} className="content-block-with-sources tw:grid tw:gap-[8px]">
               {renderContentBlock(
                 block,
                 index,
