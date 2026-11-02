@@ -120,7 +120,13 @@ export function LessonChatWorkspace({
   useEffect(() => {
     if (!isResizing) return undefined;
 
-    document.body.classList.add("is-resizing-lesson-chat");
+    document.body.classList.add(
+      "is-resizing-lesson-chat",
+      "tw:[cursor:col-resize]!",
+      "tw:[user-select:none]!",
+      "tw:[&_*]:[cursor:col-resize]!",
+      "tw:[&_*]:[user-select:none]!",
+    );
     const handlePointerMove = (event: PointerEvent) => {
       const delta = dragStartRef.current.x - event.clientX;
       setChatWidth(
@@ -138,7 +144,13 @@ export function LessonChatWorkspace({
     window.addEventListener("pointercancel", stopResizing);
     window.addEventListener("blur", stopResizing);
     return () => {
-      document.body.classList.remove("is-resizing-lesson-chat");
+      document.body.classList.remove(
+        "is-resizing-lesson-chat",
+        "tw:[cursor:col-resize]!",
+        "tw:[user-select:none]!",
+        "tw:[&_*]:[cursor:col-resize]!",
+        "tw:[&_*]:[user-select:none]!",
+      );
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", stopResizing);
       window.removeEventListener("pointercancel", stopResizing);
@@ -183,7 +195,7 @@ export function LessonChatWorkspace({
   return (
     <div
       ref={workspaceRef}
-      className={`lesson-view-grid lesson-chat-workspace tw:mt-[16px] tw:grid tw:relative tw:[&.is-course-edit-layout]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:[&.generated-course-learning-grid]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:[&.has-lesson-chat.generated-course-learning-grid]:grid-cols-[300px_minmax(520px,_1fr)_12px_minmax(380px,_var(--lesson-chat-width,_420px))] tw:[&.is-course-edit-layout]:gap-[18px] tw:[&.generated-course-learning-grid]:gap-[18px] tw:[&.has-lesson-chat.generated-course-learning-grid]:gap-x-[10px] tw:[align-items:start] tw:between-1101-1300:[&.is-course-edit-layout]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.is-course-edit-layout]:grid-cols-[1fr] tw:between-1101-1300:[&.generated-course-learning-grid]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.generated-course-learning-grid]:grid-cols-[1fr] tw:between-1101-1300:[&.has-lesson-chat.generated-course-learning-grid]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.has-lesson-chat.generated-course-learning-grid]:grid-cols-[1fr] tw:[&.generated-course-learning-grid:has(.lesson-page-ai-chat.is-collapsed)]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:max-1300:[&.has-lesson-chat.generated-course-learning-grid]:gap-[18px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:pr-[clamp(500px,_32vw,_500px)] tw:[&:not(.has-lesson-chat)_>_.lesson-main-card]:w-[100%] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)_>_.lesson-main-card]:relative tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)_>_.lesson-main-card]:left-[clamp(10px,_0.8vw,_14px)] tw:[&.is-learning-layout_>_.lesson-main-card]:static tw:[&.generated-course-learning-grid_>_.lesson-main-card]:static tw:[&.is-learning-layout_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_.lesson-main-card]:min-w-[0] tw:[&.is-learning-layout_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:mb-[0] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:[justify-self:start] ${className} ${
+      className={`lesson-view-grid lesson-chat-workspace tw:mt-[16px] tw:grid tw:grid-cols-[340px_minmax(0,_1fr)] tw:gap-[14px] tw:relative tw:[&.is-course-edit-layout]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:[&.generated-course-learning-grid]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:[&.has-lesson-chat.generated-course-learning-grid]:grid-cols-[300px_minmax(520px,_1fr)_12px_minmax(380px,_var(--lesson-chat-width,_420px))] tw:[&.is-learning-layout]:grid-cols-[320px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[&.has-lesson-chat]:grid-cols-[320px_minmax(520px,_1fr)_12px_minmax(380px,_var(--lesson-chat-width,_420px))] tw:[&.is-course-edit-layout]:gap-[18px] tw:[&.generated-course-learning-grid]:gap-[18px] tw:[&.has-lesson-chat.generated-course-learning-grid]:gap-x-[10px] tw:[&.has-lesson-chat]:gap-x-[10px] tw:[align-items:start] tw:between-1101-1300:[&.is-course-edit-layout]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.is-course-edit-layout]:grid-cols-[1fr] tw:between-1101-1300:[&.generated-course-learning-grid]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.generated-course-learning-grid]:grid-cols-[1fr] tw:between-1101-1300:[&.has-lesson-chat.generated-course-learning-grid]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.has-lesson-chat.generated-course-learning-grid]:grid-cols-[1fr] tw:between-1101-1300:[&.is-learning-layout]:grid-cols-[300px_minmax(0,_1fr)] tw:max-1100:[&.is-learning-layout]:grid-cols-[1fr] tw:[&.generated-course-learning-grid:has(.lesson-page-ai-chat.is-collapsed)]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:between-1101-1300:[&.has-lesson-chat]:grid-cols-[300px_minmax(0,_1fr)] tw:max-1100:[&.has-lesson-chat]:grid-cols-[1fr] tw:max-1300:[&.has-lesson-chat.generated-course-learning-grid]:gap-[18px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:pr-[clamp(500px,_32vw,_500px)] tw:[&:not(.has-lesson-chat)_>_.lesson-main-card]:w-[100%] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)_>_.lesson-main-card]:relative tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)_>_.lesson-main-card]:left-[clamp(10px,_0.8vw,_14px)] tw:[&.is-learning-layout_>_.lesson-main-card]:static tw:[&.generated-course-learning-grid_>_.lesson-main-card]:static tw:[&.is-learning-layout_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_.lesson-main-card]:min-w-[0] tw:[&.generated-course-learning-grid_.lesson-main-card]:w-[100%] tw:[&.is-learning-layout_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:mb-[0] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:[justify-self:start] tw:[&_>_*]:min-w-[0] ${className} ${
         isChatOpen ? "has-lesson-chat" : ""
       } ${isResizing ? "is-resizing" : ""}`}
       style={{ "--lesson-chat-width": `${chatWidth}px` } as CSSProperties}
@@ -196,7 +208,7 @@ export function LessonChatWorkspace({
             <button
               ref={openButtonRef}
               type="button"
-              className={`lesson-chat-open-button tw:fixed tw:z-[45] tw:top-[auto] tw:right-[max(56px,_env(safe-area-inset-right))] tw:bottom-[max(56px,_env(safe-area-inset-bottom))] tw:left-[auto] tw:min-h-[44px] tw:inline-flex tw:items-center tw:gap-[8px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.92)] tw:rounded-[999px] tw:text-(--text-solid) tw:p-[10px_16px] tw:cursor-pointer tw:max-1300:right-[max(40px,_env(safe-area-inset-right))] tw:max-760:right-[max(28px,_env(safe-area-inset-right))] tw:max-760:bottom-[max(32px,_env(safe-area-inset-bottom))] tw:[border-width:1px] tw:[&.has-unread-response]:border-(--accent-soft) tw:[background:var(--cta)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[box-shadow:0_12px_30px_rgba(0,_0,_0,_0.28),_0_0_0_3px_rgba(var(--accent-rgb),_0.16)] tw:[transform:none] tw:[transition:transform_160ms_ease,_background_160ms_ease,_box-shadow_160ms_ease] tw:hover:[background:var(--accent)] tw:[&.has-unread-response]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:hover:[box-shadow:0_14px_34px_rgba(0,_0,_0,_0.34),_0_0_0_4px_rgba(var(--accent-rgb),_0.22)] tw:[&.has-unread-response]:[box-shadow:0_16px_38px_rgba(0,_0,_0,_0.34),_0_0_0_5px_rgba(var(--accent-soft-rgb),_0.24)] tw:hover:[transform:translateY(-2px)] tw:motion-reduce:[transition:none] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px] tw:dark:hover:[background:var(--cta)] ${
+              className={`lesson-chat-open-button tw:fixed tw:z-[45] tw:top-[auto] tw:right-[max(56px,_env(safe-area-inset-right))] tw:bottom-[max(56px,_env(safe-area-inset-bottom))] tw:left-[auto] tw:min-h-[44px] tw:inline-flex tw:items-center tw:gap-[8px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.92)] tw:rounded-[999px] tw:text-(--text-solid) tw:p-[10px_16px] tw:cursor-pointer tw:max-1300:right-[max(40px,_env(safe-area-inset-right))] tw:max-760:right-[max(28px,_env(safe-area-inset-right))] tw:max-760:bottom-[max(32px,_env(safe-area-inset-bottom))] tw:[border-width:1px] tw:[&.has-unread-response]:border-(--accent-soft) tw:[background:var(--cta)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[box-shadow:0_12px_30px_rgba(0,_0,_0,_0.28),_0_0_0_3px_rgba(var(--accent-rgb),_0.16)] tw:[transform:none] tw:[transition:transform_160ms_ease,_background_160ms_ease,_box-shadow_160ms_ease] tw:dark:[.page_&.has-unread-response]:border-(--accent-soft) tw:dark:[&.has-unread-response]:border-[rgba(var(--accent-rgb),_0.92)] tw:hover:[background:var(--accent)] tw:[&.has-unread-response]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:hover:[box-shadow:0_14px_34px_rgba(0,_0,_0,_0.34),_0_0_0_4px_rgba(var(--accent-rgb),_0.22)] tw:[&.has-unread-response]:[box-shadow:0_16px_38px_rgba(0,_0,_0,_0.34),_0_0_0_5px_rgba(var(--accent-soft-rgb),_0.24)] tw:hover:[transform:translateY(-2px)] tw:motion-reduce:[transition:none] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px] tw:dark:[.page_&.has-unread-response]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:dark:hover:[background:var(--cta)] tw:dark:[&.has-unread-response]:[background:var(--cta)] tw:dark:[.page_&.has-unread-response]:[&.has-unread-response]:[&&&&]:border-(--accent-soft) tw:dark:[.page_&.has-unread-response]:[&.has-unread-response]:[&&&&]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:dark:[.page_&.has-unread-response]:hover:[&&&&]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] ${
                 hasUnreadResponse ? "has-unread-response" : ""
               }`}
               onClick={openChat}
@@ -221,7 +233,7 @@ export function LessonChatWorkspace({
               </span>
               {hasUnreadResponse && (
                 <span
-                  className="lesson-chat-unread-dot tw:w-[10px] tw:h-[10px] tw:flex-[0_0_auto] tw:rounded-[50%] tw:[border:2px_solid_var(--text-solid)] tw:[background:var(--accent-soft)] tw:[box-shadow:0_0_0_4px_rgba(var(--accent-soft-rgb),_0.28)] tw:[animation:lesson-chat-unread-pulse_1.8s_ease-in-out_infinite] tw:motion-reduce:[animation:none]"
+                  className="lesson-chat-unread-dot tw:w-[10px] tw:h-[10px] tw:flex-[0_0_auto] tw:rounded-[50%] tw:[border:2px_solid_var(--text-solid)] tw:[background:var(--accent-soft)] tw:[box-shadow:0_0_0_4px_rgba(var(--accent-soft-rgb),_0.28)] tw:animate-lesson-chat-unread-pulse tw:motion-reduce:animate-none"
                   aria-hidden="true"
                 />
               )}

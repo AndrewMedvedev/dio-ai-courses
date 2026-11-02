@@ -123,7 +123,7 @@ function ContentBlocksChange({
   const prev = Array.isArray(before) ? before : null;
   if (!prev) {
     return (
-      <div className="app-changes-diff tw:flex tw:flex-wrap tw:items-baseline tw:gap-[6px] tw:wrap-anywhere">
+      <div className="app-changes-diff tw:flex tw:flex-wrap tw:items-baseline tw:gap-[6px] tw:wrap-anywhere tw:[&_del]:text-(--muted) tw:[&_ins]:text-(--text) tw:[&_ins]:font-[700] tw:[&_ins]:[text-decoration:none]">
         <ins>
           изменено содержимое ({next.length} {pluralBlocks(next.length)})
         </ins>
@@ -164,7 +164,7 @@ function ContentBlocksChange({
 
   if (!rows.length) {
     return (
-      <div className="app-changes-diff tw:flex tw:flex-wrap tw:items-baseline tw:gap-[6px] tw:wrap-anywhere">
+      <div className="app-changes-diff tw:flex tw:flex-wrap tw:items-baseline tw:gap-[6px] tw:wrap-anywhere tw:[&_del]:text-(--muted) tw:[&_ins]:text-(--text) tw:[&_ins]:font-[700] tw:[&_ins]:[text-decoration:none]">
         <ins>изменены параметры блоков</ins>
       </div>
     );
@@ -189,13 +189,13 @@ function ContentBlocksChange({
           {row.kind === "changed" ? (
             <TextDiff before={row.oldText} after={row.newText} />
           ) : row.kind === "added" ? (
-            <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere">
+            <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere tw:dark:[.page_&_del]:[background:rgba(255,_154,_143,_0.16)] tw:dark:[.page_&_del]:text-[#ffb4ab] tw:dark:[.page_&_ins]:[background:rgba(127,_209,_155,_0.16)] tw:dark:[.page_&_ins]:text-[#9be2b3]">
               <ins className="tw:p-[0_2px] tw:rounded-[4px] tw:text-[#1f6b3f] tw:font-[700] tw:[background:rgba(47,_125,_79,_0.16)] tw:dark:text-[#9be2b3] tw:[text-decoration:none] tw:dark:[background:rgba(127,_209,_155,_0.16)]">
                 {shorten(row.newText, 220)}
               </ins>
             </span>
           ) : (
-            <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere">
+            <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere tw:dark:[.page_&_del]:[background:rgba(255,_154,_143,_0.16)] tw:dark:[.page_&_del]:text-[#ffb4ab] tw:dark:[.page_&_ins]:[background:rgba(127,_209,_155,_0.16)] tw:dark:[.page_&_ins]:text-[#9be2b3]">
               <del>{shorten(row.oldText, 220)}</del>
             </span>
           )}

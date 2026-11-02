@@ -1,6 +1,1 @@
-@import "./foundation.css" layer(legacy);
-@import "./editing.css" layer(legacy);
-@import "./learning.css" layer(legacy);
-@import "./course-glass.css" layer(legacy);
-@import "./account.css" layer(legacy);
-@import "./typography.css" layer(legacy);
+@import "./base.css" layer(base);

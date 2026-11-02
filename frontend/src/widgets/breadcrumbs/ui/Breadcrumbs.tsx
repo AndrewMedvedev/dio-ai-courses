@@ -98,7 +98,7 @@ export function Breadcrumbs({
 
   return (
     <nav
-      className="container breadcrumbs tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[-18px] tw:m-[0_auto] tw:mb-[12px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
+      className="container breadcrumbs tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[-18px] tw:m-[0_auto] tw:mb-[12px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&_a]:text-(--ink-accent) tw:[&_a]:[text-decoration:none] tw:[&_a:hover]:text-(--accent)"
       aria-label="Хлебные крошки"
     >
       <ol className="tw:m-[0] tw:p-[0] tw:flex tw:items-center tw:flex-wrap tw:gap-[7px] tw:[list-style:none]">
@@ -106,17 +106,13 @@ export function Breadcrumbs({
           const isLast = index === crumbs.length - 1;
           return (
             <li
-              className="tw:inline-flex tw:items-center tw:gap-[7px] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[.breadcrumbs_li_+_&]:[&::before]:text-[rgba(var(--accent-rgb),_0.8)] tw:[.breadcrumbs_li_+_&]:[&::before]:font-[800] tw:[.breadcrumbs_li_+_&]:[&::before]:[content:'›']"
+              className="tw:inline-flex tw:items-center tw:gap-[7px] tw:text-(--muted) tw:[.breadcrumbs_li_+_&]:[&::before]:text-[rgba(var(--accent-rgb),_0.8)] tw:[.breadcrumbs_li_+_&]:[&::before]:font-[800] tw:[.breadcrumbs_li_+_&]:[&::before]:[content:'›']"
               key={`${crumb.to}-${crumb.label}`}
             >
               {isLast ? (
                 <span aria-current="page">{crumb.label}</span>
               ) : (
-                <Link
-                  className="tw:text-(--ink-accent) tw:hover:text-(--accent) tw:[text-decoration:none]"
-                  to={crumb.to}
-                  replace={crumb.to === previousRoute}
-                >
+                <Link to={crumb.to} replace={crumb.to === previousRoute}>
                   {crumb.label}
                 </Link>
               )}

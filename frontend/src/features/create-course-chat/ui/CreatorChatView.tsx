@@ -9,7 +9,6 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router-dom";
-import "./creator-chat.css";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
 import {
@@ -728,13 +727,13 @@ export function CreatorChatView() {
   return (
     <section className="creator-chat-shell tw:mt-[10px] tw:grid tw:gap-[16px]">
       {isAgentMockEnabled() ? (
-        <p className="agent-mock-badge tw:m-[0_0_12px] tw:p-[8px_12px] tw:rounded-[12px] tw:text-(--text) tw:text-[1rem] tw:font-[700] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_dashed_rgba(212,_150,_30,_0.6)] tw:[background:rgba(212,_150,_30,_0.12)]">
+        <p className="agent-mock-badge tw:m-[0_0_12px] tw:p-[8px_12px] tw:rounded-[12px] tw:text-(--text) tw:font-[700] tw:[border:1px_dashed_rgba(212,_150,_30,_0.6)] tw:[background:rgba(212,_150,_30,_0.12)]">
           Демо-режим: ответы ИИ имитируются, модель не вызывается. Курс
           создаётся настоящими запросами к backend.
         </p>
       ) : null}
       {hasGenerationStarted && (
-        <article className="glass-card creator-chat-topbar tw:relative tw:z-[2] tw:p-[18px_20px] tw:grid tw:gap-[14px] tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:hover:border-(--glass-glow) tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:1px] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.5)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+        <article className="glass-card creator-chat-topbar tw:relative tw:z-[2] tw:p-[18px_20px] tw:grid tw:gap-[14px] tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:hover:border-(--glass-glow) tw:dark:border-[rgba(var(--accent-rgb),_0.5)] tw:[border-width:1px] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.5)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
           <div className="creator-chat-top-main">
             <span className="tw:inline-block tw:text-[0.76rem] tw:tracking-[0.08em] tw:uppercase tw:text-(--accent) tw:font-[700] tw:dark:text-(--contrast)">
               Создание курса
@@ -742,9 +741,7 @@ export function CreatorChatView() {
             <h3 className="tw:mt-[6px] tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em] tw:[font-family:'Unbounded',_sans-serif]">
               ИИ собирает структуру программы
             </h3>
-            <p className="tw:mt-[8px] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-              {generationStatus}
-            </p>
+            <p className="tw:mt-[8px] tw:text-(--muted)">{generationStatus}</p>
           </div>
 
           <div className="creator-chat-top-stats tw:grid tw:grid-cols-[minmax(0,_1fr)] tw:gap-[10px] tw:max-980:grid-cols-[1fr]">
@@ -769,7 +766,7 @@ export function CreatorChatView() {
 
       {isGenerating && (
         <div className="creator-chat-layout is-generating tw:grid tw:gap-[14px] tw:items-stretch tw:grid-cols-[minmax(0,_1fr)] tw:max-980:grid-cols-[1fr]">
-          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
             <div className="creator-chat-main-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
               <h4>Чат-конструктор</h4>
               <span>ИИ работает...</span>
@@ -784,7 +781,7 @@ export function CreatorChatView() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:[&.is-assistant]:self-start tw:[&.is-user]:self-end tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:dark:[.page_&]:text-(--text) tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:[&.is-assistant]:self-start tw:[&.is-user]:self-end tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:dark:[.page_&]:text-(--text) tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:[&_p]:m-[0] tw:[&_p]:leading-[1.45] tw:[&_p]:text-[0.9rem] tw:[&_p]:wrap-anywhere ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
                   {message.role === "assistant" ? (
                     <ReactMarkdown
@@ -804,7 +801,7 @@ export function CreatorChatView() {
                 </div>
               ))}
 
-              <div className="creator-chat-msg is-assistant is-thinking tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:self-start tw:opacity-[0.84] tw:italic tw:flex tw:items-center tw:gap-[8px] tw:[border-width:1px] tw:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[.page_&]:text-(--text) tw:dark:[.page_&]:[background:rgba(var(--accent-soft-rgb),_0.16)]">
+              <div className="creator-chat-msg is-assistant is-thinking tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:self-start tw:opacity-[0.84] tw:italic tw:flex tw:items-center tw:gap-[8px] tw:[border-width:1px] tw:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[.page_&]:text-(--text) tw:dark:[.page_&]:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:[&_p]:m-[0] tw:[&_p]:leading-[1.45] tw:[&_p]:text-[0.9rem] tw:[&_p]:wrap-anywhere">
                 <span
                   className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]"
                   aria-hidden="true"
@@ -817,10 +814,10 @@ export function CreatorChatView() {
               </div>
             </div>
 
-            <div className="creator-chat-runtime tw:mt-[14px] tw:pt-[12px] tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.24)]">
+            <div className="creator-chat-runtime tw:mt-[14px] tw:pt-[12px] tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[&_h5]:text-[0.88rem] tw:[&_h5]:text-(--heading) tw:[&_p]:mt-[8px] tw:[&_p]:text-(--muted) tw:[&_p]:leading-[1.45] tw:[&_p]:text-[0.86rem] tw:[&_small]:block tw:[&_small]:mt-[8px] tw:[&_small]:text-(--muted) tw:[&_small]:text-[0.76rem] tw:dark:[.page_&_h5]:text-(--heading) tw:dark:[.page_&_p]:text-(--muted) tw:dark:[.page_&_small]:text-(--muted)">
               <h5>Генерация курса</h5>
               <p>{generationStatus}</p>
-              <div className="creator-chat-runtime-bar tw:mt-[10px] tw:w-[100%] tw:h-[8px] tw:rounded-[999px] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)]">
+              <div className="creator-chat-runtime-bar tw:mt-[10px] tw:w-[100%] tw:h-[8px] tw:rounded-[999px] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)] tw:[&_>_div]:h-[100%] tw:[&_>_div]:rounded-[inherit] tw:[&_>_div]:[background:linear-gradient(_90deg,_rgba(var(--accent-rgb),_0.96),_rgba(var(--accent-soft-rgb),_0.96)_)] tw:[&_>_div]:[transition:width_0.45s_ease]">
                 <div style={{ width: `${completionPercent}%` }} />
               </div>
             </div>
@@ -830,7 +827,7 @@ export function CreatorChatView() {
 
       {isGenerationComplete && (
         <div className="creator-chat-layout is-briefing tw:grid tw:gap-[14px] tw:grid-cols-[minmax(0,_1fr)] tw:[align-items:start] tw:max-980:grid-cols-[1fr]">
-          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
             <div className="creator-chat-main-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
               <h4 className="tw:text-[0.95rem] tw:text-(--heading) tw:[font-family:'Unbounded',_sans-serif]">
                 Чат-конструктор
@@ -848,7 +845,7 @@ export function CreatorChatView() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:self-end tw:[&.is-assistant]:self-start tw:dark:text-(--text) tw:dark:[&.is-user]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:self-end tw:[&.is-assistant]:self-start tw:dark:text-(--text) tw:dark:[&.is-user]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:[&_p]:m-[0] tw:[&_p]:leading-[1.45] tw:[&_p]:text-[0.9rem] tw:[&_p]:wrap-anywhere ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
                   {message.role === "assistant" ? (
                     <ReactMarkdown
@@ -858,9 +855,7 @@ export function CreatorChatView() {
                       {message.text}
                     </ReactMarkdown>
                   ) : (
-                    <p className="tw:m-[0] tw:leading-[1.72] tw:text-[1rem] tw:wrap-anywhere tw:tracking-[0.012em]">
-                      {message.text}
-                    </p>
+                    <p>{message.text}</p>
                   )}
                   {message.role === "user" && (
                     <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">
@@ -899,7 +894,7 @@ export function CreatorChatView() {
 
       {!isGenerating && !isGenerationComplete && (
         <div className="creator-chat-layout is-briefing tw:grid tw:gap-[14px] tw:grid-cols-[minmax(0,_1fr)] tw:[align-items:start] tw:max-980:grid-cols-[1fr]">
-          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+          <article className="glass-card creator-chat-main tw:p-[18px] tw:h-[auto] tw:min-h-[520px] tw:flex tw:flex-col tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:max-760:p-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
             <div className="creator-chat-main-head tw:flex tw:justify-between tw:items-center tw:gap-[10px]">
               <h4 className="tw:text-[0.95rem] tw:text-(--heading) tw:[font-family:'Unbounded',_sans-serif]">
                 Чат-конструктор
@@ -922,7 +917,7 @@ export function CreatorChatView() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:self-end tw:[&.is-assistant]:self-start tw:dark:text-(--text) tw:dark:[&.is-user]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] ${message.role === "user" ? "is-user" : "is-assistant"}`}
+                  className={`creator-chat-msg tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:self-end tw:[&.is-assistant]:self-start tw:dark:text-(--text) tw:dark:[&.is-user]:border-[rgba(var(--accent-rgb),_0.42)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.24)] tw:dark:[.page_&.is-assistant]:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:[&_p]:m-[0] tw:[&_p]:leading-[1.45] tw:[&_p]:text-[0.9rem] tw:[&_p]:wrap-anywhere ${message.role === "user" ? "is-user" : "is-assistant"}`}
                 >
                   {message.role === "assistant" ? (
                     <ReactMarkdown
@@ -932,9 +927,7 @@ export function CreatorChatView() {
                       {message.text}
                     </ReactMarkdown>
                   ) : (
-                    <p className="tw:m-[0] tw:leading-[1.72] tw:text-[1rem] tw:wrap-anywhere tw:tracking-[0.012em]">
-                      {message.text}
-                    </p>
+                    <p>{message.text}</p>
                   )}
                   {message.role === "user" && (
                     <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">
@@ -945,18 +938,16 @@ export function CreatorChatView() {
               ))}
 
               {isThinking && (
-                <div className="creator-chat-msg is-assistant is-thinking tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:self-start tw:opacity-[0.84] tw:italic tw:flex tw:items-center tw:gap-[8px] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:text-(--text) tw:dark:[background:rgba(var(--accent-soft-rgb),_0.16)]">
+                <div className="creator-chat-msg is-assistant is-thinking tw:max-w-[90%] tw:rounded-[14px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:self-start tw:opacity-[0.84] tw:italic tw:flex tw:items-center tw:gap-[8px] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[background:rgba(var(--accent-soft-rgb),_0.12)] tw:dark:text-(--text) tw:dark:[background:rgba(var(--accent-soft-rgb),_0.16)] tw:[&_p]:m-[0] tw:[&_p]:leading-[1.45] tw:[&_p]:text-[0.9rem] tw:[&_p]:wrap-anywhere">
                   <span
                     className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]"
                     aria-hidden="true"
                   >
-                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[.chat-thinking-dots_&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
-                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
-                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
+                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
+                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
+                    <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(3)]:[animation-delay:320ms] tw:[&:nth-child(2)]:[animation-delay:160ms]" />
                   </span>
-                  <p className="tw:m-[0] tw:leading-[1.72] tw:text-[1rem] tw:wrap-anywhere tw:tracking-[0.012em]">
-                    Сообщение получено — думаю над следующим уточнением…
-                  </p>
+                  <p>Сообщение получено — думаю над следующим уточнением…</p>
                 </div>
               )}
               {conversation?.error && (
@@ -1052,7 +1043,7 @@ export function CreatorChatView() {
               </div>
 
               {uploadedFiles.length > 0 && (
-                <ul className="knowledge-files-list tw:m-[12px_0_0] tw:p-[0] tw:pr-[4px] tw:grid tw:gap-[6px] tw:max-h-[88px] tw:overflow-y-auto tw:[list-style:none] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.52)_transparent] tw:[&::-webkit-scrollbar]:w-[8px] tw:[&::-webkit-scrollbar-thumb]:rounded-[999px] tw:[&::-webkit-scrollbar-track]:[background:transparent] tw:[&::-webkit-scrollbar-thumb]:[background:rgba(var(--accent-rgb),_0.45)]">
+                <ul className="knowledge-files-list tw:m-[12px_0_0] tw:p-[0] tw:pr-[4px] tw:grid tw:gap-[6px] tw:max-h-[88px] tw:overflow-y-auto tw:[list-style:none] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.52)_transparent] tw:[&::-webkit-scrollbar]:w-[8px] tw:[&::-webkit-scrollbar-thumb]:rounded-[999px] tw:[&::-webkit-scrollbar-track]:[background:transparent] tw:[&::-webkit-scrollbar-thumb]:[background:rgba(var(--accent-rgb),_0.45)] tw:[&_li]:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[&_li]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_li]:rounded-[10px] tw:[&_li]:p-[8px_10px] tw:[&_li]:text-(--muted) tw:[&_li]:text-[0.82rem]">
                   {uploadedFiles.map((file) => (
                     <li key={file.id}>
                       {file.name} • {file.sizeKb} КБ
@@ -1125,7 +1116,7 @@ export function CreatorChatView() {
           await submitMessage(text);
         }}
       >
-        <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)]">
+        <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:[&_p]:m-[0_0_8px] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px]">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             urlTransform={safeMarkdownUrl}

@@ -22,7 +22,6 @@ import {
   pluralRu,
   toDateInputValue,
 } from "../lib/metrics-format";
-import "./course-metrics.css";
 
 interface PeriodOption {
   id: MetricsPeriod;
@@ -197,7 +196,7 @@ export function LessonMetricsDashboard({
   } else if (isDateRangeInvalid) {
     body = (
       <p
-        className="cm-error tw:m-[0] tw:p-[10px_14px] tw:rounded-[12px] tw:text-(--cm-bad-ink) tw:font-[600] tw:text-[0.92rem] tw:leading-[1.45] tw:tracking-[0.012em] tw:[background:var(--cm-bad-bg)]"
+        className="cm-error tw:m-[0] tw:p-[10px_14px] tw:rounded-[12px] tw:text-(--cm-bad-ink) tw:font-[600] tw:[background:var(--cm-bad-bg)] tw:[&&&]:text-[0.92rem] tw:[&&&]:leading-[1.45]"
         role="alert"
       >
         Дата начала периода не должна быть позже даты окончания.
@@ -442,7 +441,7 @@ export function LessonMetricsDashboard({
   return (
     <div className="cm tw:flex tw:flex-col tw:gap-[16px] tw:min-w-[0] tw:text-(--text) tw:[--cm-panel:rgba(var(--accent-rgb),_0.06)] tw:[--cm-border:rgba(var(--accent-rgb),_0.28)] tw:[--cm-line:rgba(43,_43,_43,_0.1)] tw:[--cm-good:#1f8a4c] tw:[--cm-good-bg:#d9efe2] tw:[--cm-good-ink:#14653a] tw:[--cm-warn:#c98a12] tw:[--cm-warn-bg:#f6e7c4] tw:[--cm-warn-ink:#7a5300] tw:[--cm-bad:#c43c3c] tw:[--cm-bad-bg:#f6d9d6] tw:[--cm-bad-ink:#8f2121] tw:[--cm-depth:#2f5fc4] tw:[--cm-neutral-bg:rgba(43,_43,_43,_0.08)] tw:dark:[--cm-panel:rgba(255,_255,_255,_0.04)] tw:dark:[--cm-border:rgba(255,_255,_255,_0.12)] tw:dark:[--cm-line:rgba(255,_255,_255,_0.1)] tw:dark:[--cm-good:#4cc27f] tw:dark:[--cm-good-bg:rgba(76,_194,_127,_0.16)] tw:dark:[--cm-good-ink:#8fe0b2] tw:dark:[--cm-warn:#e3b341] tw:dark:[--cm-warn-bg:rgba(227,_179,_65,_0.16)] tw:dark:[--cm-warn-ink:#f1d08a] tw:dark:[--cm-bad:#f07070] tw:dark:[--cm-bad-bg:rgba(240,_112,_112,_0.16)] tw:dark:[--cm-bad-ink:#f7a9a9] tw:dark:[--cm-depth:#7ea6ff] tw:dark:[--cm-neutral-bg:rgba(255,_255,_255,_0.08)] tw:[.page_&_p.cm-empty]:text-[0.95rem] tw:[.page_&_p.cm-empty]:leading-[1.5] tw:[.page_&_p.cm-error]:text-[0.92rem] tw:[.page_&_p.cm-error]:leading-[1.45]">
       <div className="cm-toolbar tw:flex tw:flex-wrap tw:items-end tw:gap-[12px_16px]">
-        <h2 className="tw:flex-[1_1_200px] tw:text-[1.4rem] tw:leading-[1.25] tw:tracking-[-0.016em]">
+        <h2 className="tw:flex-[1_1_200px] tw:[&&&]:text-[1.4rem] tw:[&&&]:leading-[1.25]">
           Теория урока
         </h2>
         <label className="cm-field tw:flex tw:flex-col tw:gap-[4px] tw:text-(--muted) tw:text-[0.78rem] tw:font-[700] tw:max-520:flex-[1_1_100%]">

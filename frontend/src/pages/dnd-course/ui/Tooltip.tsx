@@ -116,7 +116,7 @@ export function DndTooltipLayer() {
 
   return createPortal(
     <div
-      className={`dnd-tooltip tw:[.page_&]:fixed tw:[.page_&]:z-[3000] tw:[.page_&]:max-w-[300px] tw:[.page_&]:p-[7px_12px] tw:[.page_&]:rounded-[10px] tw:[.page_&]:text-[#fbf8f2] tw:[.page_&]:text-[0.875rem] tw:[.page_&]:font-[600] tw:[.page_&]:leading-[1.4] tw:[.page_&]:text-center tw:[.page_&]:whitespace-normal tw:[.page_&]:wrap-anywhere tw:[.page_&]:pointer-events-none tw:[.page_&]:[background:#2b2724] tw:dark:[.page_&]:text-[#1f1d1a] tw:[.page_&]:[box-shadow:0_12px_32px_rgba(0,_0,_0,_0.28)] tw:[.page_&]:[transform:translate(-50%,_calc(-100%_-_10px))] tw:[.page_&.is-bottom]:[transform:translate(-50%,_10px)] tw:[.page_&]:[animation:dnd-tooltip-in_0.12s_ease-out] tw:dark:[.page_&]:[background:#f2e7d4] is-${tip.place}`}
+      className={`dnd-tooltip tw:[.page_&]:fixed tw:[.page_&]:z-[3000] tw:[.page_&]:max-w-[300px] tw:[.page_&]:p-[7px_12px] tw:[.page_&]:rounded-[10px] tw:[.page_&]:text-[#fbf8f2] tw:[.page_&]:text-[0.875rem] tw:[.page_&]:font-[600] tw:[.page_&]:leading-[1.4] tw:[.page_&]:text-center tw:[.page_&]:whitespace-normal tw:[.page_&]:wrap-anywhere tw:[.page_&]:pointer-events-none tw:[.page_&]:[background:#2b2724] tw:dark:[.page_&]:text-[#1f1d1a] tw:[.page_&]:[box-shadow:0_12px_32px_rgba(0,_0,_0,_0.28)] tw:[.page_&]:[transform:translate(-50%,_calc(-100%_-_10px))] tw:[.page_&.is-bottom]:[transform:translate(-50%,_10px)] tw:[.page_&]:animate-dnd-tooltip-in tw:dark:[.page_&]:[background:#f2e7d4] is-${tip.place}`}
       role="tooltip"
       style={{ left: tip.x, top: tip.y }}
     >

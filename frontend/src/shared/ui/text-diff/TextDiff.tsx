@@ -112,7 +112,7 @@ export function TextDiff({
     );
 
   return (
-    <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere">
+    <span className="app-text-diff tw:block tw:text-(--muted) tw:leading-[1.55] tw:whitespace-pre-wrap tw:wrap-anywhere tw:dark:[.page_&_del]:[background:rgba(255,_154,_143,_0.16)] tw:dark:[.page_&_del]:text-[#ffb4ab] tw:dark:[.page_&_ins]:[background:rgba(127,_209,_155,_0.16)] tw:dark:[.page_&_ins]:text-[#9be2b3]">
       {segments.map((segment, index) => {
         if (segment.type === "del") {
           return (

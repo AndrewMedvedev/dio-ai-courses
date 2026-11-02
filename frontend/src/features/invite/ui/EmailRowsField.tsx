@@ -91,7 +91,7 @@ export function EmailRowsField({
         </div>
         <small
           id={`${id}-hint`}
-          className={`tw:[&.course-invite-hint]:m-[0] tw:[&.course-invite-hint]:text-[0.92rem] tw:[&.course-invite-hint]:leading-[1.5] tw:[&.course-invite-hint]:text-(--muted) tw:dark:[.page_&.course-invite-error]:text-[#f0978f] tw:[&.course-invite-error]:[&.course-invite-hint]:text-[#b8443c] ${draftError ? "course-invite-error" : "course-invite-hint"}`}
+          className={`tw:[&.course-invite-hint]:m-[0] tw:[&.course-invite-error]:m-[0] tw:[&.course-invite-hint]:text-[0.92rem] tw:[&.course-invite-error]:text-[0.92rem] tw:[&.course-invite-hint]:leading-[1.5] tw:[&.course-invite-error]:leading-[1.5] tw:[&.course-invite-hint]:text-(--muted) tw:[&.course-invite-error]:text-[#b8443c] tw:dark:[&.course-invite-error]:text-[#f0978f] ${draftError ? "course-invite-error" : "course-invite-hint"}`}
           role={draftError ? "alert" : undefined}
         >
           {draftError ||
@@ -106,9 +106,9 @@ export function EmailRowsField({
               <span className="course-invite-avatar tw:grid tw:w-[42px] tw:h-[42px] tw:rounded-[999px] tw:text-[1.05rem] tw:text-(--ink-accent) tw:font-[800] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.24)]" aria-hidden="true">
                 {(fullNameOf(row.user) || row.email).slice(0, 1).toUpperCase()}
               </span>
-              <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0]">
+              <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0] tw:[.course-invite-row.is-new_&_small]:text-(--info-text) tw:[.course-invite-row.is-error_&_small]:text-[#b8443c] tw:dark:[.page_.course-invite-row.is-error_&_small]:text-[#f0978f] tw:[.course-invite-row.is-pending_&_small]:text-(--muted)">
                 <strong className="tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[1.05rem]">{row.email}</strong>
-                <small className="tw:text-[0.9rem] tw:leading-[1.4] tw:[.course-invite-row.is-found_.course-invite-who_&]:text-(--ink-accent)">{rowText(row)}</small>
+                <small className="tw:text-(--muted) tw:text-[0.9rem] tw:leading-[1.4] tw:[.course-invite-row.is-found_.course-invite-who_&]:text-(--ink-accent)">{rowText(row)}</small>
               </span>
               <button
                 type="button"

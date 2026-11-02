@@ -20,7 +20,6 @@ import { getErrorMessage } from "@/shared/lib/errors";
 import { notify } from "@/shared/ui/toast";
 import { useEmailRows } from "../model/use-email-rows";
 import { EmailRowsField } from "./EmailRowsField";
-import "./course-invite.css";
 
 export interface CourseInviteDialogProps {
   open: boolean;
@@ -323,14 +322,14 @@ export function CourseInviteDialog({
 
   return createPortal(
     <div
-      className="course-invite-backdrop tw:fixed tw:z-[1000] tw:inset-[0] tw:grid tw:p-[min(10vh,_96px)_16px_24px] tw:overflow-y-auto tw:[--invite-bg:rgba(250,_247,_241,_0.97)] tw:[--invite-row:rgba(255,_255,_255,_0.55)] tw:[--invite-border:rgba(43,_43,_43,_0.12)] tw:[place-items:start_center] tw:max-640:p-[0] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:[animation:course-invite-fade_0.16s_ease-out] tw:dark:[--invite-bg:rgba(40,_40,_40,_0.97)] tw:dark:[--invite-row:rgba(233,_222,_203,_0.05)] tw:dark:[--invite-border:rgba(233,_222,_203,_0.16)] tw:max-640:[place-items:end_stretch] tw:dark:[background:rgba(8,_9,_12,_0.66)] tw:motion-reduce:[animation:none]"
+      className="course-invite-backdrop tw:fixed tw:z-[1000] tw:inset-[0] tw:grid tw:p-[min(10vh,_96px)_16px_24px] tw:overflow-y-auto tw:[--invite-bg:rgba(250,_247,_241,_0.97)] tw:[--invite-row:rgba(255,_255,_255,_0.55)] tw:[--invite-border:rgba(43,_43,_43,_0.12)] tw:[place-items:start_center] tw:max-640:p-[0] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:animate-course-invite-fade tw:dark:[--invite-bg:rgba(40,_40,_40,_0.97)] tw:dark:[--invite-row:rgba(233,_222,_203,_0.05)] tw:dark:[--invite-border:rgba(233,_222,_203,_0.16)] tw:max-640:[place-items:end_stretch] tw:dark:[background:rgba(8,_9,_12,_0.66)] tw:motion-reduce:animate-none"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !isSending) onClose();
       }}
     >
       <section
-        className="course-invite-modal tw:w-[min(760px,_100%)] tw:max-h-[calc(100dvh_-_min(10vh,_96px)_-_24px)] tw:flex tw:flex-col tw:rounded-[22px] tw:text-(--text) tw:overflow-hidden tw:max-640:w-[100%] tw:max-640:max-h-[92dvh] tw:[border:1px_solid_var(--glass-border)] tw:max-640:rounded-[22px_22px_0_0] tw:[background:var(--invite-bg)] tw:[box-shadow:0_24px_64px_rgba(0,_0,_0,_0.28),_var(--glass-inset)] tw:[animation:course-invite-pop_0.18s_ease-out] tw:motion-reduce:[animation:none]"
+        className="course-invite-modal tw:w-[min(760px,_100%)] tw:max-h-[calc(100dvh_-_min(10vh,_96px)_-_24px)] tw:flex tw:flex-col tw:rounded-[22px] tw:text-(--text) tw:overflow-hidden tw:max-640:w-[100%] tw:max-640:max-h-[92dvh] tw:[border:1px_solid_var(--glass-border)] tw:max-640:rounded-[22px_22px_0_0] tw:[background:var(--invite-bg)] tw:[box-shadow:0_24px_64px_rgba(0,_0,_0,_0.28),_var(--glass-inset)] tw:animate-course-invite-pop tw:motion-reduce:animate-none"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -359,7 +358,7 @@ export function CourseInviteDialog({
               type="button"
               role="tab"
               aria-selected={tab === "invite"}
-              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === "invite" ? "is-active" : ""}`}
+              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === "invite" ? "is-active" : ""}`}
               onClick={() => setTab("invite")}
             >
               Пригласить
@@ -368,7 +367,7 @@ export function CourseInviteDialog({
               type="button"
               role="tab"
               aria-selected={tab === "members"}
-              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[.course-invite-tabs_&.is-active]:text-(--text) tw:[.course-invite-tabs_&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === "members" ? "is-active" : ""}`}
+              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === "members" ? "is-active" : ""}`}
               onClick={() => setTab("members")}
             >
               Участники{members.total ? ` · ${members.total}` : ""}
@@ -429,7 +428,7 @@ export function CourseInviteDialog({
                         <span className="course-invite-avatar tw:grid tw:w-[42px] tw:h-[42px] tw:rounded-[999px] tw:text-[1.05rem] tw:text-(--ink-accent) tw:font-[800] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.24)]" aria-hidden="true">
                           {String(item.email || "?").slice(0, 1).toUpperCase()}
                         </span>
-                        <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0]">
+                        <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0] tw:[.course-invite-row.is-new_&_small]:text-(--info-text) tw:[.course-invite-row.is-error_&_small]:text-[#b8443c] tw:dark:[.page_.course-invite-row.is-error_&_small]:text-[#f0978f] tw:[.course-invite-row.is-pending_&_small]:text-(--muted)">
                           <strong>{item.email}</strong>
                           <small>
                             {COURSE_ROLE_LABEL[item.role] || item.role}
@@ -484,7 +483,7 @@ export function CourseInviteDialog({
                     <span className="course-invite-avatar tw:grid tw:w-[42px] tw:h-[42px] tw:rounded-[999px] tw:text-[1.05rem] tw:text-(--ink-accent) tw:font-[800] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.24)]" aria-hidden="true">
                       {String(member.title).slice(0, 1).toUpperCase()}
                     </span>
-                    <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0]">
+                    <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0] tw:[.course-invite-row.is-new_&_small]:text-(--info-text) tw:[.course-invite-row.is-error_&_small]:text-[#b8443c] tw:dark:[.page_.course-invite-row.is-error_&_small]:text-[#f0978f] tw:[.course-invite-row.is-pending_&_small]:text-(--muted)">
                       <strong>
                         {member.title}
                         {member.isMe ? " (вы)" : ""}
@@ -526,7 +525,7 @@ export function CourseInviteDialog({
             </span>
             <button
               type="button"
-              className="btn btn-outline tw:p-[13px_24px] tw:text-[1.02rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:max-640:p-[12px_18px] tw:max-640:whitespace-nowrap tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+              className="btn btn-outline tw:text-[1.02rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[&&&&]:p-[13px_24px] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:disabled:opacity-[0.55] tw:disabled:cursor-default tw:max-640:[&&&&]:p-[12px_18px] tw:max-640:[&&]:whitespace-nowrap tw:hover:[transform:translateY(-1px)] tw:disabled:[transform:none]"
               onClick={onClose}
               disabled={isSending}
             >
@@ -534,7 +533,7 @@ export function CourseInviteDialog({
             </button>
             <button
               type="button"
-              className="btn btn-solid tw:p-[13px_24px] tw:text-[1.02rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:max-640:p-[12px_18px] tw:max-640:whitespace-nowrap tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+              className="btn btn-solid tw:text-[1.02rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[&&&&]:p-[13px_24px] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:max-640:[&&&&]:p-[12px_18px] tw:hover:[transform:translateY(-1px)] tw:max-640:[&&]:whitespace-nowrap"
               // Не уводим фокус из поля: иначе blur добавит строку, окно вырастет
               // и кнопка «уедет» из-под курсора до того, как сработает click.
               onMouseDown={(event) => event.preventDefault()}

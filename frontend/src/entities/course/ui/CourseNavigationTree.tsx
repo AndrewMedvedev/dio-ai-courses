@@ -58,7 +58,7 @@ function LessonProgressMark({
 
   return (
     <span
-      className={`course-nav-progress-dot tw:w-[9px] tw:h-[9px] tw:rounded-[50%] tw:[justify-self:end] tw:[background:var(--progress-idle)] tw:[&.is-in\_progress]:[background:var(--progress-active)] tw:[&.is-completed]:[background:var(--progress-done)] is-${status}`}
+      className={String.raw`course-nav-progress-dot tw:w-[9px] tw:h-[9px] tw:rounded-[50%] tw:[justify-self:end] tw:[background:var(--progress-idle)] tw:[&.is-in\_progress]:[background:var(--progress-active)] tw:[&.is-completed]:[background:var(--progress-done)] is-${status}`}
       title={`${PROGRESS_STATUS_LABELS[status]}. ${details}`}
       aria-label={`${PROGRESS_STATUS_LABELS[status]}. ${details}`}
     />
@@ -140,7 +140,7 @@ export function CourseNavigationTree({
   return (
     <aside
       ref={treeRef}
-      className="course-nav-tree tw:sticky tw:top-[72px] tw:max-h-[calc(100vh_-_88px)] tw:overflow-x-hidden tw:overflow-y-auto tw:border-solid tw:border-(--glass-border) tw:rounded-[20px] tw:p-[18px_16px] tw:text-(--text) tw:[align-self:start] tw:max-1100:static tw:max-1100:max-h-[none] tw:max-1100:overflow-y-visible tw:[overscroll-behavior-y:contain] tw:[scrollbar-gutter:stable] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset),_inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:dark:text-[#f2e7d4] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.66)_transparent] tw:max-1100:min-h-[auto] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)]"
+      className="course-nav-tree tw:sticky tw:top-[72px] tw:max-h-[calc(100vh_-_88px)] tw:overflow-x-hidden tw:overflow-y-auto tw:border-solid tw:border-(--glass-border) tw:rounded-[20px] tw:p-[18px_16px] tw:text-(--text) tw:[align-self:start] tw:max-1100:static tw:max-1100:max-h-[none] tw:max-1100:overflow-y-visible tw:[overscroll-behavior-y:contain] tw:[scrollbar-gutter:stable] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[background:linear-gradient(var(--glass-highlight),_var(--glass-highlight)),_rgba(var(--accent-rgb),_0.05),_var(--glass-bg)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset),_inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:text-[#f2e7d4] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.66)_transparent] tw:max-1100:min-h-[auto] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:dark:[background:linear-gradient(var(--glass-highlight),_var(--glass-highlight)),_var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[background:var(--glass-bg)] tw:dark:no-backdrop-filter:[background:linear-gradient(var(--glass-highlight),_var(--glass-highlight)),_var(--glass-bg)] tw:dark:transparency-reduce:[background:linear-gradient(var(--glass-highlight),_var(--glass-highlight)),_var(--glass-bg)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[background:var(--glass-bg)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[background:linear-gradient(var(--glass-highlight),_var(--glass-highlight)),_var(--glass-bg)] tw:dark:no-backdrop-filter:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&&&&]:[background:var(--glass-bg)] tw:dark:transparency-reduce:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&&&&]:[background:var(--glass-bg)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&&&&]:[background:var(--glass-bg)]"
       aria-label="Навигация по курсу"
     >
       <div className="course-nav-tree-head tw:grid tw:gap-[6px] tw:p-[0_2px_12px] tw:[border-bottom:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:dark:[border-bottom-color:rgba(255,_255,_255,_0.16)]">
@@ -199,7 +199,7 @@ export function CourseNavigationTree({
           return (
             <li
               key={block.id}
-              className={`course-nav-block tw:pl-[8px] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border-left:3px_solid_transparent] tw:[&.has-progress.is-active]:rounded-[0_10px_10px_0] tw:[&.is-active]:[border-left-color:rgb(var(--success-rgb))] tw:[&.has-progress]:[border-left-color:var(--progress-idle)] tw:[&.has-progress.is-in\_progress]:[border-left-color:var(--progress-active)] tw:[&.has-progress.is-completed]:[border-left-color:var(--progress-done)] tw:[&.has-progress.is-active]:[background:rgba(var(--accent-rgb),_0.07)] ${selectedBlock.id === block.id ? "is-active" : ""} ${moduleProgress ? `has-progress is-${moduleProgress.status}` : ""}`}
+              className={String.raw`course-nav-block tw:pl-[8px] tw:[border-left:3px_solid_transparent] tw:[&.has-progress.is-active]:rounded-[0_10px_10px_0] tw:[&.is-active]:[border-left-color:rgb(var(--success-rgb))] tw:[&.has-progress]:[border-left-color:var(--progress-idle)] tw:[&.has-progress.is-in\_progress]:[border-left-color:var(--progress-active)] tw:[&.has-progress.is-completed]:[border-left-color:var(--progress-done)] tw:[&.has-progress.is-active]:[background:rgba(var(--accent-rgb),_0.07)] ${selectedBlock.id === block.id ? "is-active" : ""} ${moduleProgress ? `has-progress is-${moduleProgress.status}` : ""}`}
             >
               <button
                 type="button"
@@ -214,7 +214,7 @@ export function CourseNavigationTree({
                 </strong>
                 {moduleProgress && moduleProgress.total > 0 && (
                   <em
-                    className={`course-nav-block-progress tw:self-center tw:p-[1px_7px] tw:rounded-[999px] tw:text-(--muted) tw:text-[0.74rem] tw:not-italic tw:font-[800] tw:whitespace-nowrap tw:[background:var(--progress-idle-bg)] tw:[&.is-in\_progress]:text-(--progress-active) tw:[&.is-completed]:text-(--progress-done) tw:[&.is-in\_progress]:[background:var(--progress-active-bg)] tw:[&.is-completed]:[background:var(--progress-done-bg)] is-${moduleProgress.status}`}
+                    className={String.raw`course-nav-block-progress tw:self-center tw:p-[1px_7px] tw:rounded-[999px] tw:text-(--muted) tw:text-[0.74rem] tw:not-italic tw:font-[800] tw:whitespace-nowrap tw:[background:var(--progress-idle-bg)] tw:[&.is-in\_progress]:text-(--progress-active) tw:[&.is-completed]:text-(--progress-done) tw:[&.is-in\_progress]:[background:var(--progress-active-bg)] tw:[&.is-completed]:[background:var(--progress-done-bg)] is-${moduleProgress.status}`}
                     title={PROGRESS_STATUS_LABELS[moduleProgress.status]}
                   >
                     {moduleProgress.completed}/{moduleProgress.total}
@@ -243,19 +243,16 @@ export function CourseNavigationTree({
                       </li>
                     ))
                   : block.lessons.map((lesson, lessonIndex) => (
-                      <li
-                        className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]"
-                        key={lesson.id}
-                      >
+                      <li key={lesson.id}>
                         <button
                           type="button"
-                          className={`course-nav-item-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[10px] tw:items-center tw:min-h-[42px] tw:rounded-[8px] tw:p-[8px_10px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[36px_minmax(0,_1fr)_auto] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[background:rgba(255,_255,_255,_0.08)] ${selectedLessonId === lesson.id ? "is-active" : ""} ${hasProgress ? `has-progress is-${getLessonProgressStatus(lessonProgressById?.[lesson.id])}` : ""}`}
+                          className={`course-nav-item-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[10px] tw:items-center tw:min-h-[42px] tw:rounded-[8px] tw:p-[8px_10px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[36px_minmax(0,_1fr)_auto] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:hover:[&&&&]:[background:rgba(255,_255,_255,_0.08)] ${selectedLessonId === lesson.id ? "is-active" : ""} ${hasProgress ? `has-progress is-${getLessonProgressStatus(lessonProgressById?.[lesson.id])}` : ""}`}
                           onClick={() => openLesson(lesson.id)}
                         >
                           <span className="course-nav-item-number tw:text-(--info-text) tw:text-[0.88rem] tw:font-[800] tw:whitespace-nowrap tw:[.course-nav-item-btn.has-progress.is-in\_progress_&]:text-(--progress-active) tw:[.course-nav-item-btn.has-progress.is-completed_&]:text-(--progress-done)">
                             {blockIndex + 1}.{lessonIndex + 1}
                           </span>
-                          <span className="course-nav-item-title tw:text-(--text) tw:min-w-[0] tw:text-[0.94rem] tw:font-[700] tw:leading-[1.42] tw:wrap-anywhere tw:[.course-nav-item-btn.is-active_&]:text-(--heading) tw:dark:text-[#f2e7d4] tw:dark:[.page_.course-nav-item-btn.is-active_&]:text-[#ffffff]">
+                          <span className="course-nav-item-title tw:text-(--text) tw:min-w-[0] tw:text-[0.94rem] tw:font-[700] tw:leading-[1.42] tw:wrap-anywhere tw:[.course-nav-item-btn.is-active_&]:text-(--heading) tw:dark:text-[#f2e7d4] tw:dark:[.page_.course-nav-item-btn.is-active_&]:text-[#ffffff] tw:dark:[.course-nav-item-btn.is-active_&]:text-[#f2e7d4]">
                             {lesson.title}
                           </span>
                           {hasProgress ? (

@@ -10,7 +10,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { getLocalStorage } from "@/shared/lib/storage";
-import "./floating-window.css";
 
 export interface FloatingWindowSize {
   width: number;
@@ -219,7 +218,7 @@ export function FloatingWindow({
 
   return createPortal(
     <section
-      className={`floating-window tw:fixed tw:z-[1050] tw:flex tw:flex-col tw:min-w-[0] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.45)] tw:rounded-[18px] tw:text-(--text) tw:overflow-hidden tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[background:#faf7f1] tw:[box-shadow:0_22px_60px_rgba(0,_0,_0,_0.26),_0_2px_6px_rgba(0,_0,_0,_0.08)] tw:[animation:floating-window-in_0.16s_ease-out] tw:[&.is-minimized]:h-[auto] tw:[&.is-mobile]:h-[min(72vh,_620px)]! tw:[&.is-mobile.is-minimized]:h-[auto]! tw:[&.is-mobile]:left-[8px]! tw:[&.is-mobile]:right-[8px] tw:[&.is-mobile]:bottom-[8px] tw:[&.is-mobile]:top-[auto]! tw:[&.is-mobile]:w-[auto]! tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:#262626] ${minimized ? "is-minimized" : ""} ${isMobile ? "is-mobile" : ""} ${className}`.trim()}
+      className={`floating-window tw:fixed tw:z-[1050] tw:flex tw:flex-col tw:min-w-[0] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.45)] tw:rounded-[18px] tw:text-(--text) tw:overflow-hidden tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[background:#faf7f1] tw:[box-shadow:0_22px_60px_rgba(0,_0,_0,_0.26),_0_2px_6px_rgba(0,_0,_0,_0.08)] tw:animate-floating-window-in tw:[&.is-minimized]:h-[auto] tw:[&.is-mobile]:h-[min(72vh,_620px)]! tw:[&.is-mobile.is-minimized]:h-[auto]! tw:[&.is-mobile]:left-[8px]! tw:[&.is-mobile]:right-[8px] tw:[&.is-mobile]:bottom-[8px] tw:[&.is-mobile]:top-[auto]! tw:[&.is-mobile]:w-[auto]! tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:#262626] tw:[&_input::placeholder]:text-(--muted) tw:[&_input::placeholder]:opacity-[0.9] ${minimized ? "is-minimized" : ""} ${isMobile ? "is-mobile" : ""} ${className}`.trim()}
       style={style}
       role="dialog"
       aria-modal="false"

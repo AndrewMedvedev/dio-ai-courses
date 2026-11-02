@@ -1,5 +1,4 @@
 import { useToastStore } from "./toast-store";
-import "./toaster.css";
 
 export function Toaster() {
   const toasts = useToastStore((state) => state.toasts);
@@ -14,7 +13,7 @@ export function Toaster() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`toast tw:grid tw:grid-cols-[auto_1fr_auto] tw:items-center tw:gap-[14px] tw:p-[16px_14px_16px_18px] tw:rounded-[18px] tw:pointer-events-auto tw:[border:1px_solid_var(--glass-border)] tw:[background:rgba(250,_247,_241,_0.97)] tw:[-webkit-backdrop-filter:blur(8px)] tw:[backdrop-filter:blur(8px)] tw:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.18),_var(--glass-inset)] tw:[animation:toast-in_0.2s_ease-out] tw:dark:[background:rgba(40,_40,_40,_0.97)] tw:motion-reduce:[animation:none] is-${toast.tone}`}
+          className={`toast tw:grid tw:grid-cols-[auto_1fr_auto] tw:items-center tw:gap-[14px] tw:p-[16px_14px_16px_18px] tw:rounded-[18px] tw:pointer-events-auto tw:[border:1px_solid_var(--glass-border)] tw:[background:rgba(250,_247,_241,_0.97)] tw:[-webkit-backdrop-filter:blur(8px)] tw:[backdrop-filter:blur(8px)] tw:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.18),_var(--glass-inset)] tw:animate-toast-in tw:dark:[background:rgba(40,_40,_40,_0.97)] tw:motion-reduce:animate-none is-${toast.tone}`}
           role={toast.tone === "error" ? "alert" : "status"}
         >
           <span

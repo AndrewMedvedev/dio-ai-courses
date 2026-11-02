@@ -192,13 +192,13 @@ export function LessonAiChat({
       <aside
         ref={panelRef}
         id={panelId}
-        className="lesson-page-ai-chat tw:grid tw:sticky tw:h-[min(720px,_calc(100vh_-_104px))] tw:min-h-[min(520px,_calc(100vh_-_104px))] tw:max-h-[calc(100vh_-_88px)] tw:overflow-hidden tw:border-solid tw:border-[rgba(255,_255,_255,_0.68)] tw:rounded-[14px] tw:p-[12px] tw:grid-rows-[auto_minmax(210px,_1fr)_auto] tw:gap-[10px] tw:max-1300:inset-[0_0_0_auto] tw:max-1300:w-[min(480px,_100vw)] tw:max-760:w-[100vw] tw:[&[hidden]]:hidden tw:max-1300:fixed tw:[align-self:start] tw:max-1300:h-[100dvh] tw:max-1300:min-h-[0] tw:max-1300:max-h-[100dvh] tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.2)] tw:max-1300:rounded-[18px_0_0_18px] tw:max-760:rounded-[0] tw:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.52),_rgba(255,_255,_255,_0.2)_)] tw:[backdrop-filter:blur(20px)_saturate(130%)] tw:[-webkit-backdrop-filter:blur(20px)_saturate(130%)] tw:max-1300:pt-[max(12px,_env(safe-area-inset-top))] tw:max-1300:pr-[max(12px,_env(safe-area-inset-right))] tw:max-1300:pb-[max(12px,_env(safe-area-inset-bottom))] tw:max-760:pl-[max(10px,_env(safe-area-inset-left))] tw:[box-shadow:0_16px_40px_rgba(79,_67,_48,_0.1),_var(--glass-inset)] tw:[transition:min-height_220ms_ease,_padding_220ms_ease,_border-radius_220ms_ease] tw:max-1300:z-[90] tw:min-1301:[.generated-course-learning-grid_>_&]:top-[72px] tw:min-1301:[.generated-course-learning-grid_>_&]:w-[100%] tw:max-760:[border-width:0] tw:dark:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.13),_rgba(255,_255,_255,_0.055)_)] tw:dark:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] tw:motion-reduce:[transition:none]"
+        className="lesson-page-ai-chat tw:grid tw:sticky tw:h-[min(720px,_calc(100vh_-_104px))] tw:min-h-[min(520px,_calc(100vh_-_104px))] tw:max-h-[calc(100vh_-_88px)] tw:overflow-hidden tw:border-solid tw:border-[rgba(255,_255,_255,_0.68)] tw:rounded-[14px] tw:p-[12px] tw:grid-rows-[auto_minmax(210px,_1fr)_auto] tw:gap-[10px] tw:min-1301:top-[72px] tw:max-1300:inset-[0_0_0_auto] tw:min-1301:w-[100%] tw:max-1300:w-[min(480px,_100vw)] tw:max-760:w-[100vw] tw:[&[hidden]]:hidden tw:max-1300:fixed tw:[align-self:start] tw:max-1300:h-[100dvh] tw:max-1300:min-h-[0] tw:max-1300:max-h-[100dvh] tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.2)] tw:max-1300:rounded-[18px_0_0_18px] tw:max-760:rounded-[0] tw:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.52),_rgba(255,_255,_255,_0.2)_)] tw:[backdrop-filter:blur(20px)_saturate(130%)] tw:[-webkit-backdrop-filter:blur(20px)_saturate(130%)] tw:max-1300:pt-[max(12px,_env(safe-area-inset-top))] tw:max-1300:pr-[max(12px,_env(safe-area-inset-right))] tw:max-1300:pb-[max(12px,_env(safe-area-inset-bottom))] tw:max-760:pl-[max(10px,_env(safe-area-inset-left))] tw:[box-shadow:0_16px_40px_rgba(79,_67,_48,_0.1),_var(--glass-inset)] tw:[transition:min-height_220ms_ease,_padding_220ms_ease,_border-radius_220ms_ease] tw:max-1300:z-[90] tw:max-760:[border-width:0] tw:dark:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.13),_rgba(255,_255,_255,_0.055)_)] tw:dark:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] tw:motion-reduce:[transition:none]"
         aria-labelledby={`${panelId}-title`}
         role={isCompact ? "dialog" : "complementary"}
         aria-modal={isCompact ? "true" : undefined}
         hidden={!isOpen}
       >
-        <div className="lesson-ai-editor-head tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[.lesson-page-ai-chat.is-collapsed_&]:hidden tw:[align-items:start]">
+        <div className="lesson-ai-editor-head tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[.lesson-page-ai-chat.is-collapsed_&]:hidden tw:[align-items:start] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&_span::after]:[content:'_·_блок_'_counter(dnd-block)]">
           <div className="lesson-page-ai-chat-title tw:min-w-[0]">
             <span
               className="tw:block tw:text-(--heading) tw:text-[0.72rem] tw:font-[900] tw:tracking-[0.07em] tw:uppercase tw:col-[1] tw:min-w-[0] tw:wrap-anywhere"
@@ -214,7 +214,7 @@ export function LessonAiChat({
             {onDownloadSummary && (
               <button
                 type="button"
-                className="lesson-page-ai-chat-download"
+                className="lesson-page-ai-chat-download tw:[.lesson-ai-editor-head_&_span]:block tw:[.lesson-ai-editor-head_&_span]:text-[inherit] tw:[.lesson-ai-editor-head_&_span]:text-[1rem] tw:[.lesson-ai-editor-head_&_span]:leading-[1]"
                 onClick={onDownloadSummary}
                 aria-label="Сохранить конспект урока в PDF"
                 title="Сохранить конспект в PDF"
@@ -250,10 +250,8 @@ export function LessonAiChat({
             <div className="lesson-chat-empty-state tw:min-h-[100%] tw:grid tw:content-center tw:gap-[16px] tw:p-[12px_4px] tw:text-center">
               <div>
                 <span aria-hidden="true">✦</span>
-                <h2 className="tw:m-[8px_0_6px] tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
-                  Чем помочь по этому уроку?
-                </h2>
-                <p className="tw:m-[0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                <h2 className="tw:m-[8px_0_6px]">Чем помочь по этому уроку?</h2>
+                <p className="tw:m-[0] tw:text-(--muted)">
                   Спросите о сложном месте или выберите быстрый запрос.
                 </p>
               </div>
@@ -263,7 +261,7 @@ export function LessonAiChat({
               >
                 {QUICK_PROMPTS.map((prompt) => (
                   <button
-                    className="tw:min-h-[42px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.42)] tw:rounded-[10px] tw:text-(--heading) tw:p-[8px] tw:cursor-pointer tw:[border-width:1px] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&&]:font-[750] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px] tw:[.lesson-chat-quick-actions_&:disabled]:cursor-not-allowed tw:[.lesson-chat-quick-actions_&:disabled]:opacity-[0.55] tw:[&:hover:not(:disabled)]:border-[rgba(var(--accent-rgb),_0.72)] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.2)]"
+                    className="tw:min-h-[42px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.42)] tw:rounded-[10px] tw:text-(--heading) tw:p-[8px] tw:cursor-pointer tw:[border-width:1px] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&&]:font-[750] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:disabled:cursor-not-allowed tw:disabled:opacity-[0.55] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px] tw:[&:hover:not(:disabled)]:border-[rgba(var(--accent-rgb),_0.72)] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.2)]"
                     key={prompt}
                     type="button"
                     onClick={() => sendMessage(prompt)}
@@ -279,7 +277,7 @@ export function LessonAiChat({
           {messages.map((message) => (
             <article
               key={message.id}
-              className={`lesson-page-ai-chat-message tw:w-[fit-content] tw:max-w-[94%] tw:grid tw:self-start tw:gap-[8px] tw:border-solid tw:border-[rgba(255,_255,_255,_0.62)] tw:rounded-[16px_16px_16px_5px] tw:text-(--text) tw:p-[11px_12px] tw:text-[0.86rem] tw:leading-[1.58] tw:wrap-anywhere tw:[&.is-user]:max-w-[88%] tw:[&.is-user]:self-end tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[&.is-user]:rounded-[16px_16px_5px_16px] tw:[background:rgba(255,_255,_255,_0.44)] tw:[&.is-user]:text-(--heading) tw:[box-shadow:0_8px_20px_rgba(79,_67,_48,_0.08),_inset_0_1px_0_rgba(255,_255,_255,_0.54)] tw:[&.is-thinking]:items-stretch tw:dark:[.page_&.is-user]:border-[rgba(var(--accent-rgb),_0.48)] tw:[&.is-user]:[background:linear-gradient(_145deg,_rgba(var(--accent-rgb),_0.28),_rgba(var(--accent-rgb),_0.16)_)] tw:dark:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&.is-user]:[background:linear-gradient(_145deg,_rgba(var(--accent-rgb),_0.25),_rgba(var(--accent-rgb),_0.14)_)] is-${message.role}`}
+              className={`lesson-page-ai-chat-message tw:w-[fit-content] tw:max-w-[94%] tw:grid tw:self-start tw:gap-[8px] tw:border-solid tw:border-[rgba(255,_255,_255,_0.62)] tw:rounded-[16px_16px_16px_5px] tw:text-(--text) tw:p-[11px_12px] tw:text-[0.86rem] tw:leading-[1.58] tw:wrap-anywhere tw:[&.is-user]:max-w-[88%] tw:[&.is-user]:self-end tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.58)] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[&.is-user]:rounded-[16px_16px_5px_16px] tw:[background:rgba(255,_255,_255,_0.44)] tw:[&.is-user]:text-(--heading) tw:[box-shadow:0_8px_20px_rgba(79,_67,_48,_0.08),_inset_0_1px_0_rgba(255,_255,_255,_0.54)] tw:[&.is-thinking]:items-stretch tw:dark:[.page_&.is-user]:border-[rgba(var(--accent-rgb),_0.48)] tw:dark:[&.is-user]:border-[rgba(255,_255,_255,_0.14)] tw:[&.is-user]:[background:linear-gradient(_145deg,_rgba(var(--accent-rgb),_0.28),_rgba(var(--accent-rgb),_0.16)_)] tw:dark:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&.is-user]:[background:linear-gradient(_145deg,_rgba(var(--accent-rgb),_0.25),_rgba(var(--accent-rgb),_0.14)_)] tw:dark:[&.is-user]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&.is-user]:[&.is-user]:[&&&&]:border-[rgba(var(--accent-rgb),_0.48)] tw:dark:[.page_&.is-user]:[&.is-user]:[&&&&]:[background:linear-gradient(_145deg,_rgba(var(--accent-rgb),_0.25),_rgba(var(--accent-rgb),_0.14)_)] is-${message.role}`}
             >
               <div className="lesson-chat-message-meta tw:flex tw:items-center tw:gap-[7px] tw:text-(--muted) tw:text-[0.7rem] tw:leading-[1] tw:[.lesson-page-ai-chat-message.is-user_&]:text-(--ink-accent) tw:[.lesson-page-ai-chat-message.is-user_&]:justify-end">
                 <span
@@ -292,7 +290,7 @@ export function LessonAiChat({
                   {message.role === "assistant" ? "ИИ-помощник" : "Вы"}
                 </strong>
               </div>
-              <div className="lesson-chat-message-body tw:min-w-[0] tw:[.lesson-page-ai-chat-message.is-thinking_&]:flex tw:[.lesson-page-ai-chat-message.is-thinking_&]:items-center tw:[.lesson-page-ai-chat-message.is-thinking_&]:gap-[8px] tw:[.lesson-page-ai-chat-message.is-thinking_&]:text-(--muted)">
+              <div className="lesson-chat-message-body tw:min-w-[0] tw:[.lesson-page-ai-chat-message.is-thinking_&]:flex tw:[.lesson-page-ai-chat-message.is-thinking_&]:items-center tw:[.lesson-page-ai-chat-message.is-thinking_&]:gap-[8px] tw:[.lesson-page-ai-chat-message.is-thinking_&]:text-(--muted) tw:[&_>_:first-child]:mt-[0] tw:[&_p]:m-[0_0_0.75em] tw:[&_>_:last-child]:mb-[0] tw:[&_ul]:m-[0_0_0.75em] tw:[&_ul]:pl-[1.35em] tw:[&_a]:text-(--ink-accent) tw:[&_a]:font-[700] tw:[&_a]:wrap-anywhere tw:[&_ol]:m-[0_0_0.75em] tw:[&_pre]:m-[0_0_0.75em] tw:[&_blockquote]:m-[0_0_0.75em] tw:[&_ol]:pl-[1.35em] tw:[&_pre]:max-w-[100%] tw:[&_pre]:overflow-x-auto tw:[&_pre]:p-[10px] tw:[&_pre]:[border:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:[&_pre]:rounded-[10px] tw:[&_pre]:[background:rgba(0,_0,_0,_0.08)] tw:[&_pre]:whitespace-pre tw:[&_blockquote]:[border-left:3px_solid_rgba(var(--accent-rgb),_0.62)] tw:[&_blockquote]:pl-[10px] tw:[&_blockquote]:text-(--muted) tw:dark:[.page_&_pre]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_&_pre]:[background:rgba(0,_0,_0,_0.28)]">
                 {message.role === "assistant" ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
@@ -301,7 +299,7 @@ export function LessonAiChat({
                     {message.text}
                   </ReactMarkdown>
                 ) : (
-                  <span className="tw:first:mt-[0] tw:last:mb-[0] tw:[.lesson-page-ai-chat-message.is-user_.lesson-chat-message-body_>_&]:whitespace-pre-wrap">
+                  <span className="tw:[.lesson-page-ai-chat-message.is-user_.lesson-chat-message-body_>_&]:whitespace-pre-wrap">
                     {message.text}
                   </span>
                 )}
@@ -326,16 +324,16 @@ export function LessonAiChat({
                   ИИ-помощник
                 </strong>
               </div>
-              <div className="lesson-chat-message-body tw:min-w-[0] tw:flex tw:items-center tw:gap-[8px] tw:text-(--muted)">
+              <div className="lesson-chat-message-body tw:min-w-[0] tw:flex tw:items-center tw:gap-[8px] tw:text-(--muted) tw:[&_>_:first-child]:mt-[0] tw:[&_p]:m-[0_0_0.75em] tw:[&_>_:last-child]:mb-[0] tw:[&_ul]:m-[0_0_0.75em] tw:[&_ul]:pl-[1.35em] tw:[&_a]:text-(--ink-accent) tw:[&_a]:font-[700] tw:[&_a]:wrap-anywhere tw:[&_ol]:m-[0_0_0.75em] tw:[&_pre]:m-[0_0_0.75em] tw:[&_blockquote]:m-[0_0_0.75em] tw:[&_ol]:pl-[1.35em] tw:[&_pre]:max-w-[100%] tw:[&_pre]:overflow-x-auto tw:[&_pre]:p-[10px] tw:[&_pre]:[border:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:[&_pre]:rounded-[10px] tw:[&_pre]:[background:rgba(0,_0,_0,_0.08)] tw:[&_pre]:whitespace-pre tw:[&_blockquote]:[border-left:3px_solid_rgba(var(--accent-rgb),_0.62)] tw:[&_blockquote]:pl-[10px] tw:[&_blockquote]:text-(--muted) tw:dark:[.page_&_pre]:border-[rgba(255,_255,_255,_0.12)] tw:dark:[.page_&_pre]:[background:rgba(0,_0,_0,_0.28)]">
                 <span
-                  className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto] tw:first:mt-[0]"
+                  className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]"
                   aria-hidden="true"
                 >
-                  <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[.chat-thinking-dots_&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
-                  <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[.chat-thinking-dots_&:nth-child(3)]:[animation-delay:320ms]" />
-                  <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:[animation:chat-thinking-pulse_1.1s_ease-in-out_infinite] tw:motion-reduce:[animation:none] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
+                  <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
+                  <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
+                  <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(3)]:[animation-delay:320ms] tw:[&:nth-child(2)]:[animation-delay:160ms]" />
                 </span>
-                <span className="tw:last:mb-[0]">Готовит ответ…</span>
+                <span>Готовит ответ…</span>
               </div>
             </article>
           )}
@@ -368,7 +366,7 @@ export function LessonAiChat({
           />
           <button
             type="button"
-            className="lesson-ai-send tw:w-[34px] tw:h-[34px] tw:p-[0] tw:rounded-[50%] tw:text-(--ink-accent) tw:[border:1px_solid_rgba(var(--accent-rgb),_0.42)] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:disabled:cursor-not-allowed tw:[background:rgba(var(--accent-rgb),_0.18)] tw:disabled:opacity-[0.45] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px]"
+            className="lesson-ai-send tw:w-[34px] tw:h-[34px] tw:p-[0] tw:rounded-[50%] tw:text-(--ink-accent) tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.42)] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:disabled:cursor-not-allowed tw:[background:rgba(var(--accent-rgb),_0.18)] tw:disabled:opacity-[0.45] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px]"
             onClick={() => sendMessage()}
             disabled={!inputValue.trim() || isSending || !courseId}
             aria-label={isSending ? "ИИ готовит ответ" : "Отправить сообщение"}

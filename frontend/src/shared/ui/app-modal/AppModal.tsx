@@ -6,7 +6,6 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import "./app-modal.css";
 
 export type AppModalSize = "sm" | "md" | "lg" | (string & {});
 
@@ -74,7 +73,7 @@ export function AppModal({
 
   return createPortal(
     <div
-      className="app-modal-backdrop tw:fixed tw:z-[1100] tw:inset-[0] tw:grid tw:p-[min(8vh,_72px)_16px_24px] tw:overflow-y-auto tw:[--app-modal-bg:rgba(250,_247,_241,_0.98)] tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[place-items:start_center] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:[animation:app-modal-fade_0.16s_ease-out] tw:dark:[--app-modal-bg:rgba(40,_40,_40,_0.98)] tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:rgba(8,_9,_12,_0.66)]"
+      className="app-modal-backdrop tw:fixed tw:z-[1100] tw:inset-[0] tw:grid tw:p-[min(8vh,_72px)_16px_24px] tw:overflow-y-auto tw:[--app-modal-bg:rgba(250,_247,_241,_0.98)] tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[place-items:start_center] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:animate-app-modal-fade tw:dark:[--app-modal-bg:rgba(40,_40,_40,_0.98)] tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:rgba(8,_9,_12,_0.66)]"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !busy) onClose?.();
@@ -82,7 +81,7 @@ export function AppModal({
     >
       <div
         ref={dialogRef}
-        className={`app-modal tw:max-h-[calc(100dvh_-_min(8vh,_72px)_-_24px)] tw:flex tw:flex-col tw:rounded-[22px] tw:text-(--text) tw:overflow-hidden tw:[&.app-modal--md]:w-[min(680px,_100%)] tw:[&.app-modal--sm]:w-[min(520px,_100%)] tw:[&.app-modal--lg]:w-[min(860px,_100%)] tw:[border:1px_solid_var(--glass-border,_var(--app-modal-border))] tw:[background:var(--app-modal-bg)] tw:[box-shadow:0_24px_64px_rgba(0,_0,_0,_0.28),_var(--glass-inset,_none)] tw:[animation:app-modal-pop_0.18s_ease-out] app-modal--${size} ${className}`.trim()}
+        className={`app-modal tw:w-[min(560px,_100%)] tw:max-h-[calc(100dvh_-_min(8vh,_72px)_-_24px)] tw:flex tw:flex-col tw:rounded-[22px] tw:text-(--text) tw:overflow-hidden tw:[&.app-modal--md]:w-[min(680px,_100%)] tw:[&.app-modal--sm]:w-[min(520px,_100%)] tw:[&.app-modal--lg]:w-[min(860px,_100%)] tw:[border:1px_solid_var(--glass-border,_var(--app-modal-border))] tw:[background:var(--app-modal-bg)] tw:[box-shadow:0_24px_64px_rgba(0,_0,_0,_0.28),_var(--glass-inset,_none)] tw:animate-app-modal-pop app-modal--${size} ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

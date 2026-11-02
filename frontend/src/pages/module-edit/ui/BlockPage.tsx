@@ -160,7 +160,7 @@ export function BlockPage({
     if (lessonAgentAt === index) {
       return (
         <li
-          className="lesson-agent-marker tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[8px] tw:m-[2px_0] tw:p-[8px_12px] tw:border-dashed tw:border-[rgba(47,_125,_79,_0.55)] tw:rounded-[14px] tw:text-[#2f7d4f] tw:text-[0.84rem] tw:font-[800] tw:[border-width:1.5px] tw:[background:rgba(47,_125,_79,_0.08)] tw:[list-style:none] tw:dark:[.page_&]:border-[rgba(127,_209,_155,_0.5)] tw:dark:[.page_&]:text-[#7fd19b] tw:dark:[.page_&]:[background:rgba(127,_209,_155,_0.08)]"
+          className="lesson-agent-marker tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[8px] tw:m-[2px_0] tw:p-[8px_12px] tw:border-dashed tw:border-[rgba(47,_125,_79,_0.55)] tw:rounded-[14px] tw:text-[#2f7d4f] tw:text-[0.84rem] tw:font-[800] tw:[border-width:1.5px] tw:[background:rgba(47,_125,_79,_0.08)] tw:[list-style:none] tw:dark:[.page_&]:border-[rgba(127,_209,_155,_0.5)] tw:dark:[.page_&]:text-[#7fd19b] tw:dark:[.page_&]:[background:rgba(127,_209,_155,_0.08)] tw:[&_>_div]:flex tw:[&_>_div]:gap-[6px] tw:[&_button]:[border:1px_solid_rgba(47,_125,_79,_0.45)] tw:[&_button]:rounded-[999px] tw:[&_button]:[background:transparent] tw:[&_button]:text-[inherit] tw:[&_button]:p-[4px_12px] tw:[&_button]:[font:inherit] tw:[&_button]:text-[0.78rem] tw:[&_button]:cursor-pointer tw:[&_button:hover]:[background:rgba(47,_125,_79,_0.12)]"
           key={`lesson-agent-${index}`}
         >
           <span>
@@ -190,7 +190,7 @@ export function BlockPage({
     }
     return (
       <li
-        className="lesson-insert-slot tw:[list-style:none]"
+        className="lesson-insert-slot tw:[list-style:none] tw:[&_button]:w-[100%] tw:[&_button]:[border:1px_dashed_rgba(47,_125,_79,_0.4)] tw:[&_button]:rounded-[999px] tw:[&_button]:[background:transparent] tw:[&_button]:p-[6px_10px] tw:[&_button]:[font:inherit] tw:[&_button]:text-[0.78rem] tw:[&_button]:font-[800] tw:[&_button]:cursor-pointer tw:[&_button:hover]:[background:rgba(47,_125,_79,_0.08)]"
         key={`lesson-slot-${index}`}
       >
         <button
@@ -266,7 +266,7 @@ export function BlockPage({
         &lt;
       </button>
       {/* Та же сетка, что в режиме обучения: дерево курса слева, модуль справа. */}
-      <div className="course-edit-grid tw:grid-cols-[300px_minmax(0,_1fr)_68px] tw:gap-[18px] tw:mt-[16px] tw:grid tw:between-1101-1300:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[align-items:start]">
+      <div className="course-edit-grid tw:grid-cols-[300px_minmax(0,_1fr)_68px] tw:gap-[18px] tw:mt-[16px] tw:grid tw:between-1101-1300:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[align-items:start] tw:[&_>_*]:min-w-[0]">
         <CourseNavigationTree
           selectedCourse={selectedCourse}
           selectedBlock={selectedBlock}
@@ -281,7 +281,7 @@ export function BlockPage({
         />
         <div className="course-edit-main tw:grid tw:gap-[14px] tw:[align-content:start]">
           <div className="block-view-grid tw:mt-[16px] tw:grid tw:grid-cols-[1fr_1fr] tw:gap-[14px] tw:[.course-edit-main_>_&]:mt-[0] tw:max-1100:grid-cols-[1fr]">
-            <article className="glass-card block-main-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:col-[1_/_-1] tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+            <article className="glass-card block-main-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:col-[1_/_-1] tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
               {!isCourseEditMode && (
                 <>
                   <p className="course-category tw:m-[0] tw:text-[0.8rem] tw:uppercase tw:tracking-[0.08em] tw:text-(--accent) tw:font-[700]">
@@ -292,7 +292,7 @@ export function BlockPage({
                       "Детальный блок курса с уроками и практикой. Используйте этот экран как тестовые данные для сценариев проваливания в контент."}
                   </p>
                   {(selectedBlock.learningObjectives?.length ?? 0) > 0 && (
-                    <div className="course-objectives-block tw:mt-[16px] tw:p-[14px] tw:rounded-[14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.26)] tw:[background:rgba(var(--accent-rgb),_0.07)]">
+                    <div className="course-objectives-block tw:mt-[16px] tw:p-[14px] tw:rounded-[14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.26)] tw:[background:rgba(var(--accent-rgb),_0.07)] tw:[&_h3]:m-[0_0_10px] tw:[&_h3]:[font-family:'Unbounded',_sans-serif] tw:[&_h3]:text-[0.92rem] tw:[&_ul]:m-[0] tw:[&_ul]:pl-[18px] tw:[&_ul]:grid tw:[&_ul]:gap-[7px] tw:[&_ul]:text-(--muted) tw:[&_ul]:text-[0.9rem] tw:[&_ul]:leading-[1.45]">
                       <h3>Цели блока</h3>
                       <ul>
                         {selectedBlock.learningObjectives?.map(
@@ -306,18 +306,18 @@ export function BlockPage({
                     </div>
                   )}
                   <div className="block-progress-wrap tw:m-[14px_0_0]">
-                    <div className="block-progress-head tw:flex tw:justify-between tw:items-center tw:gap-[12px] tw:text-[0.88rem] tw:text-(--muted)">
+                    <div className="block-progress-head tw:flex tw:justify-between tw:items-center tw:gap-[12px] tw:text-[0.88rem] tw:text-(--muted) tw:[&_strong]:text-(--ink-accent)">
                       <span>Прогресс блока</span>
                       <strong>
                         {completedInBlock}/{totalItemsInBlock} •{" "}
                         {blockProgressPercent}%
                       </strong>
                     </div>
-                    <div className="block-progress-bar tw:mt-[8px] tw:w-[100%] tw:h-[10px] tw:rounded-[999px] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)]">
+                    <div className="block-progress-bar tw:mt-[8px] tw:w-[100%] tw:h-[10px] tw:rounded-[999px] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)] tw:[&_>_div]:h-[100%] tw:[&_>_div]:[background:linear-gradient(_90deg,_rgba(var(--accent-rgb),_0.95),_rgba(var(--accent-soft-rgb),_0.95)_)]">
                       <div style={{ width: `${blockProgressPercent}%` }} />
                     </div>
                   </div>
-                  <div className="course-stats-grid tw:mt-[18px] tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[10px] tw:max-760:grid-cols-[1fr]">
+                  <div className="course-stats-grid tw:mt-[18px] tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[10px] tw:max-760:grid-cols-[1fr] tw:[&_div]:[border:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:[&_div]:rounded-[14px] tw:[&_div]:p-[12px] tw:[&_div]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_span]:block tw:[&_span]:text-[0.78rem] tw:[&_span]:text-(--muted) tw:[&_strong]:block tw:[&_strong]:mt-[5px] tw:[&_strong]:text-[0.96rem] tw:[&_strong]:text-(--text)">
                     <div>
                       <span>Длительность блока</span>
                       <strong>{selectedBlock.duration}</strong>
@@ -387,7 +387,7 @@ export function BlockPage({
                     </div>
                     {blockLearningObjectives.map((objective, index) => (
                       <div
-                        className="course-objective-row tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[8px] tw:items-center"
+                        className="course-objective-row tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[8px] tw:items-center tw:[&_input]:w-[100%] tw:[&_input]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_input]:rounded-[12px] tw:[&_input]:[background:rgba(255,_255,_255,_0.34)] tw:[&_input]:text-(--text) tw:[&_input]:p-[10px_12px] tw:[&_input]:[font:inherit] tw:[&_input]:[outline:none] tw:[&_input:focus]:border-[rgba(var(--accent-rgb),_0.68)] tw:[&_input:focus]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.16)] tw:[&_button]:[border:1px_solid_rgba(220,_53,_69,_0.36)] tw:[&_button]:rounded-[999px] tw:[&_button]:[background:rgba(220,_53,_69,_0.08)] tw:[&_button]:text-[#b53945] tw:[&_button]:p-[8px_12px] tw:[&_button]:[font:inherit] tw:[&_button]:text-[0.8rem] tw:[&_button]:font-[700] tw:[&_button]:cursor-pointer tw:[&_button:hover]:[background:rgba(220,_53,_69,_0.16)] tw:dark:[.page_&_input]:text-(--heading) tw:dark:[.page_&_input]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_input]:border-[rgba(var(--accent-rgb),_0.52)] tw:dark:[.page_&_button]:text-[#ff7d8b] tw:dark:[.page_&_button]:[background:rgba(220,_53,_69,_0.16)]"
                         key={index}
                       >
                         <input
@@ -415,8 +415,8 @@ export function BlockPage({
               )}
             </article>
 
-            <article className="glass-card block-lessons-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[.block-view.is-course-edit-layout_&]:col-[1_/_-1] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
-              <div className="block-lessons-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:flex-wrap tw:[&_.btn]:flex-[0_0_auto]">
+            <article className="glass-card block-lessons-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[.block-view.is-course-edit-layout_&]:col-[1_/_-1] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_h3]:[font-family:'Unbounded',_sans-serif] tw:[&_h3]:text-[0.98rem] tw:[&_ol]:m-[12px_0_0] tw:[&_ol]:pl-[18px] tw:[&_li]:mb-[10px] tw:[&_li]:text-(--muted) tw:[&_li]:leading-[1.4]">
+              <div className="block-lessons-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:flex-wrap tw:[&_.btn]:flex-[0_0_auto] tw:[&_h3]:m-[0]">
                 <h3>Уроки</h3>
                 {isCourseEditMode && (
                   <div className="block-lessons-actions tw:flex tw:flex-wrap tw:gap-[8px]">
@@ -443,7 +443,7 @@ export function BlockPage({
                 )}
               </div>
               {selectedBlock.lessons.length === 0 && (
-                <div className="course-editor-panel block-empty-lessons tw:mt-[12px] tw:rounded-[14px] tw:p-[12px] tw:grid tw:gap-[10px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[justify-items:start]">
+                <div className="course-editor-panel block-empty-lessons tw:mt-[12px] tw:rounded-[14px] tw:p-[12px] tw:grid tw:gap-[10px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.34)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[justify-items:start] tw:[&_h4]:m-[0] tw:[&_h4]:text-(--heading) tw:[&_h4]:[font-family:'Unbounded',_sans-serif] tw:[&_h4]:text-[0.95rem] tw:[&_p]:m-[0] tw:[&_p]:text-(--muted) tw:[&_p]:leading-[1.45]">
                   <h4>В этом модуле пока нет уроков</h4>
                   <p>
                     Создайте первый урок, чтобы наполнить модуль теорией и
@@ -463,7 +463,7 @@ export function BlockPage({
                   )}
                 </div>
               )}
-              <ul className="lessons-progress-list tw:m-[12px_0_0] tw:p-[0] tw:[list-style:none]">
+              <ul className="lessons-progress-list tw:m-[12px_0_0] tw:p-[0] tw:[list-style:none] tw:[&_li_+_li]:mt-[8px]">
                 {selectedBlock.lessons.map((lesson, index) => (
                   <Fragment key={lesson.id}>
                     {renderLessonSlot(index)}
@@ -582,9 +582,9 @@ export function BlockPage({
             </article>
 
             {!isCourseEditMode && (
-              <article className="glass-card block-practice-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none]">
+              <article className="glass-card block-practice-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_h3]:[font-family:'Unbounded',_sans-serif] tw:[&_h3]:text-[0.98rem] tw:[&_li]:mb-[10px] tw:[&_li]:text-(--muted) tw:[&_li]:leading-[1.4]">
                 <h3>Практика и задания</h3>
-                <ul className="practice-progress-list tw:m-[12px_0_0] tw:p-[0] tw:[.block-practice-card_&]:pl-[0] tw:[list-style:none]">
+                <ul className="practice-progress-list tw:m-[12px_0_0] tw:p-[0] tw:[.block-practice-card_&]:pl-[0] tw:[list-style:none] tw:[&_li_+_li]:mt-[8px]">
                   {selectedBlock.practice.map((task) => (
                     <li key={task.id}>
                       <button

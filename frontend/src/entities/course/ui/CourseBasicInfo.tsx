@@ -21,7 +21,7 @@ interface TextListProps {
 function TextList({ title, items, emptyText }: TextListProps) {
   if (!Array.isArray(items) || items.length === 0) {
     return (
-      <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.72] tw:m-[10px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
+      <p className="course-viewer-muted tw:text-(--muted) tw:m-[10px_0_0] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
         {emptyText}
       </p>
     );
@@ -65,15 +65,15 @@ export function CourseBasicInfo({
   const difficulty = formatCourseLevel(course.difficulty || course.level);
 
   return (
-    <article className="course-viewer-card course-basic-info tw:p-[24px] tw:[.course-enrollment-view_&]:border-solid tw:[.course-enrollment-view_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.course-enrollment-view_&]:rounded-[14px] tw:[.course-enrollment-view_&]:[border-width:1px] tw:dark:[.page_.course-enrollment-view_&]:border-[rgba(247,_220,_168,_0.34)] tw:[.course-enrollment-view_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg)] tw:[.course-enrollment-view_&]:[box-shadow:none] tw:[.course-enrollment-view_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[.course-enrollment-view_&]:[backdrop-filter:var(--glass-backdrop)] tw:dark:[.page_.course-enrollment-view_&]:text-[#f4ead8] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:no-backdrop-filter:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:dark:[.page_.course-enrollment-view_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg)]">
+    <article className="course-viewer-card course-basic-info tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.course-enrollment-view_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:dark:border-[rgba(255,_255,_255,_0.12)] tw:[.course-enrollment-view_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:0_20px_60px_rgba(27,_35,_68,_0.08)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:dark:[.page_.course-enrollment-view_&]:border-[rgba(247,_220,_168,_0.34)] tw:[.course-enrollment-view_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg)] tw:dark:[background:rgba(19,_24,_42,_0.72)] tw:[.course-enrollment-view_&]:[box-shadow:none] tw:dark:[.page_.course-enrollment-view_&]:text-[#f4ead8] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:no-backdrop-filter:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:dark:[.page_.course-enrollment-view_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg)] tw:[&_h1]:m-[0] tw:dark:[.page_.course-enrollment-view_&_h2]:text-[#fff4df] tw:dark:[.page_.course-enrollment-view_&_h3]:text-[#fff4df] tw:dark:[.page_.course-enrollment-view_&_li]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_&_h2]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_&_h3]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_&_li]:text-[#e9decb]">
       <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#f7dca8] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#f7dca8]">
         Курс
       </div>
-      <h1 className="tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:tracking-[-0.025em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
+      <h1 className="tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
         {course.title}
       </h1>
       {course.description ? (
-        <p className="course-viewer-description tw:text-(--muted) tw:leading-[1.72] tw:m-[14px_0_0] tw:text-[1rem] tw:tracking-[0.012em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
+        <p className="course-viewer-description tw:text-(--muted) tw:m-[14px_0_0] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
           {course.description}
         </p>
       ) : (
@@ -103,7 +103,7 @@ export function CourseBasicInfo({
 
       {(course.tags?.length ?? 0) > 0 && (
         <div
-          className="course-tags tw:flex tw:flex-wrap tw:gap-[8px] tw:mt-[18px]"
+          className="course-tags tw:flex tw:flex-wrap tw:gap-[8px] tw:mt-[18px] tw:[&_span]:rounded-[999px] tw:[&_span]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)] tw:[&_span]:text-(--ink-accent) tw:[&_span]:text-[0.86rem] tw:[&_span]:font-[700] tw:[&_span]:p-[7px_12px]"
           aria-label="Теги курса"
         >
           {course.tags?.map((tag) => <span key={tag}>{tag}</span>)}

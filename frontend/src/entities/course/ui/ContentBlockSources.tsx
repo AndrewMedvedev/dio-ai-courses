@@ -94,7 +94,7 @@ export function ContentBlockSources({
       <ol className="tw:grid tw:gap-[4px] tw:m-[0] tw:pl-[20px]">
         {items.map((item, index) => (
           <li
-            className="tw:wrap-anywhere tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]"
+            className="tw:wrap-anywhere"
             key={`${item.href || item.label}-${index}`}
           >
             {item.href ? (

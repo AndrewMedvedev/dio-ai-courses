@@ -165,7 +165,7 @@ function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps
             </button>
           </div>
         )}
-        <div className={`content-preview-body tw:min-h-[min(560px,_calc(100vh_-_130px))] tw:grid tw:[&.is-diagram]:min-h-[0] tw:[&.is-diagram]:block tw:[&.is-image]:block tw:[place-items:center] tw:[&.is-diagram]:relative tw:[&.is-diagram]:w-[100%] tw:[&.is-diagram]:flex-[1] tw:[&.is-diagram]:overflow-hidden tw:[&.is-image]:overflow-auto tw:[&.is-diagram]:p-[0] tw:[&.is-diagram]:cursor-grab tw:[&.is-diagram.is-dragging]:cursor-grabbing tw:[&.is-diagram]:[background:#f6f1e9] tw:[&.is-diagram]:[touch-action:none] is-${preview.type}`}>
+        <div className={`content-preview-body tw:min-h-[min(560px,_calc(100vh_-_130px))] tw:grid tw:[&.is-diagram]:min-h-[0] tw:[&.is-diagram]:block tw:[&.is-image]:block tw:[place-items:center] tw:[&.is-diagram]:relative tw:[&.is-diagram]:w-[100%] tw:[&.is-diagram]:flex-[1] tw:[&.is-diagram]:overflow-hidden tw:[&.is-image]:overflow-auto tw:[&.is-diagram]:p-[0] tw:[&.is-diagram]:cursor-grab tw:[&.is-diagram.is-dragging]:cursor-grabbing tw:[&.is-diagram]:[background:#f6f1e9] tw:[&.is-diagram]:[touch-action:none] tw:[&_img]:block tw:[&_img]:w-[100%] tw:[&_img]:max-w-[none] tw:[&_img]:h-[auto] tw:[&_img]:object-contain is-${preview.type}`}>
           {preview.type === "image" ? (
             <div
               className={`content-preview-pan-layer tw:cursor-grab tw:[transform-origin:top_left] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[transition:width_160ms_ease] tw:[&.is-dragging]:[transition:none] ${isDragging ? "is-dragging" : ""}`}
@@ -196,7 +196,7 @@ function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps
               <MermaidDiagram chart={preview.chart} />
             </div>
           ) : (
-            <div className="content-preview-table-wrap tw:w-[100%] tw:overflow-auto">
+            <div className="content-preview-table-wrap tw:w-[100%] tw:overflow-auto tw:[&_table]:w-[100%] tw:[&_table]:[border-collapse:collapse] tw:[&_th]:[border:1px_solid_rgba(var(--accent-rgb),_0.46)] tw:[&_th]:p-[12px_14px] tw:[&_th]:text-left tw:[&_th]:text-(--text) tw:[&_td]:[border:1px_solid_rgba(var(--accent-rgb),_0.46)] tw:[&_td]:p-[12px_14px] tw:[&_td]:text-left tw:[&_td]:text-(--text)">
               <table>{preview.children}</table>
             </div>
           )}

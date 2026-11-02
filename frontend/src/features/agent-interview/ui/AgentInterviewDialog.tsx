@@ -326,7 +326,7 @@ export function AgentInterviewDialog({
           messages.map((message) => (
             <div
               key={message.id}
-              className={`agent-chat-message tw:max-w-[88%] tw:p-[10px_14px] tw:rounded-[16px] tw:leading-[1.5] tw:wrap-anywhere tw:[&.is-system]:max-w-[100%] tw:[&.is-system]:text-(--text) tw:[&.is-system]:font-[700] tw:[&.is-system]:text-center tw:[&.is-user]:[justify-self:end] tw:[&.is-assistant]:[justify-self:start] tw:[&.is-system]:[&.is-user]:justify-self-center tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-assistant]:[background:var(--app-modal-row)] tw:[&.is-assistant]:[border:1px_solid_var(--app-modal-border)] tw:[&.is-system]:[&.is-user]:[background:rgba(47,_125,_79,_0.12)] is-${message.role}`}
+              className={`agent-chat-message tw:max-w-[88%] tw:p-[10px_14px] tw:rounded-[16px] tw:leading-[1.5] tw:wrap-anywhere tw:[&.is-system]:max-w-[100%] tw:[&.is-system]:justify-self-center tw:[&.is-system]:text-(--text) tw:[&.is-system]:font-[700] tw:[&.is-system]:text-center tw:[&.is-user]:[justify-self:end] tw:[&.is-assistant]:[justify-self:start] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-assistant]:[background:var(--app-modal-row)] tw:[&.is-system]:[background:rgba(47,_125,_79,_0.12)] tw:[&.is-assistant]:[border:1px_solid_var(--app-modal-border)] tw:[&_p]:m-[0_0_8px] tw:[&_p:last-child]:mb-[0] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ul:last-child]:mb-[0] tw:[&_ol:last-child]:mb-[0] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px] is-${message.role}`}
             >
               {message.role === "assistant" ? (
                 <AgentMarkdown>{message.text}</AgentMarkdown>
@@ -337,7 +337,7 @@ export function AgentInterviewDialog({
           ))
         )}
         {isThinking ? (
-          <span className="agent-chat-thinking tw:text-(--muted) tw:text-[0.92rem] tw:inline-flex tw:items-center tw:gap-[8px] tw:[&::before]:w-[14px] tw:[&::before]:h-[14px] tw:[&::before]:border-solid tw:[&::before]:border-[rgba(var(--accent-rgb),_0.35)] tw:[&::before]:rounded-[50%] tw:[&::before]:[content:''] tw:[&::before]:[border-width:2px] tw:[&::before]:[border-top-color:rgba(var(--accent-rgb),_0.95)] tw:[&::before]:[animation:app-modal-spin_0.8s_linear_infinite]">
+          <span className="agent-chat-thinking tw:text-(--muted) tw:text-[0.92rem] tw:inline-flex tw:items-center tw:gap-[8px] tw:[&::before]:w-[14px] tw:[&::before]:h-[14px] tw:[&::before]:border-solid tw:[&::before]:border-[rgba(var(--accent-rgb),_0.35)] tw:[&::before]:rounded-[50%] tw:[&::before]:[content:''] tw:[&::before]:[border-width:2px] tw:[&::before]:[border-top-color:rgba(var(--accent-rgb),_0.95)] tw:[&::before]:animate-app-modal-spin">
             Агент думает...
           </span>
         ) : null}
@@ -345,7 +345,7 @@ export function AgentInterviewDialog({
 
       {error ? (
         <div
-          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)]"
+          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
           role="alert"
         >
           <span>{error}</span>
@@ -381,7 +381,7 @@ export function AgentInterviewDialog({
 
       {isRunning ? (
         <div
-          className="agent-chat-status tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(var(--accent-rgb),_0.1)]"
+          className="agent-chat-status tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
           role="status"
         >
           <strong>{texts.running(job)}</strong>
@@ -390,7 +390,7 @@ export function AgentInterviewDialog({
       ) : null}
       {isDone ? (
         <div
-          className="agent-chat-status is-done tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(47,_125,_79,_0.12)]"
+          className="agent-chat-status is-done tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(47,_125,_79,_0.12)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
           role="status"
         >
           <strong>{texts.done(job)}</strong>
@@ -415,7 +415,7 @@ export function AgentInterviewDialog({
       ) : null}
       {isFailed ? (
         <div
-          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)]"
+          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
           role="alert"
         >
           <span>{job.error || "Генерация не завершилась."}</span>
@@ -472,7 +472,7 @@ export function AgentInterviewDialog({
     messages.length > 0 || job ? (
       <button
         type="button"
-        className="btn btn-outline tw:min-h-[32px] tw:p-[3px_12px] tw:text-[0.8rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+        className="btn btn-outline tw:min-h-[32px] tw:text-[0.8rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[&&&&]:p-[3px_12px] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
         onClick={() => setIsResetOpen(true)}
         disabled={isThinking}
       >
@@ -537,7 +537,7 @@ export function AgentInterviewDialog({
           await send(text);
         }}
       >
-        <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)]">
+        <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:[&_p]:m-[0_0_8px] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px]">
           <AgentMarkdown>{lastAssistant?.text || ""}</AgentMarkdown>
         </div>
         <p className="app-modal-note tw:m-[0] tw:text-(--muted) tw:text-[0.9rem]">

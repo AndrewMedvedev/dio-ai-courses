@@ -1,6 +1,5 @@
 import { useParams } from "react-router-dom";
 import { CoursePreview } from "./CoursePreview";
-import "./dnd-course.css";
 
 export function DragAndDropCoursePreviewPage() {
   const { courseId } = useParams();
