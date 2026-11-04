@@ -168,7 +168,7 @@ class DocumentRepository(Repository[Document]):
     Наследует полный CRUD от `RepositoryProtocol` без переопределения
     сигнатур — совместимость по Лисков сохранена. Добавляет три метода
     для навигации по иерархии документа: `get_tocs` (оглавления владельца),
-    `get_headings` (заголовки внутри оглавления) и `get_texts`
+    `get_headings` (заголовки внутри оглавления) и `get_text`
     (текстовое содержимое под заголовком).
     """
 
@@ -176,11 +176,11 @@ class DocumentRepository(Repository[Document]):
         """Получает оглавления документов владельца для навигации по материалам."""
         ...
 
-    async def get_headings(self, toc_id: UUID) -> list[Document]:
+    async def get_headings(self, owner_id: UUID, toc_id: UUID) -> list[Document]:
         """Получает заголовки внутри оглавления, чтобы раскрыть структуру документа."""
         ...
 
-    async def get_texts(self, heading_id: UUID) -> Document | None:
+    async def get_text(self, owner_id: UUID, heading_id: UUID) -> Document | None:
         """Получает текстовый раздел документа по выбранному заголовку."""
 
 
