@@ -45,6 +45,11 @@ class CourseBasicInfo:
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[BasicInfo] = field(default_factory=list)  # [{"id": UUID, "order": int}, ...]
 
+
+class CoursePermissions(BaseModel):
+    permissions: list[str]
+
+
 if TYPE_CHECKING:
     from ..domain.entities import Invitation
 

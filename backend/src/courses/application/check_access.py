@@ -5,7 +5,7 @@ from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
 from src.shared.domain.exceptions import NotFoundError
 
-from .policies import ManageCourseOptions
+from .policies import ManageCourseOptions, get_course_permissions
 from .repos import (
     BasicInfoProtocol,
     MemberRepository,
@@ -28,6 +28,12 @@ class CheckAccess:
         permission: Permission,
         uid: UUID,
     ) -> None:
+        authorize(identity, permission, await self._get_options(identity, uid))
+
+    async def get_permissions(self, identity: Identity, uid: UUID) -> list[str]:
+        return get_course_permissions(identity, await self._get_options(identity, uid))
+
+    async def _get_options(self, identity: Identity, uid: UUID) -> ManageCourseOptions:
         ownership = await self._repo.read_course_ownership(uid)
 
         if ownership is None:
@@ -37,8 +43,4 @@ class CheckAccess:
 
         role = await self._member_repo.read_role(identity.id, course_id)
 
-        authorize(
-            identity,
-            permission,
-            ManageCourseOptions(creator_id=creator_id, member_role=role),
-        )
+        return ManageCourseOptions(creator_id=creator_id, member_role=role)
