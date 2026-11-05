@@ -5,6 +5,7 @@ import { useUiLayoutStore } from "@/shared/lib/ui-layout";
 import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
 
 export interface HeaderProps {
+  onFeedback?: () => void;
   theme: string;
   toggleTheme: () => void;
   canCreateCourse?: boolean;
@@ -29,6 +30,7 @@ function getDisplayText(value: unknown): string {
 }
 
 export function Header({
+  onFeedback,
   theme,
   toggleTheme,
   canCreateCourse = false,
@@ -71,7 +73,7 @@ export function Header({
     "Профиль";
 
   return (
-    <header className="container header tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:m-[0_auto] tw:p-[30px_0_34px] tw:grid tw:grid-cols-[minmax(190px,_auto)_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:max-760:flex tw:max-980:grid-cols-[1fr_auto] tw:max-760:flex-wrap tw:max-980:[align-items:start] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
+    <header className="container header tw:sticky tw:top-0 tw:z-[100] tw:bg-(--bg) tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:m-[0_auto] tw:p-[30px_0_34px] tw:grid tw:grid-cols-[minmax(190px,_auto)_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:max-760:flex tw:max-1300:grid-cols-[1fr_auto] tw:max-760:flex-wrap tw:max-1300:[align-items:start] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
       <Link
         to="/"
         className="logo logo-button tw:inline-flex tw:flex-col tw:p-[0] tw:text-left tw:cursor-pointer tw:[justify-self:start] tw:[text-decoration:none] tw:[border:0] tw:[background:transparent]"
@@ -84,7 +86,7 @@ export function Header({
         </span>
       </Link>
 
-      <nav className="nav tw:justify-self-center tw:min-w-[0] tw:max-w-[100%] tw:flex tw:items-center tw:justify-center tw:flex-nowrap tw:gap-[6px] tw:overflow-hidden tw:max-980:justify-self-stretch tw:max-980:justify-start tw:max-980:flex-wrap tw:max-760:gap-[8px] tw:max-980:overflow-visible tw:max-980:col-[1_/_-1] tw:max-980:row-[2] tw:max-760:w-[100%] tw:max-760:text-[0.9rem] tw:max-760:[order:3]">
+      <nav className="nav tw:justify-self-center tw:min-w-[0] tw:max-w-[100%] tw:flex tw:items-center tw:justify-center tw:flex-wrap tw:gap-[6px] tw:overflow-visible tw:max-1300:justify-self-stretch tw:max-1300:justify-start tw:max-1300:flex-wrap tw:max-760:gap-[8px] tw:max-1300:overflow-visible tw:max-1300:col-[1_/_-1] tw:max-1300:row-[2] tw:max-760:w-[100%] tw:max-760:text-[0.9rem] tw:max-760:[order:3]">
         {canReadCourse && (
           <NavLink
             to="/courses"
@@ -137,7 +139,10 @@ export function Header({
         )}
       </nav>
 
-      <div className="header-actions tw:inline-flex tw:items-center tw:gap-[8px] tw:shrink-0 tw:whitespace-nowrap tw:[justify-self:end] tw:max-760:w-[100%] tw:max-760:justify-between tw:max-760:ml-[0]">
+      <div className="header-actions tw:inline-flex tw:items-center tw:gap-[8px] tw:shrink-0 tw:whitespace-nowrap tw:[justify-self:end] tw:max-760:w-[100%] tw:max-760:justify-between tw:max-760:ml-[0] tw:max-760:flex-wrap">
+        <button type="button" onClick={onFeedback} className="tw:min-h-[48px] tw:rounded-[999px] tw:border-0 tw:bg-(--contrast) tw:text-(--text-solid) tw:px-[20px] tw:py-[12px] tw:font-[600] tw:text-[14px] tw:leading-[21px] tw:cursor-pointer tw:[font-family:inherit] tw:max-760:order-5 tw:max-760:w-full tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-(--ink-accent)">
+          Обратная связь
+        </button>
         {isAuthenticated ? (
           <>
             <NavLink

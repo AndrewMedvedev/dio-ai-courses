@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import { Header } from "@/widgets/header";
 import { Footer } from "@/widgets/footer";
+import { FeedbackDialog } from "@/features/send-feedback";
 import { Breadcrumbs } from "@/widgets/breadcrumbs";
 import { Toaster, notify } from "@/shared/ui/toast";
 import { ProtectedRoute } from "@/app/router";
@@ -121,6 +122,9 @@ function getCourseRouteTarget(pathname: string): { type: string; id: string } {
 }
 
 function AppContent() {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const openFeedback = useCallback(() => setFeedbackOpen(true), []);
+  const closeFeedback = useCallback(() => setFeedbackOpen(false), []);
   const navigate = useNavigate();
   const location = useLocation();
   const setPermissionsFromIdentity = usePermissionStore(
@@ -1614,6 +1618,7 @@ function AppContent() {
       </svg>
 
       <Header
+        onFeedback={openFeedback}
         theme={appliedTheme}
         canCreateCourse={canCreateCourse}
         canReadCourse={canBrowseCourses}
@@ -1906,7 +1911,8 @@ function AppContent() {
           </>
         )}
       </main>
-      <Footer canCreateCourse={canCreateCourse} canReadCourse={canReadCourse} />
+      <Footer canCreateCourse={canCreateCourse} canReadCourse={canReadCourse} onFeedback={openFeedback} />
+      {feedbackOpen && <FeedbackDialog onClose={closeFeedback} />}
       {isCourseEditMode && canUpdateCourse && selectedCourse?.id ? (
         <EditorSaveBar
           courseId={selectedCourse.id}

@@ -2,11 +2,13 @@
 import { Link } from "react-router-dom";
 
 export interface FooterProps {
+  onFeedback?: () => void;
   canCreateCourse?: boolean;
   canReadCourse?: boolean;
 }
 
 export function Footer({
+  onFeedback,
   canCreateCourse = false,
   canReadCourse = false,
 }: FooterProps) {
@@ -67,6 +69,9 @@ export function Footer({
           >
             Условия использования
           </a>
+          <button type="button" onClick={onFeedback} className="tw:min-h-[48px] tw:rounded-[999px] tw:border tw:border-solid tw:border-(--ink-accent) tw:bg-transparent tw:text-(--text) tw:px-[20px] tw:py-[12px] tw:font-[600] tw:text-[14px] tw:leading-[21px] tw:cursor-pointer tw:[font-family:inherit] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-(--ink-accent)">
+            Обратная связь
+          </button>
         </div>
       </div>
       <div className="container footer-bottom tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:m-[0_auto] tw:p-[16px_0_28px] tw:flex tw:justify-between tw:gap-[16px] tw:text-(--muted) tw:text-[0.76rem] tw:[border-top:1px_solid_rgba(var(--accent-rgb),_0.2)] tw:max-760:flex-col tw:max-760:items-start tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
