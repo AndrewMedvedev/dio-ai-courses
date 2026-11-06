@@ -140,7 +140,7 @@ export function Header({
       </nav>
 
       <div className="header-actions tw:inline-flex tw:items-center tw:gap-[8px] tw:shrink-0 tw:whitespace-nowrap tw:[justify-self:end] tw:max-760:w-[100%] tw:max-760:justify-between tw:max-760:ml-[0] tw:max-760:flex-wrap">
-        <button type="button" onClick={onFeedback} className="tw:min-h-[48px] tw:rounded-[999px] tw:border-0 tw:bg-(--contrast) tw:text-(--text-solid) tw:px-[20px] tw:py-[12px] tw:font-[600] tw:text-[14px] tw:leading-[21px] tw:cursor-pointer tw:[font-family:inherit] tw:max-760:order-5 tw:max-760:w-full tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-(--ink-accent)">
+        <button type="button" onClick={onFeedback} className="tw:min-h-[48px] tw:rounded-[999px] tw:border tw:border-solid tw:border-(--glass-border) tw:[background:var(--glass-tint)] tw:text-(--text) tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:hover:border-(--glass-glow) tw:px-[20px] tw:py-[12px] tw:font-[600] tw:text-[14px] tw:leading-[21px] tw:cursor-pointer tw:[font-family:inherit] tw:max-760:order-5 tw:max-760:w-full tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-(--ink-accent)">
           Обратная связь
         </button>
         {isAuthenticated ? (
@@ -177,7 +177,7 @@ export function Header({
             </NavLink>
             <button
               type="button"
-              className="btn btn-ghost header-logout tw:min-h-[42px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:font-[700] tw:tracking-[0.01em] tw:[text-decoration:none] tw:[border:1px_solid_transparent] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:hover:[transform:translateY(-1px)]"
+              className="btn btn-ghost header-logout tw:min-h-[42px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:font-[700] tw:tracking-[0.01em] tw:[text-decoration:none] tw:border tw:border-solid tw:border-(--glass-border) tw:[background:var(--glass-tint)] tw:text-(--text) tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:hover:border-(--glass-glow) tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:hover:[transform:translateY(-1px)]"
               onClick={handleLogout}
             >
               Выйти

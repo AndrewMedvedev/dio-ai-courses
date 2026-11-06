@@ -13,6 +13,7 @@ interface FeedbackDialogProps {
 }
 
 const MAX_COMMENT_LENGTH = 2000;
+const FEEDBACK_TIMEOUT_MS = 20_000;
 const RATING_LABELS = [
   "",
   "плохо",
@@ -113,16 +114,27 @@ export function FeedbackDialog({ onClose }: FeedbackDialogProps) {
     inFlight.current = true;
     setSending(true);
     setSendError(null);
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
-      await requestJson<unknown>(
-        "/feedbacks",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rating, comment: comment.trim() }),
-        },
-        { clearOnUnauthorized: false },
-      );
+      await Promise.race([
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new DOMException("Feedback request timed out", "TimeoutError"));
+          }, FEEDBACK_TIMEOUT_MS);
+        }),
+        requestJson<unknown>(
+          "/feedbacks",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rating, comment: comment.trim() }),
+            signal: controller.signal,
+          },
+          { clearOnUnauthorized: false },
+        ),
+      ]);
       setSent(true);
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
@@ -131,18 +143,21 @@ export function FeedbackDialog({ onClose }: FeedbackDialogProps) {
       setSendError({
         status,
         message:
-          status === 429
-            ? "Можно оставить не более 5 отзывов за сутки. Попробуйте позже."
-            : status === 401
-              ? "Сессия истекла. Войдите в аккаунт, чтобы отправить отзыв."
-              : status === 422
-                ? "Проверьте корректность заполнения полей."
-                : status && status < 500
-                  ? apiError?.message ||
-                    "Не удалось отправить отзыв. Попробуйте ещё раз."
-                  : "Проверьте подключение и попробуйте ещё раз. Введённый текст сохранён.",
+          controller.signal.aborted
+            ? "Сервер не ответил за 20 секунд. Текст сохранён. Не удалось подтвердить отправку."
+            : status === 429
+              ? "Можно оставить не более 5 отзывов за сутки. Попробуйте позже."
+              : status === 401
+                ? "Сессия истекла. Войдите в аккаунт, чтобы отправить отзыв."
+                : status === 422
+                  ? "Проверьте корректность заполнения полей."
+                  : status && status < 500
+                    ? apiError?.message ||
+                      "Не удалось отправить отзыв. Попробуйте ещё раз."
+                    : "Проверьте подключение и попробуйте ещё раз. Введённый текст сохранён.",
       });
     } finally {
+      clearTimeout(timeoutId);
       inFlight.current = false;
       setSending(false);
     }
