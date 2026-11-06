@@ -1,0 +1,286 @@
+import type {
+  BlockNode,
+  CourseNode,
+  LessonNode,
+  PracticeNode,
+} from "../model/tree";
+
+export const EMPTY_COURSE: CourseNode = {
+  id: "",
+  title: "Курс не выбран",
+  description: "",
+  category: "",
+  duration: "",
+  level: "",
+  format: "",
+  learningObjectives: [],
+  blocks: [],
+};
+
+export const EMPTY_BLOCK: BlockNode = {
+  id: "",
+  title: "Модуль не выбран",
+  lessons: [],
+  practice: [],
+  learningObjectives: [],
+};
+
+export const EMPTY_LESSON: LessonNode = {
+  id: "",
+  title: "Урок не выбран",
+  duration: "",
+  summary: "",
+  content: "",
+  markdown: "",
+  contentBlocks: [],
+};
+
+export const mergeCourse = (
+  courses: CourseNode[],
+  nextCourse: CourseNode | null | undefined,
+): CourseNode[] => {
+  if (!nextCourse?.id) return courses;
+  return courses.some((course) => course.id === nextCourse.id)
+    ? courses.map((course) =>
+        course.id === nextCourse.id
+          ? {
+              ...course,
+              ...nextCourse,
+              blocks: nextCourse.blocks?.length
+                ? nextCourse.blocks
+                : course.blocks,
+            }
+          : course,
+      )
+    : [...courses, nextCourse];
+};
+
+export const mergeCoursePage = (
+  currentCourses: CourseNode[],
+  nextCourses: CourseNode[],
+): CourseNode[] =>
+  nextCourses.map((nextCourse) => {
+    const currentCourse = currentCourses.find(
+      (course) => course.id === nextCourse.id,
+    );
+
+    if (!currentCourse) return nextCourse;
+
+    return mergeCourse([currentCourse], nextCourse)[0];
+  });
+
+export const mergeModule = (
+  course: CourseNode,
+  nextModule: BlockNode,
+): CourseNode => ({
+  ...course,
+  blocks: (course.blocks || []).map((block) =>
+    block.id === nextModule.id
+      ? {
+          ...block,
+          ...nextModule,
+          lessons: nextModule.lessons?.length
+            ? nextModule.lessons
+            : block.lessons,
+          practice: block.practice || [],
+        }
+      : block,
+  ),
+});
+
+export const mergeLesson = (
+  course: CourseNode,
+  nextLesson: LessonNode,
+): CourseNode => ({
+  ...course,
+  blocks: (course.blocks || []).map((block) => ({
+    ...block,
+    lessons: (block.lessons || []).map((lesson) =>
+      lesson.id === nextLesson.id ? { ...lesson, ...nextLesson } : lesson,
+    ),
+  })),
+});
+
+// Добавляет модуль в курс или обновляет существующий (например, после генерации ИИ).
+export const upsertModule = (
+  course: CourseNode,
+  nextModule: BlockNode,
+): CourseNode => {
+  const blocks = course.blocks || [];
+  if (blocks.some((block) => block.id === nextModule.id)) {
+    return mergeModule(course, nextModule);
+  }
+  const block: BlockNode = {
+    duration: "Модуль курса",
+    learningObjectives: [],
+    ...nextModule,
+    lessons: nextModule.lessons || [],
+    practice: nextModule.practice || [],
+  };
+  const order = Number(nextModule.order);
+  const index = Number.isFinite(order)
+    ? Math.min(Math.max(order - 1, 0), blocks.length)
+    : blocks.length;
+  // Порядок остальных модулей сдвигается так же, как на backend.
+  return {
+    ...course,
+    blocks: [...blocks.slice(0, index), block, ...blocks.slice(index)].map(
+      (item, itemIndex) => ({ ...item, order: itemIndex + 1 }),
+    ),
+  };
+};
+
+// Добавляет урок в модуль или обновляет существующий.
+export const upsertLesson = (
+  course: CourseNode,
+  moduleId: string,
+  nextLesson: LessonNode,
+): CourseNode => ({
+  ...course,
+  blocks: (course.blocks || []).map((block) => {
+    if (block.id !== moduleId) return block;
+    const lessons = block.lessons || [];
+    if (lessons.some((lesson) => lesson.id === nextLesson.id)) {
+      return {
+        ...block,
+        lessons: lessons.map((lesson) =>
+          lesson.id === nextLesson.id ? { ...lesson, ...nextLesson } : lesson,
+        ),
+      };
+    }
+    const order = Number(nextLesson.order);
+    const index = Number.isFinite(order)
+      ? Math.min(Math.max(order - 1, 0), lessons.length)
+      : lessons.length;
+    return {
+      ...block,
+      lessons: [
+        ...lessons.slice(0, index),
+        nextLesson,
+        ...lessons.slice(index),
+      ].map((item, itemIndex) => ({ ...item, order: itemIndex + 1 })),
+    };
+  }),
+});
+
+// Возвращает в курсе поля модуля или урока (используется при отмене правок).
+export const applyEntityFields = (
+  course: CourseNode,
+  kind: "module" | "lesson" | string,
+  entityId: string,
+  fields: Record<string, unknown>,
+): CourseNode =>
+  kind === "module"
+    ? {
+        ...course,
+        blocks: (course.blocks || []).map((block) =>
+          block.id === entityId ? { ...block, ...fields } : block,
+        ),
+      }
+    : {
+        ...course,
+        blocks: (course.blocks || []).map((block) => ({
+          ...block,
+          lessons: (block.lessons || []).map((lesson) =>
+            lesson.id === entityId ? { ...lesson, ...fields } : lesson,
+          ),
+        })),
+      };
+
+export function getSelectedCourse(
+  courses: CourseNode[],
+  selectedCourseId: string | null | undefined,
+): CourseNode {
+  return (
+    courses.find((course) => course.id === selectedCourseId) ||
+    courses[0] ||
+    EMPTY_COURSE
+  );
+}
+
+export function getSelectedBlock(
+  course: CourseNode,
+  selectedBlockId: string | null | undefined,
+): BlockNode {
+  return (
+    (course.blocks || []).find((block) => block.id === selectedBlockId) ||
+    course.blocks?.[0] ||
+    EMPTY_BLOCK
+  );
+}
+
+export function getSelectedLesson(
+  block: BlockNode,
+  selectedLessonId: string | null | undefined,
+): LessonNode {
+  return (
+    (block.lessons || []).find((lesson) => lesson.id === selectedLessonId) ||
+    block.lessons?.[0] ||
+    EMPTY_LESSON
+  );
+}
+
+export function getSelectedPractice(
+  block: BlockNode,
+  selectedPracticeId: string | null | undefined,
+): PracticeNode | null {
+  return (
+    block.practice?.find((practice) => practice.id === selectedPracticeId) ||
+    block.practice?.[0] ||
+    null
+  );
+}
+
+export function createEmptyCourseBlock(courseId: string) {
+  const suffix = Date.now().toString(36);
+  const blockId = `${courseId}-block-${suffix}`;
+  const lessonId = `${blockId}-lesson-1`;
+
+  return {
+    id: blockId,
+    block: {
+      id: blockId,
+      title: "Новый блок",
+      description: "",
+      duration: "2 недели",
+      lessons: [
+        {
+          id: lessonId,
+          title: "Новый урок",
+          duration: "20 минут",
+          summary: "",
+          content: "",
+          markdown: "Новый текстовый блок.",
+          contentBlocks: [
+            {
+              content_type: "text",
+              ai_generated: false,
+              md_content: "Новый текстовый блок.",
+            },
+          ],
+        },
+      ],
+      practice: [],
+    },
+  };
+}
+
+export const moveItem = <T extends { id?: unknown }>(
+  items: T[],
+  itemId: unknown,
+  direction: number,
+): T[] => {
+  const currentIndex = items.findIndex((item) => item.id === itemId);
+  const nextIndex = currentIndex + direction;
+
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= items.length) {
+    return items;
+  }
+
+  const nextItems = [...items];
+  [nextItems[currentIndex], nextItems[nextIndex]] = [
+    nextItems[nextIndex],
+    nextItems[currentIndex],
+  ];
+  return nextItems;
+};
