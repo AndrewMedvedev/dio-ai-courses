@@ -73,7 +73,7 @@ export function Header({
     "Профиль";
 
   return (
-    <header className="container header tw:sticky tw:top-0 tw:z-[100] tw:bg-(--bg) tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:m-[0_auto] tw:p-[30px_0_34px] tw:grid tw:grid-cols-[minmax(190px,_auto)_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:max-760:flex tw:max-1300:grid-cols-[1fr_auto] tw:max-760:flex-wrap tw:max-1300:[align-items:start] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
+    <header className="container header tw:sticky tw:top-0 tw:z-[100] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:m-[0_auto] tw:p-[30px_0_34px] tw:grid tw:grid-cols-[minmax(190px,_auto)_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:max-760:flex tw:max-1300:grid-cols-[1fr_auto] tw:max-760:flex-wrap tw:max-1300:[align-items:start] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
       <Link
         to="/"
         className="logo logo-button tw:inline-flex tw:flex-col tw:p-[0] tw:text-left tw:cursor-pointer tw:[justify-self:start] tw:[text-decoration:none] tw:[border:0] tw:[background:transparent]"

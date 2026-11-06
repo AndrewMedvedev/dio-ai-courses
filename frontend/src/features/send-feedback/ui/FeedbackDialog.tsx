@@ -156,7 +156,7 @@ export function FeedbackDialog({ onClose }: FeedbackDialogProps) {
       busy={sending}
       onClose={onClose}
       initialFocusRef={firstRating}
-      className="feedback-modal tw:border-(--line)! tw:[&_.app-modal-head]:pt-[28px] tw:[&_.app-modal-head_h2]:text-[24px] tw:[&_.app-modal-head_h2]:leading-[32px] tw:[&_.app-modal-head_p]:text-[14px] tw:[&_.app-modal-head_p]:leading-[21px] tw:[&_.app-modal-body]:pt-[8px] tw:[&_.app-modal-body]:pb-[24px] tw:[&_.app-modal-foot]:gap-[12px] tw:[&_.app-modal-foot]:border-(--line) tw:[&_.app-modal-foot]:pt-[16px] tw:[&_.app-modal-foot]:pb-[28px] tw:max-480:[&_.app-modal-head]:px-[20px] tw:max-480:[&_.app-modal-body]:px-[20px] tw:max-480:[&_.app-modal-foot]:px-[20px] tw:max-480:[&_.app-modal-foot]:flex-col tw:max-480:[&_.app-modal-foot_button]:w-full tw:[&_.app-modal-close:disabled]:opacity-35"
+      className="feedback-modal tw:border-(--line)! tw:[&_.app-modal-head]:pt-[28px] tw:[&_.app-modal-head_h2]:text-[24px] tw:[&_.app-modal-head_h2]:leading-[32px] tw:[&_.app-modal-head_p]:text-[14px] tw:[&_.app-modal-head_p]:leading-[21px] tw:[&_.app-modal-body]:pt-[8px] tw:[&_.app-modal-body]:pb-[24px] tw:[&_.app-modal-body]:[scrollbar-width:none] tw:[&_.app-modal-body::-webkit-scrollbar]:hidden tw:[&_.app-modal-foot]:gap-[12px] tw:[&_.app-modal-foot]:border-(--line) tw:[&_.app-modal-foot]:pt-[16px] tw:[&_.app-modal-foot]:pb-[28px] tw:max-480:[&_.app-modal-head]:px-[20px] tw:max-480:[&_.app-modal-body]:px-[20px] tw:max-480:[&_.app-modal-foot]:px-[20px] tw:max-480:[&_.app-modal-foot]:flex-col tw:max-480:[&_.app-modal-foot_button]:w-full tw:[&_.app-modal-close:disabled]:opacity-35"
       footer={
         sent ? (
           <button
@@ -338,7 +338,7 @@ export function FeedbackDialog({ onClose }: FeedbackDialogProps) {
                 aria-invalid={Boolean(errors.comment)}
                 aria-describedby={`${formId}-comment-hint ${formId}-comment-count`}
                 placeholder="Что понравилось или что стоит улучшить?"
-                className={`tw:box-border tw:w-full tw:h-[144px] tw:resize-y tw:rounded-[12px] tw:border tw:border-solid tw:p-[16px] tw:bg-(--app-modal-row) tw:text-(--text) tw:text-[16px] tw:leading-[24px] tw:[font-family:inherit] tw:placeholder:text-(--muted) tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-(--ink-accent) tw:max-480:h-[164px] ${errors.comment ? "tw:border-(--app-modal-danger)" : "tw:border-(--line)"}`}
+                className={`tw:box-border tw:w-full tw:h-[clamp(72px,_20dvh,_144px)] tw:resize-none tw:[scrollbar-width:thin] tw:[scrollbar-color:var(--line-strong)_transparent] tw:supports-[selector(::-webkit-scrollbar)]:[scrollbar-width:auto] tw:supports-[selector(::-webkit-scrollbar)]:[scrollbar-color:auto] tw:[&::-webkit-scrollbar]:w-[6px] tw:[&::-webkit-scrollbar-track]:bg-transparent tw:[&::-webkit-scrollbar-thumb]:rounded-full tw:[&::-webkit-scrollbar-thumb]:bg-(--line-strong) tw:[&::-webkit-scrollbar-button]:hidden tw:rounded-[12px] tw:border tw:border-solid tw:p-[16px] tw:bg-(--app-modal-row) tw:text-(--text) tw:text-[16px] tw:leading-[24px] tw:[font-family:inherit] tw:placeholder:text-(--muted) tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-(--ink-accent) tw:max-480:h-[clamp(72px,_20dvh,_164px)] ${errors.comment ? "tw:border-(--app-modal-danger)" : "tw:border-(--line)"}`}
               />
               <div className="tw:flex tw:justify-between tw:gap-[12px] tw:text-[12px] tw:leading-[18px]">
                 <span
