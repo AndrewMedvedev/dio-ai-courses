@@ -37,7 +37,7 @@ services:
       - --wait-tasks-timeout
       - "600"
     env_file:
-      - ../.env.prod
+      - ../.env
     expose:
       - "9000"
     depends_on:
