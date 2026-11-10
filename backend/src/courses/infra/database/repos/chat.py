@@ -3,11 +3,11 @@ from uuid import UUID
 
 from sqlalchemy import select, update
 
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
-
-from ....domain.entities import (
+from src.courses.domain.conversations.entities import (
     Chat,
 )
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
+
 from ..mappers import (
     ChatMapper,
 )

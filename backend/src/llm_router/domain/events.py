@@ -3,9 +3,8 @@ from typing import Any, ClassVar
 from dataclasses import dataclass
 from uuid import UUID
 
+from src.llm_router.domain.enums import LLMInvocationStatus
 from src.shared.domain.events import Event
-
-from .vo import LLMInvocationStatus
 
 
 @dataclass(frozen=True, kw_only=True)

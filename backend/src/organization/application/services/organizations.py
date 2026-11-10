@@ -16,7 +16,6 @@ class OrganizationService:
 
     async def create(self, data: OrganizationCreate) -> Organization:
         """Создание нового контрагента (по умолчанию головной)"""
-        # 1. Проверка на уникальность (ИНН + email)
         exists_organization = await self.repository.get_by_email(email=data.email)
         if exists_organization is not None:
             raise AlreadyExistsError(f"Organization with email {data.email} already exists")
@@ -62,7 +61,7 @@ class OrganizationService:
             email=data.email,
             description=data.description,
         )
-        await self.repository.upsert(organization)
+        await self.repository.update(organization)
         await self.session.commit()
 
         return organization

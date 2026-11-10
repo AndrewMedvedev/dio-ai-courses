@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from src.courses.domain.entities import (
+from src.courses.domain.assessment.entities import (
     Practice,
 )
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
@@ -22,7 +22,12 @@ class SqlPracticeRepository(SqlAlchemyRepository[Practice, PracticeOrm]):
     model = PracticeOrm
     model_mapper = PracticeMapper  # pyright: ignore[reportAssignmentType]
 
-    async def read(self, user_id: UUID, module_id: UUID, lesson_id: UUID) -> Practice | None:
+    async def read_by_module_lesson(
+        self,
+        user_id: UUID,
+        module_id: UUID,
+        lesson_id: UUID,
+    ) -> Practice | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
         stmt = select(self.model).where(
             self.model.user_id == user_id,

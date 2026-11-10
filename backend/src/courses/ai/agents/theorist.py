@@ -1,0 +1,162 @@
+# pyright: reportAssignmentType=false
+
+import logging
+
+from pydantic import TypeAdapter
+
+from src.courses.ai.middlewares import ToolCallLimitMiddleware
+from src.courses.ai.prompts.few_shots import (
+    CHEMICAL_BLOCK_FEW_SHOT,
+    CODE_BLOCK_FEW_SHOT,
+    MATH_BLOCK_FEW_SHOT,
+    MERMAID_BLOCK_FEW_SHOT,
+    MUSICAL_BLOCK_FEW_SHOT,
+    QUIZ_BLOCK_FEW_SHOT,
+    TEXT_BLOCK_FEW_SHOT,
+)
+from src.courses.ai.prompts.generation.content_blocks import (
+    CONTENT_BLOCK_PROMPTS,
+    SOURCES_URL_ONLY_INSTRUCTION,
+)
+from src.courses.ai.schemas.contexts import Context
+from src.courses.domain.catalog.enums import (
+    ContentType,
+)
+from src.courses.domain.catalog.vo import (
+    AnyContentBlock,
+    ChemicalBlock,
+    CodeBlock,
+    ImageBlock,
+    MathBlock,
+    MermaidBlock,
+    MusicalBlock,
+    QuizBlock,
+    TextBlock,
+)
+from src.courses.infra.services import course_client
+from src.llm_service import (
+    BaseAgentMiddleware,
+    LLMImageService,
+    LLMTextService,
+)
+from src.llm_service.schemas import Runtime
+
+from .reasoner import call_researcher_agent
+
+logger = logging.getLogger(__name__)
+
+
+THEORIST_CONFIG = {
+    ContentType.PROGRAM_CODE: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.PROGRAM_CODE],
+        "response_format": CodeBlock,
+        "few_shot": CODE_BLOCK_FEW_SHOT,
+    },
+    ContentType.TEXT: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.TEXT],
+        "response_format": TextBlock,
+        "few_shot": TEXT_BLOCK_FEW_SHOT,
+    },
+    ContentType.QUIZ: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.QUIZ],
+        "response_format": QuizBlock,
+        "few_shot": QUIZ_BLOCK_FEW_SHOT,
+    },
+    ContentType.MERMAID: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MERMAID],
+        "response_format": MermaidBlock,
+        "few_shot": MERMAID_BLOCK_FEW_SHOT,
+    },
+    ContentType.MATH_FORMULA: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MATH_FORMULA],
+        "response_format": MathBlock,
+        "few_shot": MATH_BLOCK_FEW_SHOT,
+    },
+    ContentType.CHEMICAL_FORMULA: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.CHEMICAL_FORMULA],
+        "response_format": ChemicalBlock,
+        "few_shot": CHEMICAL_BLOCK_FEW_SHOT,
+    },
+    ContentType.MUSICAL_NOTATION: {
+        "system_prompt": CONTENT_BLOCK_PROMPTS[ContentType.MUSICAL_NOTATION],
+        "response_format": MusicalBlock,
+        "few_shot": MUSICAL_BLOCK_FEW_SHOT,
+    },
+}
+
+
+async def generate_image(
+    context: Context,
+    prompt: str,
+    images: list[str] | None = None,
+    middlewares: list[BaseAgentMiddleware] | None = None,
+    runtime: Runtime | None = None,
+) -> ImageBlock:
+    agent = LLMImageService(
+        client=course_client,
+        runtime=runtime or Runtime(context=context, state=course_client),
+        middlewares=[
+            *(middlewares or []),
+        ],
+    )
+    result = await agent.invoke(messages=prompt, images=images)
+    return ImageBlock(image_id=result.image)
+
+
+async def generate_text(
+    content_type: ContentType,
+    context: Context,
+    prompt: str,
+    middlewares: list[BaseAgentMiddleware] | None = None,
+    runtime: Runtime | None = None,
+) -> AnyContentBlock:
+    content_config = THEORIST_CONFIG.get(content_type, {})
+    agent = LLMTextService(
+        client=course_client,
+        runtime=runtime or Runtime(context=context, state=course_client),
+        system_prompt=(
+            f"{content_config['system_prompt']}\n\n{SOURCES_URL_ONLY_INSTRUCTION}"
+            if content_config.get("system_prompt")
+            else SOURCES_URL_ONLY_INSTRUCTION
+        ),
+        tools={"call_researcher_agent": call_researcher_agent},
+        middlewares=[
+            ToolCallLimitMiddleware(tool_limits={"call_researcher_agent": 1}),
+            *(middlewares or []),
+        ],
+    )
+    response_format: AnyContentBlock = content_config.get("response_format")
+    content_block = await agent.invoke(
+        messages=[*content_config.get("few_shot", []), {"role": "user", "content": prompt}],
+        schema=response_format,
+    )
+    result = TypeAdapter(response_format).validate_python(content_block.output)
+    result.content_type = content_type
+
+    return result
+
+
+async def call_theory_agent(
+    content_type: ContentType,
+    context: Context,
+    prompt: str,
+) -> AnyContentBlock:
+    """Вызывает агента для генерации образовательного контента
+
+    :param content_type: Тип контент блока, который нужно сгенерировать.
+    :param prompt: Детальный промпт для генерации контента.
+    :param context: Контекстные данные преподавателя.
+    :returns: Сгенерированный контент блок заданного типа.
+    """
+
+    logger.info("Calling theory agent for content type `%s`  ...'", content_type.value)
+    if content_type == ContentType.IMAGE:
+        return await generate_image(
+            context=context,
+            prompt=prompt,
+        )
+    return await generate_text(
+        content_type=content_type,
+        context=context,
+        prompt=prompt,
+    )

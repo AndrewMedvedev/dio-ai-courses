@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from src.llm_router.domain.dataclass import AIModel, LLMInvocation
+from src.llm_router.domain.entities import AIModel, LLMInvocation
 from src.llm_router.domain.vo import LLMInvocationStatus
 
 

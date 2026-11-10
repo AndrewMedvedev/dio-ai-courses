@@ -14,7 +14,6 @@ from sqlalchemy import (
     exists,
     func,
     select,
-    update,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -64,7 +63,7 @@ def apply_sorting[ModelT: Base](
         if (column := getattr(model, field_name, None)) is not None:
             return stmt.order_by(sort_func(column))
 
-    except (AttributeError, ValueError):
+    except AttributeError, ValueError:
         raise ValueError(f"Invalid sort query param - '{sort}'") from None
 
     return default_stmt
@@ -137,15 +136,7 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
             sort=filters.sort if filters else None,
         )
 
-    async def update(self, uid: UUID, **kwargs) -> EntityT | None:
-        stmt = (
-            update(self.model).values(**kwargs).where(self.model.id == uid).returning(self.model)
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
-
-    async def upsert(self, entity: EntityT) -> None:
+    async def update(self, entity: EntityT) -> None:
         model = self.model_mapper.to_model(entity)
         await self._session.merge(model)
 
@@ -153,11 +144,11 @@ class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
         stmt = delete(self.model).where(self.model.id == uid)
         await self._session.execute(stmt)
 
-    async def exists(self, uid: UUID) -> bool | None:
+    async def exists(self, uid: UUID) -> bool:
         stmt = select(exists().where(self.model.id == uid))
-        return await self._session.scalar(stmt)
+        return bool(await self._session.scalar(stmt))
 
-    async def get_by_ids(self, ids: list[UUID]) -> list[EntityT]:
+    async def get_by_ids(self, ids: list[UUID]) -> tuple[EntityT, ...]:
         stmt = select(self.model).where(self.model.id.in_(ids))
         results = await self._session.execute(stmt)
-        return [self.model_mapper.from_model(model) for model in results.scalars().all()]
+        return tuple(self.model_mapper.from_model(model) for model in results.scalars().all())

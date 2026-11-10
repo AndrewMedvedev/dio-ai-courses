@@ -3,9 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from src.iam.dependencies.identity import CurrentIdentity
+from src.llm_router.api.dependencies.services import LLMImageRouterDep, LLMTextRouterDep
 from src.llm_service import LLMImageRequest, LLMImageResponse, LLMTextRequest, LLMTextResponse
-
-from ...dependencies import LLMImageRouterDep, LLMTextRouterDep
 
 router = APIRouter(prefix="/responses", tags=["LLM Router"])
 
@@ -30,7 +29,7 @@ async def invoke_text(
     summary="Сгенерировать изображение с помощью AI-модели",
     description="Отправляет запрос на генерацию изображения выбранной AI-модели и возвращает результат.",
 )
-async def invoke(
+async def invoke_image(
     schema: LLMImageRequest,
     service: LLMImageRouterDep,
     _identity: CurrentIdentity,

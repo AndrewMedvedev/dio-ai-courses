@@ -1,15 +1,17 @@
 from typing import Annotated
 
+from datetime import timedelta
+
+from ddf.ratelimit.fastapi.dependencies import rate_limit
+from ddf.ratelimit.models import FixedWindowPolicy
 from fastapi import APIRouter, Depends, Query, status
 
-from src.feedback.application.dtos import FeedbackCreate, FeedbackFilters
-from src.feedback.dependencies.base import FeedbackRepoDep
-from src.feedback.dependencies.services import FeedbackServiceDep
-from src.feedback.domain.entities import Feedback
+from src.feedback.api.dependencies import FeedbackRepoDep, create_feedback, get_identity_id
+from src.feedback.application.dtos import CreateFeedbackDTO, FeedbackFilters, FeedbackResponse
 from src.feedback.domain.permissions.feedback import READ
 from src.iam.dependencies import CurrentIdentity, require_permissions
 from src.shared.application.dtos import Page
-from src.shared.dependencies import PaginationDep
+from src.shared.dependencies import PaginationDep, TransactionDep
 
 router = APIRouter(prefix="/feedbacks", tags=["Отзывы"])
 
@@ -17,14 +19,28 @@ router = APIRouter(prefix="/feedbacks", tags=["Отзывы"])
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
-    response_model=Feedback,
+    dependencies=[
+        Depends(
+            rate_limit(
+                "feedbacks:create",
+                FixedWindowPolicy(
+                    limit=3,
+                    window=timedelta(days=1),
+                ),
+                identity=get_identity_id,
+            )
+        )
+    ],
 )
-async def create_feedback(
-    data: FeedbackCreate,
+async def create(
+    repo: FeedbackRepoDep,
+    transaction: TransactionDep,
+    data: CreateFeedbackDTO,
     identity: CurrentIdentity,
-    service: FeedbackServiceDep,
-) -> Feedback:
-    return await service.create_feedback(
+) -> FeedbackResponse:
+    return await create_feedback(
+        repo=repo,
+        transaction=transaction,
         user_id=identity.id,
         email=identity.email,  # pyright: ignore[reportArgumentType]
         rating=data.rating,
@@ -34,13 +50,13 @@ async def create_feedback(
 
 @router.get(
     "",
-    response_model=Page[Feedback],
     dependencies=[Depends(require_permissions(READ.code))],
 )
 async def get_feedbacks(
     repo: FeedbackRepoDep,
     pagination: PaginationDep,
     filters: Annotated[FeedbackFilters, Query()],
-) -> Page[Feedback]:
+) -> Page[FeedbackResponse]:
     """Возвращает администратору страницу отзывов."""
-    return await repo.find(pagination, filters)
+    result = await repo.find(pagination, filters)
+    return result.to_response(FeedbackResponse.model_validate)

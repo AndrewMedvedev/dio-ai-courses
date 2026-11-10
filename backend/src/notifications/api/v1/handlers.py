@@ -3,7 +3,7 @@ import logging
 from faststream.rabbit import RabbitQueue
 
 from src.core.rabbit import events_exchange, router
-from src.courses.domain.events import CourseInvited
+from src.courses.domain.enrollment.events import CourseInvited
 from src.iam.domain.events import UserInvited
 from src.notifications.application.factories import (
     from_course_invited,

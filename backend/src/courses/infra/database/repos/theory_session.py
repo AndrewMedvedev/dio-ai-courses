@@ -3,8 +3,8 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from src.courses.application.dtos import LessonTheorySessionFilters
-from src.courses.domain.entities import (
+from src.courses.application.learning.dtos.theory_session import LessonTheorySessionFilters
+from src.courses.domain.learning.entities import (
     LessonTheorySession,
 )
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, apply_sorting

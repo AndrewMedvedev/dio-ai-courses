@@ -26,5 +26,9 @@ class PostgresConfig(BaseSettings):
     def uri(self) -> str:
         return f"postgresql+{self.driver}://{self.username}:{self.password}@{self.host}:{self.port}/{self.db}"
 
+    @property
+    def psycopg_uri(self) -> str:
+        return f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.db}"
+
 
 postgres_config = PostgresConfig()

@@ -1,8 +1,8 @@
-from src.iam.domain.vo import Email
+from src.feedback.domain.entities import Feedback
+from src.feedback.domain.vo import FeedbackRating
+from src.shared.domain.vo import Email
 from src.shared.infra.database.mappers import ModelMapper
 
-from ...domain.entities import Feedback
-from ...domain.vo import FeedbackRating
 from .models import FeedbackOrm
 
 

@@ -60,7 +60,7 @@ class Page[T: Any](BaseModel):
             items=items,
         )
 
-    def to_response[R: BaseModel](self, mapper: Callable[[T], R]) -> "Page[R]":
+    def to_response[R: BaseModel](self, mapper: Callable[[T], R]) -> Page[R]:
         """Преобразование страницы к ResponseDTO."""
 
         return Page(
