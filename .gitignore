@@ -131,6 +131,14 @@ frontend/storybook-static/
 frontend/.eslintcache
 frontend/.prettiercache
 
+# --- Local frontend audits and prototypes ---
+frontend/*.local.*
+frontend/docs/chat-concepts.html
+frontend/docs/chat-screenshots/
+frontend/docs/mermaid-audit.md
+frontend/docs/mermaid-audit/
+frontend/scripts/run-browser-audit.mjs
+
 # --- Package manager locks (keep ONE, ignore the rest) ---
 # Uncomment whichever you do NOT use:
 # frontend/package-lock.json   # if using yarn / pnpm
