@@ -381,7 +381,7 @@ export function FinishDialog({
         </>
       }
     >
-      <dl className="dnd-stats dnd-stats--summary tw:[.page_.dnd-builder_&]:grid-cols-[repeat(4,_minmax(0,_1fr))] tw:[.page_.dnd-builder_&]:mb-[14px] tw:max-767:[.page_.dnd-builder_&]:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:[.page_.dnd-builder_&_div]:p-[10px_12px] tw:[.page_.dnd-builder_&_div]:rounded-[12px] tw:[.page_.dnd-builder_&_div]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_div]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_dt]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_dt]:text-[0.74rem] tw:[.page_.dnd-builder_&_dd]:m-[2px_0_0] tw:[.page_.dnd-builder_&_dd]:font-[800] tw:[.page_.dnd-builder_&_dd]:[font-variant-numeric:tabular-nums] tw:[.page_.dnd-builder_&_.is-warn]:border-(--dnd-warn) tw:[.page_.dnd-builder_&_.is-warn]:[background:var(--dnd-warn-bg)] tw:[.page_.dnd-builder_&_.is-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&_.is-ok]:[background:var(--dnd-ok-bg)] tw:[.page_.dnd-builder_&_dd]:text-[0.95rem]">
+      <dl className="dnd-stats dnd-stats--summary tw:[.page_.dnd-builder_&]:grid-cols-[repeat(4,_minmax(0,_1fr))] tw:[.page_.dnd-builder_&]:mb-[14px] tw:max-767:[.page_.dnd-builder_&]:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:[.page_.dnd-builder_&_.is-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&_.is-ok]:[background:var(--dnd-ok-bg)] tw:[.page_.dnd-builder_&_dd]:text-[0.95rem]">
         <div>
           <dt>Модули</dt>
           <dd>{countLabel(stats.modules, WORDS.module)}</dd>

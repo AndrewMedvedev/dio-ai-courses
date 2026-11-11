@@ -30,4 +30,3 @@ export type {
   AgentStatus,
   AgentType,
 } from "./model/types";
-export { AgentMarkdown } from "./ui/AgentMarkdown";

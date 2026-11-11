@@ -1,9 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppModal } from "@/shared/ui/app-modal";
-import { FloatingWindow } from "@/shared/ui/floating-window";
+import {
+  AiChatPanel,
+  ChatButton,
+  ChatCard,
+  ChatComposer,
+  ChatEmpty,
+  ChatIconButton,
+  ChatMarkdown,
+  ChatMessage,
+  ChatNotice,
+  ChatThread,
+  ChatTyping,
+  IconNewChat,
+  IconRetry,
+} from "@/shared/ui/ai-chat";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import {
-  AgentMarkdown,
   CONFIRM_LAUNCH_MESSAGE,
   extractTaskId,
   getLastAssistantMessage,
@@ -14,7 +27,6 @@ import {
   useAgentStore,
   type AgentType,
 } from "@/entities/agent-chat";
-import { autosizeTextarea } from "@/shared/lib/dom";
 import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
 import {
   generationJobKey,
@@ -176,7 +188,6 @@ export function AgentInterviewDialog({
   const [lastSent, setLastSent] = useState("");
   const [confirmText, setConfirmText] = useState<string | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
-  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const isFloating = variant === "floating";
 
@@ -200,23 +211,6 @@ export function AgentInterviewDialog({
       courseId,
     });
   }, [conversationKey, courseId, initializeConversation, open, texts.agent]);
-
-  useEffect(() => {
-    const container = messagesRef.current;
-    if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [messages.length, isThinking, open, job?.status]);
-
-  useEffect(() => {
-    if (!open || !isFloating) return;
-    window.requestAnimationFrame(() =>
-      inputRef.current?.focus({ preventScroll: true }),
-    );
-  }, [isFloating, open]);
-
-  useEffect(() => {
-    autosizeTextarea(inputRef.current, 180);
-  }, [input, open]);
 
   const send = async (text: string) => {
     const content = String(text || "").trim();
@@ -257,8 +251,7 @@ export function AgentInterviewDialog({
     }
   };
 
-  const submit = (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault?.();
+  const submit = () => {
     const text = input.trim();
     if (!text) return;
     // Согласие на запуск сначала показываем в окне подтверждения.
@@ -305,198 +298,155 @@ export function AgentInterviewDialog({
     onOpenResult?.(result);
   };
 
-  const chatBody = (
-    <div className="agent-chat tw:flex tw:gap-[12px] tw:flex-[1_1_auto] tw:min-h-[0] tw:flex-col">
+  const panelTag = kind === "lesson" ? "Новый урок" : "Новый модуль";
+
+  const thread = (
+    <ChatThread
+      busy={isThinking}
+      scrollKey={`${messages.length}:${isThinking}:${open}:${job?.status || ""}:${error}`}
+      centered={messages.length === 0 && !isThinking}
+      label="Переписка с агентом"
+    >
       {isAgentMockEnabled() ? (
-        <p className="agent-mock-badge tw:m-[0_0_12px] tw:p-[8px_12px] tw:rounded-[12px] tw:text-(--text) tw:text-[0.86rem] tw:font-[700] tw:[border:1px_dashed_rgba(212,_150,_30,_0.6)] tw:[background:rgba(212,_150,_30,_0.12)]">
+        <ChatNotice tone="info" className="agent-mock-badge">
           Демо-режим: ответы ИИ имитируются, модель не вызывается. Модуль и
           уроки создаются настоящими запросами к backend.
-        </p>
+        </ChatNotice>
       ) : null}
-      <div
-        className="agent-chat-messages tw:grid tw:gap-[10px] tw:max-h-[none] tw:min-h-[80px] tw:p-[4px_2px] tw:overflow-y-auto tw:flex-[1_1_auto]"
-        ref={messagesRef}
-        aria-live="polite"
-      >
-        {messages.length === 0 ? (
-          <p className="agent-chat-empty tw:text-(--muted) tw:text-[0.92rem]">
-            {texts.intro}
-          </p>
-        ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`agent-chat-message tw:max-w-[88%] tw:p-[10px_14px] tw:rounded-[16px] tw:leading-[1.5] tw:wrap-anywhere tw:[&.is-system]:max-w-[100%] tw:[&.is-system]:justify-self-center tw:[&.is-system]:text-(--text) tw:[&.is-system]:font-[700] tw:[&.is-system]:text-center tw:[&.is-user]:[justify-self:end] tw:[&.is-assistant]:[justify-self:start] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-assistant]:[background:var(--app-modal-row)] tw:[&.is-system]:[background:rgba(47,_125,_79,_0.12)] tw:[&.is-assistant]:[border:1px_solid_var(--app-modal-border)] tw:[&_p]:m-[0_0_8px] tw:[&_p:last-child]:mb-[0] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ul:last-child]:mb-[0] tw:[&_ol:last-child]:mb-[0] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px] is-${message.role}`}
-            >
-              {message.role === "assistant" ? (
-                <AgentMarkdown>{message.text}</AgentMarkdown>
-              ) : (
-                message.text
-              )}
-            </div>
-          ))
-        )}
-        {isThinking ? (
-          <span className="agent-chat-thinking tw:text-(--muted) tw:text-[0.92rem] tw:inline-flex tw:items-center tw:gap-[8px] tw:[&::before]:w-[14px] tw:[&::before]:h-[14px] tw:[&::before]:border-solid tw:[&::before]:border-[rgba(var(--accent-rgb),_0.35)] tw:[&::before]:rounded-[50%] tw:[&::before]:[content:''] tw:[&::before]:[border-width:2px] tw:[&::before]:[border-top-color:rgba(var(--accent-rgb),_0.95)] tw:[&::before]:animate-app-modal-spin">
-            Агент думает...
-          </span>
-        ) : null}
-      </div>
-
+      {messages.length === 0 && !isThinking ? (
+        <ChatEmpty title={texts.title} text={texts.intro} />
+      ) : null}
+      {messages.map((message) => (
+        <ChatMessage
+          key={message.id}
+          role={message.role}
+          text={message.text}
+          className="agent-chat-message"
+        />
+      ))}
+      {isThinking ? <ChatTyping label="Агент думает…" /> : null}
       {error ? (
-        <div
-          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
-          role="alert"
-        >
-          <span>{error}</span>
-          {lastSent ? (
-            <div>
-              <button
-                type="button"
-                className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-                onClick={retry}
-              >
+        <ChatNotice
+          tone="error"
+          actions={
+            lastSent ? (
+              <ChatButton size="sm" onClick={retry}>
+                <IconRetry size={14} />
                 Отправить ещё раз
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {awaitingConfirmation ? (
-        <div className="agent-chat-launch tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[10px] tw:p-[10px_14px] tw:rounded-[14px] tw:[border:1px_solid_rgba(47,_125,_79,_0.35)] tw:[background:rgba(47,_125,_79,_0.08)]">
-          <span className="tw:text-(--muted) tw:text-[0.88rem]">
-            Агент подготовил описание и цели. Проверьте их перед запуском —
-            после запуска генерацию нельзя отменить.
-          </span>
-          <button
-            type="button"
-            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-            onClick={() => setConfirmText(CONFIRM_LAUNCH_MESSAGE)}
-          >
-            Проверить и запустить
-          </button>
-        </div>
-      ) : null}
-
-      {isRunning ? (
-        <div
-          className="agent-chat-status tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
-          role="status"
+              </ChatButton>
+            ) : null
+          }
         >
-          <strong>{texts.running(job)}</strong>
-          <span>Новые данные появятся в редакторе автоматически.</span>
-        </div>
+          {error}
+        </ChatNotice>
+      ) : null}
+      {awaitingConfirmation ? (
+        <ChatCard
+          className="agent-chat-launch"
+          title="Проверьте перед запуском"
+          actions={
+            <ChatButton
+              variant="primary"
+              onClick={() => setConfirmText(CONFIRM_LAUNCH_MESSAGE)}
+            >
+              Проверить и запустить
+            </ChatButton>
+          }
+        >
+          <span className="tw:text-(--muted)">
+            Агент подготовил описание и цели. После запуска генерацию нельзя
+            отменить.
+          </span>
+        </ChatCard>
+      ) : null}
+      {isRunning ? (
+        <ChatCard
+          className="agent-chat-status"
+          role="status"
+          title={texts.running(job)}
+        >
+          <ChatTyping label="Генерация идёт" />
+          <span className="tw:text-(--muted)">
+            Новые данные появятся в редакторе автоматически.
+          </span>
+        </ChatCard>
       ) : null}
       {isDone ? (
-        <div
-          className="agent-chat-status is-done tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:[background:rgba(47,_125,_79,_0.12)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
+        <ChatCard
+          className="agent-chat-status is-done"
           role="status"
+          title={texts.done(job)}
+          actions={
+            <>
+              <ChatButton variant="primary" onClick={finishAndOpen}>
+                {texts.open}
+              </ChatButton>
+              <ChatButton onClick={startAnother}>{texts.another}</ChatButton>
+            </>
+          }
         >
-          <strong>{texts.done(job)}</strong>
-          <span>{texts.anotherHint}</span>
-          <div>
-            <button
-              type="button"
-              className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-              onClick={startAnother}
-            >
-              {texts.another}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-              onClick={finishAndOpen}
-            >
-              {texts.open}
-            </button>
-          </div>
-        </div>
+          <span className="tw:text-(--muted)">{texts.anotherHint}</span>
+        </ChatCard>
       ) : null}
       {isFailed ? (
-        <div
-          className="agent-chat-status is-error tw:grid tw:gap-[4px] tw:p-[10px_14px] tw:rounded-[14px] tw:text-[0.92rem] tw:text-(--app-modal-danger) tw:[background:rgba(180,_35,_24,_0.1)] tw:[&.is-done_>_span]:text-(--muted) tw:[&.is-done_>_span]:text-[0.84rem] tw:[&_>_div]:flex tw:[&_>_div]:flex-wrap tw:[&_>_div]:gap-[8px] tw:[&_>_div]:mt-[6px]"
-          role="alert"
-        >
-          <span>{job.error || "Генерация не завершилась."}</span>
-          <div>
-            <button
-              type="button"
-              className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-              onClick={resetDialog}
-            >
+        <ChatNotice
+          tone="error"
+          className="agent-chat-status is-error"
+          actions={
+            <ChatButton size="sm" onClick={resetDialog}>
               Начать заново
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {!job ? (
-        <form
-          className="agent-chat-form tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:end]"
-          onSubmit={submit}
+            </ChatButton>
+          }
         >
-          <textarea
-            className="tw:min-h-[44px] tw:max-h-[180px] tw:resize-none tw:p-[10px_12px] tw:rounded-[14px] tw:text-(--text) tw:[font:inherit] tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.9]"
-            ref={(element) => {
-              inputRef.current = element;
-              autosizeTextarea(element, 180);
-            }}
-            rows={1}
-            value={input}
-            placeholder={texts.placeholder}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                submit();
-              }
-            }}
-            disabled={isThinking || !canWrite}
-            maxLength={10000}
-            aria-label="Сообщение агенту"
-          />
-          <button
-            type="submit"
-            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-            disabled={isThinking || !input.trim() || !canWrite}
-          >
-            {isThinking ? "Ждём ответ..." : "Отправить"}
-          </button>
-        </form>
+          {job.error || "Генерация не завершилась."}
+        </ChatNotice>
       ) : null}
-    </div>
+    </ChatThread>
   );
 
-  const resetButton =
-    messages.length > 0 || job ? (
-      <button
-        type="button"
-        className="btn btn-outline tw:min-h-[32px] tw:text-[0.8rem] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[&&&&]:p-[3px_12px] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-        onClick={() => setIsResetOpen(true)}
-        disabled={isThinking}
-      >
-        Начать новый диалог
-      </button>
-    ) : null;
+  const composer = !job ? (
+    <ChatComposer
+      className="agent-chat-form"
+      value={input}
+      onChange={setInput}
+      onSubmit={submit}
+      busy={isThinking}
+      onStop={() => cancelRequest(conversationKey)}
+      disabled={!canWrite}
+      placeholder={texts.placeholder}
+      textareaRef={inputRef}
+      ariaLabel="Сообщение агенту"
+      sendLabel="Отправить агенту"
+    />
+  ) : null;
 
-  if (isFloating && !open) return null;
+  const canReset = messages.length > 0 || Boolean(job);
 
   return (
     <>
       {isFloating ? (
-        <FloatingWindow
+        <AiChatPanel
           open={open}
           onClose={onClose}
-          eyebrow={texts.eyebrow}
-          title={texts.title}
-          subtitle={contextTitle}
-          storageKey={`agent-${kind}`}
-          defaultSize={{ width: 460, height: 620 }}
-          headerActions={resetButton}
+          tag={panelTag}
+          title={contextTitle || texts.title}
+          initialFocusRef={inputRef}
+          className="agent-chat"
+          headerActions={
+            canReset ? (
+              <ChatIconButton
+                label="Начать новый диалог"
+                onClick={() => setIsResetOpen(true)}
+                disabled={isThinking}
+              >
+                <IconNewChat />
+              </ChatIconButton>
+            ) : null
+          }
         >
-          {chatBody}
-        </FloatingWindow>
+          {thread}
+          {composer}
+        </AiChatPanel>
       ) : (
         <AppModal
           open={open}
@@ -507,21 +457,26 @@ export function AgentInterviewDialog({
           description={contextTitle}
           footer={
             <>
-              {resetButton}
-              <button
-                type="button"
-                className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-                onClick={onClose}
-              >
+              {canReset ? (
+                <ChatButton
+                  onClick={() => setIsResetOpen(true)}
+                  disabled={isThinking}
+                >
+                  Начать новый диалог
+                </ChatButton>
+              ) : null}
+              <ChatButton variant="primary" onClick={onClose}>
                 Закрыть
-              </button>
+              </ChatButton>
             </>
           }
         >
-          {chatBody}
+          <div className="agent-chat tw:flex tw:flex-col tw:h-[min(64vh,620px)] tw:min-h-[360px] tw:-mx-[16px]">
+            {thread}
+            {composer}
+          </div>
         </AppModal>
       )}
-
       <ConfirmDialog
         open={confirmText !== null}
         title={texts.confirmTitle}
@@ -538,7 +493,7 @@ export function AgentInterviewDialog({
         }}
       >
         <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:[&_p]:m-[0_0_8px] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px]">
-          <AgentMarkdown>{lastAssistant?.text || ""}</AgentMarkdown>
+          <ChatMarkdown>{lastAssistant?.text || ""}</ChatMarkdown>
         </div>
         <p className="app-modal-note tw:m-[0] tw:text-(--muted) tw:text-[0.9rem]">
           После подтверждения агент поставит генерацию в очередь. Готовый

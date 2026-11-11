@@ -47,13 +47,13 @@
 /* Анимации: tw:animate-<имя>. inline — значение подставляется в утилиту, поэтому var(--dnd-ease) берётся с элемента */
 @theme inline {
   --animate-chat-thinking-pulse: chat-thinking-pulse 1.1s ease-in-out infinite;
+  --animate-ai-panel-in: ai-panel-in 0.18s ease-out;
   --animate-dnd-pop: dnd-pop 0.24s var(--dnd-ease);
   --animate-profile-spinner-rotate: profile-spinner-rotate 0.8s linear infinite;
   --animate-course-invite-fade: course-invite-fade 0.16s ease-out;
   --animate-course-invite-pop: course-invite-pop 0.18s ease-out;
   --animate-dnd-dash: dnd-dash 0.6s linear 2;
   --animate-dnd-fade: dnd-fade 0.18s ease-out;
-  --animate-floating-window-in: floating-window-in 0.16s ease-out;
   --animate-app-modal-fade: app-modal-fade 0.16s ease-out;
   --animate-app-modal-pop: app-modal-pop 0.18s ease-out;
   --animate-toast-in: toast-in 0.2s ease-out;
@@ -80,13 +80,6 @@
   --animate-dnd-slide-left: dnd-slide-left 0.22s var(--dnd-ease);
   --animate-lesson-chat-unread-pulse: lesson-chat-unread-pulse 1.8s ease-in-out
     infinite;
-
-  @keyframes floating-window-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px) scale(0.98);
-    }
-  }
 
   @keyframes app-modal-fade {
     from {
@@ -118,6 +111,16 @@
     }
   }
 
+  @keyframes ai-panel-in {
+    from {
+      opacity: 0;
+      transform: translateX(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
   @keyframes chat-thinking-pulse {
     0%,
     60%,

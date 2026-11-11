@@ -217,7 +217,7 @@ export function TopBar({
       <div className="dnd-topbar-right tw:flex tw:items-center tw:gap-[8px] tw:min-w-[0] tw:flex-[0_0_auto] tw:justify-end tw:max-767:justify-start tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-767:[order:3]">
         {isMobile ? (
           <div
-            className="dnd-segmented dnd-segmented--sm tw:[.page_.dnd-builder_&_button]:inline-flex tw:[.page_.dnd-builder_&_button]:items-center tw:[.page_.dnd-builder_&_button]:gap-[6px] tw:[.page_.dnd-builder_&_button]:min-h-[30px] tw:[.page_.dnd-builder_&_button]:p-[0_10px] tw:[.page_.dnd-builder_&_button]:[border:0] tw:[.page_.dnd-builder_&_button]:rounded-[8px] tw:[.page_.dnd-builder_&_button]:[background:transparent] tw:[.page_.dnd-builder_&_button]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_button]:font-[650] tw:[.page_.dnd-builder_&_button]:text-[0.8rem] tw:[.page_.dnd-builder_&_button]:cursor-pointer tw:[.page_.dnd-builder_&_button.is-on]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_button.is-on]:text-(--dnd-text) tw:[.page_.dnd-builder_&_button.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:max-767:[.page_.dnd-builder_&_button]:p-[0_8px]"
+            className="dnd-segmented dnd-segmented--sm tw:max-767:[.page_.dnd-builder_&_button]:p-[0_8px]"
             role="group"
             aria-label="Режим отображения"
           >

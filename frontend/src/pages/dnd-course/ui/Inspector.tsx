@@ -10,6 +10,17 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useShallow } from "zustand/react/shallow";
+import {
+  ChatButton,
+  ChatCard,
+  ChatComposer,
+  ChatEmpty,
+  ChatMarkdown,
+  ChatMessage,
+  ChatNotice,
+  ChatThread,
+  ChatTyping,
+} from "@/shared/ui/ai-chat";
 import { LessonContentEditor } from "@/features/edit-lesson-content";
 import {
   createAgentConversationKey,
@@ -247,7 +258,6 @@ function MaterialInspector({
   const [editing, setEditing] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [targetLesson, setTargetLesson] = useState("");
-  const messagesRef = useRef<HTMLDivElement>(null);
   const conversationKey = createAgentConversationKey(
     "editor",
     course?.id,
@@ -264,13 +274,6 @@ function MaterialInspector({
     .find((item) => item.role === "user");
   const isReady = material.status === "ready";
 
-  useEffect(() => {
-    messagesRef.current?.scrollTo({
-      top: messagesRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages.length, aiBusy, material.proposal]);
-
   const send = () => {
     const text = prompt.trim();
     if (!text || aiBusy) return;
@@ -280,149 +283,133 @@ function MaterialInspector({
 
   if (tab === "ai") {
     return (
-      <div className="dnd-ai tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[12px]">
+      <div className="dnd-ai tw:flex tw:flex-col tw:h-[min(640px,_calc(100vh_-_240px))] tw:min-h-[380px] tw:-mx-[4px]">
         {!isReady ? (
-          <p className="dnd-muted">
+          <ChatNotice tone="info" className="tw:mx-[4px]">
             ИИ-редактор станет доступен, когда материал будет обработан.
-          </p>
+          </ChatNotice>
         ) : null}
-        <div
-          className="dnd-ai-messages nowheel tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:max-h-[34dvh] tw:[.page_.dnd-builder_&]:min-h-[120px] tw:[.page_.dnd-builder_&]:overflow-y-auto tw:[.page_.dnd-builder_&]:p-[4px_2px] tw:[.page_.dnd-builder_&]:[align-content:start]"
-          ref={messagesRef}
-          aria-live="polite"
-          aria-busy={aiBusy}
+        <ChatThread
+          busy={aiBusy}
+          scrollKey={`${messages.length}:${aiBusy}:${Boolean(material.proposal)}:${aiError}`}
+          centered={messages.length === 0 && !aiBusy && !material.proposal}
+          label="Переписка с ИИ-редактором"
+          className="tw:px-[4px]!"
         >
-          {messages.length === 0 ? (
-            <div className="dnd-ai-msg is-assistant tw:[.page_.dnd-builder_&]:max-w-[92%] tw:[.page_.dnd-builder_&]:p-[9px_12px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:leading-[1.45] tw:[.page_.dnd-builder_&]:whitespace-pre-line tw:[.page_.dnd-builder_&]:wrap-anywhere tw:[.page_.dnd-builder_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--dnd-border)]">
-              Опишите, что поменять в материале. Я подготовлю правку — исходный
-              текст не изменится, пока вы её не примените.
-            </div>
+          {messages.length === 0 && !aiBusy && !material.proposal ? (
+            <ChatEmpty
+              title="Что поменять в материале?"
+              text="Я подготовлю правку — исходный текст не изменится, пока вы её не примените."
+            />
           ) : null}
           {messages.map((message) => (
-            <div
+            <ChatMessage
               key={message.id}
-              className={`dnd-ai-msg tw:[.page_.dnd-builder_&]:max-w-[92%] tw:[.page_.dnd-builder_&]:p-[9px_12px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:leading-[1.45] tw:[.page_.dnd-builder_&]:whitespace-pre-line tw:[.page_.dnd-builder_&]:wrap-anywhere tw:[.page_.dnd-builder_&.is-user]:text-(--dnd-text) tw:[.page_.dnd-builder_&.is-thinking]:text-(--dnd-muted) tw:[.page_.dnd-builder_&.is-thinking]:flex tw:[.page_.dnd-builder_&.is-thinking]:items-center tw:[.page_.dnd-builder_&.is-thinking]:gap-[8px] tw:[.page_.dnd-builder_&.is-assistant]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&.is-user]:[background:var(--dnd-accent-soft)] tw:[.page_.dnd-builder_&.is-assistant]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&.is-user]:[justify-self:end] is-${message.role}`}
-            >
-              {message.text}
-            </div>
+              role={message.role}
+              text={message.text}
+            />
           ))}
-          {aiBusy ? (
-            <div className="dnd-ai-msg is-assistant is-thinking tw:[.page_.dnd-builder_&]:max-w-[92%] tw:[.page_.dnd-builder_&]:p-[9px_12px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:leading-[1.45] tw:[.page_.dnd-builder_&]:whitespace-pre-line tw:[.page_.dnd-builder_&]:wrap-anywhere tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:text-(--dnd-muted) tw:[.page_.dnd-builder_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--dnd-border)]">
-              <Spinner size={14} /> ИИ готовит правку…
-            </div>
-          ) : null}
-        </div>
-        {material.proposal ? (
-          <section
-            className="dnd-proposal tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[12px] tw:[.page_.dnd-builder_&]:rounded-[14px] tw:[.page_.dnd-builder_&]:[border:1.5px_solid_var(--dnd-accent)] tw:[.page_.dnd-builder_&]:[background:var(--dnd-accent-soft)] tw:[.page_.dnd-builder_&]:animate-dnd-pop-220 tw:[.page_.dnd-builder_&_header]:flex tw:[.page_.dnd-builder_&_header]:items-center tw:[.page_.dnd-builder_&_header]:gap-[6px] tw:[.page_.dnd-builder_&_header]:text-(--dnd-accent-ink)"
-            aria-label="Предложение ИИ"
-          >
-            <header>
-              <Icon name="sparkles" size={16} />
-              <strong>Предложение ИИ</strong>
-            </header>
-            <div className="dnd-markdown dnd-markdown--compact nowheel tw:[.page_.dnd-builder_&]:max-h-[260px] tw:[.page_.dnd-builder_&]:overflow-y-auto tw:[.page_.dnd-builder_&]:p-[12px_14px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.86rem] tw:[.page_.dnd-builder_&]:leading-[1.55] tw:[.page_.dnd-builder_&]:wrap-anywhere tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:m-[0.8em_0_0.4em] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:text-[1em] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:font-[800] tw:[.page_.dnd-builder_&_:where(p,li)]:text-[0.86rem] tw:[.page_.dnd-builder_&_:where(p,li)]:leading-[1.55] tw:[.page_.dnd-builder_&_pre]:overflow-x-auto tw:[.page_.dnd-builder_&_pre]:p-[10px] tw:[.page_.dnd-builder_&_pre]:rounded-[8px] tw:[.page_.dnd-builder_&_pre]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&_table]:block tw:[.page_.dnd-builder_&_table]:overflow-x-auto tw:[.page_.dnd-builder_&_table]:[border-collapse:collapse] tw:[.page_.dnd-builder_&_:where(td,th)]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_:where(td,th)]:p-[4px_8px]">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {material.proposal}
-              </ReactMarkdown>
-            </div>
-            <div className="dnd-proposal-actions tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:justify-end tw:[.page_.dnd-builder_&]:gap-[8px]">
-              <button
-                type="button"
-                className="dnd-btn dnd-btn--ghost dnd-btn--sm"
-                onClick={() => rejectProposal(material.id)}
-              >
-                Не применять
-              </button>
-              <button
-                type="button"
-                className="dnd-btn dnd-btn--solid dnd-btn--sm tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&]:border-(--dnd-text) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&&]:border-(--dnd-text)"
-                onClick={() => applyProposal(material.id)}
-              >
-                <Icon name="check" size={15} />
-                Применить
-              </button>
-            </div>
-          </section>
-        ) : null}
-        {aiError ? (
-          <div
-            className="dnd-inline-error tw:[.page_.dnd-builder_&_>_span]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_>_span]:min-w-[0] tw:[.page_.dnd-builder_&_>_span]:wrap-anywhere"
-            role="alert"
-          >
-            <Icon name="alert" size={16} />
-            <span>{aiError}</span>
-            {lastUserMessage && !aiBusy ? (
-              <button
-                type="button"
-                className="dnd-btn dnd-btn--ghost dnd-btn--sm"
-                onClick={() => askAi(material.id, lastUserMessage.text)}
-              >
-                <Icon name="retry" size={14} />
-                Повторить
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="dnd-ai-composer tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:items-end tw:[.page_.dnd-builder_&_textarea]:w-[100%] tw:[.page_.dnd-builder_&_textarea]:p-[9px_12px] tw:[.page_.dnd-builder_&_textarea]:rounded-[10px] tw:[.page_.dnd-builder_&_textarea]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_textarea]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_textarea]:text-(--dnd-text) tw:[.page_.dnd-builder_&_textarea]:[font-style:inherit] tw:[.page_.dnd-builder_&_textarea]:[font-variant:inherit] tw:[.page_.dnd-builder_&_textarea]:[font-weight:inherit] tw:[.page_.dnd-builder_&_textarea]:[font-stretch:inherit] tw:[.page_.dnd-builder_&_textarea]:[font-family:inherit] tw:[.page_.dnd-builder_&_textarea]:text-[0.88rem] tw:[.page_.dnd-builder_&_textarea]:leading-[1.45] tw:[.page_.dnd-builder_&_textarea]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[.page_.dnd-builder_&_textarea]:resize-y tw:[.page_.dnd-builder_&_textarea:focus]:[outline:none] tw:[.page_.dnd-builder_&_textarea:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_&_textarea:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_textarea]:flex-[1] tw:[.page_.dnd-builder_&_textarea]:min-h-[72px]">
-          <label
-            className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!"
-            htmlFor={`ai-${material.id}`}
-          >
-            Запрос к ИИ-редактору
-          </label>
-          <textarea
-            id={`ai-${material.id}`}
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.nativeEvent.isComposing) return;
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                send();
+          {aiBusy ? <ChatTyping label="Готовлю правку…" /> : null}
+          {material.proposal ? (
+            <ChatCard
+              className="dnd-ai-proposal"
+              title="Предложение ИИ"
+              actions={
+                <>
+                  <ChatButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => applyProposal(material.id)}
+                  >
+                    <Icon name="check" size={14} />
+                    Применить
+                  </ChatButton>
+                  <ChatButton
+                    size="sm"
+                    onClick={() => rejectProposal(material.id)}
+                  >
+                    Не применять
+                  </ChatButton>
+                </>
               }
-            }}
-            placeholder={
-              aiBusy
-                ? "Дождитесь ответа ИИ…"
-                : "Например: сократи до тезисов и добавь пример"
-            }
-            maxLength={10000}
-            disabled={!isReady}
-            rows={3}
-          />
-          <button
-            type="button"
-            className="dnd-btn dnd-btn--solid dnd-btn--icon tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:w-[42px] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&]:border-(--dnd-text) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&&]:border-(--dnd-text)"
-            onClick={send}
-            disabled={!isReady || aiBusy || !prompt.trim()}
-            aria-label="Отправить запрос ИИ"
-            title="Отправить"
-          >
-            {aiBusy ? <Spinner size={14} /> : <Icon name="arrowUp" />}
-          </button>
-        </div>
+            >
+              <ChatMarkdown className="tw:max-h-[320px] tw:overflow-y-auto">
+                {material.proposal}
+              </ChatMarkdown>
+            </ChatCard>
+          ) : null}
+          {aiError ? (
+            <ChatNotice
+              tone="error"
+              actions={
+                lastUserMessage && !aiBusy ? (
+                  <ChatButton
+                    size="sm"
+                    onClick={() => askAi(material.id, lastUserMessage.text)}
+                  >
+                    <Icon name="retry" size={14} />
+                    Повторить
+                  </ChatButton>
+                ) : null
+              }
+            >
+              {aiError}
+            </ChatNotice>
+          ) : null}
+        </ChatThread>
+        <ChatComposer
+          className="tw:px-[4px]! tw:pb-[4px]!"
+          id={`ai-${material.id}`}
+          value={prompt}
+          onChange={setPrompt}
+          onSubmit={send}
+          busy={aiBusy}
+          disabled={!isReady}
+          placeholder={
+            aiBusy
+              ? "Дождитесь ответа ИИ…"
+              : "Например: сократи до тезисов и добавь пример"
+          }
+          ariaLabel="Запрос к ИИ-редактору"
+          sendLabel="Отправить запрос ИИ"
+        />
       </div>
     );
   }
-
   if (tab === "props") {
     const status = material.lessonId ? "used" : material.status;
     return (
-      <div className="dnd-stack">
-        <dl className="dnd-props tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:grid-cols-[90px_minmax(0,_1fr)] tw:[.page_.dnd-builder_&]:gap-[8px_12px] tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&_dt]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_dt]:text-[0.8rem] tw:[.page_.dnd-builder_&_dd]:m-[0] tw:[.page_.dnd-builder_&_dd]:text-[0.84rem] tw:[.page_.dnd-builder_&_dd]:wrap-anywhere">
-          <dt>Файл</dt>
-          <dd title={material.fileName}>{material.fileName}</dd>
-          <dt>Тип</dt>
-          <dd>{material.fileKind}</dd>
+      <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <dl className="dnd-props tw:grid tw:grid-cols-[90px_minmax(0,_1fr)] tw:gap-[8px_12px] tw:m-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <dt className="tw:text-[0.8rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            Файл
+          </dt>
+          <dd
+            className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
+            title={material.fileName}
+          >
+            {material.fileName}
+          </dd>
+          <dt className="tw:text-[0.8rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            Тип
+          </dt>
+          <dd className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            {material.fileKind}
+          </dd>
           {material.size ? (
             <>
-              <dt>Размер</dt>
-              <dd>{formatBytes(material.size)}</dd>
+              <dt className="tw:text-[0.8rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+                Размер
+              </dt>
+              <dd className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+                {formatBytes(material.size)}
+              </dd>
             </>
           ) : null}
-          <dt>Статус</dt>
-          <dd>
+          <dt className="tw:text-[0.8rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            Статус
+          </dt>
+          <dd className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
             <StatusPill
               tone={MATERIAL_STATUS[status]?.tone}
               busy={material.status === "uploading"}
@@ -430,8 +417,12 @@ function MaterialInspector({
               {MATERIAL_STATUS[status]?.label}
             </StatusPill>
           </dd>
-          <dt>Урок</dt>
-          <dd>{lesson ? lesson.title : "Не добавлен"}</dd>
+          <dt className="tw:text-[0.8rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            Урок
+          </dt>
+          <dd className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            {lesson ? lesson.title : "Не добавлен"}
+          </dd>
         </dl>
         {material.status === "error" ? (
           <div
@@ -460,31 +451,42 @@ function MaterialInspector({
           </div>
         ) : null}
         {isReady && !material.lessonId ? (
-          <div className="dnd-stack dnd-stack--tight tw:[.page_.dnd-builder_&]:gap-[8px]">
+          <div className="dnd-stack dnd-stack--tight tw:grid tw:min-w-[0] tw:[&&&&]:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             <button
               type="button"
-              className="dnd-btn dnd-btn--solid dnd-btn--sm tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-text) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&]:border-(--dnd-text) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&&]:border-(--dnd-text)"
+              className="dnd-btn dnd-btn--solid dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-text) tw:text-(--dnd-panel) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:var(--dnd-text)] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-text) tw:[&:hover:not(:disabled)]:[&&]:border-(--dnd-text) tw:[&:hover:not(:disabled)]:[&&&]:border-(--dnd-text) tw:[&:hover:not(:disabled)]:[&&&&]:border-(--dnd-text) tw:[&:active:not(:disabled)]:[transform:translateY(1px)] tw:[&:hover:not(:disabled)]:[box-shadow:0_4px_12px_rgba(0,_0,_0,_0.16)]"
               onClick={() => createLesson([material.id])}
             >
               <Icon name="plus" size={15} />
               Создать урок из материала
             </button>
             {lessons.length ? (
-              <div className="dnd-inline-form tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&_select]:min-h-[40px] tw:[.page_.dnd-builder_&_select]:p-[9px_12px] tw:[.page_.dnd-builder_&_select]:rounded-[10px] tw:[.page_.dnd-builder_&_select]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_select]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_select]:text-(--dnd-text) tw:[.page_.dnd-builder_&_select]:[font-style:inherit] tw:[.page_.dnd-builder_&_select]:[font-variant:inherit] tw:[.page_.dnd-builder_&_select]:[font-weight:inherit] tw:[.page_.dnd-builder_&_select]:[font-stretch:inherit] tw:[.page_.dnd-builder_&_select]:[font-family:inherit] tw:[.page_.dnd-builder_&_select]:text-[0.88rem] tw:[.page_.dnd-builder_&_select]:leading-[1.45] tw:[.page_.dnd-builder_&_select]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[.page_.dnd-builder_&_select:focus]:[outline:none] tw:[.page_.dnd-builder_&_select:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_&_select:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_select]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_select]:w-[auto]">
+              <div className="dnd-inline-form tw:flex tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                 <label
-                  className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!"
+                  className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]! tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
                   htmlFor={`to-lesson-${material.id}`}
                 >
                   Добавить в существующий урок
                 </label>
                 <select
+                  className="tw:text-[0.88rem] tw:leading-[1.45] tw:w-[auto] tw:min-h-[40px] tw:p-[9px_12px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:flex-[1_1_180px] tw:[font-family:inherit] tw:[border-width:1px] tw:focus:border-(--dnd-focus) tw:[background:var(--dnd-node)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:focus:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.88rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.45] tw:focus:focus-visible:[&&&]:[outline:none]"
                   id={`to-lesson-${material.id}`}
                   value={targetLesson}
                   onChange={(event) => setTargetLesson(event.target.value)}
                 >
-                  <option value="">Добавить в урок…</option>
+                  <option
+                    className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+                    value=""
+                  >
+                    Добавить в урок…
+                  </option>
                   {lessons.map((item) => (
-                    <option key={item.id} value={item.id} disabled={item.full}>
+                    <option
+                      className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+                      key={item.id}
+                      value={item.id}
+                      disabled={item.full}
+                    >
                       {item.title}
                       {item.full ? ` (лимит ${MAX_CONTENT_BLOCKS})` : ""}
                     </option>
@@ -492,7 +494,7 @@ function MaterialInspector({
                 </select>
                 <button
                   type="button"
-                  className="dnd-btn dnd-btn--ghost dnd-btn--sm"
+                  className="dnd-btn dnd-btn--ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
                   disabled={!targetLesson}
                   onClick={() =>
                     addToLesson(targetLesson, [material.id]).then(
@@ -508,7 +510,7 @@ function MaterialInspector({
         ) : null}
         <button
           type="button"
-          className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:[.page_.dnd-builder_&]:justify-start tw:[.page_.dnd-builder_&]:pl-[6px] tw:[.page_.dnd-builder_&]:border-[transparent] tw:[.page_.dnd-builder_&]:text-(--dnd-error) tw:[.page_.dnd-builder_&]:[background:transparent] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:border-[transparent] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[background:var(--dnd-error-bg)]"
+          className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[&&&&]:justify-start tw:[&&&&]:pl-[6px] tw:[border-width:1px] tw:[&&&&]:border-[transparent] tw:[background:transparent] tw:[&&&&]:text-(--dnd-error) tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:[&&&&]:border-[transparent] tw:[&:hover:not(:disabled)]:[background:var(--dnd-error-bg)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
           onClick={() => requestDelete(nodeId.material(material.id))}
           disabled={
             Boolean(material.lessonId) || material.status === "uploading"
@@ -525,7 +527,7 @@ function MaterialInspector({
   }
 
   return (
-    <div className="dnd-stack">
+    <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
       {material.status === "uploading" ? (
         <p className="dnd-muted" role="status">
           <Spinner size={14} /> Обрабатываем документ…
@@ -543,14 +545,14 @@ function MaterialInspector({
       {isReady ? (
         <>
           <div
-            className="dnd-segmented tw:[.page_.dnd-builder_&_button]:inline-flex tw:[.page_.dnd-builder_&_button]:items-center tw:[.page_.dnd-builder_&_button]:gap-[6px] tw:[.page_.dnd-builder_&_button]:min-h-[30px] tw:[.page_.dnd-builder_&_button]:p-[0_10px] tw:[.page_.dnd-builder_&_button]:[border:0] tw:[.page_.dnd-builder_&_button]:rounded-[8px] tw:[.page_.dnd-builder_&_button]:[background:transparent] tw:[.page_.dnd-builder_&_button]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_button]:font-[650] tw:[.page_.dnd-builder_&_button]:text-[0.8rem] tw:[.page_.dnd-builder_&_button]:cursor-pointer tw:[.page_.dnd-builder_&_button.is-on]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_button.is-on]:text-(--dnd-text) tw:[.page_.dnd-builder_&_button.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)]"
+            className="dnd-segmented tw:inline-flex tw:p-[3px] tw:gap-[2px] tw:rounded-[10px] tw:[background:var(--dnd-panel-2)] tw:[border:1px_solid_var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
             role="group"
             aria-label="Режим просмотра"
           >
             <button
               type="button"
               aria-pressed={!editing}
-              className={!editing ? "is-on" : ""}
+              className={`tw:text-[0.8rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-h-[30px] tw:p-[0_10px] tw:rounded-[8px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-node)] tw:[&.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${!editing ? "is-on" : ""}`}
               onClick={() => setEditing(false)}
             >
               <Icon name="eye" size={15} /> Просмотр
@@ -558,7 +560,7 @@ function MaterialInspector({
             <button
               type="button"
               aria-pressed={editing}
-              className={editing ? "is-on" : ""}
+              className={`tw:text-[0.8rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-h-[30px] tw:p-[0_10px] tw:rounded-[8px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-node)] tw:[&.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${editing ? "is-on" : ""}`}
               onClick={() => setEditing(true)}
             >
               <Icon name="edit" size={15} /> Markdown
@@ -593,7 +595,7 @@ function MaterialInspector({
               </small>
             </>
           ) : (
-            <div className="dnd-markdown nowheel tw:[.page_.dnd-builder_&]:max-h-[min(56dvh,_640px)] tw:[.page_.dnd-builder_&]:overflow-y-auto tw:[.page_.dnd-builder_&]:p-[12px_14px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.86rem] tw:[.page_.dnd-builder_&]:leading-[1.55] tw:[.page_.dnd-builder_&]:wrap-anywhere tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:m-[0.8em_0_0.4em] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:text-[1em] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:font-[800] tw:[.page_.dnd-builder_&_:where(p,li)]:text-[0.86rem] tw:[.page_.dnd-builder_&_:where(p,li)]:leading-[1.55] tw:[.page_.dnd-builder_&_pre]:overflow-x-auto tw:[.page_.dnd-builder_&_pre]:p-[10px] tw:[.page_.dnd-builder_&_pre]:rounded-[8px] tw:[.page_.dnd-builder_&_pre]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&_table]:block tw:[.page_.dnd-builder_&_table]:overflow-x-auto tw:[.page_.dnd-builder_&_table]:[border-collapse:collapse] tw:[.page_.dnd-builder_&_:where(td,th)]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_:where(td,th)]:p-[4px_8px]">
+            <div className="dnd-markdown nowheel tw:max-h-[min(56dvh,_640px)] tw:overflow-y-auto tw:p-[12px_14px] tw:rounded-[12px] tw:text-[0.86rem] tw:leading-[1.55] tw:wrap-anywhere tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:m-[0.8em_0_0.4em] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:text-[1em] tw:[.page_.dnd-builder_&_:where(h1,h2,h3,h4)]:font-[800] tw:[.page_.dnd-builder_&_:where(p,li)]:text-[0.86rem] tw:[.page_.dnd-builder_&_:where(p,li)]:leading-[1.55] tw:[.page_.dnd-builder_&_pre]:overflow-x-auto tw:[.page_.dnd-builder_&_pre]:p-[10px] tw:[.page_.dnd-builder_&_pre]:rounded-[8px] tw:[.page_.dnd-builder_&_pre]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&_table]:block tw:[.page_.dnd-builder_&_table]:overflow-x-auto tw:[.page_.dnd-builder_&_table]:[border-collapse:collapse] tw:[.page_.dnd-builder_&_:where(td,th)]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_:where(td,th)]:p-[4px_8px]">
               {material.markdown.trim() ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {material.markdown}
@@ -670,7 +672,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
 
   if (tab === "content") {
     return (
-      <div className="dnd-stack">
+      <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <div className="dnd-savebar-row tw:flex tw:items-center tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <SaveIndicator
             status={contentStatus || "saved"}
@@ -744,28 +746,37 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
   if (tab === "settings") {
     return (
       <div className="dnd-stack">
-        <section className="dnd-subsection tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:pb-[14px] tw:[.page_.dnd-builder_&]:[border-bottom:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_h4]:m-[0] tw:[.page_.dnd-builder_&_h4]:text-[0.86rem] tw:[.page_.dnd-builder_&_h4]:font-[750]">
-          <h4>Модуль</h4>
-          <p className="dnd-muted">
+        <section className="dnd-subsection tw:grid tw:gap-[8px] tw:pb-[14px] tw:[border-bottom:1px_solid_var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h4 className="tw:text-[0.86rem] tw:m-[0] tw:font-[750] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            Модуль
+          </h4>
+          <p className="dnd-muted tw:text-[0.84rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:text-(--dnd-muted) tw:flex tw:gap-[6px] tw:items-start tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
             {placement.moduleId
               ? `Сейчас: «${modules.find((item) => item.id === placement.moduleId)?.title}», позиция ${placement.index + 1} из ${placement.total}.`
               : "Урок пока в черновике: на сервер он попадёт, когда вы добавите его в модуль."}
           </p>
-          <div className="dnd-inline-form tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&_select]:min-h-[40px] tw:[.page_.dnd-builder_&_select]:p-[9px_12px] tw:[.page_.dnd-builder_&_select]:rounded-[10px] tw:[.page_.dnd-builder_&_select]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_select]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_select]:text-(--dnd-text) tw:[.page_.dnd-builder_&_select]:[font-style:inherit] tw:[.page_.dnd-builder_&_select]:[font-variant:inherit] tw:[.page_.dnd-builder_&_select]:[font-weight:inherit] tw:[.page_.dnd-builder_&_select]:[font-stretch:inherit] tw:[.page_.dnd-builder_&_select]:[font-family:inherit] tw:[.page_.dnd-builder_&_select]:text-[0.88rem] tw:[.page_.dnd-builder_&_select]:leading-[1.45] tw:[.page_.dnd-builder_&_select]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[.page_.dnd-builder_&_select:focus]:[outline:none] tw:[.page_.dnd-builder_&_select:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_&_select:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_select]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_select]:w-[auto]">
+          <div className="dnd-inline-form tw:flex tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             <label
-              className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]!"
+              className="dnd-visually-hidden tw:absolute! tw:w-[1px]! tw:h-[1px]! tw:p-[0]! tw:m-[-1px]! tw:overflow-hidden! tw:whitespace-nowrap! tw:[clip:rect(0_0_0_0)]! tw:[border:0]! tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
               htmlFor={`move-${lesson.id}`}
             >
               Переместить в модуль
             </label>
             <select
+              className="tw:text-[0.88rem] tw:leading-[1.45] tw:w-[auto] tw:min-h-[40px] tw:p-[9px_12px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:flex-[1_1_180px] tw:[font-family:inherit] tw:[border-width:1px] tw:focus:border-(--dnd-focus) tw:[background:var(--dnd-node)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:focus:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.88rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.45] tw:focus:focus-visible:[&&&]:[outline:none]"
               id={`move-${lesson.id}`}
               value={moveTarget}
               onChange={(event) => setMoveTarget(event.target.value)}
             >
-              <option value="">Переместить в модуль…</option>
+              <option
+                className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+                value=""
+              >
+                Переместить в модуль…
+              </option>
               {modules.map((item) => (
                 <option
+                  className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
                   key={item.id}
                   value={item.id}
                   disabled={item.id === placement.moduleId}
@@ -776,7 +787,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
             </select>
             <button
               type="button"
-              className="dnd-btn dnd-btn--ghost dnd-btn--sm"
+              className="dnd-btn dnd-btn--ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
               disabled={!moveTarget || pending}
               onClick={() =>
                 moveToModule(lesson.id, moveTarget).then(() =>
@@ -789,13 +800,13 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
           </div>
           <button
             type="button"
-            className="dnd-btn dnd-btn--ghost dnd-btn--sm"
+            className="dnd-btn dnd-btn--ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
             onClick={() => openModuleDialog([lesson.id])}
           >
             <Icon name="plus" size={15} /> Новый модуль с этим уроком
           </button>
           {placement.moduleId ? (
-            <div className="dnd-inline-form tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&_select]:min-h-[40px] tw:[.page_.dnd-builder_&_select]:p-[9px_12px] tw:[.page_.dnd-builder_&_select]:rounded-[10px] tw:[.page_.dnd-builder_&_select]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_select]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_select]:text-(--dnd-text) tw:[.page_.dnd-builder_&_select]:[font-style:inherit] tw:[.page_.dnd-builder_&_select]:[font-variant:inherit] tw:[.page_.dnd-builder_&_select]:[font-weight:inherit] tw:[.page_.dnd-builder_&_select]:[font-stretch:inherit] tw:[.page_.dnd-builder_&_select]:[font-family:inherit] tw:[.page_.dnd-builder_&_select]:text-[0.88rem] tw:[.page_.dnd-builder_&_select]:leading-[1.45] tw:[.page_.dnd-builder_&_select]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[.page_.dnd-builder_&_select:focus]:[outline:none] tw:[.page_.dnd-builder_&_select:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_&_select:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_select]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_select]:w-[auto]">
+            <div className="dnd-inline-form tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap">
               <button
                 type="button"
                 className="dnd-btn dnd-btn--ghost dnd-btn--sm"
@@ -815,8 +826,10 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
             </div>
           ) : null}
         </section>
-        <section className="dnd-subsection tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:pb-[14px] tw:[.page_.dnd-builder_&]:[border-bottom:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_h4]:m-[0] tw:[.page_.dnd-builder_&_h4]:text-[0.86rem] tw:[.page_.dnd-builder_&_h4]:font-[750]">
-          <h4>Материалы урока</h4>
+        <section className="dnd-subsection tw:grid tw:gap-[8px] tw:pb-[14px] tw:[border-bottom:1px_solid_var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <h4 className="tw:text-[0.86rem] tw:m-[0] tw:font-[750] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.86rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+            Материалы урока
+          </h4>
           {materials.length ? (
             <ul className="dnd-mini-list tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[6px] tw:[.page_.dnd-builder_&]:[list-style:none] tw:[.page_.dnd-builder_&_li]:flex tw:[.page_.dnd-builder_&_li]:items-center tw:[.page_.dnd-builder_&_li]:gap-[8px] tw:[.page_.dnd-builder_&_li]:text-[0.84rem] tw:[.page_.dnd-builder_&_li]:min-w-[0] tw:[.page_.dnd-builder_&_span]:overflow-hidden tw:[.page_.dnd-builder_&_span]:text-ellipsis tw:[.page_.dnd-builder_&_span]:whitespace-nowrap">
               {materials.map((item) => (
@@ -827,14 +840,14 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
               ))}
             </ul>
           ) : (
-            <p className="dnd-muted">
+            <p className="dnd-muted tw:text-[0.84rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:text-(--dnd-muted) tw:flex tw:gap-[6px] tw:items-start tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
               Материалы не привязаны — контент добавлен вручную.
             </p>
           )}
         </section>
         <button
           type="button"
-          className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:[.page_.dnd-builder_&]:justify-start tw:[.page_.dnd-builder_&]:pl-[6px] tw:[.page_.dnd-builder_&]:border-[transparent] tw:[.page_.dnd-builder_&]:text-(--dnd-error) tw:[.page_.dnd-builder_&]:[background:transparent] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:border-[transparent] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[background:var(--dnd-error-bg)]"
+          className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[&&&&]:justify-start tw:[&&&&]:pl-[6px] tw:[border-width:1px] tw:[&&&&]:border-[transparent] tw:[background:transparent] tw:[&&&&]:text-(--dnd-error) tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:[&&&&]:border-[transparent] tw:[&:hover:not(:disabled)]:[background:var(--dnd-error-bg)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
           onClick={() => requestDelete(key)}
           disabled={pending}
         >
@@ -925,15 +938,15 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
 
   if (tab === "lessons") {
     return (
-      <div className="dnd-stack">
-        <p className="dnd-muted">
+      <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <p className="dnd-muted tw:text-[0.84rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:text-(--dnd-muted) tw:flex tw:gap-[6px] tw:items-start tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
           Модуль {position.index + 1} из {position.total}. Порядок уроков
           меняется кнопками или перетаскиванием на холсте.
         </p>
-        <div className="dnd-inline-form tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&_select]:min-h-[40px] tw:[.page_.dnd-builder_&_select]:p-[9px_12px] tw:[.page_.dnd-builder_&_select]:rounded-[10px] tw:[.page_.dnd-builder_&_select]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_select]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_select]:text-(--dnd-text) tw:[.page_.dnd-builder_&_select]:[font-style:inherit] tw:[.page_.dnd-builder_&_select]:[font-variant:inherit] tw:[.page_.dnd-builder_&_select]:[font-weight:inherit] tw:[.page_.dnd-builder_&_select]:[font-stretch:inherit] tw:[.page_.dnd-builder_&_select]:[font-family:inherit] tw:[.page_.dnd-builder_&_select]:text-[0.88rem] tw:[.page_.dnd-builder_&_select]:leading-[1.45] tw:[.page_.dnd-builder_&_select]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[.page_.dnd-builder_&_select:focus]:[outline:none] tw:[.page_.dnd-builder_&_select:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_&_select:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_select]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_select]:w-[auto]">
+        <div className="dnd-inline-form tw:flex tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <button
             type="button"
-            className="dnd-btn dnd-btn--ghost dnd-btn--sm"
+            className="dnd-btn dnd-btn--ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
             onClick={() => moveModuleBy(module.id, -1)}
             disabled={position.index <= 0 || orderPending}
           >
@@ -941,7 +954,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
           </button>
           <button
             type="button"
-            className="dnd-btn dnd-btn--ghost dnd-btn--sm"
+            className="dnd-btn dnd-btn--ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
             onClick={() => moveModuleBy(module.id, 1)}
             disabled={position.index >= position.total - 1 || orderPending}
           >
@@ -949,13 +962,18 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
           </button>
         </div>
         {lessons.length ? (
-          <ol className="dnd-order-list tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&]:p-[0] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:gap-[6px] tw:[.page_.dnd-builder_&]:[list-style:none] tw:[.page_.dnd-builder_&_li]:grid tw:[.page_.dnd-builder_&_li]:grid-cols-[26px_minmax(0,_1fr)_auto_auto] tw:[.page_.dnd-builder_&_li]:items-center tw:[.page_.dnd-builder_&_li]:gap-[6px] tw:[.page_.dnd-builder_&_li]:p-[6px_8px] tw:[.page_.dnd-builder_&_li]:rounded-[10px] tw:[.page_.dnd-builder_&_li]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_li]:[background:var(--dnd-node)]">
+          <ol className="dnd-order-list tw:m-[0] tw:p-[0] tw:grid tw:gap-[6px] tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             {lessons.map((lesson, index) => (
-              <li key={lesson.id}>
-                <span className="dnd-order-num">{index + 1}</span>
+              <li
+                className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:grid tw:grid-cols-[26px_minmax(0,_1fr)_auto_auto] tw:items-center tw:gap-[6px] tw:p-[6px_8px] tw:rounded-[10px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
+                key={lesson.id}
+              >
+                <span className="dnd-order-num tw:inline-grid tw:min-w-[24px] tw:h-[24px] tw:p-[0_4px] tw:rounded-[7px] tw:text-(--dnd-muted) tw:text-[0.74rem] tw:font-[800] tw:[place-items:center] tw:[background:var(--dnd-panel-2)] tw:[font-variant-numeric:tabular-nums] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+                  {index + 1}
+                </span>
                 <button
                   type="button"
-                  className="dnd-link"
+                  className="dnd-link tw:text-[0.96rem] tw:leading-[1.45] tw:p-[0] tw:text-(--dnd-blue-ink) tw:font-[650] tw:cursor-pointer tw:text-left tw:min-w-[0] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:[border:0] tw:[background:none] tw:[text-decoration:underline] tw:[text-underline-offset:3px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
                   onClick={() =>
                     openInspector(nodeId.lesson(lesson.id), "main")
                   }
@@ -965,7 +983,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
                 </button>
                 <button
                   type="button"
-                  className="dnd-icon-btn dnd-icon-btn--sm"
+                  className="dnd-icon-btn dnd-icon-btn--sm tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
                   onClick={() => moveLessonBy(lesson.id, -1)}
                   disabled={index === 0 || orderPending}
                   aria-label={`Переместить «${lesson.title}» выше`}
@@ -975,7 +993,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
                 </button>
                 <button
                   type="button"
-                  className="dnd-icon-btn dnd-icon-btn--sm"
+                  className="dnd-icon-btn dnd-icon-btn--sm tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[30px] tw:h-[30px] tw:flex-[none] tw:rounded-[8px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
                   onClick={() => moveLessonBy(lesson.id, 1)}
                   disabled={index === lessons.length - 1 || orderPending}
                   aria-label={`Переместить «${lesson.title}» ниже`}
@@ -994,7 +1012,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
         )}
         <button
           type="button"
-          className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:[.page_.dnd-builder_&]:justify-start tw:[.page_.dnd-builder_&]:pl-[6px] tw:[.page_.dnd-builder_&]:border-[transparent] tw:[.page_.dnd-builder_&]:text-(--dnd-error) tw:[.page_.dnd-builder_&]:[background:transparent] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:border-[transparent] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[background:var(--dnd-error-bg)]"
+          className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[&&&&]:justify-start tw:[&&&&]:pl-[6px] tw:[border-width:1px] tw:[&&&&]:border-[transparent] tw:[background:transparent] tw:[&&&&]:text-(--dnd-error) tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:[&&&&]:border-[transparent] tw:[&:hover:not(:disabled)]:[background:var(--dnd-error-bg)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
           onClick={() => requestDelete(key)}
         >
           <Icon name="trash" size={15} /> Удалить модуль
@@ -1004,10 +1022,11 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
   }
 
   return (
-    <div className="dnd-stack">
+    <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
       <Field label="Название" required error={titleError}>
         {(props) => (
           <input
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.title}
             onChange={change("title")}
@@ -1018,6 +1037,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
       <Field label="Описание" required error={descriptionError}>
         {(props) => (
           <textarea
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[.page_.dnd-builder_.dnd-field_&]:resize-y tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             rows={4}
             value={values.description}
@@ -1028,6 +1048,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
       <Field label="Цели обучения" hint="Каждая цель с новой строки">
         {(props) => (
           <textarea
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[.page_.dnd-builder_.dnd-field_&]:resize-y tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             rows={5}
             value={values.learningObjectives}
@@ -1061,34 +1082,57 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
 
   if (tab === "summary") {
     return (
-      <div className="dnd-stack">
-        <dl className="dnd-stats tw:[.page_.dnd-builder_&_div]:p-[10px_12px] tw:[.page_.dnd-builder_&_div]:rounded-[12px] tw:[.page_.dnd-builder_&_div]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&_div]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_&_dt]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_dt]:text-[0.74rem] tw:[.page_.dnd-builder_&_dd]:m-[2px_0_0] tw:[.page_.dnd-builder_&_dd]:text-[1.15rem] tw:[.page_.dnd-builder_&_dd]:font-[800] tw:[.page_.dnd-builder_&_dd]:[font-variant-numeric:tabular-nums] tw:[.page_.dnd-builder_&_.is-warn]:border-(--dnd-warn) tw:[.page_.dnd-builder_&_.is-warn]:[background:var(--dnd-warn-bg)] tw:[.page_.dnd-builder_&_.is-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&_.is-ok]:[background:var(--dnd-ok-bg)]">
-          <div>
-            <dt>Материалы</dt>
-            <dd>{stats.materials}</dd>
+      <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <dl className="dnd-stats tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[8px] tw:m-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.is-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&_.is-ok]:[background:var(--dnd-ok-bg)]">
+          <div className="tw:p-[10px_12px] tw:rounded-[12px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+            <dt className="tw:text-[0.74rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.74rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              Материалы
+            </dt>
+            <dd className="tw:text-[1.15rem] tw:m-[2px_0_0] tw:font-[800] tw:[font-variant-numeric:tabular-nums] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.15rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              {stats.materials}
+            </dd>
           </div>
-          <div>
-            <dt>Уроки</dt>
-            <dd>{stats.lessons}</dd>
+          <div className="tw:p-[10px_12px] tw:rounded-[12px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+            <dt className="tw:text-[0.74rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.74rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              Уроки
+            </dt>
+            <dd className="tw:text-[1.15rem] tw:m-[2px_0_0] tw:font-[800] tw:[font-variant-numeric:tabular-nums] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.15rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              {stats.lessons}
+            </dd>
           </div>
-          <div>
-            <dt>Модули</dt>
-            <dd>{stats.modules}</dd>
+          <div className="tw:p-[10px_12px] tw:rounded-[12px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+            <dt className="tw:text-[0.74rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.74rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              Модули
+            </dt>
+            <dd className="tw:text-[1.15rem] tw:m-[2px_0_0] tw:font-[800] tw:[font-variant-numeric:tabular-nums] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.15rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              {stats.modules}
+            </dd>
           </div>
-          <div className={stats.unassignedLessons ? "is-warn" : ""}>
-            <dt>Уроки без модуля</dt>
-            <dd>{stats.unassignedLessons}</dd>
+          <div
+            className={`tw:p-[10px_12px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[&.is-warn]:border-(--dnd-warn) tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-warn]:[background:var(--dnd-warn-bg)] ${stats.unassignedLessons ? "is-warn" : ""}`}
+          >
+            <dt className="tw:text-[0.74rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.74rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              Уроки без модуля
+            </dt>
+            <dd className="tw:text-[1.15rem] tw:m-[2px_0_0] tw:font-[800] tw:[font-variant-numeric:tabular-nums] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.15rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+              {stats.unassignedLessons}
+            </dd>
           </div>
         </dl>
-        <div className="dnd-course-progress">
-          <div className="dnd-course-progress-track">
-            <i style={{ width: `${progress}%` }} />
+        <div className="dnd-course-progress tw:flex tw:items-center tw:gap-[10px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+          <div className="dnd-course-progress-track tw:flex-[1] tw:h-[12px] tw:rounded-[999px] tw:overflow-hidden tw:[background:var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+            <i
+              className="tw:block tw:h-[100%] tw:rounded-[inherit] tw:[background:linear-gradient(90deg,_var(--dnd-accent),_var(--dnd-blue))] tw:[transition:width_0.4s_var(--dnd-ease)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-          <strong>{progress}%</strong>
+          <strong className="tw:text-[1.1rem] tw:min-w-[36px] tw:text-right tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+            {progress}%
+          </strong>
         </div>
         <button
           type="button"
-          className="dnd-btn dnd-btn--accent tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&]:border-(--dnd-accent-ink) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&]:border-(--dnd-accent-ink) tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[&&&&]:border-(--dnd-accent-ink)"
+          className="dnd-btn dnd-btn--accent tw:text-[0.875rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[38px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-accent) tw:text-[#241c24] tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:var(--dnd-accent)] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-accent-ink) tw:[&:hover:not(:disabled)]:[&&]:border-(--dnd-accent-ink) tw:[&:hover:not(:disabled)]:[&&&]:border-(--dnd-accent-ink) tw:[&:hover:not(:disabled)]:[&&&&]:border-(--dnd-accent-ink) tw:[&:active:not(:disabled)]:[transform:translateY(1px)] tw:[&:hover:not(:disabled)]:[box-shadow:0_6px_18px_rgba(203,_170,_203,_0.45)]"
           onClick={openFinish}
         >
           <Icon name="flag" size={16} /> Итоговая проверка
@@ -1098,10 +1142,11 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
   }
 
   return (
-    <div className="dnd-stack">
+    <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
       <Field label="Название курса" required error={titleError}>
         {(props) => (
           <input
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.title}
             onChange={change("title")}
@@ -1112,6 +1157,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
       <Field label="Описание" required error={descriptionError}>
         {(props) => (
           <textarea
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[.page_.dnd-builder_.dnd-field_&]:resize-y tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             rows={4}
             value={values.description}
@@ -1122,12 +1168,17 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
       <Field label="Сложность">
         {(props) => (
           <select
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.difficulty}
             onChange={change("difficulty")}
           >
             {DIFFICULTY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
+              <option
+                className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+                key={option.value}
+                value={option.value}
+              >
                 {option.label}
               </option>
             ))}
@@ -1136,7 +1187,12 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
       </Field>
       <Field label="Теги" hint="Через запятую: python, backend, junior">
         {(props) => (
-          <input {...props} value={values.tags} onChange={change("tags")} />
+          <input
+            className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
+            {...props}
+            value={values.tags}
+            onChange={change("tags")}
+          />
         )}
       </Field>
       <SaveBar

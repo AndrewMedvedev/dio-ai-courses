@@ -9,8 +9,18 @@ import {
 import { useSessionStore } from "@/entities/session";
 import { convertDocumentToMarkdown } from "@/features/upload-document";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { FloatingWindow } from "@/shared/ui/floating-window";
-import { autosizeTextarea } from "@/shared/lib/dom";
+import {
+  AiChatPanel,
+  ChatComposer,
+  ChatEmpty,
+  ChatIconButton,
+  ChatMessage,
+  ChatNotice,
+  ChatThread,
+  ChatTyping,
+  IconClose,
+  IconSparkle,
+} from "@/shared/ui/ai-chat";
 import { attachmentsApi } from "@/shared/api";
 import type { RawApiRecord } from "@/shared/api";
 import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
@@ -158,7 +168,6 @@ export function LessonContentEditor({
     useState<ImageUploadPreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiImageInputRef = useRef<HTMLInputElement>(null);
-  const aiMessagesRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef(new Map<string, HTMLDivElement>());
   const aiReferenceImagesRef = useRef<AiReferenceImage[]>([]);
   const imageUploadPreviewRef = useRef<ImageUploadPreview | null>(null);
@@ -231,16 +240,6 @@ export function LessonContentEditor({
       loadCurrentUser();
     }
   }, [loadCurrentUser, user]);
-
-  useEffect(() => {
-    const container = aiMessagesRef.current;
-    if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-  }, [aiConversation?.messages, isAiSending]);
-
-  useEffect(() => {
-    autosizeTextarea(aiTextareaRef.current, 160);
-  }, [aiInput, isAiOpen, activeBlockId]);
 
   const commitBlocks = (
     nextBlocks: EditorBlockWithId[],
@@ -1069,145 +1068,99 @@ export function LessonContentEditor({
   const renderAiEditor = (
     block: EditorBlockWithId,
     { floating = false }: { floating?: boolean } = {},
-  ) => (
-    <aside
-      className={`lesson-ai-editor tw:static tw:flex-[1_1_auto] tw:min-h-[0] tw:flex tw:flex-col tw:gap-[10px] tw:p-[0] tw:border-none tw:border-[currentcolor] tw:top-[16px] tw:rounded-[14px] tw:[border-width:0] tw:dark:border-[rgba(255,_255,_255,_0.2)] tw:[background:none] tw:[box-shadow:none] tw:[-webkit-backdrop-filter:none] tw:[backdrop-filter:none] tw:[.lesson-editor-block-row_>_&]:top-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:left-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:right-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:w-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:max-h-[none] tw:[.lesson-editor-block-row_>_&]:max-h-[none] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:overflow-visible tw:[.lesson-editor-block-row_>_&]:overflow-visible tw:[.lesson-editor-block-row_>_&]:m-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:absolute tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:absolute tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:min-h-[min(520px,_calc(100vh_-_48px))] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:gap-[12px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:p-[16px_16px_18px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:border-[currentcolor] tw:dark:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.13),_rgba(255,_255,_255,_0.055)_)] tw:dark:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:top-[0] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:top-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:rounded-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:left-[0] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:left-[calc(100%_+_clamp(52px,_4vw,_64px))] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:right-[auto] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:w-(--dnd-ai-w) tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:w-[clamp(340px,_80%,_450px)] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:max-h-[calc(100vh_-_32px)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:overflow-hidden tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:overflow-y-auto tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:bottom-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:z-[3] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:z-[5] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:m-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[border-right:1px_solid_var(--dnd-border)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[background:var(--dnd-panel-2)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[box-shadow:none] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:[box-shadow:0_18px_42px_rgba(0,_0,_0,_0.18),_var(--glass-inset)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:animate-dnd-ai-panel-in tw:motion-reduce:[.page_.dnd-builder_.dnd-inspector_&]:animate-none tw:dark:min-1180:[.lesson-editor-block-row.has-ai_>_&]:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] ${floating ? "is-floating" : ""}`}
-    >
-      {!floating && (
-        <div className="lesson-ai-editor-head tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:start] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&_span::after]:[content:'_·_блок_'_counter(dnd-block)]">
-          <span>ИИ-редактор</span>
-          <button
-            type="button"
-            onClick={() => setIsAiOpen(false)}
-            aria-label="Свернуть ИИ-редактор"
-            title="Свернуть ИИ-редактор"
-          >
-            −
-          </button>
-        </div>
-      )}
-      <div
-        className="lesson-ai-messages tw:flex-[1_1_auto] tw:max-h-[none] tw:min-h-[80px] tw:overflow-y-auto tw:flex tw:flex-col tw:gap-[8px] tw:p-[3px_2px_3px_0] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.58)_transparent] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&]:flex-[1] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&]:min-h-[0]"
-        ref={aiMessagesRef}
-        aria-live="polite"
-        aria-busy={isAiSending}
-      >
-        {(aiConversation?.messages || []).length === 0 && (
-          <div className="lesson-ai-message is-assistant tw:w-[fit-content] tw:max-w-[90%] tw:grid tw:gap-[4px] tw:self-start tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[12px_12px_12px_4px] tw:text-(--text) tw:p-[9px_10px] tw:text-[0.84rem] tw:leading-[1.45] tw:wrap-anywhere tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[background:rgba(255,_255,_255,_0.3)] tw:dark:[background:rgba(255,_255,_255,_0.08)]">
-            <p className="tw:m-[0] tw:whitespace-pre-wrap">
-              Опишите, что нужно изменить. Я подготовлю правку, а история
-              диалога останется здесь.
-            </p>
-          </div>
-        )}
-        {(aiConversation?.messages || []).map((message) => (
-          <div
-            key={message.id}
-            className={`lesson-ai-message tw:w-[fit-content] tw:max-w-[90%] tw:grid tw:gap-[4px] tw:self-start tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[12px_12px_12px_4px] tw:text-(--text) tw:p-[9px_10px] tw:text-[0.84rem] tw:leading-[1.45] tw:wrap-anywhere tw:[&.is-thinking]:flex tw:[&.is-thinking]:gap-[8px] tw:[&.is-user]:self-end tw:[border-width:1px] tw:[&.is-user]:border-[rgba(var(--accent-rgb),_0.46)] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[&.is-user]:rounded-[12px_12px_4px_12px] tw:[background:rgba(255,_255,_255,_0.3)] tw:[&.is-thinking]:items-center tw:dark:[.page_&.is-user]:border-[rgba(var(--accent-rgb),_0.4)] tw:dark:[&.is-user]:border-[rgba(255,_255,_255,_0.14)] tw:[&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:dark:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&.is-user]:[background:rgba(var(--accent-rgb),_0.18)] tw:dark:[&.is-user]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&.is-user]:[&.is-user]:[&&&&]:border-[rgba(var(--accent-rgb),_0.4)] tw:dark:[.page_&.is-user]:[&.is-user]:[&&&&]:[background:rgba(var(--accent-rgb),_0.18)] is-${message.role}`}
-          >
-            <p className="tw:m-[0] tw:whitespace-pre-wrap">{message.text}</p>
-            {message.role === "user" && (
-              <span className="chat-message-status tw:block tw:mt-[2px] tw:text-(--muted) tw:text-[0.66rem] tw:font-[700] tw:leading-[1.2] tw:text-right">
-                ✓ Отправлено
-              </span>
-            )}
-          </div>
-        ))}
-        {isAiSending && (
-          <div className="lesson-ai-message is-assistant is-thinking tw:w-[fit-content] tw:max-w-[90%] tw:flex tw:gap-[8px] tw:self-start tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[12px_12px_12px_4px] tw:text-(--text) tw:p-[9px_10px] tw:text-[0.84rem] tw:leading-[1.45] tw:wrap-anywhere tw:items-center tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.14)] tw:[background:rgba(255,_255,_255,_0.3)] tw:dark:[background:rgba(255,_255,_255,_0.08)]">
-            <span
-              className="chat-thinking-dots tw:inline-flex tw:items-center tw:gap-[3px] tw:flex-[0_0_auto]"
-              aria-hidden="true"
-            >
-              <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
-              <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(2)]:[animation-delay:160ms] tw:[&:nth-child(3)]:[animation-delay:320ms]" />
-              <i className="tw:w-[5px] tw:h-[5px] tw:rounded-[50%] tw:opacity-[0.35] tw:[background:currentColor] tw:motion-reduce:opacity-[0.65] tw:animate-chat-thinking-pulse tw:motion-reduce:animate-none tw:[&:nth-child(3)]:[animation-delay:320ms] tw:[&:nth-child(2)]:[animation-delay:160ms]" />
-            </span>
-            <span>ИИ получил сообщение и готовит правку…</span>
-          </div>
-        )}
-      </div>
-      {block.content_type === "image" && aiReferenceImages.length > 0 && (
-        <div className="lesson-ai-reference-grid tw:grid tw:grid-cols-[repeat(auto-fill,_minmax(58px,_72px))] tw:gap-[8px]">
-          {aiReferenceImages.map((image) => (
-            <div
-              className="lesson-ai-reference-preview tw:relative tw:aspect-[1] tw:overflow-hidden tw:rounded-[10px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[background:rgba(255,_255,_255,_0.22)] tw:[&_img]:w-[100%] tw:[&_img]:h-[100%] tw:[&_img]:object-cover tw:[&_button]:absolute tw:[&_button]:top-[4px] tw:[&_button]:right-[4px] tw:[&_button]:w-[24px] tw:[&_button]:h-[24px] tw:[&_button]:[border:0] tw:[&_button]:rounded-[50%] tw:[&_button]:[background:rgba(0,_0,_0,_0.58)] tw:[&_button]:text-[#fff] tw:[&_button]:text-[1rem] tw:[&_button]:leading-[1] tw:[&_button]:cursor-pointer"
-              key={image.id}
-            >
-              <img src={image.previewUrl} alt={image.name} />
-              <button
-                type="button"
-                onClick={() => removeAiReferenceImage(image.id)}
-                aria-label={`Удалить ${image.name}`}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      {aiError && <p className="lesson-ai-error">{aiError}</p>}
-      <div
-        className={`lesson-ai-composer tw:grid tw:grid-cols-[minmax(0,_1fr)_34px] tw:gap-[7px] tw:mt-[auto] tw:p-[7px] tw:border-solid tw:border-[rgba(255,_255,_255,_0.58)] tw:rounded-[13px] tw:[&.has-attach]:grid-cols-[34px_minmax(0,_1fr)_34px] tw:[align-items:end] tw:[border-width:1px] tw:dark:border-[rgba(255,_255,_255,_0.16)] tw:[background:rgba(255,_255,_255,_0.3)] tw:dark:[background:rgba(255,_255,_255,_0.07)] ${block.content_type === "image" ? "has-attach" : ""}`}
-      >
-        {block.content_type === "image" && (
-          <>
-            <input
-              ref={aiImageInputRef}
-              className="lesson-ai-image-input tw:hidden"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={attachAiImages}
+  ) => {
+    const messages = aiConversation?.messages || [];
+    const isImageBlock = block.content_type === "image";
+    const body = (
+      <>
+        <ChatThread
+          busy={isAiSending}
+          scrollKey={`${messages.length}:${isAiSending}:${aiError}`}
+          centered={messages.length === 0 && !isAiSending}
+          label="Переписка с ИИ-редактором"
+          className={floating ? "" : "tw:px-[4px]!"}
+        >
+          {messages.length === 0 && !isAiSending ? (
+            <ChatEmpty
+              title="Что поменять в блоке?"
+              text="Опишите правку — предложение появится в блоке, его можно применить или отклонить."
             />
-            <button
-              type="button"
-              className="lesson-ai-attach tw:w-[34px] tw:h-[34px] tw:p-[0] tw:rounded-[50%] tw:text-(--ink-accent) tw:text-[1.15rem] tw:leading-[1] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.42)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[background:transparent]"
-              onClick={() => aiImageInputRef.current?.click()}
-              aria-label="Прикрепить референсы до 15 МБ"
-              title="Прикрепить референсы до 15 МБ"
-            >
-              +
-            </button>
-          </>
-        )}
-        <textarea
-          className="tw:w-[100%] tw:resize-y tw:border-none tw:border-[currentcolor] tw:rounded-[11px] tw:text-(--text) tw:p-[8px_9px] tw:min-h-[74px] tw:max-h-[160px] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.9] tw:[border-width:0] tw:[background:transparent] tw:dark:text-(--heading) tw:[font:inherit] tw:[outline:none]"
-          ref={(element) => {
-            aiTextareaRef.current = element;
-            autosizeTextarea(element, 160);
-          }}
-          rows={2}
+          ) : null}
+          {messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              role={message.role}
+              text={message.text}
+              className="lesson-ai-message"
+            />
+          ))}
+          {isAiSending ? <ChatTyping label="Готовлю правку…" /> : null}
+          {aiError ? <ChatNotice tone="error">{aiError}</ChatNotice> : null}
+        </ChatThread>
+        {isImageBlock ? (
+          <input
+            ref={aiImageInputRef}
+            className="tw:hidden"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={attachAiImages}
+          />
+        ) : null}
+        <ChatComposer
+          className={`lesson-ai-composer ${floating ? "" : "tw:px-[4px]! tw:pb-[4px]!"}`}
           value={aiInput}
-          onChange={(event) => setAiInput(event.target.value)}
+          onChange={setAiInput}
+          onSubmit={askAi}
+          busy={isAiSending}
+          onStop={() => cancelAgentRequest(aiConversationKey)}
+          textareaRef={aiTextareaRef}
+          maxHeight={160}
           placeholder={
             isAiSending
-              ? "Можно написать следующее сообщение — отправка после ответа"
+              ? "Можно написать следующее сообщение…"
               : "Напишите, что нужно изменить"
           }
-          maxLength={10_000}
-          onKeyDown={(event) => {
-            if (event.nativeEvent.isComposing) return;
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              askAi();
-            }
-          }}
+          onAttach={
+            isImageBlock ? () => aiImageInputRef.current?.click() : undefined
+          }
+          attachLabel="Прикрепить референсы до 15 МБ"
+          files={
+            isImageBlock
+              ? aiReferenceImages.map((image) => ({
+                  id: image.id,
+                  name: image.name,
+                  previewUrl: image.previewUrl,
+                }))
+              : []
+          }
+          onRemoveFile={removeAiReferenceImage}
+          ariaLabel="Сообщение ИИ-редактору"
+          hint={floating ? undefined : false}
         />
-        <button
-          type="button"
-          className="lesson-ai-send tw:w-[34px] tw:h-[34px] tw:p-[0] tw:rounded-[50%] tw:text-(--ink-accent) tw:text-[1.15rem] tw:leading-[1] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.42)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:cursor-not-allowed tw:[background:rgba(var(--accent-rgb),_0.18)] tw:disabled:opacity-[0.45]"
-          onClick={askAi}
-          disabled={isAiSending || !aiInput.trim()}
-          aria-label="Отправить сообщение"
-          title="Отправить"
-        >
-          ↑
-        </button>
-      </div>
-    </aside>
-  );
-
+      </>
+    );
+    if (floating) return body;
+    return (
+      <aside
+        className={`lesson-ai-editor tw:static tw:flex-[1_1_auto] tw:min-h-[0] tw:flex tw:flex-col tw:gap-[10px] tw:p-[0] tw:border-none tw:border-[currentcolor] tw:top-[16px] tw:rounded-[14px] tw:[border-width:0] tw:dark:border-[rgba(255,_255,_255,_0.2)] tw:[background:none] tw:[box-shadow:none] tw:[-webkit-backdrop-filter:none] tw:[backdrop-filter:none] tw:[.lesson-editor-block-row_>_&]:top-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:left-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:right-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:w-[auto] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:max-h-[none] tw:[.lesson-editor-block-row_>_&]:max-h-[none] tw:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:overflow-visible tw:[.lesson-editor-block-row_>_&]:overflow-visible tw:[.lesson-editor-block-row_>_&]:m-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:absolute tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:absolute tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:min-h-[min(520px,_calc(100vh_-_48px))] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:gap-[12px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:p-[16px_16px_18px] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:border-[currentcolor] tw:dark:[background:linear-gradient(_145deg,_rgba(255,_255,_255,_0.13),_rgba(255,_255,_255,_0.055)_)] tw:dark:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:top-[0] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:top-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:rounded-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:left-[0] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:left-[calc(100%_+_clamp(52px,_4vw,_64px))] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:right-[auto] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:w-(--dnd-ai-w) tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:w-[clamp(340px,_80%,_450px)] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:max-h-[calc(100vh_-_32px)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:overflow-hidden tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:overflow-y-auto tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:bottom-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:z-[3] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:z-[5] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:m-[0] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[border-right:1px_solid_var(--dnd-border)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[background:var(--dnd-panel-2)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:[box-shadow:none] tw:min-1180:[.lesson-editor-block-row.has-ai_>_&]:[box-shadow:0_18px_42px_rgba(0,_0,_0,_0.18),_var(--glass-inset)] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_&]:animate-dnd-ai-panel-in tw:motion-reduce:[.page_.dnd-builder_.dnd-inspector_&]:animate-none tw:dark:min-1180:[.lesson-editor-block-row.has-ai_>_&]:[box-shadow:0_16px_40px_rgba(0,_0,_0,_0.22),_var(--glass-inset)] ${floating ? "is-floating" : ""}`}
+      >
+        <div className="lesson-ai-editor-head tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:start] tw:min-1000:[.page_.dnd-builder_.dnd-inspector_.lesson-editor-block-row.has-ai_>_.lesson-ai-editor_&_span::after]:[content:'_·_блок_'_counter(dnd-block)] tw:flex! tw:items-center tw:justify-between">
+          <span className="tw:inline-flex tw:items-center tw:gap-[6px]">
+            <IconSparkle size={14} />
+            ИИ-редактор
+          </span>
+          <ChatIconButton
+            label="Свернуть ИИ-редактор"
+            onClick={() => setIsAiOpen(false)}
+          >
+            <IconClose size={15} />
+          </ChatIconButton>
+        </div>
+        {body}
+      </aside>
+    );
+  };
   const activeAiBlock = blocks.find((block) => block.id === activeBlockId);
 
   return (
@@ -1412,23 +1365,22 @@ export function LessonContentEditor({
         </div>
       </div>
       {floatingAiEditor && (
-        <FloatingWindow
+        <AiChatPanel
           open={
             Boolean(activeAiBlock) &&
             isAiOpen &&
             activeAiBlock?.content_type !== "video"
           }
-          eyebrow="ИИ-редактор блока"
-          title={activeAiBlock ? getBlockTitle(activeAiBlock) : ""}
-          subtitle="Опишите правку — предложение появится в блоке, его можно применить или отклонить."
           onClose={() => setIsAiOpen(false)}
-          storageKey="block-ai-editor"
-          defaultSize={{ width: 420, height: 560 }}
+          tag="Редактирование"
+          title={activeAiBlock ? getBlockTitle(activeAiBlock) : "Блок урока"}
+          initialFocusRef={aiTextareaRef}
+          className="lesson-ai-editor-panel"
         >
           {activeAiBlock
             ? renderAiEditor(activeAiBlock, { floating: true })
             : null}
-        </FloatingWindow>
+        </AiChatPanel>
       )}
       <ConfirmDialog
         open={Boolean(blockToDelete)}
