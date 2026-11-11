@@ -1,6 +1,6 @@
 // Главная страница с описанием продукта, каталогом треков и механикой генерации
-import { SectionTop } from "@/shared/ui/section-top";
-import { points, steps, tracks } from "../config/landing";
+import { SectionTop } from '@/shared/ui/section-top';
+import { points, steps, tracks } from '../config/landing';
 
 export interface HomePageProps {
   openCreator: () => void;
@@ -186,7 +186,7 @@ export function HomePage({
               className="glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[20px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:max-760:p-[18px] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::after]:absolute tw:[&::after]:inset-[0] tw:[&::after]:z-[-1] tw:[&::after]:rounded-[inherit] tw:[&::after]:pointer-events-none tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:''] tw:[&::after]:[backdrop-filter:blur(2px)] tw:[&::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&::after]:[filter:url(#glass-distortion)] tw:[&::after]:[-webkit-filter:url('#glass-distortion')] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
             >
               <b className="tw:block tw:text-(--accent) tw:mb-[10px]">
-                {String(index + 1).padStart(2, "0")}
+                {String(index + 1).padStart(2, '0')}
               </b>
               <h3 className="tw:mb-[10px] tw:text-[1rem] tw:leading-[1.3] tw:[font-family:'Unbounded',_sans-serif]">
                 {step.title}

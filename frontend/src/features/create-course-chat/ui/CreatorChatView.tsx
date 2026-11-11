@@ -1,3 +1,4 @@
+import { toText } from '@/shared/lib/text';
 import {
   useCallback,
   useEffect,
@@ -5,8 +6,8 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-} from "react";
-import { useNavigate } from "react-router-dom";
+} from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ChatButton,
   ChatCard,
@@ -20,9 +21,9 @@ import {
   ChatThread,
   ChatTyping,
   IconNewChat,
-} from "@/shared/ui/ai-chat";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
+} from '@/shared/ui/ai-chat';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { isAgentMockEnabled } from '@/shared/lib/agent-mock';
 import {
   CONFIRM_LAUNCH_MESSAGE,
   getLastAssistantMessage,
@@ -32,17 +33,17 @@ import {
   createInitialGenerationState,
   useAgentStore,
   type GenerationPatch,
-} from "@/entities/agent-chat";
+} from '@/entities/agent-chat';
 
-import { intakeQuestions } from "../config/intake-questions";
+import { intakeQuestions } from '../config/intake-questions';
 import {
   DOCUMENT_ALLOWED_EXTENSION,
   DOCUMENT_ALLOWED_EXTENSIONS_LABEL,
   DOCUMENT_MAX_SIZE_BYTES,
   saveDocument,
-} from "@/features/upload-document";
-import { fetchCourseStatus } from "@/entities/course";
-import { getLocalStorage } from "@/shared/lib/storage";
+} from '@/shared/api';
+import { fetchCourseStatus } from '@/entities/course';
+import { getLocalStorage } from '@/shared/lib/storage';
 import {
   estimateProgress,
   extractCourseId,
@@ -51,7 +52,7 @@ import {
   isGenerationCourseStatus,
   normalizeCourseStatus,
   normalizeGenerationResponse,
-} from "../lib/generation-response";
+} from '../lib/generation-response';
 import {
   ACTIVE_CREATOR_COURSE_KEY,
   clearGenerationState,
@@ -59,7 +60,7 @@ import {
   createUuid,
   readGenerationState,
   writeGenerationState,
-} from "../model/generation-storage";
+} from '../model/generation-storage';
 
 const MAX_FILES = 5;
 
@@ -92,7 +93,7 @@ export function CreatorChatView() {
   );
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const conversationKey = useMemo(
-    () => createAgentConversationKey("interviewer", courseId),
+    () => createAgentConversationKey('interviewer', courseId),
     [courseId],
   );
   const conversation = useAgentStore(
@@ -114,16 +115,16 @@ export function CreatorChatView() {
   const defaultGeneration = useMemo(createInitialGenerationState, []);
   const generation = storeGeneration || defaultGeneration;
   const messages = conversation?.messages || [];
-  const isThinking = conversation?.status === "loading";
+  const isThinking = conversation?.status === 'loading';
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const hasGenerationStarted = generation.hasStarted;
   const isGenerating = generation.isGenerating;
   const generationProgress = generation.progress;
   const generationStatus = generation.status;
-  const [fileUploadError, setFileUploadError] = useState("");
+  const [fileUploadError, setFileUploadError] = useState('');
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -134,21 +135,19 @@ export function CreatorChatView() {
   const hasReceivedGenerationStatusRef = useRef(false);
 
   const requiredQuestionIds = [
-    "title",
-    "goal",
-    "duration",
-    "format",
-    "level",
-    "audience",
-    "materials",
+    'title',
+    'goal',
+    'duration',
+    'format',
+    'level',
+    'audience',
+    'materials',
   ];
   const answeredRequiredCount = requiredQuestionIds.filter(
-    (id) => (answers[id] || "").trim().length > 0,
+    (id) => (answers[id] || '').trim().length > 0,
   ).length;
-  const briefingPercent = useMemo(
-    () =>
-      Math.round((answeredRequiredCount / requiredQuestionIds.length) * 100),
-    [answeredRequiredCount],
+  const briefingPercent = Math.round(
+    (answeredRequiredCount / requiredQuestionIds.length) * 100,
   );
 
   const completionPercent = hasGenerationStarted
@@ -165,7 +164,7 @@ export function CreatorChatView() {
 
   const pushAssistantMessage = useCallback(
     (text: string) => {
-      appendAgentMessage(conversationKey, "assistant", text);
+      appendAgentMessage(conversationKey, 'assistant', text);
     },
     [appendAgentMessage, conversationKey],
   );
@@ -173,7 +172,7 @@ export function CreatorChatView() {
   useEffect(() => {
     initializeConversation({
       key: conversationKey,
-      agent: "interviewer",
+      agent: 'interviewer',
       courseId,
     });
     return () => cancelRequest(conversationKey);
@@ -194,7 +193,7 @@ export function CreatorChatView() {
   }, []);
 
   const finishGeneration = useCallback(
-    (status = "draft") => {
+    (status = 'draft') => {
       stopGenerationTimers();
       clearGenerationState(courseId);
       updateGeneration({
@@ -202,12 +201,12 @@ export function CreatorChatView() {
         hasStarted: true,
         courseStatus: normalizeCourseStatus(status),
         progress: 100,
-        error: "",
+        error: '',
         status:
-          "Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».",
+          'Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».',
       });
       pushAssistantMessage(
-        "Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».",
+        'Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».',
       );
     },
     [courseId, pushAssistantMessage, stopGenerationTimers, updateGeneration],
@@ -242,10 +241,10 @@ export function CreatorChatView() {
       clearGenerationState(courseId);
       updateGeneration({
         isGenerating: false,
-        error: "Не удалось проверить статус генерации курса.",
-        status: "Не удалось проверить статус генерации курса.",
+        error: 'Не удалось проверить статус генерации курса.',
+        status: 'Не удалось проверить статус генерации курса.',
       });
-      pushAssistantMessage("Не удалось проверить статус генерации курса.");
+      pushAssistantMessage('Не удалось проверить статус генерации курса.');
       return true;
     }
 
@@ -263,8 +262,8 @@ export function CreatorChatView() {
         hasReceivedGenerationStatusRef.current = true;
         updateGeneration({
           courseStatus: normalizedStatus,
-          error: "",
-          status: "Курс генерируется. Мы сообщим, когда он будет готов.",
+          error: '',
+          status: 'Курс генерируется. Мы сообщим, когда он будет готов.',
         });
         return false;
       }
@@ -275,14 +274,14 @@ export function CreatorChatView() {
       }
       updateGeneration({
         courseStatus: normalizedStatus,
-        status: "Курс генерируется. Мы сообщим, когда он будет готов.",
+        status: 'Курс генерируется. Мы сообщим, когда он будет готов.',
       });
       return false;
     } catch (error) {
       if (controller.signal.aborted) return true;
 
       if ((error as { status?: number } | null)?.status === NOT_FOUND_STATUS) {
-        const started = Date.parse(currentGeneration.startedAt || "");
+        const started = Date.parse(currentGeneration.startedAt || '');
         const elapsed = Number.isFinite(started) ? Date.now() - started : 0;
         const shouldKeepPolling =
           !hasReceivedGenerationStatusRef.current &&
@@ -290,10 +289,10 @@ export function CreatorChatView() {
 
         if (shouldKeepPolling) {
           updateGeneration({
-            courseStatus: "not_found",
-            error: "",
+            courseStatus: 'not_found',
+            error: '',
             status:
-              "Задача генерации ещё подготавливается. Мы сообщим, когда курс будет готов.",
+              'Задача генерации ещё подготавливается. Мы сообщим, когда курс будет готов.',
           });
           return false;
         }
@@ -305,17 +304,17 @@ export function CreatorChatView() {
           hasStarted: false,
           taskId: null,
           generatedCourseId: null,
-          courseStatus: "not_found",
+          courseStatus: 'not_found',
           progress: 0,
           startedAt: null,
-          error: "Не удалось сгенерировать курс.",
-          status: "Не удалось сгенерировать курс.",
+          error: 'Не удалось сгенерировать курс.',
+          status: 'Не удалось сгенерировать курс.',
         });
-        pushAssistantMessage("Не удалось сгенерировать курс.");
+        pushAssistantMessage('Не удалось сгенерировать курс.');
         return true;
       }
 
-      console.error("Не удалось получить статус генерации курса", error);
+      console.error('Не удалось получить статус генерации курса', error);
       const errorMessage = getStatusErrorMessage(error);
       const shouldStopPolling = true;
 
@@ -380,10 +379,10 @@ export function CreatorChatView() {
         startedAt,
         hasStarted: true,
         isGenerating: true,
-        courseStatus: "in_generation",
+        courseStatus: 'in_generation',
         progress: estimateProgress(startedAt),
-        status: "Курс генерируется. Это может занять несколько минут.",
-        error: "",
+        status: 'Курс генерируется. Это может занять несколько минут.',
+        error: '',
       });
       writeGenerationState({
         courseId,
@@ -391,10 +390,10 @@ export function CreatorChatView() {
         taskId: nextTaskId || null,
         generatedCourseId: generationCourseId || null,
         generationStartedAt: startedAt,
-        status: "in_generation",
+        status: 'in_generation',
       });
       startProgressSimulation(startedAt);
-      startStatusPolling();
+      void startStatusPolling();
     },
     [
       conversation?.chatId,
@@ -407,14 +406,14 @@ export function CreatorChatView() {
   );
 
   const getFileValidationError = (file: File | null | undefined) => {
-    if (!file) return "Файл не выбран.";
+    if (!file) return 'Файл не выбран.';
     if (file.size > DOCUMENT_MAX_SIZE_BYTES) {
-      return "Размер файла не должен превышать 30 МБ.";
+      return 'Размер файла не должен превышать 30 МБ.';
     }
-    if (!DOCUMENT_ALLOWED_EXTENSION.test(file.name || "")) {
+    if (!DOCUMENT_ALLOWED_EXTENSION.test(file.name || '')) {
       return `Поддерживаются файлы ${DOCUMENT_ALLOWED_EXTENSIONS_LABEL}.`;
     }
-    return "";
+    return '';
   };
 
   const uploadAllFiles = async () => {
@@ -433,21 +432,21 @@ export function CreatorChatView() {
       setFileUploadError(
         validationErrors
           .map((item) => `${item.name}: ${item.error}`)
-          .join("\n"),
+          .join('\n'),
       );
       return false;
     }
 
     setIsUploadingFiles(true);
-    setFileUploadError("");
-    updateGeneration({ status: "Загружаю материалы в базу знаний..." });
+    setFileUploadError('');
+    updateGeneration({ status: 'Загружаю материалы в базу знаний...' });
 
     const results = await Promise.allSettled(
       uploadedFiles.map((uploadedFile) => saveDocument(uploadedFile.file)),
     );
     const failedUploads = results
       .map((result, index) => ({ result, file: uploadedFiles[index] }))
-      .filter(({ result }) => result.status === "rejected")
+      .filter(({ result }) => result.status === 'rejected')
       .map(({ result, file }) => {
         const error = (result as PromiseRejectedResult).reason as {
           userMessage?: string;
@@ -458,15 +457,15 @@ export function CreatorChatView() {
           error?.userMessage ||
           error?.message ||
           (Number(error?.status) >= 500
-            ? "Ошибка сервера при загрузке файла. Попробуйте ещё раз."
-            : "Не удалось загрузить файл.");
+            ? 'Ошибка сервера при загрузке файла. Попробуйте ещё раз.'
+            : 'Не удалось загрузить файл.');
         return `${file.name}: ${reason}`;
       });
 
     setIsUploadingFiles(false);
 
     if (failedUploads.length > 0) {
-      setFileUploadError(failedUploads.join("\n"));
+      setFileUploadError(failedUploads.join('\n'));
       return false;
     }
 
@@ -491,13 +490,13 @@ export function CreatorChatView() {
       startedAt: savedGeneration.generationStartedAt || null,
       hasStarted: true,
       isGenerating: true,
-      courseStatus: "in_generation",
+      courseStatus: 'in_generation',
       progress: estimateProgress(savedGeneration.generationStartedAt),
-      status: "Генерация курса продолжается.",
-      error: "",
+      status: 'Генерация курса продолжается.',
+      error: '',
     });
     startProgressSimulation(savedGeneration.generationStartedAt);
-    startStatusPolling();
+    void startStatusPolling();
   }, [
     conversationKey,
     courseId,
@@ -509,9 +508,9 @@ export function CreatorChatView() {
 
   // Из обработчика клика приходит событие, а не текст: это обычная отправка.
   const submitMessage = async (overrideText?: unknown) => {
-    const isConfirmedLaunch = typeof overrideText === "string";
+    const isConfirmedLaunch = typeof overrideText === 'string';
     const text = (
-      typeof overrideText === "string" ? overrideText : inputValue
+      typeof overrideText === 'string' ? overrideText : inputValue
     ).trim();
     const hasFiles = !isConfirmedLaunch && uploadedFiles.length > 0;
 
@@ -540,7 +539,7 @@ export function CreatorChatView() {
     }
 
     const targetQuestion = intakeQuestions[stepIndex] || null;
-    const messageText = text || "Файлы прикреплены";
+    const messageText = text || 'Файлы прикреплены';
 
     if (hasFiles) {
       const filesOk = await uploadAllFiles();
@@ -558,17 +557,17 @@ export function CreatorChatView() {
       setUploadedFiles([]);
     }
 
-    if (!isConfirmedLaunch) setInputValue("");
+    if (!isConfirmedLaunch) setInputValue('');
     // Курс и chat_id запоминаем с первого сообщения, чтобы после перезагрузки
     // страницы продолжить ту же беседу.
     getLocalStorage()?.setItem(ACTIVE_CREATOR_COURSE_KEY, courseId);
     try {
       const response = await sendAgentMessage({
         key: conversationKey,
-        agent: "interviewer",
+        agent: 'interviewer',
         courseId,
         content: messageText,
-        emptyResponseMessage: "",
+        emptyResponseMessage: '',
       });
       if (!response) return;
 
@@ -590,7 +589,7 @@ export function CreatorChatView() {
           chatId: response.chatId || conversation?.chatId,
           startedAt: generationResult.startedAt,
         });
-      } else if (!String(response.content ?? "").trim()) {
+      } else if (!toText(response.content ?? '').trim()) {
         beginGeneration({
           taskId: null,
           courseId: null,
@@ -634,7 +633,7 @@ export function CreatorChatView() {
         skippedBySize = true;
         continue;
       }
-      if (!DOCUMENT_ALLOWED_EXTENSION.test(file.name || "")) {
+      if (!DOCUMENT_ALLOWED_EXTENSION.test(file.name || '')) {
         const message = `Поддерживаются файлы ${DOCUMENT_ALLOWED_EXTENSIONS_LABEL}.`;
         setFileUploadError(message);
         pushAssistantMessage(message);
@@ -650,7 +649,7 @@ export function CreatorChatView() {
       );
     }
     if (skippedBySize) {
-      const message = "Файл больше 30 МБ не поддерживается и не был добавлен.";
+      const message = 'Файл больше 30 МБ не поддерживается и не был добавлен.';
       setFileUploadError(message);
       pushAssistantMessage(message);
     }
@@ -663,21 +662,21 @@ export function CreatorChatView() {
     }));
 
     if (skippedDuplicate) {
-      pushAssistantMessage("Повторно выбранные файлы не добавлены.");
+      pushAssistantMessage('Повторно выбранные файлы не добавлены.');
     }
 
     if (nextFiles.length > 0) {
-      setFileUploadError("");
+      setFileUploadError('');
       setUploadedFiles((prev) => [...nextFiles, ...prev]);
       setAnswers((prev) => ({
         ...prev,
         materials:
           prev.materials && prev.materials.trim().length > 0
             ? prev.materials
-            : "Файлы прикреплены",
+            : 'Файлы прикреплены',
       }));
     }
-    event.target.value = "";
+    event.target.value = '';
   };
 
   const clearChat = () => {
@@ -686,16 +685,16 @@ export function CreatorChatView() {
     clearConversation(conversationKey);
     initializeConversation({
       key: conversationKey,
-      agent: "interviewer",
+      agent: 'interviewer',
       courseId,
     });
     setStepIndex(0);
     setAnswers({});
-    setInputValue("");
+    setInputValue('');
     setUploadedFiles([]);
     resetGeneration(conversationKey);
     hasReceivedGenerationStatusRef.current = false;
-    setFileUploadError("");
+    setFileUploadError('');
     setIsUploadingFiles(false);
   };
 
@@ -713,24 +712,24 @@ export function CreatorChatView() {
     clearConversation(conversationKey);
     setStepIndex(0);
     setAnswers({});
-    setInputValue("");
+    setInputValue('');
     setUploadedFiles([]);
     resetGeneration(conversationKey);
     hasReceivedGenerationStatusRef.current = false;
-    setFileUploadError("");
+    setFileUploadError('');
     setIsUploadingFiles(false);
     setCourseId(createUuid());
   };
 
   const statusLabel = isUploadingFiles
-    ? "Загружаю файлы…"
+    ? 'Загружаю файлы…'
     : isGenerating
-      ? "ИИ собирает курс…"
+      ? 'ИИ собирает курс…'
       : isGenerationComplete
-        ? "Курс готов"
+        ? 'Курс готов'
         : isThinking
-          ? "ИИ отвечает…"
-          : "Диалог активен";
+          ? 'ИИ отвечает…'
+          : 'Диалог активен';
   const canSend =
     !isGenerating &&
     !isUploadingFiles &&
@@ -751,7 +750,7 @@ export function CreatorChatView() {
             </span>
           </div>
           <ChatIconButton
-            label={isGenerationComplete ? "Новый чат" : "Очистить чат"}
+            label={isGenerationComplete ? 'Новый чат' : 'Очистить чат'}
             onClick={() =>
               isGenerationComplete
                 ? startNewChat()
@@ -888,7 +887,7 @@ export function CreatorChatView() {
                       onClick={() => submitMessage()}
                       disabled={isUploadingFiles || isThinking || isGenerating}
                     >
-                      {isUploadingFiles ? "Загружаю…" : "Повторить загрузку"}
+                      {isUploadingFiles ? 'Загружаю…' : 'Повторить загрузку'}
                     </ChatButton>
                   ) : null
                 }
@@ -902,7 +901,7 @@ export function CreatorChatView() {
               onChange={(value) => {
                 setInputValue(value);
                 if (fileUploadError && uploadedFiles.length === 0) {
-                  setFileUploadError("");
+                  setFileUploadError('');
                 }
               }}
               onSubmit={() => submitMessage()}
@@ -911,7 +910,7 @@ export function CreatorChatView() {
               disabled={isGenerating}
               placeholder={
                 currentQuestion?.placeholder ||
-                "Опишите курс: тема, для кого, сколько времени"
+                'Опишите курс: тема, для кого, сколько времени'
               }
               onAttach={() => fileInputRef.current?.click()}
               attachLabel="Прикрепить файлы"
@@ -947,12 +946,12 @@ export function CreatorChatView() {
         onConfirm={async () => {
           const text = confirmLaunchText || CONFIRM_LAUNCH_MESSAGE;
           setConfirmLaunchText(null);
-          if (text !== CONFIRM_LAUNCH_MESSAGE) setInputValue("");
+          if (text !== CONFIRM_LAUNCH_MESSAGE) setInputValue('');
           await submitMessage(text);
         }}
       >
         <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:[&_p]:m-[0_0_8px] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px]">
-          <ChatMarkdown>{lastAssistantMessage?.text || ""}</ChatMarkdown>
+          <ChatMarkdown>{lastAssistantMessage?.text || ''}</ChatMarkdown>
         </div>
         <p className="app-modal-note tw:m-[0] tw:text-(--muted) tw:text-[0.9rem]">
           После подтверждения ИИ поставит курс в очередь на генерацию. Это

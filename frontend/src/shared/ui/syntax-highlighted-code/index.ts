@@ -1,5 +1,5 @@
 export {
   SyntaxHighlightedCode,
-  getCodeLanguage,
   type SyntaxHighlightedCodeProps,
-} from "./SyntaxHighlightedCode";
+} from './SyntaxHighlightedCode';
+export { getCodeLanguage } from './highlight-code';

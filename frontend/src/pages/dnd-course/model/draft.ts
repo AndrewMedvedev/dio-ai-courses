@@ -1,19 +1,21 @@
-import { getLocalStorage } from "@/shared/lib/storage";
+import { toText } from '@/shared/lib/text';
+import { asRecord } from '@/shared/api';
+import { getLocalStorage } from '@/shared/lib/storage';
 import {
   DRAFT_KEY,
   EMPTY_COURSE_FORM,
   INTERRUPTED_UPLOAD_MESSAGE,
   LEGACY_DRAFT_KEY,
-} from "../config/constants";
+} from '../config/constants';
 import {
   getFileKind,
   nodeId,
   normalizeCourse,
   normalizeLesson,
   normalizeModule,
-} from "../lib/helpers";
-import type { RawApiRecord } from "@/shared/api";
-import type { DndDraft, DndMaterial, DndModule, Viewport } from "./types";
+} from '../lib/helpers';
+import type { RawApiRecord } from '@/shared/api';
+import type { DndDraft, DndMaterial, DndModule, Viewport } from './types';
 
 const DEFAULT_VIEWPORT: Viewport = { x: 40, y: 40, zoom: 1 };
 
@@ -43,26 +45,36 @@ const PERSISTED_KEYS = Object.keys(EMPTY_DRAFT) as (keyof DndDraft)[];
 /** Материал без объекта File: File не сериализуется и после перезагрузки потерян. */
 function restoreMaterial(material: RawApiRecord, index: number): DndMaterial {
   const status =
-    material.status === "uploading"
+    material.status === 'uploading'
       ? material.markdown
-        ? "ready"
-        : "error"
-      : material.status || "error";
+        ? 'ready'
+        : 'error'
+      : material.status === 'ready'
+        ? 'ready'
+        : 'error';
   return {
-    id: material.id,
-    fileName: material.fileName || `Материал ${index + 1}`,
-    fileKind: material.fileKind || getFileKind(material.fileName),
-    size: Number.isFinite(material.size) ? material.size : null,
-    number: Number.isFinite(material.number) ? material.number : index + 1,
+    id: toText(material.id),
+    fileName: toText(material.fileName || `Материал ${index + 1}`),
+    fileKind: toText(
+      material.fileKind || getFileKind(toText(material.fileName)),
+    ),
+    size:
+      typeof material.size === 'number' && Number.isFinite(material.size)
+        ? material.size
+        : null,
+    number: Number(
+      Number.isFinite(material.number) ? material.number : index + 1,
+    ),
     status,
-    markdown: material.markdown || "",
-    proposal: material.proposal || null,
-    error:
-      material.status === "uploading" && !material.markdown
+    markdown: toText(material.markdown || ''),
+    proposal: toText(material.proposal || null) || null,
+    error: toText(
+      material.status === 'uploading' && !material.markdown
         ? INTERRUPTED_UPLOAD_MESSAGE
-        : material.error || "",
-    interrupted: material.status === "uploading" && !material.markdown,
-    lessonId: material.lessonId || null,
+        : material.error || '',
+    ),
+    interrupted: material.status === 'uploading' && !material.markdown,
+    lessonId: toText(material.lessonId || null) || null,
     attachToLessonId: null,
   };
 }
@@ -72,7 +84,7 @@ function sanitizeDraft(raw: RawApiRecord): DndDraft {
   for (const key of PERSISTED_KEYS) {
     if (raw[key] !== undefined && raw[key] !== null) draft[key] = raw[key];
   }
-  draft.course = normalizeCourse(raw.course);
+  draft.course = normalizeCourse(asRecord(raw.course));
   draft.courseForm = { ...EMPTY_COURSE_FORM, ...(raw.courseForm || {}) };
   draft.materials = (Array.isArray(raw.materials) ? raw.materials : [])
     .filter((material: RawApiRecord | null) => material?.id)
@@ -85,18 +97,18 @@ function sanitizeDraft(raw: RawApiRecord): DndDraft {
     .map((module: RawApiRecord) => normalizeModule(module))
     .sort((a: DndModule, b: DndModule) => a.order - b.order);
   draft.positions =
-    raw.positions && typeof raw.positions === "object" ? raw.positions : {};
+    raw.positions && typeof raw.positions === 'object' ? raw.positions : {};
   draft.viewport =
-    raw.viewport && Number.isFinite(raw.viewport.zoom)
+    raw.viewport && Number.isFinite(asRecord(raw.viewport).zoom)
       ? raw.viewport
       : DEFAULT_VIEWPORT;
   draft.selectedIds = Array.isArray(raw.selectedIds) ? raw.selectedIds : [];
   draft.inspector = {
-    open: Boolean(raw.inspector?.open),
-    tab: raw.inspector?.tab || null,
+    open: Boolean(asRecord(raw.inspector)?.open),
+    tab: asRecord(raw.inspector)?.tab || null,
   };
-  draft.forms = raw.forms && typeof raw.forms === "object" ? raw.forms : {};
-  return draft as DndDraft;
+  draft.forms = raw.forms && typeof raw.forms === 'object' ? raw.forms : {};
+  return draft as unknown as DndDraft;
 }
 
 /** Старый черновик «Создать курс самостоятельно» → новая структура. */
@@ -119,33 +131,36 @@ export function migrateLegacyDraft(legacy: RawApiRecord): DndDraft {
       normalizeLesson(lesson, {
         order: index + 1,
         materialIds: lesson.blockIds || [],
-        moduleId: moduleByLesson.get(lesson.id) || null,
+        moduleId: moduleByLesson.get(toText(lesson.id)) || null,
         // Урок без модуля сервер не даст редактировать — переносим его как черновик.
-        isLocal: !moduleByLesson.get(lesson.id),
+        isLocal: !moduleByLesson.get(toText(lesson.id)),
       }),
   );
   const materials = (Array.isArray(legacy.blocks) ? legacy.blocks : []).map(
     (block: RawApiRecord, index: number) => ({
       id: block.id,
-      fileName: block.fileName || block.file?.name || "",
+      fileName: block.fileName || asRecord(block.file)?.name || '',
       size: null,
       number: block.blockNumber || index + 1,
       status: block.status,
-      markdown: block.markdown || "",
+      markdown: block.markdown || '',
       proposal: block.proposal || null,
-      error: block.error || "",
+      error: block.error || '',
       lessonId: block.lessonId || null,
     }),
   );
 
   let activeNodeId = null;
-  if (legacy.activeLessonId) activeNodeId = nodeId.lesson(legacy.activeLessonId);
-  else if (legacy.editingStructure?.type === "module")
-    activeNodeId = nodeId.module(legacy.editingStructure.id);
-  else if (legacy.editingStructure?.id)
-    activeNodeId = nodeId.lesson(legacy.editingStructure.id);
+  if (legacy.activeLessonId)
+    activeNodeId = nodeId.lesson(toText(legacy.activeLessonId));
+  else if (asRecord(legacy.editingStructure)?.type === 'module')
+    activeNodeId = nodeId.module(toText(asRecord(legacy.editingStructure).id));
+  else if (asRecord(legacy.editingStructure)?.id)
+    activeNodeId = nodeId.lesson(toText(asRecord(legacy.editingStructure).id));
   else if (legacy.chatBlockId || legacy.editingBlockId)
-    activeNodeId = nodeId.material(legacy.chatBlockId || legacy.editingBlockId);
+    activeNodeId = nodeId.material(
+      toText(legacy.chatBlockId || legacy.editingBlockId),
+    );
 
   return sanitizeDraft({
     course: legacy.createdCourse || null,
@@ -157,9 +172,9 @@ export function migrateLegacyDraft(legacy: RawApiRecord): DndDraft {
     activeNodeId,
     inspector: {
       open: Boolean(activeNodeId),
-      tab: legacy.chatBlockId ? "ai" : null,
+      tab: legacy.chatBlockId ? 'ai' : null,
     },
-    onboardingDismissed: Boolean(legacy.createdCourse?.id),
+    onboardingDismissed: Boolean(asRecord(legacy.createdCourse)?.id),
   });
 }
 
@@ -168,18 +183,20 @@ export function loadDraft(): { draft: DndDraft; migrated: boolean } {
   if (!storage) return { draft: { ...EMPTY_DRAFT }, migrated: false };
 
   try {
-    const current = JSON.parse(storage.getItem(DRAFT_KEY) || "null");
-    if (current && typeof current === "object") {
-      return { draft: sanitizeDraft(current), migrated: false };
+    const current: unknown = JSON.parse(storage.getItem(DRAFT_KEY) || 'null');
+    if (current && typeof current === 'object') {
+      return { draft: sanitizeDraft(asRecord(current)), migrated: false };
     }
   } catch {
     // Повреждённый черновик игнорируем и пробуем старый формат.
   }
 
   try {
-    const legacy = JSON.parse(storage.getItem(LEGACY_DRAFT_KEY) || "null");
-    if (legacy && typeof legacy === "object") {
-      const draft = migrateLegacyDraft(legacy);
+    const legacy: unknown = JSON.parse(
+      storage.getItem(LEGACY_DRAFT_KEY) || 'null',
+    );
+    if (legacy && typeof legacy === 'object') {
+      const draft = migrateLegacyDraft(asRecord(legacy));
       // Старый ключ удаляем только после того, как новый точно записан.
       if (saveDraft(draft)) storage.removeItem(LEGACY_DRAFT_KEY);
       return { draft, migrated: true };
@@ -197,14 +214,17 @@ export function pickDraft(state: DndDraft): DndDraft {
   draft.materials = (state.materials || []).map(
     ({ attachToLessonId, ...material }) => material,
   );
-  return draft as DndDraft;
+  return draft as unknown as DndDraft;
 }
 
 export function saveDraft(state: DndDraft): boolean {
   const storage = getLocalStorage();
   if (!storage) return false;
   try {
-    storage.setItem(DRAFT_KEY, JSON.stringify({ version: 2, ...pickDraft(state) }));
+    storage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ version: 2, ...pickDraft(state) }),
+    );
     return true;
   } catch {
     return false;

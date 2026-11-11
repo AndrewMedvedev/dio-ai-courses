@@ -1,19 +1,19 @@
-import type { CourseForm, Size } from "../model/types";
+import type { CourseForm, Size } from '../model/types';
 
-export const DRAFT_KEY = "drag_and_drop_course_draft_v2";
-export const LEGACY_DRAFT_KEY = "manual_course_builder_draft_v1";
+export const DRAFT_KEY = 'drag_and_drop_course_draft_v2';
+export const LEGACY_DRAFT_KEY = 'manual_course_builder_draft_v1';
 
 export const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
-export const MAX_FILE_SIZE_LABEL = "30 МБ";
+export const MAX_FILE_SIZE_LABEL = '30 МБ';
 
 export const INTERRUPTED_UPLOAD_MESSAGE =
-  "Загрузка была прервана. Добавьте файл повторно или удалите материал.";
+  'Загрузка была прервана. Добавьте файл повторно или удалите материал.';
 
 export const DIFFICULTY_OPTIONS = [
-  { value: "beginner", label: "Начальный" },
-  { value: "intermediate", label: "Средний" },
-  { value: "advanced", label: "Продвинутый" },
-  { value: "expert", label: "Экспертный" },
+  { value: 'beginner', label: 'Начальный' },
+  { value: 'intermediate', label: 'Средний' },
+  { value: 'advanced', label: 'Продвинутый' },
+  { value: 'expert', label: 'Экспертный' },
 ];
 
 export const DIFFICULTY_LABEL = Object.fromEntries(
@@ -21,16 +21,16 @@ export const DIFFICULTY_LABEL = Object.fromEntries(
 );
 
 export const EMPTY_COURSE_FORM: CourseForm = {
-  title: "",
-  description: "",
-  difficulty: "beginner",
-  tags: "",
+  title: '',
+  description: '',
+  difficulty: 'beginner',
+  tags: '',
 };
 
 // Размеры узлов на холсте. Модуль растягивается по числу уроков внутри.
 // Узлы крупные: курсы собирают в основном взрослые пользователи, текст должен легко читаться.
 export const NODE_SIZE: Record<
-  "course" | "material" | "lesson" | "upload",
+  'course' | 'material' | 'lesson' | 'upload',
   Size
 > = {
   course: { width: 400, height: 330 },
@@ -48,7 +48,7 @@ export const MODULE_LAYOUT = {
 };
 
 export const COLUMN_X: Record<
-  "material" | "lesson" | "module" | "course",
+  'material' | 'lesson' | 'module' | 'course',
   number
 > = {
   material: 0,
@@ -63,19 +63,23 @@ export const MATERIAL_STATUS: Record<
   string,
   { label: string; short: string; tone: string }
 > = {
-  uploading: { label: "Обрабатываем документ", short: "Обработка", tone: "progress" },
-  ready: { label: "Материал готов", short: "Готов", tone: "ok" },
-  error: { label: "Не удалось обработать", short: "Ошибка", tone: "error" },
-  used: { label: "Добавлен в урок", short: "В уроке", tone: "used" },
+  uploading: {
+    label: 'Обрабатываем документ',
+    short: 'Обработка',
+    tone: 'progress',
+  },
+  ready: { label: 'Материал готов', short: 'Готов', tone: 'ok' },
+  error: { label: 'Не удалось обработать', short: 'Ошибка', tone: 'error' },
+  used: { label: 'Добавлен в урок', short: 'В уроке', tone: 'used' },
 };
 
 export const FILTERS = [
-  { id: "all", label: "Все материалы" },
-  { id: "ready", label: "Готовые материалы" },
-  { id: "errors", label: "Материалы с ошибками" },
-  { id: "unassigned", label: "Уроки без модуля" },
-  { id: "modules", label: "Модули" },
-  { id: "incomplete", label: "Незавершённые элементы" },
+  { id: 'all', label: 'Все материалы' },
+  { id: 'ready', label: 'Готовые материалы' },
+  { id: 'errors', label: 'Материалы с ошибками' },
+  { id: 'unassigned', label: 'Уроки без модуля' },
+  { id: 'modules', label: 'Модули' },
+  { id: 'incomplete', label: 'Незавершённые элементы' },
 ];
 
-export const DRAG_MIME = "application/x-dnd-course";
+export const DRAG_MIME = 'application/x-dnd-course';

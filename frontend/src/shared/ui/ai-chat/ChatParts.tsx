@@ -6,45 +6,45 @@ import {
   useState,
   type ButtonHTMLAttributes,
   type ReactNode,
-} from "react";
-import { ChatMarkdown } from "./ChatMarkdown";
-import { chatScrollbarClass } from "./scrollbar";
-import { IconCheck, IconCopy, IconSparkle } from "./icons";
+} from 'react';
+import { ChatMarkdown } from './ChatMarkdown';
+import { chatScrollbarClass } from './scrollbar';
+import { IconCheck, IconCopy, IconSparkle } from './icons';
 
 /* Сброс стилей браузера для кнопок: Tailwind подключён без preflight. */
 const buttonBase =
-  "tw:inline-flex tw:items-center tw:justify-center tw:gap-[6px] tw:border-0 tw:m-0 tw:[font:inherit] tw:cursor-pointer tw:transition-[background-color,border-color,color,box-shadow,opacity] tw:duration-150 tw:disabled:cursor-not-allowed tw:disabled:opacity-50 tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]";
+  'tw:inline-flex tw:items-center tw:justify-center tw:gap-[6px] tw:border-0 tw:m-0 tw:[font:inherit] tw:cursor-pointer tw:transition-[background-color,border-color,color,box-shadow,opacity] tw:duration-150 tw:disabled:cursor-not-allowed tw:disabled:opacity-50 tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]';
 
-type ChatButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ChatButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const variantClass: Record<ChatButtonVariant, string> = {
   primary:
-    "tw:bg-(--cta) tw:text-[#2b2b2b] tw:hover:enabled:brightness-[1.04] tw:hover:enabled:shadow-[0_6px_16px_rgba(203,170,203,0.35)]",
+    'tw:bg-(--cta) tw:text-[#2b2b2b] tw:hover:enabled:brightness-[1.04] tw:hover:enabled:shadow-[0_6px_16px_rgba(203,170,203,0.35)]',
   secondary:
-    "tw:bg-transparent tw:text-(--text) tw:[border:1px_solid_var(--line)] tw:hover:enabled:[border-color:var(--cta)]",
+    'tw:bg-transparent tw:text-(--text) tw:[border:1px_solid_var(--line)] tw:hover:enabled:[border-color:var(--cta)]',
   ghost:
-    "tw:bg-transparent tw:text-(--muted) tw:hover:enabled:text-(--text) tw:hover:enabled:bg-[rgba(203,170,203,0.16)]",
+    'tw:bg-transparent tw:text-(--muted) tw:hover:enabled:text-(--text) tw:hover:enabled:bg-[rgba(203,170,203,0.16)]',
   danger:
-    "tw:bg-transparent tw:text-[#93392f] tw:dark:text-[#f0bdb5] tw:[border:1px_solid_currentColor] tw:hover:enabled:bg-[rgba(147,57,47,0.08)]",
+    'tw:bg-transparent tw:text-[#93392f] tw:dark:text-[#f0bdb5] tw:[border:1px_solid_currentColor] tw:hover:enabled:bg-[rgba(147,57,47,0.08)]',
 };
 
 export interface ChatButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ChatButtonVariant;
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
 }
 
 /** Кнопка в общем стиле чатов: акцентная, контурная, тихая или опасная. */
 export function ChatButton({
-  variant = "secondary",
-  size = "md",
-  className = "",
-  type = "button",
+  variant = 'secondary',
+  size = 'md',
+  className = '',
+  type = 'button',
   ...props
 }: ChatButtonProps) {
   return (
     <button
       type={type}
-      className={`ai-chat-btn ${buttonBase} tw:rounded-full tw:font-semibold tw:whitespace-nowrap ${size === "sm" ? "tw:min-h-[30px] tw:px-[12px] tw:text-[12.5px]" : "tw:min-h-[36px] tw:px-[16px] tw:text-[13.5px]"} ${variantClass[variant]} ${className}`}
+      className={`ai-chat-btn ${buttonBase} tw:rounded-full tw:font-semibold tw:whitespace-nowrap ${size === 'sm' ? 'tw:min-h-[30px] tw:px-[12px] tw:text-[12.5px]' : 'tw:min-h-[36px] tw:px-[16px] tw:text-[13.5px]'} ${variantClass[variant]} ${className}`}
       {...props}
     />
   );
@@ -63,8 +63,8 @@ export const ChatIconButton = forwardRef<
   {
     label,
     active = false,
-    className = "",
-    type = "button",
+    className = '',
+    type = 'button',
     children,
     ...props
   },
@@ -76,7 +76,7 @@ export const ChatIconButton = forwardRef<
       type={type}
       aria-label={label}
       title={label}
-      className={`ai-chat-icon-btn ${buttonBase} tw:size-[32px] tw:shrink-0 tw:rounded-[10px] tw:p-0 ${active ? "tw:bg-[rgba(203,170,203,0.22)] tw:text-(--text)" : "tw:bg-transparent tw:text-(--muted)"} tw:hover:enabled:bg-[rgba(203,170,203,0.18)] tw:hover:enabled:text-(--text) ${className}`}
+      className={`ai-chat-icon-btn ${buttonBase} tw:size-[32px] tw:shrink-0 tw:rounded-[10px] tw:p-0 ${active ? 'tw:bg-[rgba(203,170,203,0.22)] tw:text-(--text)' : 'tw:bg-transparent tw:text-(--muted)'} tw:hover:enabled:bg-[rgba(203,170,203,0.18)] tw:hover:enabled:text-(--text) ${className}`}
       {...props}
     >
       {children}
@@ -107,7 +107,7 @@ export const ChatThread = forwardRef<ChatThreadHandle, ChatThreadProps>(
       children,
       busy = false,
       scrollKey,
-      className = "",
+      className = '',
       centered = false,
       label,
     },
@@ -118,7 +118,7 @@ export const ChatThread = forwardRef<ChatThreadHandle, ChatThreadProps>(
       scrollToBottom: (smooth = true) =>
         elementRef.current?.scrollTo({
           top: elementRef.current.scrollHeight,
-          behavior: smooth ? "smooth" : "auto",
+          behavior: smooth ? 'smooth' : 'auto',
         }),
       get element() {
         return elementRef.current;
@@ -127,12 +127,12 @@ export const ChatThread = forwardRef<ChatThreadHandle, ChatThreadProps>(
     useEffect(() => {
       const element = elementRef.current;
       if (!element) return;
-      element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+      element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
     }, [scrollKey]);
     return (
       <div
         ref={elementRef}
-        className={`ai-chat-thread ${chatScrollbarClass} tw:flex-1 tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-[16px] tw:py-[16px] tw:flex tw:flex-col tw:gap-[14px] ${centered ? "tw:justify-center" : ""} ${className}`}
+        className={`ai-chat-thread ${chatScrollbarClass} tw:flex-1 tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-[16px] tw:py-[16px] tw:flex tw:flex-col tw:gap-[14px] ${centered ? 'tw:justify-center' : ''} ${className}`}
         aria-live="polite"
         aria-busy={busy}
         aria-label={label}
@@ -152,7 +152,7 @@ function CopyButton({ text }: { text: string }) {
   }, [copied]);
   return (
     <ChatIconButton
-      label={copied ? "Скопировано" : "Скопировать ответ"}
+      label={copied ? 'Скопировано' : 'Скопировать ответ'}
       className="tw:size-[26px] tw:rounded-[8px]"
       onClick={async () => {
         try {
@@ -169,7 +169,7 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export interface ChatMessageProps {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   /** Текст сообщения. У ассистента рендерится как markdown. */
   text?: string;
   /** Произвольное содержимое вместо текста (карточки, файлы). */
@@ -186,10 +186,10 @@ export function ChatMessage({
   text,
   children,
   actions,
-  copyable = role === "assistant",
-  className = "",
+  copyable = role === 'assistant',
+  className = '',
 }: ChatMessageProps) {
-  const isUser = role === "user";
+  const isUser = role === 'user';
   const body =
     children ??
     (isUser ? (
@@ -204,13 +204,13 @@ export function ChatMessage({
     (!isUser && copyable && text ? <CopyButton text={text} /> : null);
   return (
     <div
-      className={`ai-chat-message ${isUser ? "is-user tw:self-end tw:items-end" : "is-assistant tw:self-start tw:items-start"} tw:flex tw:flex-col tw:gap-[4px] tw:max-w-[88%] tw:min-w-0 ${className}`}
+      className={`ai-chat-message ${isUser ? 'is-user tw:self-end tw:items-end' : 'is-assistant tw:self-start tw:items-start'} tw:flex tw:flex-col tw:gap-[4px] tw:max-w-[88%] tw:min-w-0 ${className}`}
     >
       <div
         className={`ai-chat-bubble tw:min-w-0 tw:max-w-full tw:text-[14px] tw:leading-[1.55] ${
           isUser
-            ? "tw:bg-(--cta) tw:text-[#2b2b2b] tw:rounded-[18px] tw:rounded-br-[6px] tw:px-[14px] tw:py-[9px]"
-            : "tw:bg-[rgba(255,255,255,0.86)] tw:dark:bg-[#3b3b3b] tw:text-(--text) tw:[border:1px_solid_var(--line)] tw:rounded-[18px] tw:rounded-bl-[6px] tw:px-[14px] tw:py-[11px]"
+            ? 'tw:bg-(--cta) tw:text-[#2b2b2b] tw:rounded-[18px] tw:rounded-br-[6px] tw:px-[14px] tw:py-[9px]'
+            : 'tw:bg-[rgba(255,255,255,0.86)] tw:dark:bg-[#3b3b3b] tw:text-(--text) tw:[border:1px_solid_var(--line)] tw:rounded-[18px] tw:rounded-bl-[6px] tw:px-[14px] tw:py-[11px]'
         }`}
       >
         {body}
@@ -225,7 +225,7 @@ export function ChatMessage({
 }
 
 /** «ИИ думает…» — три точки и подпись. */
-export function ChatTyping({ label = "Думаю…" }: { label?: string }) {
+export function ChatTyping({ label = 'Думаю…' }: { label?: string }) {
   return (
     <div
       className="ai-chat-typing tw:self-start tw:flex tw:items-center tw:gap-[10px] tw:rounded-[18px] tw:rounded-bl-[6px] tw:px-[14px] tw:py-[10px] tw:bg-[rgba(255,255,255,0.86)] tw:dark:bg-[#3b3b3b] tw:[border:1px_solid_var(--line)] tw:text-[13px] tw:text-(--muted)"
@@ -261,8 +261,8 @@ export function ChatQuickReplies({
   options,
   onPick,
   disabled = false,
-  label = "Быстрые ответы",
-  className = "",
+  label = 'Быстрые ответы',
+  className = '',
 }: ChatQuickRepliesProps) {
   if (!options.length) return null;
   return (
@@ -319,22 +319,22 @@ export function ChatEmpty({
   );
 }
 
-type NoticeTone = "info" | "error" | "success";
+type NoticeTone = 'info' | 'error' | 'success';
 
 const noticeTone: Record<NoticeTone, string> = {
-  info: "tw:bg-[#ecdfe8] tw:text-[#5e4d5e] tw:dark:bg-[#4a424a] tw:dark:text-[#ead9ea]",
+  info: 'tw:bg-[#ecdfe8] tw:text-[#5e4d5e] tw:dark:bg-[#4a424a] tw:dark:text-[#ead9ea]',
   error:
-    "tw:bg-[#f4e2df] tw:text-[#93392f] tw:dark:bg-[#4a3734] tw:dark:text-[#f0bdb5]",
+    'tw:bg-[#f4e2df] tw:text-[#93392f] tw:dark:bg-[#4a3734] tw:dark:text-[#f0bdb5]',
   success:
-    "tw:bg-[#e2eee1] tw:text-[#2f6b3c] tw:dark:bg-[#35463a] tw:dark:text-[#bfe3c8]",
+    'tw:bg-[#e2eee1] tw:text-[#2f6b3c] tw:dark:bg-[#35463a] tw:dark:text-[#bfe3c8]',
 };
 
 /** Служебное сообщение в ленте: ошибка, статус, демо-режим. */
 export function ChatNotice({
-  tone = "info",
+  tone = 'info',
   children,
   actions,
-  className = "",
+  className = '',
 }: {
   tone?: NoticeTone;
   children: ReactNode;
@@ -344,7 +344,7 @@ export function ChatNotice({
   return (
     <div
       className={`ai-chat-notice is-${tone} tw:flex tw:flex-col tw:gap-[8px] tw:rounded-[14px] tw:px-[14px] tw:py-[11px] tw:text-[13px] tw:leading-[1.5] ${noticeTone[tone]} ${className}`}
-      role={tone === "error" ? "alert" : "status"}
+      role={tone === 'error' ? 'alert' : 'status'}
     >
       <div className="tw:flex tw:flex-col tw:gap-[2px]">{children}</div>
       {actions ? (
@@ -359,7 +359,7 @@ export function ChatCard({
   title,
   children,
   actions,
-  className = "",
+  className = '',
   role,
 }: {
   title?: ReactNode;

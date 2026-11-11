@@ -1,1 +1,1 @@
-export { CourseViewer, type CourseViewerProps } from "./ui/CourseViewer";
+export { CourseViewer, type CourseViewerProps } from './ui/CourseViewer';

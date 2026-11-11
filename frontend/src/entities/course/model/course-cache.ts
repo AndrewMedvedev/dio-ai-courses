@@ -5,14 +5,14 @@ import {
   getLessonBasicInfo,
   getLessonTheory,
   getModuleBasicInfo,
-} from "../api/course-api";
-import { getMyCourses, signCourse } from "../api/members-api";
+} from '../api/course-api';
+import { getMyCourses, signCourse } from '../api/members-api';
 import type {
   ContentBlock,
   LearningBlock,
   LearningCourse,
   LearningLesson,
-} from "./types";
+} from './types';
 
 const ENROLLMENT_PAGE_SIZE = 100;
 const courseCache = new Map<string, LearningCourse>();
@@ -68,7 +68,7 @@ export async function getCachedCourse(
     : courses[0];
 
   if (!course) {
-    throw new Error("Курс не найден");
+    throw new Error('Курс не найден');
   }
 
   return course;
@@ -188,7 +188,7 @@ export async function isUserEnrolled(
 
 export async function enrollUserToCourse(courseId?: string | null) {
   if (!courseId) {
-    throw new Error("Невозможно записаться: идентификатор курса отсутствует");
+    throw new Error('Невозможно записаться: идентификатор курса отсутствует');
   }
 
   return signCourse(courseId);

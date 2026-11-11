@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { AppModal, type AppModalSize } from "@/shared/ui/app-modal";
-import { getErrorMessage } from "@/shared/lib/errors";
+import { useState, type ReactNode } from 'react';
+import { AppModal, type AppModalSize } from '@/shared/ui/app-modal';
+import { getErrorMessage } from '@/shared/lib/errors';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -25,30 +25,30 @@ export interface ConfirmDialogProps {
 export function ConfirmDialog({
   open,
   title,
-  description = "",
-  eyebrow = "Подтверждение",
-  confirmLabel = "Подтвердить",
-  cancelLabel = "Отмена",
-  busyLabel = "Сохраняем...",
+  description = '',
+  eyebrow = 'Подтверждение',
+  confirmLabel = 'Подтвердить',
+  cancelLabel = 'Отмена',
+  busyLabel = 'Сохраняем...',
   danger = false,
   onConfirm,
   onCancel,
   children,
-  size = "sm",
+  size = 'sm',
 }: ConfirmDialogProps) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const close = () => {
     if (busy) return;
-    setError("");
+    setError('');
     onCancel?.();
   };
 
   const confirm = async () => {
     if (busy) return;
     setBusy(true);
-    setError("");
+    setError('');
     try {
       const result = await onConfirm?.();
       if (result === false) return;
@@ -56,8 +56,8 @@ export function ConfirmDialog({
       setError(
         getErrorMessage(
           confirmError,
-          "Не удалось выполнить действие. Попробуйте ещё раз.",
-        ) ?? "",
+          'Не удалось выполнить действие. Попробуйте ещё раз.',
+        ) ?? '',
       );
     } finally {
       setBusy(false);
@@ -73,7 +73,7 @@ export function ConfirmDialog({
       onClose={close}
       busy={busy}
       size={size}
-      className={danger ? "is-danger" : ""}
+      className={danger ? 'is-danger' : ''}
       footer={
         <>
           <button
@@ -86,7 +86,7 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            className={`btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.app-modal-danger-btn]:border-(--app-modal-danger)! tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[&.app-modal-danger-btn]:text-[#fff]! tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)] tw:dark:[&.app-modal-danger-btn]:text-[#1d1d1d]! tw:[&.app-modal-danger-btn]:[background:var(--app-modal-danger)]! tw:dark:[&.app-modal-danger-btn]:[&&]:text-[#fff]! tw:dark:[&.app-modal-danger-btn]:[&&&]:text-[#1d1d1d]! tw:dark:[&.app-modal-danger-btn]:[&&&&]:text-[#fff]! ${danger ? "app-modal-danger-btn" : ""}`}
+            className={`btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.app-modal-danger-btn]:border-(--app-modal-danger)! tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[&.app-modal-danger-btn]:text-[#fff]! tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)] tw:dark:[&.app-modal-danger-btn]:text-[#1d1d1d]! tw:[&.app-modal-danger-btn]:[background:var(--app-modal-danger)]! tw:dark:[&.app-modal-danger-btn]:[&&]:text-[#fff]! tw:dark:[&.app-modal-danger-btn]:[&&&]:text-[#1d1d1d]! tw:dark:[&.app-modal-danger-btn]:[&&&&]:text-[#fff]! ${danger ? 'app-modal-danger-btn' : ''}`}
             onClick={confirm}
             disabled={busy}
             data-autofocus

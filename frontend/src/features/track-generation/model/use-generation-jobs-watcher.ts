@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 import {
   forgetCourseCache,
   getCourseBasicInfo,
@@ -6,12 +6,12 @@ import {
   getModuleBasicInfo,
   type LearningBlock,
   type LearningLesson,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   useGenerationJobsStore,
   type GenerationJob,
-} from "@/entities/generation-job";
-import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
+} from '@/entities/generation-job';
+import { isAgentMockEnabled } from '@/shared/lib/agent-mock';
 
 type UpdateJob = (key: string, patch: Partial<GenerationJob>) => void;
 type OnModule = (courseId: string, module: LearningBlock) => void;
@@ -42,7 +42,7 @@ const MODULE_STABLE_MS = isAgentMockEnabled() ? 12_000 : 90_000;
 const JOB_TIMEOUT_MS = 45 * 60 * 1000;
 
 function elapsedSince(iso: string | null | undefined): number {
-  const time = Date.parse(iso || "");
+  const time = Date.parse(iso || '');
   return Number.isFinite(time) ? Date.now() - time : 0;
 }
 
@@ -71,20 +71,20 @@ async function checkModuleJob(
     if (!created) {
       if (elapsedSince(job.startedAt) > JOB_TIMEOUT_MS) {
         updateJob(job.key, {
-          status: "error",
+          status: 'error',
           error:
-            "Модуль так и не появился. Проверьте курс позже или запустите генерацию заново.",
+            'Модуль так и не появился. Проверьте курс позже или запустите генерацию заново.',
         });
       }
       return;
     }
-    moduleId = created.id as string;
+    moduleId = created.id;
   }
 
-  const module = await getModuleBasicInfo(moduleId as string);
+  const module = await getModuleBasicInfo(moduleId);
   const lessonsCount = (module?.lessons || []).length;
   const changed = lessonsCount !== job.lessonsCount || !job.resultId;
-  forgetCourseCache(job.courseId, [moduleId as string]);
+  forgetCourseCache(job.courseId, [moduleId]);
   onModule?.(job.courseId, module);
 
   const lastChangeAt = changed ? new Date().toISOString() : job.lastChangeAt;
@@ -93,10 +93,10 @@ async function checkModuleJob(
   const isTimedOut = elapsedSince(job.startedAt) > JOB_TIMEOUT_MS;
   updateJob(job.key, {
     resultId: moduleId,
-    resultTitle: module?.title || "",
+    resultTitle: module?.title || '',
     lessonsCount,
     lastChangeAt,
-    status: isStable || isTimedOut ? "done" : "running",
+    status: isStable || isTimedOut ? 'done' : 'running',
   });
 }
 
@@ -110,21 +110,21 @@ async function checkLessonJob(
   if (!created) {
     if (elapsedSince(job.startedAt) > JOB_TIMEOUT_MS) {
       updateJob(job.key, {
-        status: "error",
+        status: 'error',
         error:
-          "Урок так и не появился. Проверьте модуль позже или запустите генерацию заново.",
+          'Урок так и не появился. Проверьте модуль позже или запустите генерацию заново.',
       });
     }
     return;
   }
-  const createdId = created.id as string;
+  const createdId = created.id;
   const lesson = await getLessonBasicInfo(createdId).catch(() => created);
   forgetCourseCache(job.courseId, [moduleId], [createdId]);
   onLesson?.(job.courseId, moduleId, lesson);
   updateJob(job.key, {
     resultId: createdId,
-    resultTitle: lesson?.title || created.title || "",
-    status: "done",
+    resultTitle: lesson?.title || created.title || '',
+    status: 'done',
   });
 }
 
@@ -141,7 +141,7 @@ export function useGenerationJobsWatcher({
   const callbacksRef = useRef({ onModule, onLesson, onDone });
   callbacksRef.current = { onModule, onLesson, onDone };
   const hasRunningJobs = useGenerationJobsStore((state) =>
-    Object.values(state.jobs).some((job) => job.status === "running"),
+    Object.values(state.jobs).some((job) => job.status === 'running'),
   );
 
   useEffect(() => {
@@ -154,20 +154,18 @@ export function useGenerationJobsWatcher({
       inFlight = true;
       const store = useGenerationJobsStore.getState();
       const running = Object.values(store.jobs).filter(
-        (job) => job.status === "running",
+        (job) => job.status === 'running',
       );
       for (const job of running) {
         if (cancelled) break;
         const before = job.status;
         try {
-          if (job.kind === "module") {
-            // eslint-disable-next-line no-await-in-loop
+          if (job.kind === 'module') {
             await checkModuleJob(job, {
               updateJob: store.updateJob,
               onModule: callbacksRef.current.onModule,
             });
-          } else if (job.kind === "lesson") {
-            // eslint-disable-next-line no-await-in-loop
+          } else if (job.kind === 'lesson') {
             await checkLessonJob(job, {
               updateJob: store.updateJob,
               onLesson: callbacksRef.current.onLesson,
@@ -178,21 +176,21 @@ export function useGenerationJobsWatcher({
           const status = Number((error as { status?: unknown } | null)?.status);
           if (status === 403 || status === 404) {
             store.updateJob(job.key, {
-              status: "error",
+              status: 'error',
               error:
-                "Нет доступа к курсу или модулю, генерацию отследить нельзя.",
+                'Нет доступа к курсу или модулю, генерацию отследить нельзя.',
             });
           }
         }
         const after = useGenerationJobsStore.getState().jobs[job.key];
-        if (before === "running" && after && after.status !== "running") {
+        if (before === 'running' && after && after.status !== 'running') {
           callbacksRef.current.onDone?.(after);
         }
       }
       inFlight = false;
     };
 
-    tick();
+    void tick();
     const timer = window.setInterval(tick, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;

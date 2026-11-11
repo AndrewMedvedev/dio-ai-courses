@@ -1,1 +1,1 @@
-export { getLocalStorage, readJsonFromStorage } from "./storage";
+export { getLocalStorage, readJsonFromStorage } from './storage';

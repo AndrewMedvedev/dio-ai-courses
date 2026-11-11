@@ -1,8 +1,8 @@
 export {
   ContentPreviewModal,
   type ContentPreview,
-} from "./ContentPreviewModal";
+} from './ContentPreviewModal';
 export {
   DiagramPreviewModal,
   type DiagramPreviewModalProps,
-} from "./DiagramPreviewModal";
+} from './DiagramPreviewModal';

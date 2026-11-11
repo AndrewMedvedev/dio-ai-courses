@@ -1,6 +1,7 @@
-import { getLocalStorage } from "@/shared/lib/storage";
+import { toText } from '@/shared/lib/text';
+import { getLocalStorage } from '@/shared/lib/storage';
 
-const SESSION_KEY = "aicolab_session";
+const SESSION_KEY = 'aicolab_session';
 const REFRESH_SKEW_SECONDS = 30;
 
 export interface StoredSession {
@@ -22,7 +23,7 @@ type TokenChangeHandler = (session: StoredSession) => void;
 
 let tokenChangeHandler: TokenChangeHandler | null = null;
 const tokenEventTarget =
-  typeof EventTarget !== "undefined" ? new EventTarget() : null;
+  typeof EventTarget !== 'undefined' ? new EventTarget() : null;
 
 export function emptySession(): StoredSession {
   return {
@@ -42,7 +43,7 @@ export function readStoredSession(): StoredSession {
 
   try {
     const value = JSON.parse(
-      storage.getItem(SESSION_KEY) || "null",
+      storage.getItem(SESSION_KEY) || 'null',
     ) as Partial<StoredSession> | null;
     return {
       accessToken: value?.accessToken || null,
@@ -64,7 +65,7 @@ export function saveStoredSession(
 
   if (!session) {
     storage.removeItem(SESSION_KEY);
-    storage.removeItem("user");
+    storage.removeItem('user');
     emitTokenChange(emptySession());
     return;
   }
@@ -98,10 +99,10 @@ export function getTokens(): SessionTokens {
 }
 
 function emitTokenChange(session: StoredSession): void {
-  if (typeof tokenChangeHandler === "function") {
+  if (typeof tokenChangeHandler === 'function') {
     tokenChangeHandler(session);
   }
-  tokenEventTarget?.dispatchEvent(new Event("tokenRefreshed"));
+  tokenEventTarget?.dispatchEvent(new Event('tokenRefreshed'));
 }
 
 export function setTokenChangeHandler(
@@ -111,11 +112,11 @@ export function setTokenChangeHandler(
 }
 
 export function onTokenRefreshed(callback: () => void): () => void {
-  if (!tokenEventTarget || typeof callback !== "function") {
+  if (!tokenEventTarget || typeof callback !== 'function') {
     return () => {};
   }
-  tokenEventTarget.addEventListener("tokenRefreshed", callback);
-  return () => tokenEventTarget.removeEventListener("tokenRefreshed", callback);
+  tokenEventTarget.addEventListener('tokenRefreshed', callback);
+  return () => tokenEventTarget.removeEventListener('tokenRefreshed', callback);
 }
 
 export function shouldRefresh(expiresAt: number | null | undefined): boolean {
@@ -150,14 +151,14 @@ export const tokenStorage = {
 };
 
 function decodeJwtExp(token: unknown): number | null {
-  if (!token || typeof token !== "string") return null;
+  if (!token || typeof token !== 'string') return null;
 
   try {
-    const encodedPayload = token.split(".")[1] || "";
+    const encodedPayload = token.split('.')[1] || '';
     const base64Payload = encodedPayload
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
     const payload = JSON.parse(atob(base64Payload)) as { exp?: unknown } | null;
     return Number(payload?.exp) || null;
   } catch {
@@ -169,7 +170,7 @@ function normalizeExpiresAt(
   value: unknown,
   accessToken: string | null,
 ): number | null {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined || value === '') {
     return decodeJwtExp(accessToken);
   }
 
@@ -180,7 +181,7 @@ function normalizeExpiresAt(
       : numericValue;
   }
 
-  const parsedDate = Date.parse(String(value));
+  const parsedDate = Date.parse(toText(value));
   if (Number.isFinite(parsedDate)) {
     return Math.floor(parsedDate / 1000);
   }

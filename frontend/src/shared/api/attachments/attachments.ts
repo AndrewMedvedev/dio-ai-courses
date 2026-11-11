@@ -1,14 +1,15 @@
-import { apiFetch } from "../backend";
-import { ApiError, type ApiErrorOptions } from "../api-error";
+import { toText } from '@/shared/lib/text';
+import { apiFetch } from '../backend';
+import { ApiError, type ApiErrorOptions } from '../api-error';
 
 export type AttachmentStep =
-  | "validation"
-  | "presigned-upload"
-  | "confirm-upload"
-  | "presigned-download"
-  | "get-attachment"
-  | "storage-put"
-  | "storage-download";
+  | 'validation'
+  | 'presigned-upload'
+  | 'confirm-upload'
+  | 'presigned-download'
+  | 'get-attachment'
+  | 'storage-put'
+  | 'storage-download';
 
 interface AttachmentErrorOptions extends ApiErrorOptions {
   step?: AttachmentStep;
@@ -27,9 +28,9 @@ export interface UploadAttachmentOptions extends ValidateAttachmentOptions {
 }
 
 export type FileUploadState =
-  | { index: number; status: "pending" | "uploading" }
-  | { index: number; status: "success"; attachment: Attachment }
-  | { index: number; status: "error"; error: unknown };
+  | { index: number; status: 'pending' | 'uploading' }
+  | { index: number; status: 'success'; attachment: Attachment }
+  | { index: number; status: 'error'; error: unknown };
 
 export interface UploadAttachmentsOptions extends UploadAttachmentOptions {
   concurrency?: number;
@@ -51,8 +52,7 @@ interface PresignedUpload {
 }
 
 export type ConcurrencyResult<T> =
-  | { status: "success"; value: T }
-  | { status: "error"; error: unknown };
+  { status: 'success'; value: T } | { status: 'error'; error: unknown };
 
 // Настраиваемый frontend-лимит до сетевых запросов. Если backend/product зададут
 // другой лимит, поменяйте значение здесь и/или вынесите его в VITE_MAX_FILE_SIZE_BYTES.
@@ -63,42 +63,42 @@ export const PRESIGNED_URL_TTL_SECONDS = 1800;
 const CONTENT_TYPE_RE = /^[\w-]+\/[\w-.]+$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FALLBACK_CONTENT_TYPE = "application/octet-stream";
+const FALLBACK_CONTENT_TYPE = 'application/octet-stream';
 
 // Бизнес-allowlist в проекте не задан. Поэтому используем denylist опасных
 // исполняемых/скриптовых расширений и оставляем MIME-types расширяемыми через options.
 export const BLOCKED_FILE_EXTENSIONS = new Set<string>([
-  "ade",
-  "adp",
-  "apk",
-  "app",
-  "bat",
-  "bin",
-  "cmd",
-  "com",
-  "cpl",
-  "dll",
-  "dmg",
-  "exe",
-  "gadget",
-  "hta",
-  "html",
-  "iso",
-  "jar",
-  "js",
-  "jse",
-  "ksh",
-  "lnk",
-  "msi",
-  "msp",
-  "pif",
-  "ps1",
-  "scr",
-  "sh",
-  "vb",
-  "vbe",
-  "vbs",
-  "wsf",
+  'ade',
+  'adp',
+  'apk',
+  'app',
+  'bat',
+  'bin',
+  'cmd',
+  'com',
+  'cpl',
+  'dll',
+  'dmg',
+  'exe',
+  'gadget',
+  'hta',
+  'html',
+  'iso',
+  'jar',
+  'js',
+  'jse',
+  'ksh',
+  'lnk',
+  'msi',
+  'msp',
+  'pif',
+  'ps1',
+  'scr',
+  'sh',
+  'vb',
+  'vbe',
+  'vbs',
+  'wsf',
 ]);
 
 export class AttachmentError extends ApiError {
@@ -110,20 +110,20 @@ export class AttachmentError extends ApiError {
     { status, code, step, fileName, payload }: AttachmentErrorOptions = {},
   ) {
     super(message, { status, code, payload });
-    this.name = "AttachmentError";
+    this.name = 'AttachmentError';
     this.step = step;
     this.fileName = fileName;
   }
 }
 
 function normalizeFilename(filename: unknown): string {
-  return String(filename || "").trim();
+  return toText(filename || '').trim();
 }
 
 function getExtension(filename: unknown): string {
   const normalized = normalizeFilename(filename).toLowerCase();
-  const index = normalized.lastIndexOf(".");
-  return index >= 0 ? normalized.slice(index + 1) : "";
+  const index = normalized.lastIndexOf('.');
+  return index >= 0 ? normalized.slice(index + 1) : '';
 }
 
 export function getUploadContentType(file: Blob | null | undefined): string {
@@ -145,24 +145,24 @@ export function validateAttachmentFile(
   } = options;
 
   if (!file) {
-    throw new AttachmentError("Выберите файл для загрузки.", {
-      code: "FILE_REQUIRED",
-      step: "validation",
+    throw new AttachmentError('Выберите файл для загрузки.', {
+      code: 'FILE_REQUIRED',
+      step: 'validation',
     });
   }
 
   const filename = normalizeFilename(file.name);
   if (!filename) {
-    throw new AttachmentError("Имя файла не должно быть пустым.", {
-      code: "INVALID_FILENAME",
-      step: "validation",
+    throw new AttachmentError('Имя файла не должно быть пустым.', {
+      code: 'INVALID_FILENAME',
+      step: 'validation',
     });
   }
 
   if (filename.length > 255) {
-    throw new AttachmentError("Имя файла не должно превышать 255 символов.", {
-      code: "FILENAME_TOO_LONG",
-      step: "validation",
+    throw new AttachmentError('Имя файла не должно превышать 255 символов.', {
+      code: 'FILENAME_TOO_LONG',
+      step: 'validation',
       fileName: filename,
     });
   }
@@ -171,8 +171,8 @@ export function validateAttachmentFile(
     throw new AttachmentError(
       `Файл больше допустимого лимита ${formatFileSize(maxSizeBytes)}.`,
       {
-        code: "FILE_TOO_LARGE",
-        step: "validation",
+        code: 'FILE_TOO_LARGE',
+        step: 'validation',
         fileName: filename,
       },
     );
@@ -181,10 +181,10 @@ export function validateAttachmentFile(
   const extension = getExtension(filename);
   if (extension && blockedExtensions.has(extension)) {
     throw new AttachmentError(
-      "Этот тип файла запрещён для загрузки из соображений безопасности.",
+      'Этот тип файла запрещён для загрузки из соображений безопасности.',
       {
-        code: "BLOCKED_EXTENSION",
-        step: "validation",
+        code: 'BLOCKED_EXTENSION',
+        step: 'validation',
         fileName: filename,
       },
     );
@@ -192,9 +192,9 @@ export function validateAttachmentFile(
 
   const contentType = getUploadContentType(file);
   if (allowedMimeTypes && !allowedMimeTypes.has(contentType)) {
-    throw new AttachmentError("Этот MIME-тип файла не разрешён для загрузки.", {
-      code: "BLOCKED_MIME_TYPE",
-      step: "validation",
+    throw new AttachmentError('Этот MIME-тип файла не разрешён для загрузки.', {
+      code: 'BLOCKED_MIME_TYPE',
+      step: 'validation',
       fileName: filename,
     });
   }
@@ -203,13 +203,13 @@ export function validateAttachmentFile(
 }
 
 function validateOwnerId(ownerId: unknown): void {
-  if (!UUID_RE.test(String(ownerId || ""))) {
+  if (!UUID_RE.test(toText(ownerId || ''))) {
     throw new AttachmentError(
-      "Некорректный идентификатор сущности для вложения.",
+      'Некорректный идентификатор сущности для вложения.',
       {
         status: 422,
-        code: "INVALID_OWNER_ID",
-        step: "validation",
+        code: 'INVALID_OWNER_ID',
+        step: 'validation',
       },
     );
   }
@@ -222,9 +222,9 @@ function formatFileSize(bytes: number): string {
 }
 
 async function readPayload(response: Response): Promise<unknown> {
-  const contentType = response.headers.get("content-type") || "";
+  const contentType = response.headers.get('content-type') || '';
   try {
-    return contentType.includes("application/json")
+    return contentType.includes('application/json')
       ? await response.json()
       : await response.text();
   } catch {
@@ -233,37 +233,37 @@ async function readPayload(response: Response): Promise<unknown> {
 }
 
 function messageForStatus(step: AttachmentStep, status: number): string {
-  if (step === "presigned-upload") {
-    if (status === 422) return "Некорректное имя или тип файла.";
+  if (step === 'presigned-upload') {
+    if (status === 422) return 'Некорректное имя или тип файла.';
     if (status === 500)
-      return "Хранилище временно недоступно. Попробуйте повторить загрузку.";
+      return 'Хранилище временно недоступно. Попробуйте повторить загрузку.';
   }
 
-  if (step === "confirm-upload") {
-    if (status === 401) return "Необходимо войти заново.";
+  if (step === 'confirm-upload') {
+    if (status === 401) return 'Необходимо войти заново.';
     if (status === 404)
-      return "Файл не был найден в хранилище. Попробуйте загрузить его заново.";
+      return 'Файл не был найден в хранилище. Попробуйте загрузить его заново.';
     if ([400, 409, 422].includes(status))
-      return "Ошибка проверки данных вложения.";
+      return 'Ошибка проверки данных вложения.';
     if (status === 500)
-      return "Не удалось сохранить сведения о файле. Попробуйте повторить загрузку.";
+      return 'Не удалось сохранить сведения о файле. Попробуйте повторить загрузку.';
   }
 
-  if (step === "presigned-download" || step === "get-attachment") {
-    if (status === 404) return "Файл не найден или был удалён.";
-    if (status === 422) return "Некорректный идентификатор файла.";
-    if (status === 500) return "Не удалось получить файл из хранилища.";
+  if (step === 'presigned-download' || step === 'get-attachment') {
+    if (status === 404) return 'Файл не найден или был удалён.';
+    if (status === 422) return 'Некорректный идентификатор файла.';
+    if (status === 500) return 'Не удалось получить файл из хранилища.';
   }
 
-  if (step === "storage-put") {
-    return "Не удалось загрузить файл в хранилище. Повторите попытку для этого файла.";
+  if (step === 'storage-put') {
+    return 'Не удалось загрузить файл в хранилище. Повторите попытку для этого файла.';
   }
 
-  if (step === "storage-download") {
-    return "Не удалось скачать файл из хранилища.";
+  if (step === 'storage-download') {
+    return 'Не удалось скачать файл из хранилища.';
   }
 
-  return "Не удалось выполнить операцию с файлом.";
+  return 'Не удалось выполнить операцию с файлом.';
 }
 
 async function throwAttachmentResponseError(
@@ -274,7 +274,7 @@ async function throwAttachmentResponseError(
   const payload = await readPayload(response);
   throw new AttachmentError(messageForStatus(step, response.status), {
     status: response.status,
-    code: `${step.toUpperCase().replace(/-/g, "_")}_${response.status}`,
+    code: `${step.toUpperCase().replace(/-/g, '_')}_${response.status}`,
     step,
     fileName,
     payload,
@@ -284,18 +284,18 @@ async function throwAttachmentResponseError(
 /** Подменяет адрес хранилища на публичный (VITE_STORAGE_PUBLIC_HOST), если он задан. */
 function rewriteStorageUrl(url: string): string {
   const publicHost = String(
-    import.meta.env.VITE_STORAGE_PUBLIC_HOST || "",
+    import.meta.env.VITE_STORAGE_PUBLIC_HOST || '',
   ).trim();
   if (!publicHost) return url;
 
   try {
     const rewritten = new URL(url);
-    const publicUrl = publicHost.startsWith("/")
+    const publicUrl = publicHost.startsWith('/')
       ? new URL(publicHost, window.location.origin)
-      : publicHost.includes("://")
+      : publicHost.includes('://')
         ? new URL(publicHost)
         : new URL(`${rewritten.protocol}//${publicHost}`);
-    const publicPath = publicUrl.pathname.replace(/\/+$/, "");
+    const publicPath = publicUrl.pathname.replace(/\/+$/, '');
 
     rewritten.protocol = publicUrl.protocol;
     rewritten.host = publicUrl.host;
@@ -303,10 +303,10 @@ function rewriteStorageUrl(url: string): string {
 
     if (
       publicPath &&
-      publicPath !== "/" &&
+      publicPath !== '/' &&
       !rewritten.pathname.startsWith(`${publicPath}/`)
     ) {
-      rewritten.pathname = `${publicPath}${rewritten.pathname.startsWith("/") ? "" : "/"}${rewritten.pathname}`;
+      rewritten.pathname = `${publicPath}${rewritten.pathname.startsWith('/') ? '' : '/'}${rewritten.pathname}`;
     }
 
     return rewritten.toString();
@@ -329,9 +329,9 @@ async function requestAttachmentJson<T>(
     response = await apiFetch(path, options, { auth });
   } catch (error) {
     throw new AttachmentError(
-      "Сеть недоступна. Проверьте подключение и повторите попытку.",
+      'Сеть недоступна. Проверьте подключение и повторите попытку.',
       {
-        code: "NETWORK_ERROR",
+        code: 'NETWORK_ERROR',
         step,
         fileName,
         payload: error,
@@ -354,20 +354,20 @@ async function putFileToStorage(
   const publicUrl = rewriteStorageUrl(uploadUrl);
   try {
     const response = await fetch(publicUrl, {
-      method: "PUT",
+      method: 'PUT',
       body: file,
-      headers: { "Content-Type": getUploadContentType(file) },
+      headers: { 'Content-Type': getUploadContentType(file) },
       signal,
     });
 
     if (!response.ok) {
-      await throwAttachmentResponseError(response, "storage-put", file.name);
+      await throwAttachmentResponseError(response, 'storage-put', file.name);
     }
   } catch (error) {
-    if ((error as Error | null)?.name === "AbortError") {
-      throw new AttachmentError("Загрузка файла отменена.", {
-        code: "UPLOAD_ABORTED",
-        step: "storage-put",
+    if ((error as Error | null)?.name === 'AbortError') {
+      throw new AttachmentError('Загрузка файла отменена.', {
+        code: 'UPLOAD_ABORTED',
+        step: 'storage-put',
         fileName: file.name,
       });
     }
@@ -375,10 +375,10 @@ async function putFileToStorage(
     if (error instanceof AttachmentError) throw error;
 
     throw new AttachmentError(
-      "Не удалось загрузить файл в хранилище. Повторите попытку для этого файла.",
+      'Не удалось загрузить файл в хранилище. Повторите попытку для этого файла.',
       {
-        code: "STORAGE_NETWORK_ERROR",
-        step: "storage-put",
+        code: 'STORAGE_NETWORK_ERROR',
+        step: 'storage-put',
         fileName: file.name,
         payload: error,
       },
@@ -395,21 +395,21 @@ async function fetchBlobFromStorage(
   try {
     response = await fetch(publicUrl, { signal });
   } catch (error) {
-    if ((error as Error | null)?.name === "AbortError") {
-      throw new AttachmentError("Скачивание файла отменено.", {
-        code: "DOWNLOAD_ABORTED",
-        step: "storage-download",
+    if ((error as Error | null)?.name === 'AbortError') {
+      throw new AttachmentError('Скачивание файла отменено.', {
+        code: 'DOWNLOAD_ABORTED',
+        step: 'storage-download',
       });
     }
-    throw new AttachmentError("Не удалось скачать файл из хранилища.", {
-      code: "STORAGE_DOWNLOAD_NETWORK_ERROR",
-      step: "storage-download",
+    throw new AttachmentError('Не удалось скачать файл из хранилища.', {
+      code: 'STORAGE_DOWNLOAD_NETWORK_ERROR',
+      step: 'storage-download',
       payload: error,
     });
   }
 
   if (!response.ok) {
-    await throwAttachmentResponseError(response, "storage-download");
+    await throwAttachmentResponseError(response, 'storage-download');
   }
 
   return response.blob();
@@ -430,11 +430,11 @@ export async function runWithConcurrency<T, R>(
 
     try {
       results[index] = {
-        status: "success",
+        status: 'success',
         value: await worker(items[index], index),
       };
     } catch (error) {
-      results[index] = { status: "error", error };
+      results[index] = { status: 'error', error };
     }
 
     await runNext();
@@ -464,13 +464,13 @@ export const attachmentsApi = {
     owner_id: string;
   }): Promise<PresignedUpload> {
     return requestAttachmentJson<PresignedUpload>(
-      "/attachments/presigned-upload",
+      '/attachments/presigned-upload',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename, folder, content_type, owner_id }),
       },
-      { auth: true, step: "presigned-upload", fileName: filename },
+      { auth: true, step: 'presigned-upload', fileName: filename },
     );
   },
 
@@ -494,10 +494,10 @@ export const attachmentsApi = {
     owner_id: string;
   }): Promise<Attachment> {
     return requestAttachmentJson<Attachment>(
-      "/attachments/confirm-upload",
+      '/attachments/confirm-upload',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storage_key,
           original_filename,
@@ -505,7 +505,7 @@ export const attachmentsApi = {
           owner_id,
         }),
       },
-      { auth: true, step: "confirm-upload", fileName: original_filename },
+      { auth: true, step: 'confirm-upload', fileName: original_filename },
     );
   },
 
@@ -554,13 +554,13 @@ export const attachmentsApi = {
     const { concurrency = 3, onFileStateChange } = options;
     const fileList = Array.from(files);
     fileList.forEach((file, index) => {
-      onFileStateChange?.(file, { index, status: "pending" });
+      onFileStateChange?.(file, { index, status: 'pending' });
     });
 
     return runWithConcurrency(
       fileList,
       async (file, index) => {
-        onFileStateChange?.(file, { index, status: "uploading" });
+        onFileStateChange?.(file, { index, status: 'uploading' });
         try {
           const attachment = await this.uploadAttachment(
             file,
@@ -568,10 +568,10 @@ export const attachmentsApi = {
             ownerId,
             options,
           );
-          onFileStateChange?.(file, { index, status: "success", attachment });
+          onFileStateChange?.(file, { index, status: 'success', attachment });
           return attachment;
         } catch (error) {
-          onFileStateChange?.(file, { index, status: "error", error });
+          onFileStateChange?.(file, { index, status: 'error', error });
           throw error;
         }
       },
@@ -582,34 +582,34 @@ export const attachmentsApi = {
   async getPresignedDownloadUrl(
     attachmentId: string,
   ): Promise<{ download_url: string }> {
-    if (!UUID_RE.test(String(attachmentId || ""))) {
-      throw new AttachmentError("Некорректный идентификатор файла.", {
+    if (!UUID_RE.test(String(attachmentId || ''))) {
+      throw new AttachmentError('Некорректный идентификатор файла.', {
         status: 422,
-        code: "INVALID_ATTACHMENT_ID",
-        step: "presigned-download",
+        code: 'INVALID_ATTACHMENT_ID',
+        step: 'presigned-download',
       });
     }
 
     return requestAttachmentJson<{ download_url: string }>(
       `/attachments/${encodeURIComponent(attachmentId)}/presigned-download`,
-      { method: "GET" },
-      { auth: false, step: "presigned-download" },
+      { method: 'GET' },
+      { auth: false, step: 'presigned-download' },
     );
   },
 
   async getAttachment(attachmentId: string): Promise<Attachment> {
-    if (!UUID_RE.test(String(attachmentId || ""))) {
-      throw new AttachmentError("Некорректный идентификатор файла.", {
+    if (!UUID_RE.test(String(attachmentId || ''))) {
+      throw new AttachmentError('Некорректный идентификатор файла.', {
         status: 422,
-        code: "INVALID_ATTACHMENT_ID",
-        step: "get-attachment",
+        code: 'INVALID_ATTACHMENT_ID',
+        step: 'get-attachment',
       });
     }
 
     return requestAttachmentJson<Attachment>(
       `/attachments/${encodeURIComponent(attachmentId)}`,
-      { method: "GET" },
-      { auth: false, step: "get-attachment" },
+      { method: 'GET' },
+      { auth: false, step: 'get-attachment' },
     );
   },
 
@@ -645,9 +645,9 @@ export const attachmentsApi = {
     const objectUrl = URL.createObjectURL(blob);
 
     try {
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = attachment.original_filename || "attachment";
+      link.download = attachment.original_filename || 'attachment';
       document.body.appendChild(link);
       link.click();
       link.remove();

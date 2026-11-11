@@ -5,9 +5,9 @@ export function autosizeTextarea(
   maxHeight = 180,
 ): void {
   if (!element) return;
-  element.style.height = "auto";
+  element.style.height = 'auto';
   const borders = element.offsetHeight - element.clientHeight;
   const contentHeight = element.scrollHeight + borders;
   element.style.height = `${Math.min(contentHeight, maxHeight)}px`;
-  element.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
+  element.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
 }

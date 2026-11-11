@@ -1,23 +1,23 @@
 // Страница выбранного блока курса с уроками и практикой
-import { Fragment, useEffect, useState } from "react";
-import { SectionTop } from "@/shared/ui/section-top";
+import { Fragment, useEffect, useState } from 'react';
+import { SectionTop } from '@/shared/ui/section-top';
 import {
   CourseNavigationTree,
   type BlockNode,
   type CourseNode,
   type LessonNode,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   AgentInterviewDialog,
   resetAgentInterview,
-} from "@/features/agent-interview";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { useGoBack } from "@/shared/lib/ui-layout";
+} from '@/features/agent-interview';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useGoBack } from '@/shared/lib/ui-layout';
 import {
   generationJobKey,
   useGenerationJobsStore,
-} from "@/entities/generation-job";
-import { isUuid } from "@/shared/lib/uuid";
+} from '@/entities/generation-job';
+import { isUuid } from '@/shared/lib/uuid';
 
 type CompletedMap = Record<string, boolean | undefined>;
 
@@ -85,7 +85,7 @@ export function BlockPage({
   const lessonJob = useGenerationJobsStore(
     (state) =>
       state.jobs[
-        generationJobKey("lesson", selectedCourse.id, selectedBlock.id)
+        generationJobKey('lesson', selectedCourse.id, selectedBlock.id)
       ] || null,
   );
   // Перешли в другой модуль — место для урока выбирается заново.
@@ -103,7 +103,7 @@ export function BlockPage({
 
   const describeLessonPosition = (index: number) => {
     const lessons = selectedBlock.lessons;
-    if (!lessons.length) return "Урок станет первым в модуле.";
+    if (!lessons.length) return 'Урок станет первым в модуле.';
     if (index <= 0)
       return `Урок встанет в начало, перед «${lessons[0].title}».`;
     if (index >= lessons.length) {
@@ -112,7 +112,7 @@ export function BlockPage({
     return `Урок встанет между «${lessons[index - 1].title}» и «${lessons[index].title}».`;
   };
 
-  const isLessonJobRunning = lessonJob?.status === "running";
+  const isLessonJobRunning = lessonJob?.status === 'running';
 
   // Открывает чат у выбранного места или переносит туда уже открытый чат — окно не
   // закрывается. Пока генерация идёт, место менять нельзя. После готового или
@@ -120,12 +120,12 @@ export function BlockPage({
   const openLessonAgent = (index: number) => {
     const currentJob =
       useGenerationJobsStore.getState().jobs[
-        generationJobKey("lesson", selectedCourse.id, selectedBlock.id)
+        generationJobKey('lesson', selectedCourse.id, selectedBlock.id)
       ];
-    if (currentJob?.status === "running") return;
+    if (currentJob?.status === 'running') return;
     if (currentJob) {
       resetAgentInterview({
-        kind: "lesson",
+        kind: 'lesson',
         courseId: selectedCourse.id,
         moduleId: selectedBlock.id,
       });
@@ -139,15 +139,15 @@ export function BlockPage({
   const closeLessonAgent = () => {
     const currentJob =
       useGenerationJobsStore.getState().jobs[
-        generationJobKey("lesson", selectedCourse.id, selectedBlock.id)
+        generationJobKey('lesson', selectedCourse.id, selectedBlock.id)
       ];
-    if (currentJob?.status === "running") {
+    if (currentJob?.status === 'running') {
       setIsLessonChatVisible(false);
       return;
     }
     if (currentJob) {
       resetAgentInterview({
-        kind: "lesson",
+        kind: 'lesson',
         courseId: selectedCourse.id,
         moduleId: selectedBlock.id,
       });
@@ -164,11 +164,11 @@ export function BlockPage({
           key={`lesson-agent-${index}`}
         >
           <span>
-            {lessonJob?.status === "running"
-              ? "✦ Здесь появится урок — генерация идёт"
-              : lessonJob?.status === "done"
-                ? "✦ Урок сгенерирован — ниже"
-                : "✦ Сюда встанет урок из чата с ИИ"}
+            {lessonJob?.status === 'running'
+              ? '✦ Здесь появится урок — генерация идёт'
+              : lessonJob?.status === 'done'
+                ? '✦ Урок сгенерирован — ниже'
+                : '✦ Сюда встанет урок из чата с ИИ'}
           </span>
           <div>
             {!isLessonChatVisible && (
@@ -200,13 +200,13 @@ export function BlockPage({
           disabled={isLessonJobRunning}
           title={
             isLessonJobRunning
-              ? "Дождитесь окончания текущей генерации урока"
+              ? 'Дождитесь окончания текущей генерации урока'
               : undefined
           }
         >
           {lessonAgentAt === null
-            ? "✦ Сгенерировать урок с ИИ здесь"
-            : "✦ Сгенерировать урок здесь"}
+            ? '✦ Сгенерировать урок с ИИ здесь'
+            : '✦ Сгенерировать урок здесь'}
         </button>
       </li>
     );
@@ -239,7 +239,7 @@ export function BlockPage({
 
   const addBlockObjective = () => {
     updateCourseBlock(selectedBlock.id, {
-      learningObjectives: [...blockLearningObjectives, ""],
+      learningObjectives: [...blockLearningObjectives, ''],
     });
   };
 
@@ -253,7 +253,7 @@ export function BlockPage({
 
   return (
     <section
-      className={`container section block-view tw:relative tw:z-[1] tw:w-[min(1600px,_98vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[&.is-course-edit-layout]:w-[min(1720px,_98vw)] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] ${isCourseEditMode ? "is-course-edit-layout" : ""}`}
+      className={`container section block-view tw:relative tw:z-[1] tw:w-[min(1600px,_98vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[&.is-course-edit-layout]:w-[min(1720px,_98vw)] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] ${isCourseEditMode ? 'is-course-edit-layout' : ''}`}
     >
       <SectionTop label="Блок" title={selectedBlock.title} />
       <button
@@ -289,7 +289,7 @@ export function BlockPage({
                   </p>
                   <p className="course-details-text tw:m-[12px_0_0] tw:text-(--muted)">
                     {selectedBlock.description ||
-                      "Детальный блок курса с уроками и практикой. Используйте этот экран как тестовые данные для сценариев проваливания в контент."}
+                      'Детальный блок курса с уроками и практикой. Используйте этот экран как тестовые данные для сценариев проваливания в контент.'}
                   </p>
                   {(selectedBlock.learningObjectives?.length ?? 0) > 0 && (
                     <div className="course-objectives-block tw:mt-[16px] tw:p-[14px] tw:rounded-[14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.26)] tw:[background:rgba(var(--accent-rgb),_0.07)] tw:[&_h3]:m-[0_0_10px] tw:[&_h3]:[font-family:'Unbounded',_sans-serif] tw:[&_h3]:text-[0.92rem] tw:[&_ul]:m-[0] tw:[&_ul]:pl-[18px] tw:[&_ul]:grid tw:[&_ul]:gap-[7px] tw:[&_ul]:text-(--muted) tw:[&_ul]:text-[0.9rem] tw:[&_ul]:leading-[1.45]">
@@ -309,7 +309,7 @@ export function BlockPage({
                     <div className="block-progress-head tw:flex tw:justify-between tw:items-center tw:gap-[12px] tw:text-[0.88rem] tw:text-(--muted) tw:[&_strong]:text-(--ink-accent)">
                       <span>Прогресс блока</span>
                       <strong>
-                        {completedInBlock}/{totalItemsInBlock} •{" "}
+                        {completedInBlock}/{totalItemsInBlock} •{' '}
                         {blockProgressPercent}%
                       </strong>
                     </div>
@@ -346,7 +346,7 @@ export function BlockPage({
                       </span>
                       <input
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedBlock.title || ""}
+                        value={selectedBlock.title || ''}
                         onChange={(event) =>
                           updateCourseBlock(selectedBlock.id, {
                             title: event.target.value,
@@ -360,7 +360,7 @@ export function BlockPage({
                       </span>
                       <input
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedBlock.duration || ""}
+                        value={selectedBlock.duration || ''}
                         onChange={(event) =>
                           updateCourseBlock(selectedBlock.id, {
                             duration: event.target.value,
@@ -374,7 +374,7 @@ export function BlockPage({
                       </span>
                       <textarea
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:min-h-[105px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedBlock.description || ""}
+                        value={selectedBlock.description || ''}
                         onChange={(event) =>
                           updateCourseBlock(selectedBlock.id, {
                             description: event.target.value,
@@ -403,7 +403,7 @@ export function BlockPage({
                       >
                         <input
                           className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.36)] tw:rounded-[12px] tw:text-(--text) tw:p-[10px_12px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.68)] tw:dark:border-[rgba(var(--accent-rgb),_0.52)] tw:[background:rgba(255,_255,_255,_0.34)] tw:dark:text-(--heading) tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[outline:none] tw:dark:focus:border-[rgba(var(--accent-rgb),_0.52)] tw:dark:[background:rgba(24,_24,_24,_0.75)] tw:focus:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.16)]"
-                          value={objective || ""}
+                          value={objective || ''}
                           placeholder={`Цель ${index + 1}`}
                           onChange={(event) =>
                             updateBlockObjective(index, event.target.value)
@@ -452,7 +452,7 @@ export function BlockPage({
                       onClick={addLesson}
                       disabled={isAddingLesson}
                     >
-                      {isAddingLesson ? "Создаём урок..." : "Добавить урок"}
+                      {isAddingLesson ? 'Создаём урок...' : 'Добавить урок'}
                     </button>
                   </div>
                 )}
@@ -474,8 +474,8 @@ export function BlockPage({
                       disabled={isAddingLesson}
                     >
                       {isAddingLesson
-                        ? "Создаём урок..."
-                        : "Создать первый урок"}
+                        ? 'Создаём урок...'
+                        : 'Создать первый урок'}
                     </button>
                   )}
                 </div>
@@ -493,7 +493,7 @@ export function BlockPage({
                                 Урок {index + 1}
                               </span>
                               <strong className="tw:block tw:mt-[4px] tw:text-(--heading)">
-                                {lesson.title || "Урок без названия"}
+                                {lesson.title || 'Урок без названия'}
                               </strong>
                             </div>
                           </div>
@@ -504,7 +504,7 @@ export function BlockPage({
                               </span>
                               <input
                                 className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                                value={lesson.title || ""}
+                                value={lesson.title || ''}
                                 onChange={(event) =>
                                   updateLesson(lesson.id, {
                                     title: event.target.value,
@@ -518,7 +518,7 @@ export function BlockPage({
                               </span>
                               <input
                                 className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                                value={lesson.duration || ""}
+                                value={lesson.duration || ''}
                                 onChange={(event) =>
                                   updateLesson(lesson.id, {
                                     duration: event.target.value,
@@ -532,7 +532,7 @@ export function BlockPage({
                               </span>
                               <textarea
                                 className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:min-h-[105px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                                value={lesson.summary || ""}
+                                value={lesson.summary || ''}
                                 onChange={(event) =>
                                   updateLesson(lesson.id, {
                                     summary: event.target.value,
@@ -594,11 +594,11 @@ export function BlockPage({
                             {lesson.duration}
                           </span>
                           <span
-                            className={`lesson-status tw:text-[0.78rem] tw:font-[700] tw:[&.is-done]:text-(--success-text) tw:[&.is-pending]:text-(--ink-accent) ${completedLessons[lesson.id] ? "is-done" : "is-pending"}`}
+                            className={`lesson-status tw:text-[0.78rem] tw:font-[700] tw:[&.is-done]:text-(--success-text) tw:[&.is-pending]:text-(--ink-accent) ${completedLessons[lesson.id] ? 'is-done' : 'is-pending'}`}
                           >
                             {completedLessons[lesson.id]
-                              ? "Пройдено"
-                              : "Не пройден"}
+                              ? 'Пройдено'
+                              : 'Не пройден'}
                           </span>
                         </button>
                       )}
@@ -627,11 +627,11 @@ export function BlockPage({
                           {task.duration}
                         </span>
                         <span
-                          className={`practice-status tw:text-[0.78rem] tw:font-[700] tw:[&.is-done]:text-(--success-text) tw:[&.is-pending]:text-(--info-text) ${completedPractices[task.id] ? "is-done" : "is-pending"}`}
+                          className={`practice-status tw:text-[0.78rem] tw:font-[700] tw:[&.is-done]:text-(--success-text) tw:[&.is-pending]:text-(--info-text) ${completedPractices[task.id] ? 'is-done' : 'is-pending'}`}
                         >
                           {completedPractices[task.id]
-                            ? "Выполнено"
-                            : "Не выполнено"}
+                            ? 'Выполнено'
+                            : 'Не выполнено'}
                         </span>
                       </button>
                     </li>
@@ -654,7 +654,7 @@ export function BlockPage({
           knownIds={selectedBlock.lessons.map((lesson) => lesson.id)}
           contextTitle={
             lessonJob?.resultId
-              ? `Урок «${lessonJob.resultTitle || "без названия"}» уже в списке.`
+              ? `Урок «${lessonJob.resultTitle || 'без названия'}» уже в списке.`
               : `Модуль «${selectedBlock.title}». ${describeLessonPosition(lessonAgentAt)}`
           }
           onClose={closeLessonAgent}
@@ -680,7 +680,7 @@ export function BlockPage({
         danger
         eyebrow="Необратимое действие"
         title="Удалить урок?"
-        description={`Урок «${lessonToDelete?.title || ""}» и его содержимое будут удалены. Отменить удаление нельзя.`}
+        description={`Урок «${lessonToDelete?.title || ''}» и его содержимое будут удалены. Отменить удаление нельзя.`}
         confirmLabel="Удалить"
         busyLabel="Удаляем..."
         onCancel={() => setLessonToDelete(null)}

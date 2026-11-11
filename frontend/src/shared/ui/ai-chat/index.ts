@@ -1,4 +1,4 @@
-export { AiChatPanel, type AiChatPanelProps } from "./AiChatPanel";
+export { AiChatPanel, type AiChatPanelProps } from './AiChatPanel';
 export {
   ChatButton,
   ChatCard,
@@ -13,13 +13,14 @@ export {
   type ChatButtonProps,
   type ChatMessageProps,
   type ChatThreadHandle,
-} from "./ChatParts";
+} from './ChatParts';
 export {
   ChatComposer,
   type ChatComposerFile,
   type ChatComposerProps,
-} from "./ChatComposer";
-export { ChatMarkdown, chatMarkdownClass, safeChatUrl } from "./ChatMarkdown";
+} from './ChatComposer';
+export { ChatMarkdown } from './ChatMarkdown';
+export { chatMarkdownClass, safeChatUrl } from './chat-markdown-config';
 export {
   IconClose,
   IconCopy,
@@ -28,4 +29,4 @@ export {
   IconPlus,
   IconRetry,
   IconSparkle,
-} from "./icons";
+} from './icons';

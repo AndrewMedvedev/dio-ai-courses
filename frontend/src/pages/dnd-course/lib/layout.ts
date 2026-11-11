@@ -1,4 +1,9 @@
-import { COLUMN_GAP, COLUMN_X, MODULE_LAYOUT, NODE_SIZE } from "../config/constants";
+import {
+  COLUMN_GAP,
+  COLUMN_X,
+  MODULE_LAYOUT,
+  NODE_SIZE,
+} from '../config/constants';
 import type {
   DndMaterial,
   DndLesson,
@@ -6,7 +11,7 @@ import type {
   Rect,
   Size,
   XY,
-} from "../model/types";
+} from '../model/types';
 
 /** Часть состояния, по которой раскладываются узлы холста. */
 export interface LayoutState {
@@ -73,7 +78,9 @@ export function modulesColumn(
   });
   const savedOf = (module: DndModule): XY | null => {
     const saved = positions?.[`module:${module.id}`];
-    return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : null;
+    return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)
+      ? saved
+      : null;
   };
   const placed = ordered
     .filter((module) => savedOf(module))
@@ -90,7 +97,9 @@ export function modulesColumn(
   ordered.forEach((module) => {
     if (rects.has(module.id)) return;
     const size = sizeOf(module);
-    const spot = findFreeSlot({ x: COLUMN_X.module, y }, size, [...rects.values()]);
+    const spot = findFreeSlot({ x: COLUMN_X.module, y }, size, [
+      ...rects.values(),
+    ]);
     const rect = { id: module.id, ...spot, ...size };
     rects.set(module.id, rect);
     y = spot.y + size.height + COLUMN_GAP * 2;
@@ -111,7 +120,9 @@ export function resolveFreePositions(state: LayoutState): Record<string, XY> {
     (state.modules || []).flatMap((module) => module.lessonIds || []),
   );
 
-  modulesColumn(state.modules || [], positions).forEach((rect) => rects.push(rect));
+  modulesColumn(state.modules || [], positions).forEach((rect) =>
+    rects.push(rect),
+  );
 
   const place = (id: string, size: Size, fallback: XY) => {
     const saved = positions[id];
@@ -125,15 +136,15 @@ export function resolveFreePositions(state: LayoutState): Record<string, XY> {
 
   // Сначала узлы с сохранёнными координатами, чтобы новые не легли поверх них.
   const entries: [string, Size, XY][] = [
-    ["course", NODE_SIZE.course, { x: COLUMN_X.course, y: 0 }],
-    ["upload", NODE_SIZE.upload, { x: COLUMN_X.material, y: 0 }],
+    ['course', NODE_SIZE.course, { x: COLUMN_X.course, y: 0 }],
+    ['upload', NODE_SIZE.upload, { x: COLUMN_X.material, y: 0 }],
     ...(state.materials || [])
       .filter((material) => state.showUsedMaterials || !material.lessonId)
       .map((material): [string, Size, XY] => [
-      `material:${material.id}`,
-      NODE_SIZE.material,
-      { x: COLUMN_X.material, y: NODE_SIZE.upload.height + COLUMN_GAP },
-    ]),
+        `material:${material.id}`,
+        NODE_SIZE.material,
+        { x: COLUMN_X.material, y: NODE_SIZE.upload.height + COLUMN_GAP },
+      ]),
     ...(state.lessons || [])
       .filter((lesson) => !assigned.has(lesson.id))
       .map((lesson): [string, Size, XY] => [
@@ -169,7 +180,10 @@ export function freeRects(
     .map(([id, position]) => ({
       id,
       ...position,
-      ...(sizes[id.split(":")[0]] || NODE_SIZE.material),
+      ...(sizes[id.split(':')[0]] || NODE_SIZE.material),
     }));
-  return [...rects, ...modulesColumn(state.modules || [], state.positions || {})];
+  return [
+    ...rects,
+    ...modulesColumn(state.modules || [], state.positions || {}),
+  ];
 }

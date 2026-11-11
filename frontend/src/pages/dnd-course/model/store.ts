@@ -1,9 +1,10 @@
-import { create } from "zustand";
+import { toText } from '@/shared/lib/text';
+import { create } from 'zustand';
 import {
   createAgentConversationKey,
   useAgentStore,
-} from "@/entities/agent-chat";
-import { uploadDocument } from "@/features/upload-document";
+} from '@/entities/agent-chat';
+import { uploadDocument } from '@/features/upload-document';
 import {
   assignLessonToModule,
   createCourse as createCourseApi,
@@ -16,8 +17,8 @@ import {
   updateLesson as updateLessonApi,
   updateLessonContentBlocks,
   updateModule as updateModuleApi,
-} from "@/entities/course";
-import { isAuthenticated, redirectToLogin } from "@/shared/api";
+} from '@/entities/course';
+import { isAuthenticated, redirectToLogin } from '@/shared/api';
 import {
   COLUMN_GAP,
   COLUMN_X,
@@ -25,14 +26,14 @@ import {
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_LABEL,
   NODE_SIZE,
-} from "../config/constants";
+} from '../config/constants';
 import {
   clearDraft,
   EMPTY_DRAFT,
   loadDraft,
   pickDraft,
   saveDraft,
-} from "./draft";
+} from './draft';
 import {
   countLabel,
   createLocalId,
@@ -50,10 +51,10 @@ import {
   parseTags,
   tagsToText,
   WORDS,
-} from "../lib/helpers";
-import { findFreeSlot, freeRects, resolveFreePositions } from "../lib/layout";
-import { fetchCourseStructure, fetchLessonBlocks } from "../api/server-course";
-import type { RawApiRecord } from "@/shared/api";
+} from '../lib/helpers';
+import { findFreeSlot, freeRects, resolveFreePositions } from '../lib/layout';
+import { fetchCourseStructure, fetchLessonBlocks } from '../api/server-course';
+import type { RawApiRecord } from '@/shared/api';
 import type {
   DndCourse,
   DndLesson,
@@ -67,7 +68,7 @@ import type {
   ToastOptions,
   ToastType,
   XY,
-} from "./types";
+} from './types';
 
 // File нельзя положить в localStorage — держим их в памяти до перезагрузки.
 const fileRegistry = new Map<string, File>();
@@ -85,14 +86,14 @@ const TRANSIENT: DndTransient = {
   pending: {},
   saveStatus: {},
   saveErrors: {},
-  courseError: "",
-  courseNotice: "",
+  courseError: '',
+  courseNotice: '',
   toasts: [],
   confirm: null,
   finishOpen: false,
-  finishError: "",
+  finishError: '',
   materialPicker: null,
-  announcement: "",
+  announcement: '',
   flash: {},
   focusRequest: null,
   paletteOpen: true,
@@ -105,43 +106,46 @@ export function hasFile(materialId: string): boolean {
   return fileRegistry.has(materialId);
 }
 
-export function formFromEntity(type: NodeType | string, rawEntity: unknown): EntityForm {
+export function formFromEntity(type: string, rawEntity: unknown): EntityForm {
   if (!rawEntity) return {};
   // Форма строится по типу сущности, поэтому поля читаем через общий вид.
   const entity = rawEntity as Partial<DndCourse & DndLesson & DndModule>;
-  if (type === "course") {
+  if (type === 'course') {
     return {
-      title: entity.title || "",
-      description: entity.description || "",
-      difficulty: entity.difficulty || "beginner",
+      title: entity.title || '',
+      description: entity.description || '',
+      difficulty: entity.difficulty || 'beginner',
       tags: tagsToText(entity.tags),
     };
   }
-  if (type === "lesson") {
+  if (type === 'lesson') {
     return {
-      title: entity.title || "",
-      description: entity.description || "",
+      title: entity.title || '',
+      description: entity.description || '',
       learningObjectives: objectivesToText(entity.learningObjectives),
       estimatedTimeMinutes:
         entity.estimatedTimeMinutes === null ||
         entity.estimatedTimeMinutes === undefined
-          ? ""
+          ? ''
           : String(entity.estimatedTimeMinutes),
     };
   }
-  if (type === "module") {
+  if (type === 'module') {
     return {
-      title: entity.title || "",
-      description: entity.description || "",
+      title: entity.title || '',
+      description: entity.description || '',
       learningObjectives: objectivesToText(entity.learningObjectives),
     };
   }
   return {};
 }
 
-function isSameForm(a: EntityForm | undefined, b: EntityForm | undefined): boolean {
+function isSameForm(
+  a: EntityForm | undefined,
+  b: EntityForm | undefined,
+): boolean {
   return Object.keys({ ...a, ...b }).every(
-    (key) => String(a?.[key] ?? "") === String(b?.[key] ?? ""),
+    (key) => String(a?.[key] ?? '') === String(b?.[key] ?? ''),
   );
 }
 
@@ -168,7 +172,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       return { pending };
     });
 
-  const setSaveStatus = (key: string, status: SaveStatus | null, error = "") =>
+  const setSaveStatus = (key: string, status: SaveStatus | null, error = '') =>
     set((state) => {
       const saveStatus = { ...state.saveStatus };
       const saveErrors = { ...state.saveErrors };
@@ -185,7 +189,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     set((state) => ({
       toasts: [...state.toasts.slice(-2), { id, type, text, ...options }],
     }));
-    const timeout = options.timeout ?? (type === "error" ? 7000 : 4200);
+    const timeout = options.timeout ?? (type === 'error' ? 7000 : 4200);
     if (timeout > 0) {
       window.setTimeout(() => get().dismissToast(id), timeout);
     }
@@ -196,7 +200,9 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
   const announce = (text: string) => {
     // Чередуем невидимый символ, чтобы одинаковые сообщения тоже озвучивались.
     announceFlip = !announceFlip;
-    set({ announcement: announceFlip ? `${text}${String.fromCharCode(8203)}` : text });
+    set({
+      announcement: announceFlip ? `${text}${String.fromCharCode(8203)}` : text,
+    });
   };
 
   const flashEdges = (edgeIds: string[]) => {
@@ -218,8 +224,11 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     }, 1400);
   };
 
-  const getFormValues = (key: string, type: NodeType, entity: unknown): EntityForm =>
-    get().forms[key] || formFromEntity(type, entity);
+  const getFormValues = (
+    key: string,
+    type: NodeType,
+    entity: unknown,
+  ): EntityForm => get().forms[key] || formFromEntity(type, entity);
 
   const clearForm = (key: string) =>
     set((state) => {
@@ -228,7 +237,10 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       return { forms };
     });
 
-  const moduleOfLesson = (lessonId: string, modules: DndModule[] = get().modules) =>
+  const moduleOfLesson = (
+    lessonId: string,
+    modules: DndModule[] = get().modules,
+  ) =>
     modules.find((module) => (module.lessonIds || []).includes(lessonId)) ||
     null;
 
@@ -243,8 +255,10 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     if (running) await running.promise?.catch(() => null);
   };
 
-  const sendOrderUpdates = <T,>(items: T[], updater: (item: T) => Promise<unknown>) =>
-    Promise.allSettled(items.map((item) => updater(item)));
+  const sendOrderUpdates = <T>(
+    items: T[],
+    updater: (item: T) => Promise<unknown>,
+  ) => Promise.allSettled(items.map((item) => updater(item)));
 
   // Урок без модуля живёт только в черновике: сервер проверяет права на урок
   // через его модуль, поэтому урок без модуля нельзя ни изменить, ни удалить.
@@ -255,7 +269,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     order: number,
   ): Promise<string> => {
     const lesson = get().lessons.find((item) => item.id === lessonId);
-    if (!lesson) throw new Error("Урок не найден.");
+    if (!lesson) throw new Error('Урок не найден.');
     const saved = await createLessonApi({
       title: lesson.title,
       description: lesson.description || lesson.title,
@@ -264,7 +278,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       estimatedTimeMinutes: lesson.estimatedTimeMinutes ?? null,
       moduleId,
     });
-    if (!saved?.id) throw new Error("Сервер не вернул идентификатор урока.");
+    if (!saved?.id) throw new Error('Сервер не вернул идентификатор урока.');
     const blocks = getLessonBlocks(lesson);
     if (blocks.length) {
       try {
@@ -276,34 +290,53 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         } catch {
           rollbackFailed = true;
         }
-        throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
-          rollbackFailed,
-        });
+        throw Object.assign(
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            rollbackFailed,
+          },
+        );
       }
     }
     return saved.id;
   };
 
-  const remapLessonId = (oldId: string, newId: string, patch: Partial<DndLesson> = {}) => {
+  const remapLessonId = (
+    oldId: string,
+    newId: string,
+    patch: Partial<DndLesson> = {},
+  ) => {
     const oldKey = nodeId.lesson(oldId);
     const newKey = nodeId.lesson(newId);
-    const rekey = <V,>(source: Record<string, V> | undefined): Record<string, V> => {
+    const rekey = <V>(
+      source: Record<string, V> | undefined,
+    ): Record<string, V> => {
       const next: Record<string, V> = {};
       Object.entries(source || {}).forEach(([key, value]) => {
-        next[key.startsWith(oldKey) ? newKey + key.slice(oldKey.length) : key] = value;
+        next[key.startsWith(oldKey) ? newKey + key.slice(oldKey.length) : key] =
+          value;
       });
       return next;
     };
     set((state) => ({
       lessons: state.lessons.map((lesson) =>
-        lesson.id === oldId ? { ...lesson, ...patch, id: newId, isLocal: false } : lesson,
+        lesson.id === oldId
+          ? { ...lesson, ...patch, id: newId, isLocal: false }
+          : lesson,
       ),
       materials: state.materials.map((material) =>
-        material.lessonId === oldId ? { ...material, lessonId: newId } : material,
+        material.lessonId === oldId
+          ? { ...material, lessonId: newId }
+          : material,
       ),
       modules: state.modules.map((module) =>
         module.lessonIds.includes(oldId)
-          ? { ...module, lessonIds: module.lessonIds.map((id) => (id === oldId ? newId : id)) }
+          ? {
+              ...module,
+              lessonIds: module.lessonIds.map((id) =>
+                id === oldId ? newId : id,
+              ),
+            }
           : module,
       ),
       positions: rekey(state.positions),
@@ -317,8 +350,8 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
 
   const rollbackNote = (error: unknown) =>
     (error as { rollbackFailed?: boolean } | null)?.rollbackFailed
-      ? " Откат выполнен не полностью: пустой урок мог остаться на сервере."
-      : " Изменения отменены.";
+      ? ' Откат выполнен не полностью: пустой урок мог остаться на сервере.'
+      : ' Изменения отменены.';
 
   return {
     ...EMPTY_DRAFT,
@@ -328,11 +361,11 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (get().hydrated) return;
       const { draft, migrated } = loadDraft();
       set({ ...draft, hydrated: true });
-      get().verifyCourse();
+      void get().verifyCourse();
       if (migrated) {
         toast(
-          "info",
-          "Черновик из старого конструктора перенесён на холст. Позиции элементов расставлены автоматически.",
+          'info',
+          'Черновик из старого конструктора перенесён на холст. Позиции элементов расставлены автоматически.',
         );
       }
       if (!persistenceStarted) {
@@ -346,7 +379,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           window.clearTimeout(persistTimer);
           persistTimer = window.setTimeout(() => get().persistNow(), 450);
         });
-        window.addEventListener("beforeunload", () => get().persistNow());
+        window.addEventListener('beforeunload', () => get().persistNow());
       }
     },
 
@@ -364,7 +397,9 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     },
 
     dismissToast: (id) =>
-      set((state) => ({ toasts: state.toasts.filter((item) => item.id !== id) })),
+      set((state) => ({
+        toasts: state.toasts.filter((item) => item.id !== id),
+      })),
     toast,
     announce,
 
@@ -384,27 +419,33 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           const stale = state.course;
           if (!stale) return {};
           const removedLessons = new Set(
-            state.lessons.filter((lesson) => !lesson.isLocal).map((lesson) => lesson.id),
+            state.lessons
+              .filter((lesson) => !lesson.isLocal)
+              .map((lesson) => lesson.id),
           );
           const positions = Object.fromEntries(
             Object.entries(state.positions).filter(
               ([key]) =>
-                !key.startsWith("module:") &&
-                !(key.startsWith("lesson:") && removedLessons.has(key.slice("lesson:".length))),
+                !key.startsWith('module:') &&
+                !(
+                  key.startsWith('lesson:') &&
+                  removedLessons.has(key.slice('lesson:'.length))
+                ),
             ),
           );
           return {
             course: null,
             courseForm: {
-              title: stale.title || "",
-              description: stale.description || "",
-              difficulty: stale.difficulty || "beginner",
+              title: stale.title || '',
+              description: stale.description || '',
+              difficulty: stale.difficulty || 'beginner',
               tags: tagsToText(stale.tags),
             },
             lessons: state.lessons.filter((lesson) => lesson.isLocal),
             modules: [],
             materials: state.materials.map((material) =>
-              material.lessonId !== null && removedLessons.has(material.lessonId)
+              material.lessonId !== null &&
+              removedLessons.has(material.lessonId)
                 ? { ...material, lessonId: null }
                 : material,
             ),
@@ -416,7 +457,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             moduleDialog: null,
             finishOpen: false,
             courseNotice:
-              "Курс из черновика не найден на сервере — похоже, база была очищена. Загруженные материалы сохранились: создайте курс заново, и они вернутся на холст.",
+              'Курс из черновика не найден на сервере — похоже, база была очищена. Загруженные материалы сохранились: создайте курс заново, и они вернутся на холст.',
           };
         });
       }
@@ -425,7 +466,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     setCourseForm: (patch) =>
       set((state) => ({
         courseForm: { ...state.courseForm, ...patch },
-        courseError: "",
+        courseError: '',
       })),
 
     createCourse: async () => {
@@ -434,17 +475,17 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const title = courseForm.title.trim();
       const description = courseForm.description.trim();
       if (!title || !description) {
-        set({ courseError: "Заполните название и описание курса." });
+        set({ courseError: 'Заполните название и описание курса.' });
         return;
       }
       const tags = parseTags(courseForm.tags);
-      setPending("course", true);
-      set({ courseError: "" });
+      setPending('course', true);
+      set({ courseError: '' });
       try {
         const created = await createCourseApi({
           title,
           description,
-          difficulty: courseForm.difficulty || "beginner",
+          difficulty: courseForm.difficulty || 'beginner',
           tags,
         });
         const nextCourse = normalizeCourse(created, {
@@ -453,43 +494,48 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           difficulty: courseForm.difficulty,
           tags,
         });
-        if (!nextCourse?.id) throw new Error("Сервер не вернул идентификатор курса.");
+        if (!nextCourse?.id)
+          throw new Error('Сервер не вернул идентификатор курса.');
         set({
           course: nextCourse,
-          courseNotice: "",
+          courseNotice: '',
           courseForm: EMPTY_COURSE_FORM,
           onboardingDismissed: false,
           activeNodeId: null,
           inspector: { open: false, tab: null },
           selectedIds: [],
-          focusRequest: { ids: ["course", "upload"], at: Date.now() },
+          focusRequest: { ids: ['course', 'upload'], at: Date.now() },
         });
-        announce("Курс создан. Открыт конструктор.");
+        announce('Курс создан. Открыт конструктор.');
       } catch (error) {
         set({
           courseError: getApiErrorMessage(
             error,
-            "Не удалось создать курс. Проверьте соединение и попробуйте ещё раз.",
+            'Не удалось создать курс. Проверьте соединение и попробуйте ещё раз.',
           ),
         });
       } finally {
-        setPending("course", false);
+        setPending('course', false);
       }
     },
 
     saveCourse: async () => {
       const { course, pending } = get();
       if (!course?.id || pending.course) return;
-      const values = getFormValues("course", "course", course);
+      const values = getFormValues('course', 'course', course);
       const title = values.title.trim();
       const description = values.description.trim();
       if (!title || !description) {
-        setSaveStatus("course", "error", "Заполните название и описание курса.");
+        setSaveStatus(
+          'course',
+          'error',
+          'Заполните название и описание курса.',
+        );
         return;
       }
       const tags = parseTags(values.tags);
-      setPending("course", true);
-      setSaveStatus("course", "saving");
+      setPending('course', true);
+      setSaveStatus('course', 'saving');
       try {
         const updated = await updateCourseApi(course.id, {
           title,
@@ -513,17 +559,17 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             tags,
           },
         }));
-        clearForm("course");
-        setSaveStatus("course", "saved");
-        toast("success", "Карточка курса сохранена");
+        clearForm('course');
+        setSaveStatus('course', 'saved');
+        toast('success', 'Карточка курса сохранена');
       } catch (error) {
         setSaveStatus(
-          "course",
-          "error",
-          getApiErrorMessage(error, "Не удалось сохранить курс."),
+          'course',
+          'error',
+          getApiErrorMessage(error, 'Не удалось сохранить курс.'),
         );
       } finally {
-        setPending("course", false);
+        setPending('course', false);
       }
     },
 
@@ -535,11 +581,14 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (!picked.length) return [];
 
       const startNumber =
-        state.materials.reduce((max, item) => Math.max(max, item.number || 0), 0) + 1;
+        state.materials.reduce(
+          (max, item) => Math.max(max, item.number || 0),
+          0,
+        ) + 1;
       const rects = freeRects(state);
       const positions: Record<string, XY> = {};
       const created = picked.map((file, index): DndMaterial => {
-        const id = createLocalId("material");
+        const id = createLocalId('material');
         const tooBig = file.size > MAX_FILE_SIZE_BYTES;
         if (!tooBig) fileRegistry.set(id, file);
         const desired = position
@@ -559,12 +608,12 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           fileKind: getFileKind(file.name),
           size: file.size,
           number: startNumber + index,
-          status: tooBig ? "error" : "uploading",
-          markdown: "",
+          status: tooBig ? 'error' : 'uploading',
+          markdown: '',
           proposal: null,
           error: tooBig
             ? `Файл больше ${MAX_FILE_SIZE_LABEL} и не был отправлен. Максимальный размер — ${MAX_FILE_SIZE_LABEL}.`
-            : "",
+            : '',
           tooBig,
           interrupted: false,
           lessonId: null,
@@ -584,18 +633,20 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const rejected = created.filter((material) => material.tooBig);
       if (rejected.length) {
         toast(
-          "warning",
+          'warning',
           rejected.length === 1
             ? `«${rejected[0].fileName}» больше ${MAX_FILE_SIZE_LABEL} — файл не отправлен. Остальные материалы обрабатываются.`
-            : `${countLabel(rejected.length, ["файл", "файла", "файлов"])} больше ${MAX_FILE_SIZE_LABEL} — не отправлены.`,
+            : `${countLabel(rejected.length, ['файл', 'файла', 'файлов'])} больше ${MAX_FILE_SIZE_LABEL} — не отправлены.`,
         );
       }
       announce(
         `Добавлено ${countLabel(created.length, WORDS.material)}. Обрабатываем документы.`,
       );
       created
-        .filter((material) => material.status === "uploading")
-        .forEach((material) => get().uploadMaterial(material.id));
+        .filter((material) => material.status === 'uploading')
+        .forEach((material) => {
+          void get().uploadMaterial(material.id);
+        });
       return created.map((material) => material.id);
     },
 
@@ -609,21 +660,24 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       }
       const key = nodeId.material(id);
       setPending(key, true);
-      patchMaterial(id, { status: "uploading", error: "", interrupted: false });
+      patchMaterial(id, { status: 'uploading', error: '', interrupted: false });
       try {
         const markdown = await uploadDocument(file);
         patchMaterial(id, {
-          status: "ready",
-          markdown: typeof markdown === "string" ? markdown : String(markdown || ""),
-          error: "",
+          status: 'ready',
+          markdown:
+            typeof markdown === 'string' ? markdown : toText(markdown || ''),
+          error: '',
         });
         setPending(key, false);
         announce(`Материал «${material.fileName}» готов.`);
         const stillUploading = get().materials.some(
-          (item) => item.status === "uploading",
+          (item) => item.status === 'uploading',
         );
-        if (!stillUploading) toast("success", "Материал обработан");
-        const target = get().materials.find((item) => item.id === id)?.attachToLessonId;
+        if (!stillUploading) toast('success', 'Материал обработан');
+        const target = get().materials.find(
+          (item) => item.id === id,
+        )?.attachToLessonId;
         if (target) {
           patchMaterial(id, { attachToLessonId: null });
           if (get().lessons.some((lesson) => lesson.id === target)) {
@@ -632,9 +686,16 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         }
       } catch (error) {
         setPending(key, false);
-        const message = getApiErrorMessage(error, "Не удалось обработать документ.");
-        patchMaterial(id, { status: "error", error: message, attachToLessonId: null });
-        toast("error", `Не удалось обработать документ «${material.fileName}»`);
+        const message = getApiErrorMessage(
+          error,
+          'Не удалось обработать документ.',
+        );
+        patchMaterial(id, {
+          status: 'error',
+          error: message,
+          attachToLessonId: null,
+        });
+        toast('error', `Не удалось обработать документ «${material.fileName}»`);
         announce(`Ошибка: не удалось обработать «${material.fileName}».`);
       }
     },
@@ -648,7 +709,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             fileName: replacementFile.name,
             fileKind: getFileKind(replacementFile.name),
             size: replacementFile.size,
-            status: "error",
+            status: 'error',
             tooBig: true,
             error: `Файл больше ${MAX_FILE_SIZE_LABEL} и не был отправлен. Максимальный размер — ${MAX_FILE_SIZE_LABEL}.`,
           });
@@ -663,7 +724,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         });
       }
       if (!fileRegistry.has(id)) return false;
-      get().uploadMaterial(id);
+      void get().uploadMaterial(id);
       return true;
     },
 
@@ -688,59 +749,63 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
               : state.inspector,
         };
       });
-      toast("success", "Материал удалён");
+      toast('success', 'Материал удалён');
     },
 
     askMaterialAi: async (id, prompt) => {
       const { course, materials } = get();
       const material = materials.find((item) => item.id === id);
-      const text = String(prompt || "").trim();
+      const text = String(prompt || '').trim();
       if (!course?.id || !material || !text) return;
-      const key = createAgentConversationKey("editor", course.id, `manual:${id}`);
-      if (useAgentStore.getState().conversations[key]?.status === "loading") return;
-      patchMaterial(id, { aiError: "" });
+      const key = createAgentConversationKey(
+        'editor',
+        course.id,
+        `manual:${id}`,
+      );
+      if (useAgentStore.getState().conversations[key]?.status === 'loading')
+        return;
+      patchMaterial(id, { aiError: '' });
       try {
         const response = await useAgentStore.getState().sendMessage({
           key,
-          agent: "editor",
+          agent: 'editor',
           courseId: course.id,
           content: text,
           contentBlocks: materialsToContentBlocks(
             materials.filter((item) => item.id !== id && !item.lessonId),
           ),
           editorPayload: {
-            content_type: "text",
+            content_type: 'text',
             content_block: JSON.stringify({
-              content_type: "text",
+              content_type: 'text',
               ai_generated: false,
-              md_content: material.markdown || "",
+              md_content: material.markdown || '',
             }),
             images: undefined,
           },
-          emptyResponseMessage: "",
+          emptyResponseMessage: '',
           responseDisplayMessage: (agentResponse) => {
             const parsed = agentResponse?.parsedContent as
-              | { md_content?: unknown }
-              | undefined;
-            return typeof parsed?.md_content === "string" &&
+              { md_content?: unknown } | undefined;
+            return typeof parsed?.md_content === 'string' &&
               parsed.md_content.trim()
-              ? "Правка готова. Проверьте предложенный вариант и примените его, если он подходит."
-              : "";
+              ? 'Правка готова. Проверьте предложенный вариант и примените его, если он подходит.'
+              : '';
           },
         });
         if (!response) return;
         const proposal = (
           response.parsedContent as { md_content?: unknown } | undefined
         )?.md_content;
-        if (typeof proposal !== "string" || !proposal.trim()) {
+        if (typeof proposal !== 'string' || !proposal.trim()) {
           patchMaterial(id, {
             aiError:
-              "ИИ вернул ответ в неподдерживаемом формате. Попробуйте уточнить запрос.",
+              'ИИ вернул ответ в неподдерживаемом формате. Попробуйте уточнить запрос.',
           });
           return;
         }
         patchMaterial(id, { proposal: proposal.trim() });
-        announce("ИИ подготовил правку материала.");
+        announce('ИИ подготовил правку материала.');
       } catch {
         // Ошибку сети уже записал agent store — инспектор покажет её с кнопкой «Повторить».
       }
@@ -750,7 +815,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const material = get().materials.find((item) => item.id === id);
       if (!material?.proposal) return;
       patchMaterial(id, { markdown: material.proposal, proposal: null });
-      toast("success", "Правка применена");
+      toast('success', 'Правка применена');
     },
 
     rejectProposal: (id) => patchMaterial(id, { proposal: null }),
@@ -761,17 +826,22 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const picked = materialIds
         .map((id) => materials.find((item) => item.id === id))
         .filter((item): item is DndMaterial => Boolean(item));
-      if (!picked.length) return { ok: false, reason: "Выберите готовые материалы." };
-      if (picked.some((item) => item.status === "uploading"))
-        return { ok: false, reason: "Материал ещё обрабатывается." };
-      if (picked.some((item) => item.status === "error"))
-        return { ok: false, reason: "Материал с ошибкой нельзя добавить в урок." };
+      if (!picked.length)
+        return { ok: false, reason: 'Выберите готовые материалы.' };
+      if (picked.some((item) => item.status === 'uploading'))
+        return { ok: false, reason: 'Материал ещё обрабатывается.' };
+      if (picked.some((item) => item.status === 'error'))
+        return {
+          ok: false,
+          reason: 'Материал с ошибкой нельзя добавить в урок.',
+        };
       if (picked.some((item) => item.lessonId))
-        return { ok: false, reason: "Материал уже добавлен в урок." };
+        return { ok: false, reason: 'Материал уже добавлен в урок.' };
       if (!materialsToContentBlocks(picked).length)
-        return { ok: false, reason: "В материале нет текста." };
+        return { ok: false, reason: 'В материале нет текста.' };
       const existing = lessonId
-        ? getLessonBlocks(lessons.find((lesson) => lesson.id === lessonId)).length
+        ? getLessonBlocks(lessons.find((lesson) => lesson.id === lessonId))
+            .length
         : 0;
       if (existing + picked.length > MAX_CONTENT_BLOCKS) {
         return {
@@ -782,18 +852,18 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       return { ok: true, materials: picked };
     },
 
-    createLessonFromMaterials: async (materialIds, { position = null } = {}) => {
+    createLessonFromMaterials: (materialIds, { position = null } = {}) => {
       const state = get();
-      if (!state.course?.id) return null;
+      if (!state.course?.id) return Promise.resolve(null);
       const check = state.validateMaterialsForLesson(materialIds);
       if (!check.ok) {
-        toast("warning", check.reason);
-        return null;
+        toast('warning', check.reason);
+        return Promise.resolve(null);
       }
       const picked = check.materials;
       const lessonNumber = state.lessons.length + 1;
       const lesson = {
-        id: createLocalId("lesson"),
+        id: createLocalId('lesson'),
         title: `Урок ${lessonNumber}`,
         description: `Материалы урока ${lessonNumber}`,
         order: lessonNumber,
@@ -812,10 +882,13 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const desired = position || {
         x: Math.max(
           COLUMN_X.lesson,
-          ...materialPositions.map((point) => point.x + NODE_SIZE.material.width + 60),
+          ...materialPositions.map(
+            (point) => point.x + NODE_SIZE.material.width + 60,
+          ),
         ),
         y: materialPositions.length
-          ? materialPositions.reduce((sum, point) => sum + point.y, 0) / materialPositions.length
+          ? materialPositions.reduce((sum, point) => sum + point.y, 0) /
+            materialPositions.length
           : 0,
       };
       const slot = findFreeSlot(desired, NODE_SIZE.lesson, freeRects(state));
@@ -823,41 +896,56 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       set((current) => ({
         lessons: [...current.lessons, lesson],
         materials: current.materials.map((item) =>
-          lesson.materialIds.includes(item.id) ? { ...item, lessonId: lesson.id } : item,
+          lesson.materialIds.includes(item.id)
+            ? { ...item, lessonId: lesson.id }
+            : item,
         ),
         positions: { ...current.positions, [lessonNode]: slot },
         selectedIds: [lessonNode],
         activeNodeId: lessonNode,
-        inspector: { open: true, tab: "main" },
+        inspector: { open: true, tab: 'main' },
       }));
-      flashEdges(lesson.materialIds.map((id) => `edge:${nodeId.material(id)}->${lessonNode}`));
-      toast("success", "Урок создан. На сервер он попадёт вместе с модулем.");
-      announce(`${lesson.title} создан из ${countLabel(picked.length, WORDS.material)}.`);
-      return lesson.id;
+      flashEdges(
+        lesson.materialIds.map(
+          (id) => `edge:${nodeId.material(id)}->${lessonNode}`,
+        ),
+      );
+      toast('success', 'Урок создан. На сервер он попадёт вместе с модулем.');
+      announce(
+        `${lesson.title} создан из ${countLabel(picked.length, WORDS.material)}.`,
+      );
+      return Promise.resolve(lesson.id);
     },
 
     addMaterialsToLesson: async (lessonId, materialIds) => {
       const key = nodeId.lesson(lessonId);
       if (get().pending[key]) {
-        toast("warning", "Урок ещё сохраняется. Попробуйте через секунду.");
+        toast('warning', 'Урок ещё сохраняется. Попробуйте через секунду.');
         return false;
       }
       await flushLessonContent(lessonId);
       const check = get().validateMaterialsForLesson(materialIds, lessonId);
       if (!check.ok) {
-        toast("warning", check.reason);
+        toast('warning', check.reason);
         return false;
       }
       const lesson = get().lessons.find((item) => item.id === lessonId);
       if (!lesson) return false;
       const picked = check.materials;
-      const nextBlocks = [...getLessonBlocks(lesson), ...materialsToContentBlocks(picked)];
+      const nextBlocks = [
+        ...getLessonBlocks(lesson),
+        ...materialsToContentBlocks(picked),
+      ];
       const ids = picked.map((item) => item.id);
       const applyLocally = () =>
         set((state) => ({
           lessons: state.lessons.map((item) =>
             item.id === lessonId
-              ? { ...item, contentBlocks: nextBlocks, materialIds: [...(item.materialIds || []), ...ids] }
+              ? {
+                  ...item,
+                  contentBlocks: nextBlocks,
+                  materialIds: [...(item.materialIds || []), ...ids],
+                }
               : item,
           ),
           materials: state.materials.map((item) =>
@@ -867,7 +955,12 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (lesson.isLocal) {
         applyLocally();
         flashEdges(ids.map((id) => `edge:${nodeId.material(id)}->${key}`));
-        toast("success", picked.length === 1 ? "Материал добавлен в урок" : "Материалы добавлены в урок");
+        toast(
+          'success',
+          picked.length === 1
+            ? 'Материал добавлен в урок'
+            : 'Материалы добавлены в урок',
+        );
         return true;
       }
       setPending(key, true);
@@ -877,15 +970,25 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         applyLocally();
         flashEdges(ids.map((id) => `edge:${nodeId.material(id)}->${key}`));
         toast(
-          "success",
-          picked.length === 1 ? "Материал добавлен в урок" : "Материалы добавлены в урок",
+          'success',
+          picked.length === 1
+            ? 'Материал добавлен в урок'
+            : 'Материалы добавлены в урок',
         );
-        announce(`Добавлено в «${lesson.title}»: ${countLabel(picked.length, WORDS.material)}.`);
+        announce(
+          `Добавлено в «${lesson.title}»: ${countLabel(picked.length, WORDS.material)}.`,
+        );
         return true;
       } catch (error) {
-        toast("error", getApiErrorMessage(error, "Не удалось добавить материал в урок."), {
-          retry: () => get().addMaterialsToLesson(lessonId, materialIds),
-        });
+        toast(
+          'error',
+          getApiErrorMessage(error, 'Не удалось добавить материал в урок.'),
+          {
+            retry: () => {
+              void get().addMaterialsToLesson(lessonId, materialIds);
+            },
+          },
+        );
         return false;
       } finally {
         setPending(key, false);
@@ -898,27 +1001,35 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const lesson = lessons.find((item) => item.id === lessonId);
       const key = nodeId.lesson(lessonId);
       if (!course?.id || !lesson || pending[key]) return;
-      const values = getFormValues(key, "lesson", lesson);
+      const values = getFormValues(key, 'lesson', lesson);
       const title = values.title.trim();
       const description = values.description.trim();
       if (!title || !description) {
-        setSaveStatus(key, "error", "Заполните название и описание урока.");
+        setSaveStatus(key, 'error', 'Заполните название и описание урока.');
         return;
       }
       const learningObjectives = parseObjectives(values.learningObjectives);
-      const minutes = values.estimatedTimeMinutes === "" ? null : Number(values.estimatedTimeMinutes);
+      const minutes =
+        values.estimatedTimeMinutes === ''
+          ? null
+          : Number(values.estimatedTimeMinutes);
       const estimatedTimeMinutes =
-        typeof minutes === "number" && Number.isFinite(minutes) && minutes > 0
+        typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0
           ? Math.round(minutes)
           : null;
       if (lesson.isLocal) {
-        patchLesson(lessonId, { title, description, learningObjectives, estimatedTimeMinutes });
+        patchLesson(lessonId, {
+          title,
+          description,
+          learningObjectives,
+          estimatedTimeMinutes,
+        });
         clearForm(key);
-        setSaveStatus(key, "saved");
+        setSaveStatus(key, 'saved');
         return;
       }
       setPending(key, true);
-      setSaveStatus(key, "saving");
+      setSaveStatus(key, 'saving');
       try {
         await updateLessonApi(course.id, lessonId, {
           title,
@@ -926,11 +1037,20 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           learningObjectives,
           estimatedTimeMinutes,
         });
-        patchLesson(lessonId, { title, description, learningObjectives, estimatedTimeMinutes });
+        patchLesson(lessonId, {
+          title,
+          description,
+          learningObjectives,
+          estimatedTimeMinutes,
+        });
         clearForm(key);
-        setSaveStatus(key, "saved");
+        setSaveStatus(key, 'saved');
       } catch (error) {
-        setSaveStatus(key, "error", getApiErrorMessage(error, "Не удалось сохранить урок."));
+        setSaveStatus(
+          key,
+          'error',
+          getApiErrorMessage(error, 'Не удалось сохранить урок.'),
+        );
       } finally {
         setPending(key, false);
       }
@@ -940,16 +1060,16 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       patchLesson(lessonId, { contentBlocks });
       const statusKey = `${nodeId.lesson(lessonId)}:content`;
       if (get().lessons.find((item) => item.id === lessonId)?.isLocal) {
-        setSaveStatus(statusKey, "saved");
+        setSaveStatus(statusKey, 'saved');
         return;
       }
-      setSaveStatus(statusKey, "dirty");
+      setSaveStatus(statusKey, 'dirty');
       window.clearTimeout(contentTimers.get(lessonId));
       contentTimers.set(
         lessonId,
         window.setTimeout(() => {
           contentTimers.delete(lessonId);
-          get().saveLessonContentNow(lessonId);
+          void get().saveLessonContentNow(lessonId);
         }, 700),
       );
     },
@@ -970,15 +1090,15 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           entry.again = false;
           const lesson = get().lessons.find((item) => item.id === lessonId);
           if (!lesson || lesson.isLocal) return;
-          setSaveStatus(statusKey, "saving");
+          setSaveStatus(statusKey, 'saving');
           try {
             await updateLessonContentBlocks(lessonId, getLessonBlocks(lesson));
-            setSaveStatus(statusKey, entry.again ? "saving" : "saved");
+            setSaveStatus(statusKey, entry.again ? 'saving' : 'saved');
           } catch (error) {
             setSaveStatus(
               statusKey,
-              "error",
-              getApiErrorMessage(error, "Не удалось сохранить контент урока."),
+              'error',
+              getApiErrorMessage(error, 'Не удалось сохранить контент урока.'),
             );
             return;
           }
@@ -1021,7 +1141,9 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
                   : item,
               ),
             modules: state.modules.map((module) =>
-              module.id === parent?.id ? { ...module, lessonIds: remaining } : module,
+              module.id === parent?.id
+                ? { ...module, lessonIds: remaining }
+                : module,
             ),
             materials: state.materials.map((item) =>
               item.lessonId === lessonId ? { ...item, lessonId: null } : item,
@@ -1029,21 +1151,28 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             positions,
             forms,
             selectedIds: state.selectedIds.filter((id) => id !== key),
-            activeNodeId: state.activeNodeId === key ? null : state.activeNodeId,
+            activeNodeId:
+              state.activeNodeId === key ? null : state.activeNodeId,
             inspector:
-              state.activeNodeId === key ? { open: false, tab: null } : state.inspector,
+              state.activeNodeId === key
+                ? { open: false, tab: null }
+                : state.inspector,
           };
         });
         if (parent && remaining.length && course?.id) {
-          sendOrderUpdates(remaining, (id) =>
-            updateLessonApi(course.id, id, { order: remaining.indexOf(id) + 1 }),
+          void sendOrderUpdates(remaining, (id) =>
+            updateLessonApi(course.id, id, {
+              order: remaining.indexOf(id) + 1,
+            }),
           );
         }
-        toast("success", "Урок удалён");
-        announce(`Урок «${lesson.title}» удалён. Его материалы снова свободны.`);
+        toast('success', 'Урок удалён');
+        announce(
+          `Урок «${lesson.title}» удалён. Его материалы снова свободны.`,
+        );
         return true;
       } catch (error) {
-        toast("error", getApiErrorMessage(error, "Не удалось удалить урок."));
+        toast('error', getApiErrorMessage(error, 'Не удалось удалить урок.'));
         return false;
       } finally {
         setPending(key, false);
@@ -1056,11 +1185,11 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       set({
         moduleDialog: {
           title: `Модуль ${modules.length + 1}`,
-          description: "",
-          learningObjectives: "",
+          description: '',
+          learningObjectives: '',
           lessonIds,
           pick,
-          error: "",
+          error: '',
         },
       });
     },
@@ -1068,34 +1197,46 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     updateModuleDialog: (patch) =>
       set((state) =>
         state.moduleDialog
-          ? { moduleDialog: { ...state.moduleDialog, ...patch, error: "" } }
+          ? { moduleDialog: { ...state.moduleDialog, ...patch, error: '' } }
           : {},
       ),
 
     closeModuleDialog: () => {
-      if (get().pending["create-module"]) return;
+      if (get().pending['create-module']) return;
       set({ moduleDialog: null });
     },
 
     submitModuleDialog: async () => {
       const { moduleDialog, course, modules, lessons, pending } = get();
-      if (!moduleDialog || !course?.id || pending["create-module"]) return;
+      if (!moduleDialog || !course?.id || pending['create-module']) return;
       const title = moduleDialog.title.trim();
       const description = moduleDialog.description.trim();
       const lessonIds = moduleDialog.lessonIds.filter((id) =>
         lessons.some((lesson) => lesson.id === id),
       );
       if (!title || !description) {
-        set({ moduleDialog: { ...moduleDialog, error: "Заполните название и описание модуля." } });
+        set({
+          moduleDialog: {
+            ...moduleDialog,
+            error: 'Заполните название и описание модуля.',
+          },
+        });
         return;
       }
       if (!lessonIds.length) {
-        set({ moduleDialog: { ...moduleDialog, error: "Выберите хотя бы один урок для модуля." } });
+        set({
+          moduleDialog: {
+            ...moduleDialog,
+            error: 'Выберите хотя бы один урок для модуля.',
+          },
+        });
         return;
       }
-      const learningObjectives = parseObjectives(moduleDialog.learningObjectives);
+      const learningObjectives = parseObjectives(
+        moduleDialog.learningObjectives,
+      );
       const order = modules.length + 1;
-      setPending("create-module", true);
+      setPending('create-module', true);
       lessonIds.forEach((id) => setPending(nodeId.lesson(id), true));
 
       let savedModule: RawApiRecord | null = null;
@@ -1109,16 +1250,22 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           learningObjectives,
         });
         if (!savedModule?.id || savedModule.id === course.id) {
-          throw new Error("Сервер не вернул корректный идентификатор модуля.");
+          throw new Error('Сервер не вернул корректный идентификатор модуля.');
         }
         for (const lessonId of lessonIds) {
           const lesson = get().lessons.find((item) => item.id === lessonId);
           if (lesson?.isLocal) {
-            const newId = await materializeLesson(lessonId, savedModule.id, moved.length + 1);
-            remapLessonId(lessonId, newId, { moduleId: savedModule.id });
+            const newId = await materializeLesson(
+              lessonId,
+              toText(savedModule.id),
+              moved.length + 1,
+            );
+            remapLessonId(lessonId, newId, {
+              moduleId: toText(savedModule.id),
+            });
             moved.push(newId);
           } else {
-            await assignLessonToModule(lessonId, savedModule.id);
+            await assignLessonToModule(lessonId, toText(savedModule.id));
             moved.push(lessonId);
           }
         }
@@ -1131,14 +1278,17 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         let rollbackFailed = false;
         if (savedModule?.id) {
           try {
-            await deleteModuleApi(savedModule.id);
+            await deleteModuleApi(toText(savedModule.id));
           } catch {
             rollbackFailed = true;
           }
         }
-        setPending("create-module", false);
+        setPending('create-module', false);
         lessonIds.forEach((id) => setPending(nodeId.lesson(id), false));
-        const message = getApiErrorMessage(failure, "Не удалось создать модуль.");
+        const message = getApiErrorMessage(
+          failure,
+          'Не удалось создать модуль.',
+        );
         set((state) => ({
           moduleDialog: state.moduleDialog
             ? {
@@ -1177,26 +1327,31 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           ],
           lessons: state.lessons.map((lesson) =>
             moved.includes(lesson.id)
-              ? { ...lesson, moduleId: module.id, order: moved.indexOf(lesson.id) + 1 }
+              ? {
+                  ...lesson,
+                  moduleId: module.id,
+                  order: moved.indexOf(lesson.id) + 1,
+                }
               : lesson,
           ),
           positions,
           moduleDialog: failure ? state.moduleDialog : null,
           selectedIds: [nodeId.module(module.id)],
           activeNodeId: nodeId.module(module.id),
-          inspector: { open: true, tab: "main" },
+          inspector: { open: true, tab: 'main' },
         };
       });
 
       const orderResults = await sendOrderUpdates(moved, (id) =>
         updateLessonApi(course.id, id, { order: moved.indexOf(id) + 1 }),
       );
-      setPending("create-module", false);
+      setPending('create-module', false);
       lessonIds.forEach((id) => setPending(nodeId.lesson(id), false));
       flashEdges([`edge:${nodeId.module(module.id)}->course`]);
 
       if (failure) {
-        const message = `Модуль создан, но перенесены не все уроки (${moved.length} из ${lessonIds.length}). ${getApiErrorMessage(failure, "")}`.trim();
+        const message =
+          `Модуль создан, но перенесены не все уроки (${moved.length} из ${lessonIds.length}). ${getApiErrorMessage(failure, '')}`.trim();
         set((state) => ({
           moduleDialog: state.moduleDialog
             ? {
@@ -1206,15 +1361,20 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
               }
             : null,
         }));
-        toast("warning", message);
+        toast('warning', message);
         return;
       }
-      if (orderResults.some((result) => result.status === "rejected")) {
-        toast("warning", "Модуль создан, но порядок уроков сохранился не полностью.");
+      if (orderResults.some((result) => result.status === 'rejected')) {
+        toast(
+          'warning',
+          'Модуль создан, но порядок уроков сохранился не полностью.',
+        );
       } else {
-        toast("success", "Модуль сохранён");
+        toast('success', 'Модуль сохранён');
       }
-      announce(`Модуль «${title}» создан, в нём ${countLabel(moved.length, WORDS.lesson)}.`);
+      announce(
+        `Модуль «${title}» создан, в нём ${countLabel(moved.length, WORDS.lesson)}.`,
+      );
     },
 
     moveLessonToModule: async (lessonId, targetModuleId, toIndex = null) => {
@@ -1225,10 +1385,18 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (!course?.id || !lesson || !target) return false;
       const source = moduleOfLesson(lessonId, modules);
       if (source?.id === target.id) {
-        return get().reorderLesson(target.id, lessonId, toIndex ?? target.lessonIds.length - 1);
+        return get().reorderLesson(
+          target.id,
+          lessonId,
+          toIndex ?? target.lessonIds.length - 1,
+        );
       }
-      if (pending[lessonKey] || pending[`order:${target.id}`] || (source && pending[`order:${source.id}`])) {
-        toast("warning", "Предыдущее перемещение ещё сохраняется.");
+      if (
+        pending[lessonKey] ||
+        pending[`order:${target.id}`] ||
+        (source && pending[`order:${source.id}`])
+      ) {
+        toast('warning', 'Предыдущее перемещение ещё сохраняется.');
         return false;
       }
 
@@ -1240,9 +1408,15 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         setPending(lessonKey, true);
         setPending(`order:${target.id}`, true);
         try {
-          const newId = await materializeLesson(lessonId, target.id, insertAt + 1);
+          const newId = await materializeLesson(
+            lessonId,
+            target.id,
+            insertAt + 1,
+          );
           remapLessonId(lessonId, newId, { moduleId: target.id });
-          const freshTarget = get().modules.find((item) => item.id === target.id);
+          const freshTarget = get().modules.find(
+            (item) => item.id === target.id,
+          );
           const targetIds = [...(freshTarget?.lessonIds || [])];
           targetIds.splice(insertAt, 0, newId);
           set((state) => {
@@ -1251,32 +1425,53 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             return {
               positions,
               modules: state.modules.map((item) =>
-                item.id === target.id ? { ...item, lessonIds: targetIds } : item,
+                item.id === target.id
+                  ? { ...item, lessonIds: targetIds }
+                  : item,
               ),
               lessons: state.lessons.map((item) =>
                 targetIds.includes(item.id)
-                  ? { ...item, order: targetIds.indexOf(item.id) + 1, moduleId: target.id }
+                  ? {
+                      ...item,
+                      order: targetIds.indexOf(item.id) + 1,
+                      moduleId: target.id,
+                    }
                   : item,
               ),
             };
           });
           const following = targetIds.slice(insertAt + 1);
           const results = await sendOrderUpdates(following, (id) =>
-            updateLessonApi(course.id, id, { order: targetIds.indexOf(id) + 1 }),
+            updateLessonApi(course.id, id, {
+              order: targetIds.indexOf(id) + 1,
+            }),
           );
           flashEdges([`edge:${nodeId.module(target.id)}->course`]);
-          if (results.some((result) => result.status === "rejected")) {
-            toast("warning", "Урок сохранён в модуле, но порядок остальных уроков обновился не полностью.");
+          if (results.some((result) => result.status === 'rejected')) {
+            toast(
+              'warning',
+              'Урок сохранён в модуле, но порядок остальных уроков обновился не полностью.',
+            );
           } else {
-            toast("success", `Урок перемещён в модуль «${target.title}»`);
+            toast('success', `Урок перемещён в модуль «${target.title}»`);
           }
-          announce(`«${lesson.title}» сохранён в модуле «${target.title}», позиция ${insertAt + 1}.`);
+          announce(
+            `«${lesson.title}» сохранён в модуле «${target.title}», позиция ${insertAt + 1}.`,
+          );
           return true;
         } catch (error) {
           toast(
-            "error",
-            `${getApiErrorMessage(error, "Не удалось сохранить урок в модуле.")}${rollbackNote(error)}`,
-            { retry: () => get().moveLessonToModule(lessonId, targetModuleId, toIndex) },
+            'error',
+            `${getApiErrorMessage(error, 'Не удалось сохранить урок в модуле.')}${rollbackNote(error)}`,
+            {
+              retry: () => {
+                void get().moveLessonToModule(
+                  lessonId,
+                  targetModuleId,
+                  toIndex,
+                );
+              },
+            },
           );
           return false;
         } finally {
@@ -1287,9 +1482,14 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
 
       const previous = { modules, lessons, positions: get().positions };
       const targetIds = [...target.lessonIds];
-      const index = toIndex === null ? targetIds.length : Math.max(0, Math.min(toIndex, targetIds.length));
+      const index =
+        toIndex === null
+          ? targetIds.length
+          : Math.max(0, Math.min(toIndex, targetIds.length));
       targetIds.splice(index, 0, lessonId);
-      const sourceIds = source ? source.lessonIds.filter((id) => id !== lessonId) : [];
+      const sourceIds = source
+        ? source.lessonIds.filter((id) => id !== lessonId)
+        : [];
 
       setPending(lessonKey, true);
       setPending(`order:${target.id}`, true);
@@ -1300,13 +1500,19 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         return {
           modules: state.modules.map((item) => {
             if (item.id === target.id) return { ...item, lessonIds: targetIds };
-            if (item.id === source?.id) return { ...item, lessonIds: sourceIds };
+            if (item.id === source?.id)
+              return { ...item, lessonIds: sourceIds };
             return item;
           }),
           lessons: state.lessons.map((item) => {
             if (targetIds.includes(item.id))
-              return { ...item, order: targetIds.indexOf(item.id) + 1, moduleId: target.id };
-            if (sourceIds.includes(item.id)) return { ...item, order: sourceIds.indexOf(item.id) + 1 };
+              return {
+                ...item,
+                order: targetIds.indexOf(item.id) + 1,
+                moduleId: target.id,
+              };
+            if (sourceIds.includes(item.id))
+              return { ...item, order: sourceIds.indexOf(item.id) + 1 };
             return item;
           }),
           positions,
@@ -1325,8 +1531,8 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         set(previous);
         release();
         toast(
-          "error",
-          `${getApiErrorMessage(error, "Не удалось перенести урок.")} Предыдущее состояние восстановлено.`,
+          'error',
+          `${getApiErrorMessage(error, 'Не удалось перенести урок.')} Предыдущее состояние восстановлено.`,
         );
         return false;
       }
@@ -1340,12 +1546,17 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       );
       release();
       flashEdges([`edge:${nodeId.module(target.id)}->course`]);
-      if (results.some((result) => result.status === "rejected")) {
-        toast("warning", "Урок перенесён, но порядок уроков сохранился не полностью.");
+      if (results.some((result) => result.status === 'rejected')) {
+        toast(
+          'warning',
+          'Урок перенесён, но порядок уроков сохранился не полностью.',
+        );
       } else {
-        toast("success", `Урок перемещён в модуль «${target.title}»`);
+        toast('success', `Урок перемещён в модуль «${target.title}»`);
       }
-      announce(`«${lesson.title}» перемещён в модуль «${target.title}», позиция ${index + 1}.`);
+      announce(
+        `«${lesson.title}» перемещён в модуль «${target.title}», позиция ${index + 1}.`,
+      );
       return true;
     },
 
@@ -1355,7 +1566,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (!course?.id || !module) return false;
       const lockKey = `order:${moduleId}`;
       if (pending[lockKey]) {
-        toast("warning", "Порядок ещё сохраняется.");
+        toast('warning', 'Порядок ещё сохраняется.');
         return false;
       }
       const ids = [...module.lessonIds];
@@ -1370,20 +1581,29 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           item.id === moduleId ? { ...item, lessonIds: ids } : item,
         ),
         lessons: state.lessons.map((item) =>
-          ids.includes(item.id) ? { ...item, order: ids.indexOf(item.id) + 1 } : item,
+          ids.includes(item.id)
+            ? { ...item, order: ids.indexOf(item.id) + 1 }
+            : item,
         ),
       }));
       setPending(lockKey, true);
       try {
         await Promise.all(
-          ids.map((id, index) => updateLessonApi(course.id, id, { order: index + 1 })),
+          ids.map((id, index) =>
+            updateLessonApi(course.id, id, { order: index + 1 }),
+          ),
         );
         const lesson = lessons.find((item) => item.id === lessonId);
-        announce(`«${lesson?.title || "Урок"}» теперь на позиции ${to + 1} в модуле «${module.title}».`);
+        announce(
+          `«${lesson?.title || 'Урок'}» теперь на позиции ${to + 1} в модуле «${module.title}».`,
+        );
         return true;
       } catch {
         set(previous);
-        toast("error", "Не удалось изменить порядок. Предыдущий порядок восстановлен.");
+        toast(
+          'error',
+          'Не удалось изменить порядок. Предыдущий порядок восстановлен.',
+        );
         return false;
       } finally {
         setPending(lockKey, false);
@@ -1394,13 +1614,14 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const module = moduleOfLesson(lessonId);
       if (!module) return;
       const index = module.lessonIds.indexOf(lessonId);
-      get().reorderLesson(module.id, lessonId, index + delta);
+      void get().reorderLesson(module.id, lessonId, index + delta);
     },
 
     reorderModule: async (moduleId, toIndex) => {
       const { course, modules, pending } = get();
-      if (!course?.id || pending["order:modules"]) {
-        if (pending["order:modules"]) toast("warning", "Порядок модулей ещё сохраняется.");
+      if (!course?.id || pending['order:modules']) {
+        if (pending['order:modules'])
+          toast('warning', 'Порядок модулей ещё сохраняется.');
         return false;
       }
       const ordered = [...modules].sort((a, b) => a.order - b.order);
@@ -1409,22 +1630,30 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (from < 0 || from === to) return false;
       const [moved] = ordered.splice(from, 1);
       ordered.splice(to, 0, moved);
-      const next = ordered.map((item, index) => ({ ...item, order: index + 1 }));
+      const next = ordered.map((item, index) => ({
+        ...item,
+        order: index + 1,
+      }));
       const previous = modules;
       set({ modules: next });
-      setPending("order:modules", true);
+      setPending('order:modules', true);
       try {
         await Promise.all(
-          next.map((item) => updateModuleApi(course.id, item.id, { order: item.order })),
+          next.map((item) =>
+            updateModuleApi(course.id, item.id, { order: item.order }),
+          ),
         );
         announce(`Модуль «${moved.title}» теперь на позиции ${to + 1}.`);
         return true;
       } catch {
         set({ modules: previous });
-        toast("error", "Не удалось изменить порядок. Предыдущий порядок восстановлен.");
+        toast(
+          'error',
+          'Не удалось изменить порядок. Предыдущий порядок восстановлен.',
+        );
         return false;
       } finally {
-        setPending("order:modules", false);
+        setPending('order:modules', false);
       }
     },
 
@@ -1432,7 +1661,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const ordered = [...get().modules].sort((a, b) => a.order - b.order);
       const index = ordered.findIndex((item) => item.id === moduleId);
       if (index < 0) return;
-      get().reorderModule(moduleId, index + delta);
+      void get().reorderModule(moduleId, index + delta);
     },
 
     saveModuleMeta: async (moduleId) => {
@@ -1440,28 +1669,38 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const module = modules.find((item) => item.id === moduleId);
       const key = nodeId.module(moduleId);
       if (!course?.id || !module || pending[key]) return;
-      const values = getFormValues(key, "module", module);
+      const values = getFormValues(key, 'module', module);
       const title = values.title.trim();
       const description = values.description.trim();
       if (!title || !description) {
-        setSaveStatus(key, "error", "Заполните название и описание модуля.");
+        setSaveStatus(key, 'error', 'Заполните название и описание модуля.');
         return;
       }
       const learningObjectives = parseObjectives(values.learningObjectives);
       setPending(key, true);
-      setSaveStatus(key, "saving");
+      setSaveStatus(key, 'saving');
       try {
-        await updateModuleApi(course.id, moduleId, { title, description, learningObjectives });
+        await updateModuleApi(course.id, moduleId, {
+          title,
+          description,
+          learningObjectives,
+        });
         set((state) => ({
           modules: state.modules.map((item) =>
-            item.id === moduleId ? { ...item, title, description, learningObjectives } : item,
+            item.id === moduleId
+              ? { ...item, title, description, learningObjectives }
+              : item,
           ),
         }));
         clearForm(key);
-        setSaveStatus(key, "saved");
-        toast("success", "Модуль сохранён");
+        setSaveStatus(key, 'saved');
+        toast('success', 'Модуль сохранён');
       } catch (error) {
-        setSaveStatus(key, "error", getApiErrorMessage(error, "Не удалось сохранить модуль."));
+        setSaveStatus(
+          key,
+          'error',
+          getApiErrorMessage(error, 'Не удалось сохранить модуль.'),
+        );
       } finally {
         setPending(key, false);
       }
@@ -1489,10 +1728,15 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             delete positions[nodeId.lesson(id)];
             delete forms[nodeId.lesson(id)];
           });
-          const removedKeys = new Set([key, ...[...removedLessons].map(nodeId.lesson)]);
+          const removedKeys = new Set([
+            key,
+            ...[...removedLessons].map(nodeId.lesson),
+          ]);
           return {
             modules: remaining,
-            lessons: state.lessons.filter((lesson) => !removedLessons.has(lesson.id)),
+            lessons: state.lessons.filter(
+              (lesson) => !removedLessons.has(lesson.id),
+            ),
             materials: state.materials.map((item) =>
               item.lessonId !== null && removedLessons.has(item.lessonId)
                 ? { ...item, lessonId: null }
@@ -1507,20 +1751,20 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
                 : state.activeNodeId,
             inspector:
               state.activeNodeId !== null && removedKeys.has(state.activeNodeId)
-              ? { open: false, tab: null }
-              : state.inspector,
+                ? { open: false, tab: null }
+                : state.inspector,
           };
         });
         if (course?.id && remaining.length) {
-          sendOrderUpdates(remaining, (item) =>
+          void sendOrderUpdates(remaining, (item) =>
             updateModuleApi(course.id, item.id, { order: item.order }),
           );
         }
-        toast("success", "Модуль удалён");
+        toast('success', 'Модуль удалён');
         announce(`Модуль «${module.title}» удалён.`);
         return true;
       } catch (error) {
-        toast("error", getApiErrorMessage(error, "Не удалось удалить модуль."));
+        toast('error', getApiErrorMessage(error, 'Не удалось удалить модуль.'));
         return false;
       } finally {
         setPending(key, false);
@@ -1533,7 +1777,10 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         const kept = state.selectedIds.filter((id) => ids.includes(id));
         const added = ids.filter((id) => !kept.includes(id));
         const next = [...kept, ...added];
-        if (next.length === state.selectedIds.length && next.every((id, i) => id === state.selectedIds[i])) {
+        if (
+          next.length === state.selectedIds.length &&
+          next.every((id, i) => id === state.selectedIds[i])
+        ) {
           return {};
         }
         return { selectedIds: next };
@@ -1574,7 +1821,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           delete saveStatus[key];
         } else {
           forms[key] = next;
-          saveStatus[key] = "dirty";
+          saveStatus[key] = 'dirty';
         }
         return { forms, saveStatus, saveErrors };
       }),
@@ -1588,7 +1835,8 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       set((state) => ({ positions: { ...state.positions, ...patch } })),
 
     setViewport: (viewport) => set({ viewport }),
-    setFilter: (filter) => set((state) => ({ filter: state.filter === filter ? null : filter })),
+    setFilter: (filter) =>
+      set((state) => ({ filter: state.filter === filter ? null : filter })),
     setViewMode: (viewMode) => set({ viewMode }),
     setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
     setDropHint: (dropHint) => set({ dropHint }),
@@ -1597,7 +1845,10 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     dismissOnboarding: () => set({ onboardingDismissed: true }),
     setInspectorWidth: (kind, width) =>
       set((state) => ({
-        inspectorWidths: { ...(state.inspectorWidths || {}), [kind]: Math.round(width) },
+        inspectorWidths: {
+          ...(state.inspectorWidths || {}),
+          [kind]: Math.round(width),
+        },
       })),
     toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
     toggleUsedMaterials: () =>
@@ -1623,7 +1874,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     openConfirm: (confirm) => set({ confirm }),
     closeConfirm: () => set({ confirm: null }),
 
-    openFinish: () => set({ finishOpen: true, finishError: "" }),
+    openFinish: () => set({ finishOpen: true, finishError: '' }),
     closeFinish: () => {
       if (get().pending.finish) return;
       set({ finishOpen: false });
@@ -1632,20 +1883,22 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     finish: async (onCreateCourse) => {
       const { course, pending } = get();
       if (!course?.id || pending.finish) return;
-      setPending("finish", true);
-      set({ finishError: "" });
+      setPending('finish', true);
+      set({ finishError: '' });
       try {
-        await Promise.all(get().lessons.map((lesson) => flushLessonContent(lesson.id)));
+        await Promise.all(
+          get().lessons.map((lesson) => flushLessonContent(lesson.id)),
+        );
         await onCreateCourse({ courseId: course.id });
-        setPending("finish", false);
+        setPending('finish', false);
         set({ finishOpen: false });
         get().persistNow();
       } catch (error) {
-        setPending("finish", false);
+        setPending('finish', false);
         set({
           finishError: getApiErrorMessage(
             error,
-            "Курс сохранён, но открыть просмотр курса не удалось. Попробуйте ещё раз.",
+            'Курс сохранён, но открыть просмотр курса не удалось. Попробуйте ещё раз.',
           ),
         });
       }
@@ -1678,7 +1931,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         lessons: lessonsWithContent,
         onboardingDismissed: true,
         celebrated: true,
-        focusRequest: { ids: ["course"], at: Date.now() },
+        focusRequest: { ids: ['course'], at: Date.now() },
       });
       get().persistNow();
     },
@@ -1689,7 +1942,11 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       contentTimers.clear();
       set({ ...EMPTY_DRAFT, ...TRANSIENT, hydrated: true });
       clearDraft();
-      if (!silent) toast("info", "Черновик конструктора очищен. Созданный курс остался на сервере.");
+      if (!silent)
+        toast(
+          'info',
+          'Черновик конструктора очищен. Созданный курс остался на сервере.',
+        );
     },
   };
 });

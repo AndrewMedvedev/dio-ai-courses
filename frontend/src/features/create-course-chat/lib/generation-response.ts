@@ -1,10 +1,12 @@
+import { asRecord } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
 // Ответы агента и статус генерации курса: id задачи и курса, прогресс, тексты ошибок.
-import type { RawApiRecord } from "@/shared/api";
+import type { RawApiRecord } from '@/shared/api';
 
 const FAKE_PROGRESS_EASING_DURATION_MS = 30 * 60 * 1000;
 
 export function estimateProgress(startedAt: string | null | undefined): number {
-  const started = Date.parse(startedAt || "");
+  const started = Date.parse(startedAt || '');
   const elapsed = Number.isFinite(started) ? Date.now() - started : 0;
   const ratio = Math.max(0, elapsed) / FAKE_PROGRESS_EASING_DURATION_MS;
   return Math.min(
@@ -14,11 +16,11 @@ export function estimateProgress(startedAt: string | null | undefined): number {
 }
 
 function parseMaybeJson(value: unknown): unknown {
-  if (typeof value !== "string") return value;
+  if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!trimmed || !/^[{[]/.test(trimmed)) return value;
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(trimmed) as unknown;
   } catch {
     return value;
   }
@@ -33,16 +35,23 @@ function getResponseSources(rawResponse: unknown): RawApiRecord[] {
     response?.data,
     response?.result,
   ].filter(
-    (item): item is RawApiRecord => Boolean(item) && typeof item === "object",
+    (item): item is RawApiRecord => Boolean(item) && typeof item === 'object',
   );
 }
 
 export function extractCourseId(response: unknown): string | null {
   const sources = getResponseSources(response);
   const source = sources.find(
-    (item) => item.course_id || item.courseId || item.course?.id,
+    (item) => item.course_id || item.courseId || asRecord(item.course)?.id,
   );
-  return source?.course_id || source?.courseId || source?.course?.id || null;
+  return (
+    toText(
+      source?.course_id ||
+        source?.courseId ||
+        asRecord(source?.course)?.id ||
+        null,
+    ) || null
+  );
 }
 
 export function normalizeGenerationResponse(response: unknown): {
@@ -56,7 +65,7 @@ export function normalizeGenerationResponse(response: unknown): {
     (item) => item.task_id || item.taskId || item.task || item.id,
   );
   const courseId = sources.find(
-    (item) => item.course_id || item.courseId || item.course?.id,
+    (item) => item.course_id || item.courseId || asRecord(item.course)?.id,
   );
   const statusSource = sources.find(
     (item) =>
@@ -66,69 +75,74 @@ export function normalizeGenerationResponse(response: unknown): {
     (item) =>
       item.started_at || item.startedAt || item.created_at || item.createdAt,
   );
-  const status = String(
+  const status = toText(
     statusSource?.status ||
       statusSource?.course_status ||
       statusSource?.courseStatus ||
       statusSource?.state ||
-      "",
+      '',
   ).toLowerCase();
-  const isGenerationStatus = ["in_generation", "generating", "queued"].includes(
+  const isGenerationStatus = ['in_generation', 'generating', 'queued'].includes(
     status,
   );
   const normalizedTaskId =
     taskId?.task_id || taskId?.taskId || taskId?.task || taskId?.id || null;
   const normalizedCourseId =
-    courseId?.course_id || courseId?.courseId || courseId?.course?.id || null;
+    courseId?.course_id ||
+    courseId?.courseId ||
+    asRecord(courseId?.course)?.id ||
+    null;
 
   if (!normalizedTaskId && !isGenerationStatus) return null;
 
   return {
-    taskId: normalizedTaskId,
-    courseId: normalizedCourseId,
+    taskId: toText(normalizedTaskId) || null,
+    courseId: toText(normalizedCourseId) || null,
     startedAt:
-      startedSource?.started_at ||
-      startedSource?.startedAt ||
-      startedSource?.created_at ||
-      startedSource?.createdAt ||
-      undefined,
+      toText(
+        startedSource?.started_at ||
+          startedSource?.startedAt ||
+          startedSource?.created_at ||
+          startedSource?.createdAt ||
+          undefined,
+      ) || undefined,
   };
 }
 
 export function safeMarkdownUrl(url: string): string {
-  const value = String(url || "").trim();
+  const value = String(url || '').trim();
   if (/^(https?:|mailto:|tel:)/i.test(value)) return value;
   if (/^(\/|\.{1,2}\/|#)/.test(value)) return value;
-  return value.includes(":") ? "" : value;
+  return value.includes(':') ? '' : value;
 }
 
 export function normalizeCourseStatus(status: unknown): string {
-  return String(status || "")
+  return toText(status || '')
     .trim()
     .toLowerCase();
 }
 
 export function isDraftCourseStatus(status: unknown): boolean {
-  return normalizeCourseStatus(status) === "draft";
+  return normalizeCourseStatus(status) === 'draft';
 }
 
 export function isGenerationCourseStatus(status: unknown): boolean {
-  return ["in_generation", "generating", "queued"].includes(
+  return ['in_generation', 'generating', 'queued'].includes(
     normalizeCourseStatus(status),
   );
 }
 
 export function getStatusErrorMessage(rawError: unknown): string {
   const error = rawError as { status?: number } | null;
-  if (error?.status === 401) return "Сессия истекла. Войдите заново.";
+  if (error?.status === 401) return 'Сессия истекла. Войдите заново.';
   if (error?.status === 403) {
-    return "Недостаточно прав для проверки статуса генерации курса.";
+    return 'Недостаточно прав для проверки статуса генерации курса.';
   }
   if (Number(error?.status) >= 400 && Number(error?.status) < 500) {
-    return "Не удалось проверить статус генерации курса.";
+    return 'Не удалось проверить статус генерации курса.';
   }
   if (Number(error?.status) >= 500) {
-    return "Не удалось сгенерировать курс из-за ошибки сервера. Попробуйте позже.";
+    return 'Не удалось сгенерировать курс из-за ошибки сервера. Попробуйте позже.';
   }
-  return "Не удалось проверить статус генерации курса. Проверьте соединение и попробуйте позже.";
+  return 'Не удалось проверить статус генерации курса. Проверьте соединение и попробуйте позже.';
 }

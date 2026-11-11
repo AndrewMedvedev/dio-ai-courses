@@ -1,5 +1,5 @@
 // Страница отдельного урока с навигацией по курсу и блочным редактором контента
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 import {
   CourseNavigationTree,
   ContentBlocks,
@@ -8,21 +8,21 @@ import {
   type BlockNode,
   type CourseNode,
   type LessonNode,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   LessonPracticeAgent,
   LessonTestAgent,
-} from "@/features/lesson-assessment";
-import { LessonChatWorkspace } from "@/widgets/lesson-chat-workspace";
+} from '@/features/lesson-assessment';
+import { LessonChatWorkspace } from '@/widgets/lesson-chat-workspace';
 import {
   LessonContentEditor,
   type LessonContentChange,
-} from "@/features/edit-lesson-content";
-import type { RawApiRecord } from "@/shared/api";
-import { SectionTop } from "@/shared/ui/section-top";
-import { useGoBack, useUiLayoutStore } from "@/shared/lib/ui-layout";
-import { useTheorySessionTracker } from "@/features/track-theory-time";
-import { draftKey, useEditorDraftStore } from "@/features/edit-course-draft";
+} from '@/features/edit-lesson-content';
+import type { RawApiRecord } from '@/shared/api';
+import { SectionTop } from '@/shared/ui/section-top';
+import { useGoBack, useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { useTheorySessionTracker } from '@/features/track-theory-time';
+import { draftKey, useEditorDraftStore } from '@/features/edit-course-draft';
 
 type CompletedMap = Record<string, boolean | undefined>;
 
@@ -73,21 +73,21 @@ export function LessonPage({
     (state) => state.setLessonActiveTab,
   );
   const [contentBlocks, setContentBlocks] = useState<RawApiRecord[]>([]);
-  const [contentBlocksLessonId, setContentBlocksLessonId] = useState("");
+  const [contentBlocksLessonId, setContentBlocksLessonId] = useState('');
   const [isLoadingTheory, setIsLoadingTheory] = useState(false);
-  const [theoryError, setTheoryError] = useState("");
+  const [theoryError, setTheoryError] = useState('');
   const theoryContainerRef = useRef<HTMLElement>(null);
   const theoryContentRef = useRef<HTMLElement>(null);
   // Несохранённая версия содержимого урока (ждёт подтверждения сохранения).
   const pendingContentBlocks = useEditorDraftStore(
     (state) =>
-      state.edits[draftKey("lesson", selectedLesson.id)]?.changes
+      state.edits[draftKey('lesson', selectedLesson.id)]?.changes
         ?.contentBlocks,
   );
   const draftRevision = useEditorDraftStore((state) => state.revision);
   const showStudentTabs = !isCourseEditMode;
-  const activeTab = showStudentTabs ? persistedActiveTab : "theory";
-  const isChatAvailable = !isCourseEditMode && activeTab === "theory";
+  const activeTab = showStudentTabs ? persistedActiveTab : 'theory';
+  const isChatAvailable = !isCourseEditMode && activeTab === 'theory';
   const lessonContentBlocks: RawApiRecord[] = Array.isArray(
     selectedLesson.contentBlocks,
   )
@@ -102,7 +102,7 @@ export function LessonPage({
       : hasContent
         ? [
             {
-              content_type: "text",
+              content_type: 'text',
               ai_generated: false,
               md_content: selectedLesson.markdown || selectedLesson.content,
             },
@@ -125,7 +125,7 @@ export function LessonPage({
     lessonContentBlocks.length === 0 &&
     !hasContent;
 
-  const shouldTrackTheorySession = !isCourseEditMode && activeTab === "theory";
+  const shouldTrackTheorySession = !isCourseEditMode && activeTab === 'theory';
   const goBack = useGoBack({
     fallbackPath: isCourseEditMode
       ? `/course/${selectedCourse.id}/edit/block/${selectedBlock.id}`
@@ -142,16 +142,16 @@ export function LessonPage({
   useEffect(() => {
     if (!selectedLesson.id) {
       setContentBlocks([]);
-      setContentBlocksLessonId("");
-      setTheoryError("");
+      setContentBlocksLessonId('');
+      setTheoryError('');
       return;
     }
 
     let isMounted = true;
     setContentBlocks([]);
-    setContentBlocksLessonId("");
+    setContentBlocksLessonId('');
     setIsLoadingTheory(true);
-    setTheoryError("");
+    setTheoryError('');
 
     getLessonContentBlocks(selectedLesson.id)
       .then((blocks) => {
@@ -166,7 +166,7 @@ export function LessonPage({
           setTheoryError(
             error.userMessage ||
               error.message ||
-              "Не удалось загрузить теорию урока.",
+              'Не удалось загрузить теорию урока.',
           );
           setContentBlocks([]);
           setContentBlocksLessonId(selectedLesson.id);
@@ -186,7 +186,7 @@ export function LessonPage({
   return (
     <section
       className={`container section lesson-view tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[&.is-course-edit-layout]:w-[min(1720px,_98vw)] tw:[&.is-learning-layout]:w-[min(1600px,_98vw)] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none] ${
-        isCourseEditMode ? "is-course-edit-layout" : "is-learning-layout"
+        isCourseEditMode ? 'is-course-edit-layout' : 'is-learning-layout'
       }`}
     >
       <SectionTop label="Урок" title={selectedLesson.title} />
@@ -201,7 +201,7 @@ export function LessonPage({
       </button>
       <LessonChatWorkspace
         className={
-          isCourseEditMode ? "is-course-edit-layout" : "is-learning-layout"
+          isCourseEditMode ? 'is-course-edit-layout' : 'is-learning-layout'
         }
         chatEnabled={!isCourseEditMode}
         chatAvailable={isChatAvailable}
@@ -233,10 +233,10 @@ export function LessonPage({
         />
         <article
           ref={theoryContainerRef}
-          className={`glass-card lesson-main-card tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:sticky tw:overflow-hidden tw:overflow-y-auto tw:isolation-auto tw:p-[6px] tw:top-[16px] tw:max-h-[calc(100vh_-_32px)] tw:[border-width:0] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:none] tw:[&.is-editing]:static tw:max-1100:static tw:[&.is-editing]:overflow-visible tw:max-1100:overflow-y-visible tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[&.is-editing]:max-h-[none] tw:max-1100:max-h-[none] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.55)_transparent] tw:max-1100:min-h-[auto] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[&:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[&:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[&:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:sticky tw:[&::before]:top-[-6px] tw:[&::before]:inset-[auto] tw:[&::before]:z-[20] tw:[&::before]:rounded-[20px_20px_0_0] tw:[&::before]:block tw:[&::before]:w-[calc(100%_+_12px)] tw:[&::before]:h-[52px] tw:[&::before]:ml-[-6px] tw:[&::before]:mb-[-52px] tw:[&::before]:pointer-events-none tw:[&::before]:opacity-[0] tw:[&::before]:[content:''] tw:[&::before]:[background:linear-gradient(_180deg,_rgba(245,_241,_232,_0.98)_0%,_rgba(245,_241,_232,_0.98)_30%,_rgba(245,_241,_232,_0.84)_58%,_rgba(245,_241,_232,_0)_100%_)] tw:[&::before]:[box-shadow:none] tw:[&::before]:[backdrop-filter:blur(12px)] tw:[&::before]:[-webkit-backdrop-filter:blur(12px)] tw:[&.is-scrolled]:[&::before]:opacity-[1] tw:[&::before]:[transform:translateY(-8px)] tw:[&::before]:[transition:opacity_160ms_ease,_transform_160ms_ease] tw:[&::after]:[content:none] tw:dark:[&::before]:[background:linear-gradient(_180deg,_rgba(31,_31,_31,_0.98)_0%,_rgba(31,_31,_31,_0.98)_30%,_rgba(31,_31,_31,_0.86)_58%,_rgba(31,_31,_31,_0)_100%_)] tw:[&.is-scrolled]:[&::before]:[transform:translateY(0)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] ${isCourseEditMode ? "is-editing" : ""}`}
+          className={`glass-card lesson-main-card tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:sticky tw:overflow-hidden tw:overflow-y-auto tw:isolation-auto tw:p-[6px] tw:top-[16px] tw:max-h-[calc(100vh_-_32px)] tw:[border-width:0] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:none] tw:[&.is-editing]:static tw:max-1100:static tw:[&.is-editing]:overflow-visible tw:max-1100:overflow-y-visible tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:min-w-[0] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[&.is-editing]:max-h-[none] tw:max-1100:max-h-[none] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.55)_transparent] tw:max-1100:min-h-[auto] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[&:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[&:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[&:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:sticky tw:[&::before]:top-[-6px] tw:[&::before]:inset-[auto] tw:[&::before]:z-[20] tw:[&::before]:rounded-[20px_20px_0_0] tw:[&::before]:block tw:[&::before]:w-[calc(100%_+_12px)] tw:[&::before]:h-[52px] tw:[&::before]:ml-[-6px] tw:[&::before]:mb-[-52px] tw:[&::before]:pointer-events-none tw:[&::before]:opacity-[0] tw:[&::before]:[content:''] tw:[&::before]:[background:linear-gradient(_180deg,_rgba(245,_241,_232,_0.98)_0%,_rgba(245,_241,_232,_0.98)_30%,_rgba(245,_241,_232,_0.84)_58%,_rgba(245,_241,_232,_0)_100%_)] tw:[&::before]:[box-shadow:none] tw:[&::before]:[backdrop-filter:blur(12px)] tw:[&::before]:[-webkit-backdrop-filter:blur(12px)] tw:[&.is-scrolled]:[&::before]:opacity-[1] tw:[&::before]:[transform:translateY(-8px)] tw:[&::before]:[transition:opacity_160ms_ease,_transform_160ms_ease] tw:[&::after]:[content:none] tw:dark:[&::before]:[background:linear-gradient(_180deg,_rgba(31,_31,_31,_0.98)_0%,_rgba(31,_31,_31,_0.98)_30%,_rgba(31,_31,_31,_0.86)_58%,_rgba(31,_31,_31,_0)_100%_)] tw:[&.is-scrolled]:[&::before]:[transform:translateY(0)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] ${isCourseEditMode ? 'is-editing' : ''}`}
           onScroll={(event) => {
             event.currentTarget.classList.toggle(
-              "is-scrolled",
+              'is-scrolled',
               event.currentTarget.scrollTop > 8,
             );
           }}
@@ -249,9 +249,9 @@ export function LessonPage({
             >
               <button
                 type="button"
-                className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:dark:text-[#cfc2ad] tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&.is-active]:text-[#ffffff] tw:dark:[&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "theory" ? "is-active" : ""}`}
-                aria-selected={activeTab === "theory"}
-                onClick={() => setLessonActiveTab(selectedLesson.id, "theory")}
+                className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:dark:text-[#cfc2ad] tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&.is-active]:text-[#ffffff] tw:dark:[&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'theory' ? 'is-active' : ''}`}
+                aria-selected={activeTab === 'theory'}
+                onClick={() => setLessonActiveTab(selectedLesson.id, 'theory')}
               >
                 Теория
               </button>
@@ -259,20 +259,20 @@ export function LessonPage({
                 <>
                   <button
                     type="button"
-                    className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "questions" ? "is-active" : ""}`}
-                    aria-selected={activeTab === "questions"}
+                    className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'questions' ? 'is-active' : ''}`}
+                    aria-selected={activeTab === 'questions'}
                     onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, "questions")
+                      setLessonActiveTab(selectedLesson.id, 'questions')
                     }
                   >
                     Проверочные вопросы
                   </button>
                   <button
                     type="button"
-                    className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "practice" ? "is-active" : ""}`}
-                    aria-selected={activeTab === "practice"}
+                    className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'practice' ? 'is-active' : ''}`}
+                    aria-selected={activeTab === 'practice'}
                     onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, "practice")
+                      setLessonActiveTab(selectedLesson.id, 'practice')
                     }
                     disabled={!selectedBlock.id || !selectedLesson.id}
                   >
@@ -281,13 +281,13 @@ export function LessonPage({
                 </>
               )}
             </div>
-            {showStudentTabs && activeTab === "questions" ? (
+            {showStudentTabs && activeTab === 'questions' ? (
               <LessonTestAgent
                 key={`${selectedBlock.id}:${selectedLesson.id}:test`}
                 moduleId={selectedBlock.id}
                 lessonId={selectedLesson.id}
               />
-            ) : showStudentTabs && activeTab === "practice" ? (
+            ) : showStudentTabs && activeTab === 'practice' ? (
               <LessonPracticeAgent
                 key={`${selectedBlock.id}:${selectedLesson.id}:practice`}
                 moduleId={selectedBlock.id}
@@ -332,7 +332,7 @@ export function LessonPage({
                         </span>
                         <textarea
                           className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:min-h-[105px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                          value={selectedLesson.summary || ""}
+                          value={selectedLesson.summary || ''}
                           onChange={(event) =>
                             updateLesson(selectedLesson.id, {
                               summary: event.target.value,

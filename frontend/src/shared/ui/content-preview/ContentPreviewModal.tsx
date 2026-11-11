@@ -4,35 +4,48 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-} from "react";
-import { createPortal } from "react-dom";
-import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
-import { DiagramPreviewModal } from "./DiagramPreviewModal";
+} from 'react';
+import { createPortal } from 'react-dom';
+import { MermaidDiagram } from '@/shared/ui/mermaid-diagram';
+import { DiagramPreviewModal } from './DiagramPreviewModal';
 
 /** Что открыть в увеличенном просмотре. */
 export type ContentPreview =
   | {
-      type: "diagram";
+      type: 'diagram';
       chart: string;
       lessonId?: string | null;
       blockId?: string | number | null;
     }
-  | { type: "image"; src: string; alt?: string }
-  | { type: "table"; children: ReactNode };
+  | { type: 'image'; src: string; alt?: string }
+  | { type: 'table'; children: ReactNode };
 
 interface ContentPreviewModalProps {
   preview: ContentPreview | null;
   onClose: () => void;
 }
 
-export function ContentPreviewModal({ preview, onClose }: ContentPreviewModalProps) {
-  if (preview?.type === "diagram") {
-    return <DiagramPreviewModal chart={preview.chart} lessonId={preview.lessonId} blockId={preview.blockId} onClose={onClose} />;
+export function ContentPreviewModal({
+  preview,
+  onClose,
+}: ContentPreviewModalProps) {
+  if (preview?.type === 'diagram') {
+    return (
+      <DiagramPreviewModal
+        chart={preview.chart}
+        lessonId={preview.lessonId}
+        blockId={preview.blockId}
+        onClose={onClose}
+      />
+    );
   }
   return <OtherContentPreviewModal preview={preview} onClose={onClose} />;
 }
 
-function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps) {
+function OtherContentPreviewModal({
+  preview,
+  onClose,
+}: ContentPreviewModalProps) {
   const [imageZoom, setImageZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -51,17 +64,17 @@ function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         onClose();
       }
     };
 
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
     };
   }, [onClose, preview]);
@@ -134,8 +147,11 @@ function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps
         >
           ×
         </button>
-        {(preview.type === "image" || preview.type === "diagram") && (
-          <div className="content-preview-zoom-controls tw:absolute tw:z-[2] tw:top-[14px] tw:right-[56px] tw:flex tw:items-center tw:gap-[6px] tw:[.content-preview-modal.is-diagram_&]:static tw:max-600:[.content-preview-modal.is-diagram_&]:gap-[2px]" aria-label="Масштаб">
+        {(preview.type === 'image' || preview.type === 'diagram') && (
+          <div
+            className="content-preview-zoom-controls tw:absolute tw:z-[2] tw:top-[14px] tw:right-[56px] tw:flex tw:items-center tw:gap-[6px] tw:[.content-preview-modal.is-diagram_&]:static tw:max-600:[.content-preview-modal.is-diagram_&]:gap-[2px]"
+            aria-label="Масштаб"
+          >
             <button
               type="button"
               className="content-preview-zoom tw:min-w-[34px] tw:h-[34px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.42)] tw:rounded-[999px] tw:text-(--heading) tw:text-[1.1rem] tw:font-[800] tw:leading-[1] tw:cursor-pointer tw:p-[0_10px] tw:[.content-preview-modal.is-diagram_&]:min-w-[44px] tw:[.content-preview-modal.is-diagram_&]:h-[44px] tw:[border-width:1px] tw:[.content-preview-backdrop.is-dark_.content-preview-modal.is-diagram_&]:border-[#677486] tw:[background:var(--surface)] tw:[.content-preview-modal.is-diagram_&]:text-[#20202a] tw:[.content-preview-backdrop.is-dark_.content-preview-modal.is-diagram_&]:text-[#f6f1e9] tw:[.content-preview-modal.is-diagram_&]:[background:#fff] tw:[.content-preview-backdrop.is-dark_.content-preview-modal.is-diagram_&]:[background:#343c48] tw:max-600:[.content-preview-modal.is-diagram_&]:p-[0_7px]"
@@ -165,10 +181,12 @@ function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps
             </button>
           </div>
         )}
-        <div className={`content-preview-body tw:min-h-[min(560px,_calc(100vh_-_130px))] tw:grid tw:[&.is-diagram]:min-h-[0] tw:[&.is-diagram]:block tw:[&.is-image]:block tw:[place-items:center] tw:[&.is-diagram]:relative tw:[&.is-diagram]:w-[100%] tw:[&.is-diagram]:flex-[1] tw:[&.is-diagram]:overflow-hidden tw:[&.is-image]:overflow-auto tw:[&.is-diagram]:p-[0] tw:[&.is-diagram]:cursor-grab tw:[&.is-diagram.is-dragging]:cursor-grabbing tw:[&.is-diagram]:[background:#f6f1e9] tw:[&.is-diagram]:[touch-action:none] tw:[&_img]:block tw:[&_img]:w-[100%] tw:[&_img]:max-w-[none] tw:[&_img]:h-[auto] tw:[&_img]:object-contain is-${preview.type}`}>
-          {preview.type === "image" ? (
+        <div
+          className={`content-preview-body tw:min-h-[min(560px,_calc(100vh_-_130px))] tw:grid tw:[&.is-diagram]:min-h-[0] tw:[&.is-diagram]:block tw:[&.is-image]:block tw:[place-items:center] tw:[&.is-diagram]:relative tw:[&.is-diagram]:w-[100%] tw:[&.is-diagram]:flex-[1] tw:[&.is-diagram]:overflow-hidden tw:[&.is-image]:overflow-auto tw:[&.is-diagram]:p-[0] tw:[&.is-diagram]:cursor-grab tw:[&.is-diagram.is-dragging]:cursor-grabbing tw:[&.is-diagram]:[background:#f6f1e9] tw:[&.is-diagram]:[touch-action:none] tw:[&_img]:block tw:[&_img]:w-[100%] tw:[&_img]:max-w-[none] tw:[&_img]:h-[auto] tw:[&_img]:object-contain is-${preview.type}`}
+        >
+          {preview.type === 'image' ? (
             <div
-              className={`content-preview-pan-layer tw:cursor-grab tw:[transform-origin:top_left] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[transition:width_160ms_ease] tw:[&.is-dragging]:[transition:none] ${isDragging ? "is-dragging" : ""}`}
+              className={`content-preview-pan-layer tw:cursor-grab tw:[transform-origin:top_left] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[transition:width_160ms_ease] tw:[&.is-dragging]:[transition:none] ${isDragging ? 'is-dragging' : ''}`}
               style={{
                 width: `${imageZoom * 100}%`,
                 transform: `translate(${pan.x}px, ${pan.y}px)`,
@@ -179,11 +197,11 @@ function OtherContentPreviewModal({ preview, onClose }: ContentPreviewModalProps
               onPointerCancel={stopDragging}
               onDoubleClick={increaseZoom}
             >
-              <img src={preview.src} alt={preview.alt || "Изображение"} />
+              <img src={preview.src} alt={preview.alt || 'Изображение'} />
             </div>
-          ) : preview.type === "diagram" ? (
+          ) : preview.type === 'diagram' ? (
             <div
-              className={`content-preview-diagram-scale content-preview-pan-layer tw:cursor-grab tw:[.content-preview-modal.is-diagram_&]:absolute tw:[.content-preview-modal.is-diagram_&]:top-[0] tw:[.content-preview-modal.is-diagram_&]:left-[0] tw:[.content-preview-modal.is-diagram_&]:max-w-[none] tw:[transform-origin:top_left] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[transition:width_160ms_ease] tw:[&.is-dragging]:[transition:none] ${isDragging ? "is-dragging" : ""}`}
+              className={`content-preview-diagram-scale content-preview-pan-layer tw:cursor-grab tw:[.content-preview-modal.is-diagram_&]:absolute tw:[.content-preview-modal.is-diagram_&]:top-[0] tw:[.content-preview-modal.is-diagram_&]:left-[0] tw:[.content-preview-modal.is-diagram_&]:max-w-[none] tw:[transform-origin:top_left] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[transition:width_160ms_ease] tw:[&.is-dragging]:[transition:none] ${isDragging ? 'is-dragging' : ''}`}
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${imageZoom})`,
               }}

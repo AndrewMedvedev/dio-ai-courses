@@ -1,1 +1,1 @@
-export { ModelsPage, type ModelsPageProps } from "./ui/ModelsPage";
+export { ModelsPage, type ModelsPageProps } from './ui/ModelsPage';

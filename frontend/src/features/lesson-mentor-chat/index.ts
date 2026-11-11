@@ -1,1 +1,1 @@
-export { LessonAiChat, type LessonAiChatProps } from "./ui/LessonAiChat";
+export { LessonAiChat, type LessonAiChatProps } from './ui/LessonAiChat';

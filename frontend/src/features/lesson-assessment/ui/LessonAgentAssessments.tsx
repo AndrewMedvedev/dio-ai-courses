@@ -1,19 +1,20 @@
-import { useMemo, useState, type ChangeEvent } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { toText } from '@/shared/lib/text';
+import { useMemo, useState, type ChangeEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   checkLessonPractice,
   checkLessonTest,
   generateLessonPractice,
   generateLessonTest,
-} from "../api/assessment-api";
+} from '../api/assessment-api';
 import type {
   AssessmentResult,
   LessonTest,
   PracticeAssignment,
   TestAnswers,
   TestQuestion,
-} from "../model/types";
+} from '../model/types';
 
 const PASSING_SCORE = 61;
 
@@ -26,9 +27,9 @@ function createAnswersPayload(
     questions.map((question, index) => {
       const answer = answers[index];
       const value =
-        testType === "multiple_choice"
-          ? (question.options?.[Number(answer)] ?? String(answer ?? ""))
-          : String(answer ?? "").trim();
+        testType === 'multiple_choice'
+          ? (question.options?.[Number(answer)] ?? String(answer ?? ''))
+          : String(answer ?? '').trim();
       return [question.id || question.text || String(index + 1), value];
     }),
   );
@@ -41,13 +42,13 @@ function getErrorMessage(rawError: unknown, fallback: string) {
     message?: string;
   } | null;
   if (error?.status === 403)
-    return "Недостаточно прав для выполнения действия.";
-  if (error?.status === 404) return "Урок или модуль не найден.";
+    return 'Недостаточно прав для выполнения действия.';
+  if (error?.status === 404) return 'Урок или модуль не найден.';
   if (error?.status === 422) {
-    console.error("Ошибка валидации ответа ИИ-агента", error);
-    return "Проверьте корректность заполнения и попробуйте ещё раз.";
+    console.error('Ошибка валидации ответа ИИ-агента', error);
+    return 'Проверьте корректность заполнения и попробуйте ещё раз.';
   }
-  if (error?.status === 413) return "Файл слишком большой.";
+  if (error?.status === 413) return 'Файл слишком большой.';
   if (Number(error?.status) >= 500) return fallback;
   return error?.userMessage || error?.message || fallback;
 }
@@ -63,7 +64,7 @@ function ResultCard({
   const passed = Number(result.score) >= passingScore;
   return (
     <article
-      className={`lesson-agent-result tw:border-solid tw:border-[rgba(var(--success-rgb),_0.34)] tw:rounded-[16px] tw:p-[16px] tw:grid tw:gap-[10px] tw:[border-width:1px] tw:[&.is-failed]:border-[rgba(var(--danger-rgb,_190,_80,_100),_0.34)] tw:[background:rgba(var(--success-rgb),_0.08)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[background:rgba(255,_255,_255,_0.06)] tw:[&.is-failed]:[background:rgba(var(--danger-rgb,_190,_80,_100),_0.08)] tw:dark:[&.is-failed]:[background:rgba(255,_255,_255,_0.06)] ${passed ? "is-passed" : "is-failed"}`}
+      className={`lesson-agent-result tw:border-solid tw:border-[rgba(var(--success-rgb),_0.34)] tw:rounded-[16px] tw:p-[16px] tw:grid tw:gap-[10px] tw:[border-width:1px] tw:[&.is-failed]:border-[rgba(var(--danger-rgb,_190,_80,_100),_0.34)] tw:[background:rgba(var(--success-rgb),_0.08)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[background:rgba(255,_255,_255,_0.06)] tw:[&.is-failed]:[background:rgba(var(--danger-rgb,_190,_80,_100),_0.08)] tw:dark:[&.is-failed]:[background:rgba(255,_255,_255,_0.06)] ${passed ? 'is-passed' : 'is-failed'}`}
     >
       <div>
         <span className="tw:block tw:text-(--muted) tw:text-[0.78rem]">
@@ -74,7 +75,7 @@ function ResultCard({
         </strong>
       </div>
       <p className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-        {passed ? "Пройдено" : "Не пройдено"}
+        {passed ? 'Пройдено' : 'Не пройдено'}
       </p>
       {result.ai_feedback && (
         <div className="lesson-agent-feedback tw:text-(--text) tw:leading-[1.56]">
@@ -91,21 +92,21 @@ function isWildcardExtensions(extensions: unknown) {
   return (
     !Array.isArray(extensions) ||
     extensions.length === 0 ||
-    extensions.includes("*")
+    extensions.includes('*')
   );
 }
 
 function normalizeExtension(value: unknown) {
-  const extension = String(value || "")
+  const extension = toText(value || '')
     .trim()
     .toLowerCase();
-  return extension.startsWith(".") ? extension : `.${extension}`;
+  return extension.startsWith('.') ? extension : `.${extension}`;
 }
 
 function normalizeAssignmentText(value: unknown) {
-  return String(value || "")
-    .replace(/\\n/g, "\n")
-    .replace(/\n\s*[-•]\s*/g, "\n- ")
+  return toText(value || '')
+    .replace(/\\n/g, '\n')
+    .replace(/\n\s*[-•]\s*/g, '\n- ')
     .trim();
 }
 
@@ -126,13 +127,13 @@ export function LessonTestAgent({
   const [answers, setAnswers] = useState<TestAnswers>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [result, setResult] = useState<AssessmentResult | null>(null);
 
   const startTest = async () => {
     if (!moduleId || !lessonId || isLoading) return;
     setIsLoading(true);
-    setError("");
+    setError('');
     setResult(null);
     setAnswers({});
     setPracticeId(null);
@@ -144,12 +145,12 @@ export function LessonTestAgent({
       setPracticeId(response.practiceId);
       if (!response.practiceId) {
         setError(
-          "Backend не вернул идентификатор практики для проверки теста.",
+          'Backend не вернул идентификатор практики для проверки теста.',
         );
       }
     } catch (error) {
       setError(
-        getErrorMessage(error, "Не удалось подготовить проверочные вопросы."),
+        getErrorMessage(error, 'Не удалось подготовить проверочные вопросы.'),
       );
     } finally {
       setIsLoading(false);
@@ -169,7 +170,7 @@ export function LessonTestAgent({
   const submitTest = async () => {
     if (!test || !practiceId || !canSubmit || isChecking || isSubmitted) return;
     setIsChecking(true);
-    setError("");
+    setError('');
     const payload = {
       practice: test,
       answers: createAnswersPayload(questions, answers, test?.test_type),
@@ -183,7 +184,7 @@ export function LessonTestAgent({
       setError(
         getErrorMessage(
           error,
-          "Не удалось проверить тест. Попробуйте ещё раз.",
+          'Не удалось проверить тест. Попробуйте ещё раз.',
         ),
       );
     } finally {
@@ -217,7 +218,7 @@ export function LessonTestAgent({
             onClick={startTest}
             disabled={isLoading || !moduleId || !lessonId}
           >
-            {isLoading ? "Готовим вопросы..." : "Пройти тест"}
+            {isLoading ? 'Готовим вопросы...' : 'Пройти тест'}
           </button>
         </div>
       </section>
@@ -231,7 +232,7 @@ export function LessonTestAgent({
           Проверочные вопросы
         </p>
         <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
-          {test?.title || "Проверка знаний"}
+          {test?.title || 'Проверка знаний'}
         </h2>
         {test?.estimated_time_minutes && (
           <span>Ориентировочное время: {test.estimated_time_minutes} мин.</span>
@@ -264,7 +265,7 @@ export function LessonTestAgent({
               )}
             </div>
 
-            {test?.test_type === "multiple_choice" ? (
+            {test?.test_type === 'multiple_choice' ? (
               <div className="lesson-agent-options tw:grid tw:gap-[10px]">
                 {(Array.isArray(question.options) ? question.options : []).map(
                   (option, optionIndex) => (
@@ -279,7 +280,7 @@ export function LessonTestAgent({
                         value={optionIndex}
                         disabled={isSubmitted || isChecking}
                         checked={
-                          String(answers[index] ?? "") === String(optionIndex)
+                          String(answers[index] ?? '') === String(optionIndex)
                         }
                         onChange={() =>
                           setAnswers((prev) => ({
@@ -302,7 +303,7 @@ export function LessonTestAgent({
                   </details>
                 )}
                 <textarea
-                  value={answers[index] || ""}
+                  value={answers[index] || ''}
                   disabled={isSubmitted || isChecking}
                   onChange={(event) =>
                     setAnswers((prev) => ({
@@ -326,12 +327,12 @@ export function LessonTestAgent({
           disabled={!practiceId || !canSubmit || isChecking || isSubmitted}
         >
           {isChecking
-            ? "Проверяем..."
+            ? 'Проверяем...'
             : isSubmitted
               ? isPassed
-                ? "Тест сдан"
-                : "Тест не сдан"
-              : "Завершить тест"}
+                ? 'Тест сдан'
+                : 'Тест не сдан'
+              : 'Завершить тест'}
         </button>
       </div>
 
@@ -349,19 +350,19 @@ export function LessonPracticeAgent({
   const [assignment, setAssignment] = useState<PracticeAssignment | null>(null);
   const [practiceId, setPracticeId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState("");
+  const [fileError, setFileError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [result, setResult] = useState<AssessmentResult | null>(null);
 
   const startPractice = async () => {
     if (!moduleId || !lessonId || isLoading) return;
     setIsLoading(true);
-    setError("");
+    setError('');
     setResult(null);
     setFile(null);
-    setFileError("");
+    setFileError('');
     setPracticeId(null);
     setAssignment(null);
 
@@ -371,12 +372,12 @@ export function LessonPracticeAgent({
       setPracticeId(response.practiceId);
       if (!response.practiceId) {
         setError(
-          "Backend не вернул идентификатор практики для проверки задания.",
+          'Backend не вернул идентификатор практики для проверки задания.',
         );
       }
     } catch (error) {
       setError(
-        getErrorMessage(error, "Не удалось подготовить практическое задание."),
+        getErrorMessage(error, 'Не удалось подготовить практическое задание.'),
       );
     } finally {
       setIsLoading(false);
@@ -393,24 +394,24 @@ export function LessonPracticeAgent({
   const acceptsAnyFile = isWildcardExtensions(allowedExtensions);
   const accept = acceptsAnyFile
     ? undefined
-    : allowedExtensions.map(normalizeExtension).join(",");
+    : allowedExtensions.map(normalizeExtension).join(',');
 
   const pickFile = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] || null;
     setFile(null);
-    setFileError("");
+    setFileError('');
     if (!nextFile) return;
 
     if (!acceptsAnyFile) {
-      const fileName = (nextFile.name || "").toLowerCase();
+      const fileName = (nextFile.name || '').toLowerCase();
       const isAllowed = allowedExtensions
         .map(normalizeExtension)
         .some((extension) => fileName.endsWith(extension));
       if (!isAllowed) {
         setFileError(
-          `Недопустимый тип файла. Разрешены: ${allowedExtensions.join(", ")}.`,
+          `Недопустимый тип файла. Разрешены: ${allowedExtensions.join(', ')}.`,
         );
-        event.target.value = "";
+        event.target.value = '';
         return;
       }
     }
@@ -420,14 +421,14 @@ export function LessonPracticeAgent({
   const submitPractice = async () => {
     if (!file || !practiceId || fileError || isChecking || result) return;
     setIsChecking(true);
-    setError("");
+    setError('');
     try {
       const response = await checkLessonPractice(practiceId, assignment, file);
       setResult(response);
       onChecked?.(response);
     } catch (error) {
       setError(
-        getErrorMessage(error, "Не удалось проверить практическое задание."),
+        getErrorMessage(error, 'Не удалось проверить практическое задание.'),
       );
     } finally {
       setIsChecking(false);
@@ -461,8 +462,8 @@ export function LessonPracticeAgent({
             disabled={isLoading || !moduleId || !lessonId}
           >
             {isLoading
-              ? "Готовим задание..."
-              : "Выполнить практическое задание"}
+              ? 'Готовим задание...'
+              : 'Выполнить практическое задание'}
           </button>
         </div>
       </section>
@@ -475,7 +476,7 @@ export function LessonPracticeAgent({
         <p className="course-category tw:m-[0] tw:text-[0.8rem] tw:uppercase tw:tracking-[0.08em] tw:text-(--accent) tw:font-[700]">
           Практика
         </p>
-        <h2>{assignment?.title || "Практическое задание"}</h2>
+        <h2>{assignment?.title || 'Практическое задание'}</h2>
       </div>
 
       {error && (
@@ -512,7 +513,7 @@ export function LessonPracticeAgent({
         <div>
           <span>Форматы</span>
           <strong>
-            {acceptsAnyFile ? "Любой файл" : allowedExtensions.join(", ")}
+            {acceptsAnyFile ? 'Любой файл' : allowedExtensions.join(', ')}
           </strong>
         </div>
       </div>
@@ -555,10 +556,10 @@ export function LessonPracticeAgent({
           }
         >
           {isChecking
-            ? "Отправляем..."
+            ? 'Отправляем...'
             : result
-              ? "Отправлено"
-              : "Отправить на проверку"}
+              ? 'Отправлено'
+              : 'Отправить на проверку'}
         </button>
       </div>
 

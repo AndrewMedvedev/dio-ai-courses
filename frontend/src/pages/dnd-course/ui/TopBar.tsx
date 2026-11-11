@@ -1,20 +1,20 @@
-import { useNavigate } from "react-router-dom";
-import { useShallow } from "zustand/react/shallow";
-import { Icon, Spinner } from "./icons";
+import { useNavigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
+import { Icon, Spinner } from './icons';
 import {
   canFinish,
   getGlobalSaveState,
   getNextTask,
   getProgress,
-} from "../model/selectors";
-import { useDndCourseStore } from "../model/store";
-import { ActionMenu, type MenuItem } from "./common";
+} from '../model/selectors';
+import { useDndCourseStore } from '../model/store';
+import { ActionMenu, type MenuItem } from './common';
 
 const SAVE_TEXT = {
-  saving: "Сохраняем…",
-  error: "Есть ошибки сохранения",
-  dirty: "Есть несохранённые изменения",
-  saved: "Все изменения сохранены",
+  saving: 'Сохраняем…',
+  error: 'Есть ошибки сохранения',
+  dirty: 'Есть несохранённые изменения',
+  saved: 'Все изменения сохранены',
 };
 
 export function TopBar({
@@ -57,62 +57,62 @@ export function TopBar({
   const activeNodeId = useDndCourseStore((state) => state.activeNodeId);
   const fullscreen = useDndCourseStore((state) => state.fullscreen);
   const toggleFullscreen = useDndCourseStore((state) => state.toggleFullscreen);
-  const effectiveMode = viewMode || (isMobile ? "list" : "canvas");
+  const effectiveMode = viewMode || (isMobile ? 'list' : 'canvas');
   const stepText =
     progress.doneCount >= 4
-      ? "Все шаги пройдены"
+      ? 'Все шаги пройдены'
       : `Шаг ${progress.currentStep} из 4`;
 
   const menuItems: MenuItem[] = [
     ...(isMobile
       ? [
           {
-            key: "settings",
-            icon: "settings",
-            label: "Настройки курса",
-            onSelect: () => openInspector("course", "main"),
+            key: 'settings',
+            icon: 'settings',
+            label: 'Настройки курса',
+            onSelect: () => openInspector('course', 'main'),
           },
         ]
       : []),
     {
-      key: "mode",
-      icon: effectiveMode === "canvas" ? "list" : "canvas",
-      label: effectiveMode === "canvas" ? "Режим списка" : "Режим холста",
+      key: 'mode',
+      icon: effectiveMode === 'canvas' ? 'list' : 'canvas',
+      label: effectiveMode === 'canvas' ? 'Режим списка' : 'Режим холста',
       onSelect: () =>
-        setViewMode(effectiveMode === "canvas" ? "list" : "canvas"),
+        setViewMode(effectiveMode === 'canvas' ? 'list' : 'canvas'),
     },
     ...(isMobile && course?.id
       ? [
           {
-            key: "preview",
-            icon: "eye",
-            label: "Просмотр курса",
+            key: 'preview',
+            icon: 'eye',
+            label: 'Просмотр курса',
             onSelect: () => onPreview?.({ courseId: course.id }),
           },
         ]
       : []),
     {
-      key: "help",
-      icon: "help",
-      label: "Показать обучение",
+      key: 'help',
+      icon: 'help',
+      label: 'Показать обучение',
       onSelect: restartOnboarding,
     },
-    { key: "sep", type: "separator" as const },
+    { key: 'sep', type: 'separator' as const },
     {
-      key: "reset",
-      icon: "restart",
-      label: "Начать заново",
+      key: 'reset',
+      icon: 'restart',
+      label: 'Начать заново',
       danger: true,
       onSelect: () =>
         openConfirm({
-          title: "Начать заново?",
+          title: 'Начать заново?',
           message:
-            "Черновик конструктора будет очищен: материалы, раскладка и несохранённые формы пропадут.",
+            'Черновик конструктора будет очищен: материалы, раскладка и несохранённые формы пропадут.',
           consequences: [
-            "Уже созданный курс, уроки и модули на сервере не удаляются.",
-            "Загруженные документы придётся добавить повторно.",
+            'Уже созданный курс, уроки и модули на сервере не удаляются.',
+            'Загруженные документы придётся добавить повторно.',
           ],
-          confirmLabel: "Очистить черновик",
+          confirmLabel: 'Очистить черновик',
           onConfirm: () => resetAll(),
         }),
     },
@@ -125,20 +125,20 @@ export function TopBar({
           type="button"
           className="dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
           onClick={() =>
-            window.history.length > 1 ? navigate(-1) : navigate("/")
+            window.history.length > 1 ? navigate(-1) : navigate('/')
           }
           aria-label="Вернуться назад"
           title="Назад"
         >
           <Icon name="arrowLeft" />
         </button>
-        {effectiveMode === "canvas" ? (
+        {effectiveMode === 'canvas' ? (
           <button
             type="button"
-            className={`dnd-icon-btn dnd-topbar-palette tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[&&]:border-(--dnd-border) tw:[&.is-on]:[&&&]:border-(--dnd-border) tw:[&.is-on]:[&&&&]:border-(--dnd-border) tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&.is-on]:[&&]:[background:var(--dnd-panel-2)] tw:[&.is-on]:[&&&]:[background:var(--dnd-panel-2)] tw:[&.is-on]:[&&&&]:[background:var(--dnd-panel-2)] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${paletteOpen ? "is-on" : ""}`}
+            className={`dnd-icon-btn dnd-topbar-palette tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[&&]:border-(--dnd-border) tw:[&.is-on]:[&&&]:border-(--dnd-border) tw:[&.is-on]:[&&&&]:border-(--dnd-border) tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&.is-on]:[&&]:[background:var(--dnd-panel-2)] tw:[&.is-on]:[&&&]:[background:var(--dnd-panel-2)] tw:[&.is-on]:[&&&&]:[background:var(--dnd-panel-2)] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${paletteOpen ? 'is-on' : ''}`}
             onClick={() => setPaletteOpen(!paletteOpen)}
             aria-pressed={paletteOpen}
-            aria-label={paletteOpen ? "Скрыть палитру" : "Показать палитру"}
+            aria-label={paletteOpen ? 'Скрыть палитру' : 'Показать палитру'}
             title="Палитра"
           >
             <Icon name="panel" />
@@ -170,7 +170,7 @@ export function TopBar({
           {[0, 1, 2, 3].map((index) => (
             <i
               key={index}
-              className={`tw:h-[6px] tw:rounded-[999px] tw:[background:var(--dnd-border)] tw:[transition:background_0.3s_var(--dnd-ease)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-done]:[background:var(--dnd-accent)] tw:[&.is-current]:[background:linear-gradient(90deg,_var(--dnd-blue)_0_50%,_var(--dnd-border)_50%)] tw:[&.is-done]:animate-dnd-fill ${index < progress.doneCount ? "is-done" : index === progress.doneCount ? "is-current" : ""}`}
+              className={`tw:h-[6px] tw:rounded-[999px] tw:[background:var(--dnd-border)] tw:[transition:background_0.3s_var(--dnd-ease)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-done]:[background:var(--dnd-accent)] tw:[&.is-current]:[background:linear-gradient(90deg,_var(--dnd-blue)_0_50%,_var(--dnd-border)_50%)] tw:[&.is-done]:animate-dnd-fill ${index < progress.doneCount ? 'is-done' : index === progress.doneCount ? 'is-current' : ''}`}
             />
           ))}
         </div>
@@ -182,8 +182,8 @@ export function TopBar({
             className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
             aria-hidden="true"
           >
-            {" "}
-            ·{" "}
+            {' '}
+            ·{' '}
           </span>
           <span className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             {nextTask}
@@ -194,16 +194,16 @@ export function TopBar({
           role="status"
           title={SAVE_TEXT[saveState]}
         >
-          {saveState === "saving" ? (
+          {saveState === 'saving' ? (
             <Spinner size={12} />
           ) : (
             <Icon
               name={
-                saveState === "saved"
-                  ? "check"
-                  : saveState === "error"
-                    ? "alert"
-                    : "edit"
+                saveState === 'saved'
+                  ? 'check'
+                  : saveState === 'error'
+                    ? 'alert'
+                    : 'edit'
               }
               size={13}
             />
@@ -223,17 +223,17 @@ export function TopBar({
           >
             <button
               type="button"
-              aria-pressed={effectiveMode === "canvas"}
-              className={effectiveMode === "canvas" ? "is-on" : ""}
-              onClick={() => setViewMode("canvas")}
+              aria-pressed={effectiveMode === 'canvas'}
+              className={effectiveMode === 'canvas' ? 'is-on' : ''}
+              onClick={() => setViewMode('canvas')}
             >
               <Icon name="canvas" size={15} /> Холст
             </button>
             <button
               type="button"
-              aria-pressed={effectiveMode === "list"}
-              className={effectiveMode === "list" ? "is-on" : ""}
-              onClick={() => setViewMode("list")}
+              aria-pressed={effectiveMode === 'list'}
+              className={effectiveMode === 'list' ? 'is-on' : ''}
+              onClick={() => setViewMode('list')}
             >
               <Icon name="list" size={15} /> Список
             </button>
@@ -243,7 +243,7 @@ export function TopBar({
           <button
             type="button"
             className="dnd-btn dnd-btn--ghost dnd-topbar-settings tw:text-[0.94rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[42px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:max-1599:w-[38px] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-1599:[&&&&]:p-[0] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
-            onClick={() => openInspector("course", "main")}
+            onClick={() => openInspector('course', 'main')}
             aria-label="Настройки курса"
             title="Настройки курса"
           >
@@ -256,7 +256,7 @@ export function TopBar({
         {!isMobile &&
         !inspectorOpen &&
         activeNodeId &&
-        effectiveMode === "canvas" ? (
+        effectiveMode === 'canvas' ? (
           <button
             type="button"
             className="dnd-icon-btn tw:[.page_.dnd-builder_.dnd-topbar_&]:w-[42px] tw:[.page_.dnd-builder_.dnd-topbar_&]:h-[42px]"
@@ -289,27 +289,27 @@ export function TopBar({
           aria-busy={finishing}
           title={
             finishable
-              ? "Проверить структуру и посмотреть курс"
-              : "Нужен хотя бы один модуль с уроком и завершённые операции"
+              ? 'Проверить структуру и посмотреть курс'
+              : 'Нужен хотя бы один модуль с уроком и завершённые операции'
           }
         >
           {finishing ? <Spinner size={14} /> : <Icon name="flag" size={16} />}
-          {finishing ? "Открываем курс…" : "Завершить"}
+          {finishing ? 'Открываем курс…' : 'Завершить'}
         </button>
         {!isMobile ? (
           <button
             type="button"
-            className={`dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${fullscreen ? "is-on" : ""}`}
+            className={`dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[42px] tw:h-[42px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${fullscreen ? 'is-on' : ''}`}
             onClick={toggleFullscreen}
             aria-pressed={fullscreen}
             aria-label={
               fullscreen
-                ? "Выйти из полноэкранного режима (Esc)"
-                : "Развернуть конструктор на весь экран"
+                ? 'Выйти из полноэкранного режима (Esc)'
+                : 'Развернуть конструктор на весь экран'
             }
-            title={fullscreen ? "Свернуть (Esc)" : "На весь экран"}
+            title={fullscreen ? 'Свернуть (Esc)' : 'На весь экран'}
           >
-            <Icon name={fullscreen ? "minimize" : "maximize"} />
+            <Icon name={fullscreen ? 'minimize' : 'maximize'} />
           </button>
         ) : null}
         <ActionMenu

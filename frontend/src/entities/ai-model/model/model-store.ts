@@ -1,12 +1,12 @@
-import { create } from "zustand";
-import type { ApiError, ValidationErrors } from "@/shared/api";
-import { getErrorMessage } from "@/shared/lib/errors";
+import { create } from 'zustand';
+import type { ApiError, ValidationErrors } from '@/shared/api';
+import { getErrorMessage } from '@/shared/lib/errors';
 import {
   createModel as createModelApi,
   deleteModel as deleteModelApi,
   fetchModelsPage,
-} from "../api/ai-model-api";
-import type { AiModel, AiModelPayload, AiModelsPage } from "./types";
+} from '../api/ai-model-api';
+import type { AiModel, AiModelPayload, AiModelsPage } from './types';
 
 export interface ModelForm {
   name: string;
@@ -58,14 +58,14 @@ const initialState: ModelData = {
   isLoading: false,
   isCreating: false,
   deletingUid: null,
-  error: "",
-  notice: "",
+  error: '',
+  notice: '',
   validationErrors: {},
   selectedModel: null,
   createForm: {
-    name: "",
-    description: "",
-    context: "",
+    name: '',
+    description: '',
+    context: '',
   },
 };
 
@@ -78,12 +78,12 @@ export const useModelStore = create<ModelState>((set, get) => ({
 
   setNotice: (notice) => set({ notice }),
 
-  clearMessages: () => set({ error: "", notice: "" }),
+  clearMessages: () => set({ error: '', notice: '' }),
 
   updateCreateField: (field, value) =>
     set((state) => ({
       createForm: { ...state.createForm, [field]: value },
-      validationErrors: { ...state.validationErrors, [field]: "", form: "" },
+      validationErrors: { ...state.validationErrors, [field]: '', form: '' },
     })),
 
   resetCreateForm: () =>
@@ -93,7 +93,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
     }),
 
   fetchModels: async (page = get().page, size = get().size) => {
-    set({ isLoading: true, error: "" });
+    set({ isLoading: true, error: '' });
 
     try {
       const response = await fetchModelsPage({ page, size });
@@ -104,7 +104,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
         total: response.total_items ?? response.total ?? 0,
         totalPages: response.total_pages || 1,
         isLoading: false,
-        error: "",
+        error: '',
       });
       return response;
     } catch (error) {
@@ -113,7 +113,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
         total: 0,
         totalPages: 1,
         isLoading: false,
-        error: errorMessage(error, "Не удалось загрузить AI-модели."),
+        error: errorMessage(error, 'Не удалось загрузить AI-модели.'),
       });
       throw error;
     }
@@ -123,18 +123,18 @@ export const useModelStore = create<ModelState>((set, get) => ({
     const name = payload?.name?.trim();
 
     if (!name) {
-      set({ validationErrors: { name: "Укажите название модели." } });
+      set({ validationErrors: { name: 'Укажите название модели.' } });
       return null;
     }
 
-    set({ isCreating: true, error: "", notice: "", validationErrors: {} });
+    set({ isCreating: true, error: '', notice: '', validationErrors: {} });
 
     try {
       const model = await createModelApi({ ...payload, name });
       set({
         createForm: initialState.createForm,
         isCreating: false,
-        notice: "AI-модель создана.",
+        notice: 'AI-модель создана.',
         validationErrors: {},
       });
       await get().fetchModels(1, get().size);
@@ -143,7 +143,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
       set({
         isCreating: false,
         validationErrors: (error as ApiError | null)?.validationErrors || {},
-        error: errorMessage(error, "Не удалось создать AI-модель."),
+        error: errorMessage(error, 'Не удалось создать AI-модель.'),
       });
       throw error;
     }
@@ -152,7 +152,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
   deleteModel: async (uid) => {
     if (!uid || get().deletingUid) return null;
 
-    set({ deletingUid: uid, error: "", notice: "" });
+    set({ deletingUid: uid, error: '', notice: '' });
 
     try {
       await deleteModelApi(uid);
@@ -160,7 +160,7 @@ export const useModelStore = create<ModelState>((set, get) => ({
         items: get().items.filter((item) => item.uid !== uid),
         deletingUid: null,
         selectedModel: null,
-        notice: "AI-модель удалена.",
+        notice: 'AI-модель удалена.',
       });
       await get().fetchModels(get().page, get().size);
       return true;
@@ -170,14 +170,14 @@ export const useModelStore = create<ModelState>((set, get) => ({
           items: get().items.filter((item) => item.uid !== uid),
           deletingUid: null,
           selectedModel: null,
-          notice: "AI-модель уже была удалена.",
+          notice: 'AI-модель уже была удалена.',
         });
         return true;
       }
 
       set({
         deletingUid: null,
-        error: errorMessage(error, "Не удалось удалить AI-модель."),
+        error: errorMessage(error, 'Не удалось удалить AI-модель.'),
       });
       throw error;
     }

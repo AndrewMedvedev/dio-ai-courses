@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 /**
  * Несохранённые правки модулей и уроков в редакторе курса.
@@ -15,12 +15,12 @@ import { create } from "zustand";
 
 // Служебные поля, которые меняются вместе с контентом урока и не показываются отдельно.
 const DERIVED_FIELDS = new Set<string>([
-  "markdown",
-  "content",
-  "content_blocks",
+  'markdown',
+  'content',
+  'content_blocks',
 ]);
 
-export type DraftKind = "module" | "lesson";
+export type DraftKind = 'module' | 'lesson';
 
 export interface DraftEdit {
   key: string;
@@ -86,10 +86,10 @@ export const useEditorDraftStore = create<EditorDraftState>((set, get) => ({
         kind,
         courseId,
         entityId,
-        label: label || "",
+        label: label || '',
         original: {},
         changes: {},
-        error: "",
+        error: '',
       };
       const original = { ...current.original };
       const nextChanges = { ...current.changes };
@@ -112,7 +112,7 @@ export const useEditorDraftStore = create<EditorDraftState>((set, get) => ({
         label: label || current.label,
         original,
         changes: nextChanges,
-        error: "",
+        error: '',
       };
       if (hasVisibleChanges(nextEdit)) {
         edits[key] = nextEdit;

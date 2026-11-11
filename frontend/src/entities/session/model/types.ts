@@ -57,4 +57,4 @@ export interface LoginResponse {
   memberships?: Membership[];
 }
 
-export type LoginStep = "credentials" | "organization";
+export type LoginStep = 'credentials' | 'organization';

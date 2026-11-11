@@ -1,8 +1,8 @@
 // Крупные всплывающие подсказки для конструктора курса вместо системных title:
 // системную подсказку не увеличить, а пользователям нужен текст, который легко прочитать.
 // Подсказка берётся из атрибута data-tip, рисуется поверх холста и не зависит от масштаба.
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const SHOW_DELAY_MS = 350;
 const EDGE_GAP = 12;
@@ -12,13 +12,17 @@ interface Tip {
   text: string;
   x: number;
   y: number;
-  place: "top" | "bottom";
+  place: 'top' | 'bottom';
 }
 
-function findTipTarget(element: Element | EventTarget | null): HTMLElement | null {
-  const target = (element as Element | null)?.closest?.<HTMLElement>("[data-tip]");
-  if (!target || !target.closest(".dnd-builder")) return null;
-  return target.getAttribute("data-tip") ? target : null;
+function findTipTarget(
+  element: Element | EventTarget | null,
+): HTMLElement | null {
+  const target = (element as Element | null)?.closest?.<HTMLElement>(
+    '[data-tip]',
+  );
+  if (!target || !target.closest('.dnd-builder')) return null;
+  return target.getAttribute('data-tip') ? target : null;
 }
 
 export function DndTooltipLayer() {
@@ -35,7 +39,7 @@ export function DndTooltipLayer() {
     };
 
     const show = (element: HTMLElement) => {
-      const text = element.getAttribute("data-tip");
+      const text = element.getAttribute('data-tip');
       if (!text || !element.isConnected) {
         setTip(null);
         return;
@@ -50,7 +54,7 @@ export function DndTooltipLayer() {
           window.innerWidth - EDGE_GAP - half,
         ),
         y: rect.top > 72 ? rect.top : rect.bottom,
-        place: rect.top > 72 ? "top" : "bottom",
+        place: rect.top > 72 ? 'top' : 'bottom',
       });
     };
 
@@ -68,7 +72,7 @@ export function DndTooltipLayer() {
     // elementFromPoint находит и отключённые кнопки: на них браузер не шлёт события
     // мыши, а подсказка вроде «удалить нельзя» там нужна больше всего.
     const onPointerMove = (event: PointerEvent) => {
-      if (event.pointerType === "touch") return;
+      if (event.pointerType === 'touch') return;
       const { clientX, clientY } = event;
       window.cancelAnimationFrame(frameRef.current);
       frameRef.current = window.requestAnimationFrame(() => {
@@ -80,35 +84,35 @@ export function DndTooltipLayer() {
 
     const onFocusIn = (event: FocusEvent) => {
       const element = findTipTarget(event.target);
-      if (!element || !element.matches(":focus-visible")) return;
+      if (!element || !element.matches(':focus-visible')) return;
       window.clearTimeout(timerRef.current);
       targetRef.current = element;
       show(element);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") hide();
+      if (event.key === 'Escape') hide();
     };
 
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("pointerdown", hide, true);
-    window.addEventListener("wheel", hide, { passive: true });
-    window.addEventListener("scroll", hide, true);
-    window.addEventListener("blur", hide);
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", hide);
-    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerdown', hide, true);
+    window.addEventListener('wheel', hide, { passive: true });
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('blur', hide);
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', hide);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
       window.clearTimeout(timerRef.current);
       window.cancelAnimationFrame(frameRef.current);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerdown", hide, true);
-      window.removeEventListener("wheel", hide);
-      window.removeEventListener("scroll", hide, true);
-      window.removeEventListener("blur", hide);
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", hide);
-      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerdown', hide, true);
+      window.removeEventListener('wheel', hide);
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('blur', hide);
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', hide);
+      document.removeEventListener('keydown', onKeyDown);
     };
   }, []);
 
@@ -122,6 +126,6 @@ export function DndTooltipLayer() {
     >
       {tip.text}
     </div>,
-    document.querySelector(".page") || document.body,
+    document.querySelector('.page') || document.body,
   );
 }

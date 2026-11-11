@@ -1,6 +1,6 @@
 // Роли участника курса.
 
-export type CourseMemberRole = "student" | "moderator" | "teacher";
+export type CourseMemberRole = 'student' | 'moderator' | 'teacher';
 
 export const COURSE_ROLES: ReadonlyArray<{
   id: CourseMemberRole;
@@ -8,19 +8,19 @@ export const COURSE_ROLES: ReadonlyArray<{
   hint: string;
 }> = [
   {
-    id: "student",
-    label: "Студент",
-    hint: "Проходит курс: теория, практика, ИИ-ментор.",
+    id: 'student',
+    label: 'Студент',
+    hint: 'Проходит курс: теория, практика, ИИ-ментор.',
   },
   {
-    id: "moderator",
-    label: "Модератор",
-    hint: "Помогает вести курс, может приглашать студентов и модераторов.",
+    id: 'moderator',
+    label: 'Модератор',
+    hint: 'Помогает вести курс, может приглашать студентов и модераторов.',
   },
   {
-    id: "teacher",
-    label: "Преподаватель",
-    hint: "Редактирует курс и может приглашать участников с любой ролью.",
+    id: 'teacher',
+    label: 'Преподаватель',
+    hint: 'Редактирует курс и может приглашать участников с любой ролью.',
   },
 ];
 

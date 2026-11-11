@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { toText } from '@/shared/lib/text';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   LessonPracticeAgent,
   LessonTestAgent,
-} from "@/features/lesson-assessment";
-import { LessonChatWorkspace } from "@/widgets/lesson-chat-workspace";
+} from '@/features/lesson-assessment';
+import { LessonChatWorkspace } from '@/widgets/lesson-chat-workspace';
 import {
   CourseNavigationTree,
   getCachedCourseBasicInfo as getCourseBasicInfo,
@@ -22,27 +23,27 @@ import {
   type ContentBlock,
   type CourseNode,
   type LearningCourse,
-} from "@/entities/course";
-import { SectionTop } from "@/shared/ui/section-top";
-import { CourseInviteDialog } from "@/features/invite";
-import type { AssessmentResult } from "@/features/lesson-assessment";
+} from '@/entities/course';
+import { SectionTop } from '@/shared/ui/section-top';
+import { CourseInviteDialog } from '@/features/invite';
+import type { AssessmentResult } from '@/features/lesson-assessment';
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
   useSessionStore,
-} from "@/entities/session";
-import { useUiLayoutStore } from "@/shared/lib/ui-layout";
-import { useTheorySessionTracker } from "@/features/track-theory-time";
-import { useCourseProgress } from "@/features/course-progress";
-import { getModuleProgressSummary } from "@/entities/progress";
-import { getErrorMessage } from "@/shared/lib/errors";
-import { isUuid } from "@/shared/lib/uuid";
-import { isTokenExpired } from "@/shared/api";
+} from '@/entities/session';
+import { useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { useTheorySessionTracker } from '@/features/track-theory-time';
+import { useCourseProgress } from '@/features/course-progress';
+import { getModuleProgressSummary } from '@/entities/progress';
+import { getErrorMessage } from '@/shared/lib/errors';
+import { isUuid } from '@/shared/lib/uuid';
+import { isTokenExpired } from '@/shared/api';
 import {
   CourseMetricsSummary,
   LessonMetricsDashboard,
   useCourseMetricsStore,
-} from "@/widgets/course-metrics";
+} from '@/widgets/course-metrics';
 import {
   NO_SELECTED_BLOCK,
   errorText,
@@ -52,20 +53,20 @@ import {
   mergeCourseLessons,
   toLessonBasicInfoFromLearningLesson,
   toModuleBasicInfoFromLearningBlock,
-} from "../lib/course-view";
-import { CourseProgressBar } from "./CourseProgressBar";
-import { LessonPartMark } from "./LessonPartMark";
+} from '../lib/course-view';
+import { CourseProgressBar } from './CourseProgressBar';
+import { LessonPartMark } from './LessonPartMark';
 
 export interface CourseViewerProps {
   /** Курс из локального черновика (не UUID), открытый без запроса к бэкенду. */
   localCourse?: CourseNode | null;
-  mode?: "view" | "metrics";
+  mode?: 'view' | 'metrics';
 }
 
 /** Просмотр курса учеником и метрики курса для автора. */
 export function CourseViewer({
   localCourse = null,
-  mode = "view",
+  mode = 'view',
 }: CourseViewerProps) {
   const { courseId, blockId, lessonId } = useParams();
   const navigate = useNavigate();
@@ -104,17 +105,17 @@ export function CourseViewer({
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [contentLessonId, setContentLessonId] = useState<string | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
-  const [enrollmentError, setEnrollmentError] = useState("");
+  const [enrollmentError, setEnrollmentError] = useState('');
   const theoryContainerRef = useRef<HTMLElement>(null);
   const theoryContentRef = useRef<HTMLElement>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [isLoadingLesson, setIsLoadingLesson] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const effectiveCourseId = courseId || "";
-  const isMetricsMode = mode === "metrics";
+  const effectiveCourseId = courseId || '';
+  const isMetricsMode = mode === 'metrics';
   const signCourse = useStudentStore((state) => state.signCourse);
   const loadMyCourses = useStudentStore((state) => state.loadMyCourses);
-  const isCourseEnrolled = useStudentStore((state) => state.isCourseEnrolled);
+
   const isCourseSigning = useStudentStore((state) =>
     state.isCourseSigning(course?.id || effectiveCourseId),
   );
@@ -124,7 +125,7 @@ export function CourseViewer({
     identity?.userId ||
     user?.id ||
     user?.user_id;
-  const currentUserId = rawCurrentUserId ? String(rawCurrentUserId) : undefined;
+  const currentUserId = rawCurrentUserId ? toText(rawCurrentUserId) : undefined;
   const courseCreatorId = getCourseCreatorId(course);
   const isOwnCourse = Boolean(
     currentUserId && courseCreatorId && currentUserId === courseCreatorId,
@@ -189,24 +190,24 @@ export function CourseViewer({
   );
 
   const activeTab = useUiLayoutStore((state) =>
-    state.getLessonActiveTab(selectedLesson?.id ?? ""),
+    state.getLessonActiveTab(selectedLesson?.id ?? ''),
   );
   const setLessonActiveTab = useUiLayoutStore(
     (state) => state.setLessonActiveTab,
   );
 
   const shouldTrackTheorySession =
-    mode === "view" &&
+    mode === 'view' &&
     canReadCourseContent &&
     (isEnrolled || isOwnCourse) &&
-    activeTab === "theory";
+    activeTab === 'theory';
 
   // Прогресс ведём только для записанного на курс ученика.
   const isProgressTracked =
-    mode === "view" &&
+    mode === 'view' &&
     canReadCourseContent &&
     isEnrolled &&
-    isUuid(course?.id || "");
+    isUuid(course?.id || '');
   const {
     lessonProgressById,
     structure: progressStructure,
@@ -240,10 +241,10 @@ export function CourseViewer({
     // Теория засчитывается автоматически, когда ученик долистал её до конца.
     onReachEnd: isProgressTracked
       ? (reachedLessonId) =>
-          completeTheory(
+          void completeTheory(
             findBlockByLesson(course, reachedLessonId)?.id ||
               selectedBlock?.id ||
-              "",
+              '',
             reachedLessonId,
           )
       : null,
@@ -264,19 +265,19 @@ export function CourseViewer({
 
   useEffect(() => {
     if (isProgressTracked && selectedBlock?.id && selectedLesson?.id) {
-      trackLesson(selectedBlock.id, selectedLesson.id);
+      void trackLesson(selectedBlock.id, selectedLesson.id);
     }
   }, [isProgressTracked, selectedBlock?.id, selectedLesson?.id, trackLesson]);
 
   const handleAssessmentChecked =
-    (field: "testCompletedAt" | "practiceCompletedAt") =>
+    (field: 'testCompletedAt' | 'practiceCompletedAt') =>
     (result: AssessmentResult) => {
       if (
         isProgressTracked &&
         selectedLesson?.id &&
         result?.is_passed !== false
       ) {
-        refreshLesson(selectedLesson.id, field);
+        void refreshLesson(selectedLesson.id, field);
       }
     };
 
@@ -294,7 +295,7 @@ export function CourseViewer({
 
       try {
         if (!effectiveCourseId) {
-          throw new Error("Идентификатор курса не указан");
+          throw new Error('Идентификатор курса не указан');
         }
 
         // Прямая ссылка или обновление страницы на модуле/уроке: в краткой информации
@@ -342,7 +343,7 @@ export function CourseViewer({
         );
       } catch (loadError) {
         if (isMounted) {
-          setError(errorText(loadError, "Не удалось загрузить курс"));
+          setError(errorText(loadError, 'Не удалось загрузить курс'));
         }
       } finally {
         if (isMounted) {
@@ -351,7 +352,7 @@ export function CourseViewer({
       }
     }
 
-    loadCourse();
+    void loadCourse();
 
     return () => {
       isMounted = false;
@@ -392,7 +393,7 @@ export function CourseViewer({
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(errorText(loadError, "Не удалось загрузить теорию урока"));
+          setError(errorText(loadError, 'Не удалось загрузить теорию урока'));
         }
       } finally {
         if (isMounted) {
@@ -401,7 +402,7 @@ export function CourseViewer({
       }
     }
 
-    loadLessonContent();
+    void loadLessonContent();
 
     return () => {
       isMounted = false;
@@ -416,7 +417,7 @@ export function CourseViewer({
     setIsLearningStarted(true);
     setSelectedModuleId(null);
     setSelectedLessonId(null);
-    navigate(
+    void navigate(
       isMetricsMode ? `/course/${course.id}/metrics` : `/course/${course.id}`,
     );
   };
@@ -447,7 +448,7 @@ export function CourseViewer({
         ? await getModuleById(blockId)
         : fallbackBlock;
       if (!nextBlock) {
-        throw new Error("Модуль не найден");
+        throw new Error('Модуль не найден');
       }
       setCourse((currentCourse) => {
         if (!currentCourse) return currentCourse;
@@ -458,14 +459,14 @@ export function CourseViewer({
           ),
         };
       });
-      navigate(
+      void navigate(
         isMetricsMode
           ? `/course/${course.id}/metrics`
           : `/course/${course.id}/block/${nextBlock.id || blockId}`,
       );
     } catch (loadError) {
       setSelectedModuleId(fallbackBlock?.id ?? null);
-      setError(errorText(loadError, "Не удалось загрузить модуль"));
+      setError(errorText(loadError, 'Не удалось загрузить модуль'));
     }
   };
 
@@ -488,7 +489,7 @@ export function CourseViewer({
         ? await getLessonById(nextLessonId)
         : fallbackLesson;
       if (!nextLesson) {
-        throw new Error("Урок не найден");
+        throw new Error('Урок не найден');
       }
       setCourse((currentCourse) => {
         if (!currentCourse) return currentCourse;
@@ -504,13 +505,13 @@ export function CourseViewer({
           })),
         };
       });
-      navigate(
+      void navigate(
         isMetricsMode
           ? `/course/${course.id}/metrics/lessons/${nextLessonId}`
           : `/course/${course.id}/lesson/${nextLessonId}`,
       );
     } catch (loadError) {
-      setError(errorText(loadError, "Не удалось загрузить урок"));
+      setError(errorText(loadError, 'Не удалось загрузить урок'));
     }
   };
 
@@ -520,18 +521,18 @@ export function CourseViewer({
     const firstLesson = (course?.blocks || []).flatMap(
       (block) => block.lessons || [],
     )[0];
-    if (firstLesson) openLesson(firstLesson.id);
+    if (firstLesson) void openLesson(firstLesson.id);
   };
 
   const openCourseEditor = () => {
     if (course?.id && canUpdateCourse) {
-      navigate(`/course/${course.id}/edit`);
+      void navigate(`/course/${course.id}/edit`);
     }
   };
 
   const openCourseMetrics = () => {
     if (course?.id && canUpdateCourse) {
-      navigate(`/course/${course.id}/metrics`);
+      void navigate(`/course/${course.id}/metrics`);
     }
   };
 
@@ -540,7 +541,7 @@ export function CourseViewer({
       return;
     }
 
-    setEnrollmentError("");
+    setEnrollmentError('');
     try {
       const student = await signCourse(course.id);
       setCourse((currentCourse) =>
@@ -555,7 +556,7 @@ export function CourseViewer({
       setIsLearningStarted(true);
     } catch (error) {
       setEnrollmentError(
-        getErrorMessage(error, "Не удалось записаться на курс.") ?? "",
+        getErrorMessage(error, 'Не удалось записаться на курс.') ?? '',
       );
     }
   };
@@ -614,7 +615,7 @@ export function CourseViewer({
   if (!isMetricsMode && !canReadCourseContent) {
     return (
       <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
+        <SectionTop label="Курс" title={course?.title || 'Просмотр курса'} />
         {error && (
           <article
             className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
@@ -631,8 +632,8 @@ export function CourseViewer({
             </h2>
             <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
               {isAuthenticated
-                ? "Вы можете смотреть информацию о курсе, но для открытия модулей, уроков, теории, практики и ИИ-ментора нужны дополнительные права."
-                : "Вы можете смотреть информацию о курсе без авторизации. Войдите, чтобы получить доступ к прохождению курса."}
+                ? 'Вы можете смотреть информацию о курсе, но для открытия модулей, уроков, теории, практики и ИИ-ментора нужны дополнительные права.'
+                : 'Вы можете смотреть информацию о курсе без авторизации. Войдите, чтобы получить доступ к прохождению курса.'}
             </p>
           </div>
           {(!isAuthenticated || canUpdateCourse) && (
@@ -678,7 +679,7 @@ export function CourseViewer({
   if (!isMetricsMode && !isEnrolled && !canViewWithoutEnrollment) {
     return (
       <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
+        <SectionTop label="Курс" title={course?.title || 'Просмотр курса'} />
         {error && (
           <article
             className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
@@ -705,7 +706,7 @@ export function CourseViewer({
               onClick={enrollToCourse}
               disabled={isCourseSigning}
             >
-              {isCourseSigning ? "Записываем..." : "Записаться на курс"}
+              {isCourseSigning ? 'Записываем...' : 'Записаться на курс'}
             </button>
             {canUpdateCourse && (
               <>
@@ -740,7 +741,7 @@ export function CourseViewer({
   if (!isMetricsMode && !isLearningStarted) {
     return (
       <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Курс" title={course?.title || "Просмотр курса"} />
+        <SectionTop label="Курс" title={course?.title || 'Просмотр курса'} />
         {error && (
           <article
             className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
@@ -754,13 +755,13 @@ export function CourseViewer({
           <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
             <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
               {canViewWithoutEnrollment
-                ? "Курс доступен для просмотра"
-                : "Курс доступен для прохождения"}
+                ? 'Курс доступен для просмотра'
+                : 'Курс доступен для прохождения'}
             </h2>
             <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
               {canViewWithoutEnrollment
-                ? "Нажмите кнопку, чтобы открыть структуру курса для чтения."
-                : "Нажмите кнопку, чтобы открыть структуру курса и начать обучение."}
+                ? 'Нажмите кнопку, чтобы открыть структуру курса для чтения.'
+                : 'Нажмите кнопку, чтобы открыть структуру курса и начать обучение.'}
             </p>
             {isProgressTracked && progressSummary.total > 0 && (
               <CourseProgressBar summary={progressSummary} />
@@ -773,10 +774,10 @@ export function CourseViewer({
               onClick={startLearning}
             >
               {canViewWithoutEnrollment
-                ? "Посмотреть теорию"
+                ? 'Посмотреть теорию'
                 : isProgressTracked && progressSummary.started > 0
-                  ? "Продолжить обучение"
-                  : "Перейти к обучению"}
+                  ? 'Продолжить обучение'
+                  : 'Перейти к обучению'}
             </button>
             {canUpdateCourse && (
               <>
@@ -804,18 +805,18 @@ export function CourseViewer({
   }
 
   const sectionLabel = isMetricsMode
-    ? "Метрики курса"
+    ? 'Метрики курса'
     : selectedLesson
-      ? "Урок"
+      ? 'Урок'
       : selectedBlock
-        ? "Модуль"
-        : "Курс";
+        ? 'Модуль'
+        : 'Курс';
   const sectionTitle = isMetricsMode
     ? selectedLesson?.title || selectedBlock?.title || course.title
     : selectedLesson?.title || selectedBlock?.title || course.title;
   const isLessonChatEnabled =
     !isMetricsMode && canReadCourseContent && Boolean(selectedLesson);
-  const isChatAvailable = isLessonChatEnabled && activeTab === "theory";
+  const isChatAvailable = isLessonChatEnabled && activeTab === 'theory';
 
   return (
     <section className="container section lesson-view generated-course-learning-view tw:w-[min(1720px,_98vw)] tw:relative tw:z-[1] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
@@ -832,7 +833,7 @@ export function CourseViewer({
         className="generated-course-learning-grid"
         chatEnabled={isLessonChatEnabled}
         chatAvailable={isChatAvailable}
-        chatKey={selectedLesson?.id || "no-lesson"}
+        chatKey={selectedLesson?.id || 'no-lesson'}
         chatProps={{
           courseId: course.id,
           lessonId: selectedLesson?.id,
@@ -848,11 +849,11 @@ export function CourseViewer({
                 ? NO_SELECTED_BLOCK
                 : selectedBlock || course.blocks[0]
             }
-            selectedLessonId={selectedLesson?.id || ""}
+            selectedLessonId={selectedLesson?.id || ''}
             summaryItem={
               isMetricsMode
                 ? {
-                    label: "Сводка по курсу",
+                    label: 'Сводка по курсу',
                     active: !selectedLesson,
                     onOpen: openCourseOverview,
                   }
@@ -864,7 +865,7 @@ export function CourseViewer({
             openBlock={openBlock}
             openLesson={openLesson}
             openPractice={() => {}}
-            mode={isMetricsMode ? "metrics" : "theory"}
+            mode={isMetricsMode ? 'metrics' : 'theory'}
             lessonProgressById={isProgressTracked ? lessonProgressById : null}
             progressSummary={progressSummary}
           />
@@ -881,7 +882,7 @@ export function CourseViewer({
           className="glass-card lesson-main-card generated-course-main-card tw:w-[100%] tw:min-w-[0] tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:static tw:overflow-visible tw:isolation-auto tw:p-[6px] tw:top-[16px] tw:max-h-[none] tw:col-[auto] tw:[border-width:0] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:none] tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.55)_transparent] tw:max-1100:min-h-[auto] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[&:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[&:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[&:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:sticky tw:[&::before]:top-[-6px] tw:[&::before]:inset-[auto] tw:[&::before]:z-[20] tw:[&::before]:rounded-[20px_20px_0_0] tw:[&::before]:block tw:[&::before]:w-[calc(100%_+_12px)] tw:[&::before]:h-[52px] tw:[&::before]:ml-[-6px] tw:[&::before]:mb-[-52px] tw:[&::before]:pointer-events-none tw:[&::before]:opacity-[0] tw:[&::before]:[content:''] tw:[&::before]:[background:linear-gradient(_180deg,_rgba(245,_241,_232,_0.98)_0%,_rgba(245,_241,_232,_0.98)_30%,_rgba(245,_241,_232,_0.84)_58%,_rgba(245,_241,_232,_0)_100%_)] tw:[&::before]:[box-shadow:none] tw:[&::before]:[backdrop-filter:blur(12px)] tw:[&::before]:[-webkit-backdrop-filter:blur(12px)] tw:[&.is-scrolled]:[&::before]:opacity-[1] tw:[&::before]:[transform:translateY(-8px)] tw:[&::before]:[transition:opacity_160ms_ease,_transform_160ms_ease] tw:[&::after]:[content:none] tw:dark:[&::before]:[background:linear-gradient(_180deg,_rgba(31,_31,_31,_0.98)_0%,_rgba(31,_31,_31,_0.98)_30%,_rgba(31,_31,_31,_0.86)_58%,_rgba(31,_31,_31,_0)_100%_)] tw:[&.is-scrolled]:[&::before]:[transform:translateY(0)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
           onScroll={(event) => {
             event.currentTarget.classList.toggle(
-              "is-scrolled",
+              'is-scrolled',
               event.currentTarget.scrollTop > 8,
             );
           }}
@@ -929,10 +930,10 @@ export function CourseViewer({
                 >
                   <button
                     type="button"
-                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:dark:text-[#cfc2ad] tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "theory" ? "is-active" : ""}`}
-                    aria-selected={activeTab === "theory"}
+                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:dark:text-[#cfc2ad] tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'theory' ? 'is-active' : ''}`}
+                    aria-selected={activeTab === 'theory'}
                     onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, "theory")
+                      setLessonActiveTab(selectedLesson.id, 'theory')
                     }
                   >
                     Теория
@@ -946,10 +947,10 @@ export function CourseViewer({
                   </button>
                   <button
                     type="button"
-                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:dark:text-[#cfc2ad] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "questions" ? "is-active" : ""}`}
-                    aria-selected={activeTab === "questions"}
+                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:dark:text-[#cfc2ad] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'questions' ? 'is-active' : ''}`}
+                    aria-selected={activeTab === 'questions'}
                     onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, "questions")
+                      setLessonActiveTab(selectedLesson.id, 'questions')
                     }
                   >
                     Проверочные вопросы
@@ -961,10 +962,10 @@ export function CourseViewer({
                   </button>
                   <button
                     type="button"
-                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:dark:text-[#cfc2ad] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "practice" ? "is-active" : ""}`}
-                    aria-selected={activeTab === "practice"}
+                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:dark:text-[#cfc2ad] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'practice' ? 'is-active' : ''}`}
+                    aria-selected={activeTab === 'practice'}
                     onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, "practice")
+                      setLessonActiveTab(selectedLesson.id, 'practice')
                     }
                   >
                     Практика
@@ -978,19 +979,19 @@ export function CourseViewer({
                   </button>
                 </div>
 
-                {activeTab === "questions" ? (
+                {activeTab === 'questions' ? (
                   <LessonTestAgent
                     key={`${selectedBlock.id}:${selectedLesson.id}:test`}
                     moduleId={selectedBlock.id}
                     lessonId={selectedLesson.id}
-                    onChecked={handleAssessmentChecked("testCompletedAt")}
+                    onChecked={handleAssessmentChecked('testCompletedAt')}
                   />
-                ) : activeTab === "practice" ? (
+                ) : activeTab === 'practice' ? (
                   <LessonPracticeAgent
                     key={`${selectedBlock.id}:${selectedLesson.id}:practice`}
                     moduleId={selectedBlock.id}
                     lessonId={selectedLesson.id}
-                    onChecked={handleAssessmentChecked("practiceCompletedAt")}
+                    onChecked={handleAssessmentChecked('practiceCompletedAt')}
                   />
                 ) : (
                   <div className="lesson-theory-content">

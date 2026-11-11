@@ -1,1 +1,1 @@
-export { HomePage, type HomePageProps } from "./ui/HomePage";
+export { HomePage, type HomePageProps } from './ui/HomePage';

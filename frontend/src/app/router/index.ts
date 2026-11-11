@@ -1,1 +1,1 @@
-export { ProtectedRoute, type ProtectedRouteProps } from "./ProtectedRoute";
+export { ProtectedRoute, type ProtectedRouteProps } from './ProtectedRoute';

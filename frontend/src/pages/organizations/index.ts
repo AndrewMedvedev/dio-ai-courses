@@ -1,4 +1,4 @@
 export {
   OrganizationsPage,
   type OrganizationsPageProps,
-} from "./ui/OrganizationsPage";
+} from './ui/OrganizationsPage';

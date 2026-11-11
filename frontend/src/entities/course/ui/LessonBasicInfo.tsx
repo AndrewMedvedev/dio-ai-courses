@@ -54,7 +54,7 @@ export function LessonBasicInfo({
           </span>
           <strong className="tw:dark:text-[#fff4df]">
             {lesson.estimated_time_minutes === null
-              ? "Не указано"
+              ? 'Не указано'
               : `${lesson.estimated_time_minutes} мин.`}
           </strong>
         </div>

@@ -1,1 +1,1 @@
-export { withoutEmptyValues } from "./without-empty-values";
+export { withoutEmptyValues } from './without-empty-values';

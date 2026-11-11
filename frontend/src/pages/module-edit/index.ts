@@ -1,1 +1,1 @@
-export { BlockPage, type BlockPageProps } from "./ui/BlockPage";
+export { BlockPage, type BlockPageProps } from './ui/BlockPage';

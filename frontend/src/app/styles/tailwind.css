@@ -8,8 +8,8 @@
  * всё остальное — утилиты tw: в className, они сильнее обоих слоёв.
  */
 @layer theme, base, legacy, utilities;
-@import "tailwindcss/theme.css" layer(theme) prefix(tw);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import 'tailwindcss/theme.css' layer(theme) prefix(tw);
+@import 'tailwindcss/utilities.css' layer(utilities);
 
 /*
  * Варианты, которые повторяют условия прежнего CSS один в один:

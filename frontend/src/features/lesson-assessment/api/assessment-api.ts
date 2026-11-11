@@ -1,3 +1,5 @@
+import { asRecord } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
 // Проверочные тесты и практика урока: генерация агентом и проверка ответов.
 import {
   apiFetch,
@@ -6,7 +8,7 @@ import {
   requestJson,
   type JsonRequestOptions,
   type RawApiRecord,
-} from "@/shared/api";
+} from '@/shared/api';
 
 export interface CreatedPractice {
   practice: unknown;
@@ -20,7 +22,8 @@ function normalizeCreatedPracticeResponse(
   const practice = data?.practice || data?.assignment || data?.test || data;
   return {
     practice,
-    practiceId: data?.practice_id || data?.practiceId || data?.id || null,
+    practiceId:
+      toText(data?.practice_id || data?.practiceId || data?.id || null) || null,
     raw: data,
   };
 }
@@ -29,7 +32,7 @@ function appendPracticeAssignmentFormFields(
   formData: FormData,
   assignment: unknown = {},
 ): void {
-  formData.append("practice", JSON.stringify(assignment));
+  formData.append('practice', JSON.stringify(assignment));
 }
 
 export async function generateLessonTest(
@@ -40,7 +43,7 @@ export async function generateLessonTest(
   return normalizeCreatedPracticeResponse(
     await requestJson(
       `/agent/tests/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
-      { method: "POST", ...(options || {}) },
+      { method: 'POST', ...(options || {}) },
     ),
   );
 }
@@ -52,7 +55,7 @@ export async function checkLessonTest(
 ): Promise<RawApiRecord> {
   return jsonRequest(
     `/agent/check/tests/${encodeURIComponent(practiceId)}`,
-    "POST",
+    'POST',
     payload,
     options,
   );
@@ -66,7 +69,7 @@ export async function generateLessonPractice(
   return normalizeCreatedPracticeResponse(
     await requestJson(
       `/agent/practices/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
-      { method: "POST", ...(options || {}) },
+      { method: 'POST', ...(options || {}) },
     ),
   );
 }
@@ -79,19 +82,19 @@ export async function checkLessonPractice(
 ): Promise<RawApiRecord> {
   const formData = new FormData();
   appendPracticeAssignmentFormFields(formData, assignment);
-  formData.append("file", file);
+  formData.append('file', file);
 
   const response = await apiFetch(
     `/agent/check/practices/${encodeURIComponent(practiceId)}`,
-    { method: "POST", body: formData, ...(options || {}) },
+    { method: 'POST', body: formData, ...(options || {}) },
   );
 
   if (!response.ok) {
     throw await createApiError(
       response,
-      "Не удалось проверить практическое задание.",
+      'Не удалось проверить практическое задание.',
     );
   }
 
-  return response.json();
+  return asRecord(await response.json());
 }

@@ -1,7 +1,7 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 // Короткие всплывающие уведомления («Приглашение отправлено» и т.п.).
-export type ToastTone = "success" | "error";
+export type ToastTone = 'success' | 'error';
 
 export interface Toast {
   id: number;
@@ -25,7 +25,7 @@ let nextToastId = 0;
 export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
 
-  show: (message, { tone = "success", duration = 4500 } = {}) => {
+  show: (message, { tone = 'success', duration = 4500 } = {}) => {
     if (!message) return null;
     nextToastId += 1;
     const id = nextToastId;

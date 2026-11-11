@@ -1,8 +1,8 @@
 // Шапка приложения и навигация по маршрутам
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useSessionStore } from "@/entities/session";
-import { useUiLayoutStore } from "@/shared/lib/ui-layout";
-import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useSessionStore } from '@/entities/session';
+import { useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { getMediaUrl, MEDIA_FOLDERS } from '@/shared/lib/media';
 
 export interface HeaderProps {
   theme: string;
@@ -14,9 +14,9 @@ export interface HeaderProps {
 }
 
 function getDisplayText(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number") return String(value);
-  if (!value || typeof value !== "object") return "";
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number') return String(value);
+  if (!value || typeof value !== 'object') return '';
 
   const record = value as Record<string, unknown>;
   return getDisplayText(
@@ -54,21 +54,21 @@ export function Header({
     user?.avatar_url,
   );
   const isCoursePath =
-    location.pathname.startsWith("/course") || location.pathname === "/courses";
-  const isOrganizationsPath = location.pathname.startsWith("/organizations");
-  const isModelsPath = location.pathname.startsWith("/models");
+    location.pathname.startsWith('/course') || location.pathname === '/courses';
+  const isOrganizationsPath = location.pathname.startsWith('/organizations');
+  const isModelsPath = location.pathname.startsWith('/models');
 
   const handleLogout = async () => {
     await logout();
-    resetRouteHistory("/");
-    navigate("/", { replace: true });
+    resetRouteHistory('/');
+    void navigate('/', { replace: true });
   };
   const displayName =
     getDisplayText(user?.username) ||
     getDisplayText(user?.name) ||
     getDisplayText(identity?.email) ||
     getDisplayText(identity?.username) ||
-    "Профиль";
+    'Профиль';
 
   return (
     <header className="container header tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:m-[0_auto] tw:p-[30px_0_34px] tw:grid tw:grid-cols-[minmax(190px,_auto)_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:max-760:flex tw:max-980:grid-cols-[1fr_auto] tw:max-760:flex-wrap tw:max-980:[align-items:start] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
@@ -89,7 +89,7 @@ export function Header({
           <NavLink
             to="/courses"
             className={() =>
-              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:[&.is-active]:text-(--accent) tw:hover:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isCoursePath ? "is-active" : ""}`
+              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:[&.is-active]:text-(--accent) tw:hover:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isCoursePath ? 'is-active' : ''}`
             }
           >
             Каталог
@@ -99,7 +99,7 @@ export function Header({
           <NavLink
             to="/organizations"
             className={() =>
-              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isOrganizationsPath ? "is-active" : ""}`
+              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isOrganizationsPath ? 'is-active' : ''}`
             }
           >
             Организации
@@ -109,7 +109,7 @@ export function Header({
           <NavLink
             to="/models"
             className={() =>
-              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isModelsPath ? "is-active" : ""}`
+              `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isModelsPath ? 'is-active' : ''}`
             }
           >
             AI-модели
@@ -120,7 +120,7 @@ export function Header({
             <NavLink
               to="/creator"
               className={({ isActive }) =>
-                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? "is-active" : ""}`
+                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? 'is-active' : ''}`
               }
             >
               Создать курс
@@ -128,7 +128,7 @@ export function Header({
             <NavLink
               to="/drag-and-drop-course"
               className={({ isActive }) =>
-                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? "is-active" : ""}`
+                `nav-link tw:text-(--muted) tw:min-h-[34px] tw:border-solid tw:border-[transparent] tw:rounded-[999px] tw:text-[clamp(0.76rem,_0.9vw,_0.94rem)] tw:font-[700] tw:leading-[1.2] tw:cursor-pointer tw:p-[6px_8px] tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:hover:text-(--accent) tw:[&.is-active]:text-(--accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.32)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:max-760:p-[7px_9px] tw:[transition:background_0.16s_ease,_border-color_0.16s_ease,_color_0.16s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.1)] ${isActive ? 'is-active' : ''}`
               }
             >
               Drag &amp; Drop курс
@@ -143,7 +143,7 @@ export function Header({
             <NavLink
               to="/profile"
               className={({ isActive }) =>
-                `profile-chip glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:inline-flex tw:items-center tw:gap-[10px] tw:p-[8px_12px] tw:cursor-pointer tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[text-decoration:none] tw:hover:[&.is-active]:border-(--glass-glow) tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] ${isActive ? "is-active" : ""}`
+                `profile-chip glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:inline-flex tw:items-center tw:gap-[10px] tw:p-[8px_12px] tw:cursor-pointer tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[text-decoration:none] tw:hover:[&.is-active]:border-(--glass-glow) tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] ${isActive ? 'is-active' : ''}`
               }
             >
               {avatarImageUrl ? (
@@ -182,7 +182,7 @@ export function Header({
           <NavLink
             to="/login"
             className={({ isActive }) =>
-              `profile-chip glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:inline-flex tw:items-center tw:gap-[10px] tw:p-[8px_12px] tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[text-decoration:none] tw:hover:[&.is-active]:border-(--glass-glow) tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] ${isActive ? "is-active" : ""}`
+              `profile-chip glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:inline-flex tw:items-center tw:gap-[10px] tw:p-[8px_12px] tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[text-decoration:none] tw:hover:[&.is-active]:border-(--glass-glow) tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] ${isActive ? 'is-active' : ''}`
             }
           >
             <span className="profile-avatar tw:w-[30px] tw:h-[30px] tw:rounded-[50%] tw:inline-flex tw:items-center tw:justify-center tw:text-(--ink-accent) tw:flex-[0_0_auto] tw:overflow-hidden tw:[background:rgba(var(--accent-rgb),_0.18)]">
@@ -196,20 +196,20 @@ export function Header({
         <label
           className="theme-switch glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[999px] tw:relative tw:overflow-hidden tw:isolate tw:w-[80px] tw:h-[44px] tw:min-w-[80px] tw:p-[4px] tw:cursor-pointer tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[order:4] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
           title={
-            theme === "dark"
-              ? "Переключить на светлую тему"
-              : "Переключить на темную тему"
+            theme === 'dark'
+              ? 'Переключить на светлую тему'
+              : 'Переключить на темную тему'
           }
         >
           <input
             className="tw:w-[1px] tw:h-[1px] tw:opacity-[0] tw:pointer-events-none tw:[&&&]:absolute"
             type="checkbox"
-            checked={theme === "dark"}
+            checked={theme === 'dark'}
             onChange={toggleTheme}
             aria-label={
-              theme === "dark"
-                ? "Переключить на светлую тему"
-                : "Переключить на темную тему"
+              theme === 'dark'
+                ? 'Переключить на светлую тему'
+                : 'Переключить на темную тему'
             }
           />
           <span

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createAgentConversationKey,
   useAgentStore,
-} from "@/entities/agent-chat";
+} from '@/entities/agent-chat';
 import {
   AiChatPanel,
   ChatComposer,
@@ -14,13 +14,13 @@ import {
   ChatThread,
   ChatTyping,
   IconDownload,
-} from "@/shared/ui/ai-chat";
+} from '@/shared/ui/ai-chat';
 
 const QUICK_PROMPTS = [
-  "Объяснить проще",
-  "Привести пример",
-  "Составить краткий конспект",
-  "Помочь с практическим заданием",
+  'Объяснить проще',
+  'Привести пример',
+  'Составить краткий конспект',
+  'Помочь с практическим заданием',
 ];
 
 export interface LessonAiChatProps {
@@ -48,12 +48,12 @@ export function LessonAiChat({
   onClose,
   onAssistantResponse,
 }: LessonAiChatProps) {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const latestAssistantMessageRef = useRef<string | null>(null);
   const didObserveMessagesRef = useRef(false);
   const conversationKey = useMemo(
-    () => createAgentConversationKey("mentor", courseId, lessonId),
+    () => createAgentConversationKey('mentor', courseId, lessonId),
     [courseId, lessonId],
   );
   const conversation = useAgentStore(
@@ -64,13 +64,16 @@ export function LessonAiChat({
   );
   const sendAgentMessage = useAgentStore((state) => state.sendMessage);
   const cancelRequest = useAgentStore((state) => state.cancelRequest);
-  const messages = conversation?.messages || [];
-  const isSending = conversation?.status === "loading";
+  const messages = useMemo(
+    () => conversation?.messages || [],
+    [conversation?.messages],
+  );
+  const isSending = conversation?.status === 'loading';
 
   useEffect(() => {
     initializeConversation({
       key: conversationKey,
-      agent: "mentor",
+      agent: 'mentor',
       courseId,
     });
     return () => cancelRequest(conversationKey);
@@ -80,7 +83,7 @@ export function LessonAiChat({
   useEffect(() => {
     const latestAssistantMessage = [...messages]
       .reverse()
-      .find((message) => message.role === "assistant");
+      .find((message) => message.role === 'assistant');
     const latestAssistantMessageId = latestAssistantMessage?.id || null;
 
     if (!didObserveMessagesRef.current) {
@@ -102,11 +105,11 @@ export function LessonAiChat({
     const prompt = value.trim();
     if (!prompt || isSending || !courseId) return;
 
-    setInputValue("");
+    setInputValue('');
     try {
       await sendAgentMessage({
         key: conversationKey,
-        agent: "mentor",
+        agent: 'mentor',
         courseId,
         content: prompt,
         contentBlocks,
@@ -122,7 +125,7 @@ export function LessonAiChat({
       open={isOpen}
       onClose={onClose}
       tag="Урок"
-      title={lessonTitle || "Материалы урока"}
+      title={lessonTitle || 'Материалы урока'}
       initialFocusRef={inputRef}
       className="lesson-page-ai-chat"
       headerActions={
@@ -151,7 +154,7 @@ export function LessonAiChat({
               className="tw:justify-center"
               options={QUICK_PROMPTS}
               onPick={(prompt) => {
-                sendMessage(prompt);
+                void sendMessage(prompt);
                 inputRef.current?.focus({ preventScroll: true });
               }}
               disabled={isSending || !courseId}
@@ -180,7 +183,7 @@ export function LessonAiChat({
         disabled={!courseId}
         textareaRef={inputRef}
         placeholder={
-          isSending ? "Можно написать следующий вопрос…" : "Спросите про урок…"
+          isSending ? 'Можно написать следующий вопрос…' : 'Спросите про урок…'
         }
         ariaLabel="Сообщение для ИИ"
       />

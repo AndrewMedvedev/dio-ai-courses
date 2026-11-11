@@ -1,5 +1,5 @@
 // Потоки преподавателя в кабинете автора (пока только в памяти страницы).
-import { useState } from "react";
+import { useState } from 'react';
 
 export interface TeacherStudent {
   id: string;
@@ -23,15 +23,15 @@ export function useTeacherGroups<T extends { id?: string | null }>(
   courses: T[],
   initialCourseId: string,
 ) {
-  const fallbackCourseId = initialCourseId || courses[0]?.id || "";
+  const fallbackCourseId = initialCourseId || courses[0]?.id || '';
   const [teacherGroups, setTeacherGroups] = useState(() =>
     createDefaultTeacherGroups(),
   );
-  const [activeTeacherGroupId, setActiveTeacherGroupId] = useState("");
-  const [teacherGroupName, setTeacherGroupName] = useState("Новый поток");
+  const [activeTeacherGroupId, setActiveTeacherGroupId] = useState('');
+  const [teacherGroupName, setTeacherGroupName] = useState('Новый поток');
   const [teacherCourseId, setTeacherCourseId] =
     useState<string>(fallbackCourseId);
-  const [teacherStudentName, setTeacherStudentName] = useState("");
+  const [teacherStudentName, setTeacherStudentName] = useState('');
 
   const activeTeacherGroup =
     teacherGroups.find((group) => group.id === activeTeacherGroupId) ||
@@ -68,7 +68,7 @@ export function useTeacherGroups<T extends { id?: string | null }>(
       },
     ]);
     setActiveTeacherGroupId(nextGroupId);
-    setTeacherGroupName("");
+    setTeacherGroupName('');
   };
 
   const addStudentToActiveGroup = () => {
@@ -91,7 +91,7 @@ export function useTeacherGroups<T extends { id?: string | null }>(
           : group,
       ),
     );
-    setTeacherStudentName("");
+    setTeacherStudentName('');
   };
 
   const adjustStudentProgress = (studentId: string, delta: number) => {

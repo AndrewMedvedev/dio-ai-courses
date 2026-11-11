@@ -1,7 +1,7 @@
 // Курс в состоянии приложения: дерево «курс → модули (blocks) → уроки».
 // Объекты часто заполнены частично (заглушки, ответы разных ручек),
 // поэтому все поля, кроме id и вложенности, необязательны.
-import type { RawApiRecord } from "@/shared/api";
+import type { RawApiRecord } from '@/shared/api';
 
 export interface LessonNode {
   id: string;

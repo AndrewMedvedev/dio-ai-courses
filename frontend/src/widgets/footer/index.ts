@@ -1,1 +1,1 @@
-export { Footer, type FooterProps } from "./ui/Footer";
+export { Footer, type FooterProps } from './ui/Footer';

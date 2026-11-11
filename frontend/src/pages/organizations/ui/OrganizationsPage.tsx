@@ -1,13 +1,14 @@
 import {
   useEffect,
+  useCallback,
   useMemo,
   useState,
   type FormEvent,
   type ReactNode,
-} from "react";
-import { SectionTop } from "@/shared/ui/section-top";
-import { InviteDialog, OrganizationInvitations } from "@/features/invite";
-import { useSessionStore } from "@/entities/session";
+} from 'react';
+import { SectionTop } from '@/shared/ui/section-top';
+import { InviteDialog, OrganizationInvitations } from '@/features/invite';
+import { useSessionStore } from '@/entities/session';
 import {
   createOrganization,
   deleteOrganization,
@@ -15,7 +16,7 @@ import {
   fetchOrganizationsPage,
   updateOrganization,
   type Organization,
-} from "@/entities/organization";
+} from '@/entities/organization';
 
 interface OrganizationFormValues {
   name: string;
@@ -35,32 +36,32 @@ interface MutationError {
 
 const asMutationError = (error: unknown) => (error ?? {}) as MutationError;
 
-type Section = "current" | "create" | "all" | "details";
+type Section = 'current' | 'create' | 'all' | 'details';
 
 const EMPTY_FORM: OrganizationFormValues = {
-  name: "",
-  email: "",
-  description: "",
+  name: '',
+  email: '',
+  description: '',
 };
 
 function organizationToForm(
   organization: Organization | null | undefined,
 ): OrganizationFormValues {
   return {
-    name: organization?.name || "",
-    email: organization?.email || "",
-    description: organization?.description || "",
+    name: organization?.name || '',
+    email: organization?.email || '',
+    description: organization?.description || '',
   };
 }
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) return '—';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 }
 
@@ -129,7 +130,7 @@ function OrganizationHeader({
               <input
                 value={editForm.name}
                 maxLength={255}
-                onChange={(event) => onEditChange?.("name", event.target.value)}
+                onChange={(event) => onEditChange?.('name', event.target.value)}
               />
               <FieldError message={validationErrors.name} />
             </label>
@@ -139,7 +140,7 @@ function OrganizationHeader({
                 type="email"
                 value={editForm.email}
                 onChange={(event) =>
-                  onEditChange?.("email", event.target.value)
+                  onEditChange?.('email', event.target.value)
                 }
               />
               <FieldError message={validationErrors.email} />
@@ -169,11 +170,11 @@ function OrganizationHeader({
         <span
           className={`tw:[&.organization-status]:flex-[0_0_auto] tw:[&.organization-status]:border-solid tw:[&.organization-status.is-inactive]:border-[rgba(180,_35,_24,_0.34)] tw:[&.organization-status]:border-[rgba(var(--success-rgb),_0.4)] tw:[&.organization-status]:rounded-[999px] tw:[&.organization-status]:p-[6px_10px] tw:[&.organization-status.is-inactive]:text-[#b42318] tw:[&.organization-status]:text-(--success-text) tw:[&.organization-status]:text-[0.78rem] tw:[&.organization-status]:font-[800] tw:[&.organization-status]:[border-width:1px] ${
             organization.is_active
-              ? "organization-status"
-              : "organization-status is-inactive"
+              ? 'organization-status'
+              : 'organization-status is-inactive'
           }`}
         >
-          {organization.is_active ? "Активна" : "Неактивна"}
+          {organization.is_active ? 'Активна' : 'Неактивна'}
         </span>
         {children}
       </div>
@@ -212,7 +213,7 @@ function OrganizationForm({
         <input
           value={form.name}
           maxLength={255}
-          onChange={(event) => onChange("name", event.target.value)}
+          onChange={(event) => onChange('name', event.target.value)}
           required={required}
         />
         <FieldError message={validationErrors.name} />
@@ -222,7 +223,7 @@ function OrganizationForm({
         <input
           type="email"
           value={form.email}
-          onChange={(event) => onChange("email", event.target.value)}
+          onChange={(event) => onChange('email', event.target.value)}
           required={required}
         />
         <FieldError message={validationErrors.email} />
@@ -231,7 +232,7 @@ function OrganizationForm({
         <span>Описание</span>
         <textarea
           value={form.description}
-          onChange={(event) => onChange("description", event.target.value)}
+          onChange={(event) => onChange('description', event.target.value)}
           required={required}
         />
         <FieldError message={validationErrors.description} />
@@ -261,7 +262,7 @@ function OrganizationForm({
 
 function OrganizationDetails({
   organization,
-  title = "Организация",
+  title = 'Организация',
   canUpdateOrganization,
   canDeleteOrganization,
   editForm,
@@ -333,14 +334,14 @@ function OrganizationDetails({
             <textarea
               value={editForm.description}
               onChange={(event) =>
-                onEditChange("description", event.target.value)
+                onEditChange('description', event.target.value)
               }
             />
             <FieldError message={validationErrors.description} />
           </label>
         ) : (
           <p className="organization-description tw:text-(--muted) tw:m-[6px_0_0] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-            {organization.description || "Описание не заполнено."}
+            {organization.description || 'Описание не заполнено.'}
           </p>
         )}
         <OrganizationMeta organization={organization} />
@@ -354,8 +355,8 @@ function OrganizationDetails({
               onClick={() => onUpdate(organization.id, editForm)}
             >
               {pendingAction === `update:${organization.id}`
-                ? "Сохраняем..."
-                : "Сохранить"}
+                ? 'Сохраняем...'
+                : 'Сохранить'}
             </button>
             <button
               type="button"
@@ -376,8 +377,8 @@ function OrganizationDetails({
             onClick={() => onDelete(organization.id)}
           >
             {pendingAction === `delete:${organization.id}`
-              ? "Удаляем..."
-              : "Деактивировать"}
+              ? 'Удаляем...'
+              : 'Деактивировать'}
           </button>
         )}
       </article>
@@ -406,10 +407,10 @@ export function OrganizationsPage({
   const organizationId = useSessionStore((state) => state.organizationId);
   // { organization } — открытое окно приглашения в организацию.
   const [inviteTarget, setInviteTarget] = useState<{
-    organization: Pick<Organization, "id" | "name">;
+    organization: Pick<Organization, 'id' | 'name'>;
   } | null>(null);
   const [invitationRevision, setInvitationRevision] = useState(0);
-  const [activeSection, setActiveSection] = useState<Section>("current");
+  const [activeSection, setActiveSection] = useState<Section>('current');
   const [currentOrganization, setCurrentOrganization] =
     useState<Organization | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<
@@ -419,11 +420,11 @@ export function OrganizationsPage({
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [, setTotalItems] = useState(0);
   const [currentLoading, setCurrentLoading] = useState(false);
   const [listLoading, setListLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [createForm, setCreateForm] = useState(EMPTY_FORM);
   const [editForms, setEditForms] = useState<
     Record<string, OrganizationFormValues>
@@ -432,7 +433,7 @@ export function OrganizationsPage({
     string | null
   >(null);
   const [validationErrors, setValidationErrors] = useState<FieldErrors>({});
-  const [pendingAction, setPendingAction] = useState("");
+  const [pendingAction, setPendingAction] = useState('');
 
   const selectedOrganization = useMemo(() => {
     if (!selectedOrganizationId) return null;
@@ -449,15 +450,18 @@ export function OrganizationsPage({
     [totalPages],
   );
 
-  const applyEditForm = (organization: Organization | null | undefined) => {
-    if (!organization?.id) return;
-    setEditForms((current) => ({
-      ...current,
-      [organization.id]: organizationToForm(organization),
-    }));
-  };
+  const applyEditForm = useCallback(
+    (organization: Organization | null | undefined) => {
+      if (!organization?.id) return;
+      setEditForms((current) => ({
+        ...current,
+        [organization.id]: organizationToForm(organization),
+      }));
+    },
+    [],
+  );
 
-  const loadCurrentOrganization = async () => {
+  const loadCurrentOrganization = useCallback(async () => {
     if (!organizationId) {
       setCurrentOrganization(null);
       return;
@@ -470,9 +474,9 @@ export function OrganizationsPage({
     if (organizationFromList) {
       setCurrentOrganization(organizationFromList);
       applyEditForm(organizationFromList);
-      if (!selectedOrganizationId) {
-        setSelectedOrganizationId(organizationFromList.id);
-      }
+      setSelectedOrganizationId(
+        (current) => current || organizationFromList.id,
+      );
       return;
     }
     if (!canReadOwnOrganization) {
@@ -480,93 +484,87 @@ export function OrganizationsPage({
     }
 
     setCurrentLoading(true);
-    setError("");
+    setError('');
 
     try {
       const organization = await fetchOrganizationById(organizationId);
       setCurrentOrganization(organization);
       applyEditForm(organization);
-      if (!selectedOrganizationId) {
-        setSelectedOrganizationId(organization.id);
-      }
+      setSelectedOrganizationId((current) => current || organization.id);
     } catch (rawLoadError) {
       const loadError = asMutationError(rawLoadError);
       setCurrentOrganization(null);
       setError(
         loadError.userMessage ||
           loadError.message ||
-          "Не удалось загрузить текущую организацию.",
+          'Не удалось загрузить текущую организацию.',
       );
     } finally {
       setCurrentLoading(false);
     }
-  };
+  }, [organizationId, organizations, canReadOwnOrganization, applyEditForm]);
 
-  const loadOrganizations = async ({ silent = false } = {}) => {
-    if (!canReadOrganization) {
-      setOrganizations([]);
-      setTotalPages(1);
-      setTotalItems(0);
-      return;
-    }
-
-    if (!silent) {
-      setListLoading(true);
-    }
-    setError("");
-
-    try {
-      const response = await fetchOrganizationsPage({ page, size: pageSize });
-      const items = response.items || [];
-      setOrganizations(items);
-      setTotalPages(response.total_pages || 1);
-      setTotalItems(response.total_items || response.total || 0);
-
-      const currentFromList = items.find(
-        (organization) => organization.id === organizationId,
-      );
-      if (currentFromList) {
-        setCurrentOrganization(currentFromList);
-        if (!selectedOrganizationId) {
-          setSelectedOrganizationId(currentFromList.id);
-        }
+  const loadOrganizations = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!canReadOrganization) {
+        setOrganizations([]);
+        setTotalPages(1);
+        setTotalItems(0);
+        return;
       }
-      setEditForms((current) => ({
-        ...current,
-        ...Object.fromEntries(
-          items.map((organization) => [
-            organization.id,
-            organizationToForm(organization),
-          ]),
-        ),
-      }));
-    } catch (rawLoadError) {
-      const loadError = asMutationError(rawLoadError);
-      setError(
-        loadError.userMessage ||
-          loadError.message ||
-          "Не удалось загрузить организации.",
-      );
-      setOrganizations([]);
-      setTotalPages(1);
-      setTotalItems(0);
-    } finally {
-      setListLoading(false);
-    }
-  };
+
+      if (!silent) {
+        setListLoading(true);
+      }
+      setError('');
+
+      try {
+        const response = await fetchOrganizationsPage({ page, size: pageSize });
+        const items = response.items || [];
+        setOrganizations(items);
+        setTotalPages(response.total_pages || 1);
+        setTotalItems(response.total_items || response.total || 0);
+
+        const currentFromList = items.find(
+          (organization) => organization.id === organizationId,
+        );
+        if (currentFromList) {
+          setCurrentOrganization(currentFromList);
+          setSelectedOrganizationId((current) => current || currentFromList.id);
+        }
+        setEditForms((current) => ({
+          ...current,
+          ...Object.fromEntries(
+            items.map((organization) => [
+              organization.id,
+              organizationToForm(organization),
+            ]),
+          ),
+        }));
+      } catch (rawLoadError) {
+        const loadError = asMutationError(rawLoadError);
+        setError(
+          loadError.userMessage ||
+            loadError.message ||
+            'Не удалось загрузить организации.',
+        );
+        setOrganizations([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      } finally {
+        setListLoading(false);
+      }
+    },
+    [canReadOrganization, page, pageSize, organizationId],
+  );
 
   useEffect(() => {
-    loadCurrentOrganization();
-  }, [
-    organizationId,
-    canReadOrganization,
-    canReadOwnOrganization,
-    organizations,
-  ]);
+    void loadCurrentOrganization();
+  }, [loadCurrentOrganization]);
 
   useEffect(() => {
-    loadOrganizations();
-  }, [canReadOrganization, page, pageSize]);
+    void loadOrganizations();
+  }, [loadOrganizations]);
 
   useEffect(() => {
     if (!notice && !error) {
@@ -574,8 +572,8 @@ export function OrganizationsPage({
     }
 
     const timeoutId = window.setTimeout(() => {
-      setNotice("");
-      setError("");
+      setNotice('');
+      setError('');
     }, 4000);
 
     return () => window.clearTimeout(timeoutId);
@@ -583,7 +581,7 @@ export function OrganizationsPage({
 
   const updateCreateField = (field: FormField, value: string) => {
     setCreateForm((current) => ({ ...current, [field]: value }));
-    setValidationErrors((current) => ({ ...current, [field]: "" }));
+    setValidationErrors((current) => ({ ...current, [field]: '' }));
   };
 
   const updateEditField = (
@@ -598,11 +596,11 @@ export function OrganizationsPage({
         [field]: value,
       },
     }));
-    setValidationErrors((current) => ({ ...current, [field]: "" }));
+    setValidationErrors((current) => ({ ...current, [field]: '' }));
   };
 
   const openCurrentOrganization = () => {
-    setActiveSection("current");
+    setActiveSection('current');
     setSelectedOrganizationId(
       currentOrganization?.id || organizationId || null,
     );
@@ -611,21 +609,21 @@ export function OrganizationsPage({
   };
 
   const openCreateOrganization = () => {
-    setActiveSection("create");
+    setActiveSection('create');
     setEditingOrganizationId(null);
     setValidationErrors({});
   };
 
   const openAllOrganizations = () => {
     if (!canReadOrganization) return;
-    setActiveSection("all");
+    setActiveSection('all');
     setSelectedOrganizationId(null);
     setEditingOrganizationId(null);
     setValidationErrors({});
   };
 
   const openOrganizationDetails = (organization: Organization) => {
-    setActiveSection("details");
+    setActiveSection('details');
     setSelectedOrganizationId(organization.id);
     setEditingOrganizationId(null);
     setValidationErrors({});
@@ -658,15 +656,15 @@ export function OrganizationsPage({
     event.preventDefault();
     if (!canCreateOrganization) return;
 
-    setPendingAction("create");
-    setError("");
-    setNotice("");
+    setPendingAction('create');
+    setError('');
+    setNotice('');
     setValidationErrors({});
 
     try {
       const organization = await createOrganization(createForm);
       setCreateForm(EMPTY_FORM);
-      setNotice("Организация создана.");
+      setNotice('Организация создана.');
       if (canReadOrganization && organization?.id) {
         applyEditForm(organization);
         setOrganizations((current) => [
@@ -674,7 +672,7 @@ export function OrganizationsPage({
           ...current.filter((item) => item.id !== organization.id),
         ]);
         setSelectedOrganizationId(organization.id);
-        setActiveSection("details");
+        setActiveSection('details');
         setPage(1);
         await loadOrganizations({ silent: true });
       } else {
@@ -686,10 +684,10 @@ export function OrganizationsPage({
       setError(
         createError.userMessage ||
           createError.message ||
-          "Не удалось создать организацию.",
+          'Не удалось создать организацию.',
       );
     } finally {
-      setPendingAction("");
+      setPendingAction('');
     }
   };
 
@@ -700,8 +698,8 @@ export function OrganizationsPage({
     if (!canUpdateOrganization || !organizationIdToUpdate) return;
 
     setPendingAction(`update:${organizationIdToUpdate}`);
-    setError("");
-    setNotice("");
+    setError('');
+    setNotice('');
     setValidationErrors({});
 
     try {
@@ -709,7 +707,7 @@ export function OrganizationsPage({
         organizationIdToUpdate,
         form,
       );
-      setNotice("Организация обновлена.");
+      setNotice('Организация обновлена.');
       setEditingOrganizationId(null);
       if (organization?.id) {
         applyEditForm(organization);
@@ -728,10 +726,10 @@ export function OrganizationsPage({
       setError(
         updateError.userMessage ||
           updateError.message ||
-          "Не удалось обновить организацию.",
+          'Не удалось обновить организацию.',
       );
     } finally {
-      setPendingAction("");
+      setPendingAction('');
     }
   };
 
@@ -739,22 +737,22 @@ export function OrganizationsPage({
     if (!canDeleteOrganization || !organizationIdToDelete) return;
 
     setPendingAction(`delete:${organizationIdToDelete}`);
-    setError("");
-    setNotice("");
+    setError('');
+    setNotice('');
 
     try {
       await deleteOrganization(organizationIdToDelete);
-      setNotice("Организация деактивирована.");
+      setNotice('Организация деактивирована.');
       await refreshAfterMutation(organizationIdToDelete);
     } catch (rawDeleteError) {
       const deleteError = asMutationError(rawDeleteError);
       setError(
         deleteError.userMessage ||
           deleteError.message ||
-          "Не удалось удалить организацию.",
+          'Не удалось удалить организацию.',
       );
     } finally {
-      setPendingAction("");
+      setPendingAction('');
     }
   };
 
@@ -764,7 +762,7 @@ export function OrganizationsPage({
     const targetId = organization?.id || organizationId;
     if (!targetId) return null;
     if (!canInviteToOrganization || targetId !== organizationId) return null;
-    const target = organization || { id: targetId, name: "" };
+    const target = organization || { id: targetId, name: '' };
     return (
       <button
         type="button"
@@ -789,7 +787,7 @@ export function OrganizationsPage({
       onStartEdit={() => startEditingOrganization(organization)}
       onCancelEdit={cancelEditingOrganization}
       onEditChange={(field, value) =>
-        updateEditField(organization?.id ?? "", field, value)
+        updateEditField(organization?.id ?? '', field, value)
       }
       onUpdate={handleUpdate}
       onDelete={handleDelete}
@@ -811,7 +809,7 @@ export function OrganizationsPage({
 
       {(notice || error) && (
         <article
-          className={`glass-card organization-message tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[16px_18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_p]:m-[0] tw:[&_p]:text-(--success-text) tw:[&_p]:font-[700] tw:[&.is-error_p]:text-[#b42318] ${error ? "is-error" : ""}`}
+          className={`glass-card organization-message tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[16px_18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_p]:m-[0] tw:[&_p]:text-(--success-text) tw:[&_p]:font-[700] tw:[&.is-error_p]:text-[#b42318] ${error ? 'is-error' : ''}`}
         >
           <p>{error || notice}</p>
         </article>
@@ -824,7 +822,7 @@ export function OrganizationsPage({
         >
           <button
             type="button"
-            className={`organizations-tree-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[12px] tw:grid tw:gap-[4px] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:dark:border-[rgba(var(--accent-rgb),_0.56)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:dark:text-(--heading) tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:[&.is-active]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.56)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[background:rgba(24,_24,_24,_0.75)] tw:[&.is-active]:[transform:translateY(-1px)] tw:hover:[transform:translateY(-1px)] tw:dark:[&.is-active]:[background:rgba(24,_24,_24,_0.75)] tw:dark:hover:[background:rgba(24,_24,_24,_0.75)] ${activeSection === "current" ? "is-active" : ""}`}
+            className={`organizations-tree-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[12px] tw:grid tw:gap-[4px] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:dark:border-[rgba(var(--accent-rgb),_0.56)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:dark:text-(--heading) tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:[&.is-active]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.56)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[background:rgba(24,_24,_24,_0.75)] tw:[&.is-active]:[transform:translateY(-1px)] tw:hover:[transform:translateY(-1px)] tw:dark:[&.is-active]:[background:rgba(24,_24,_24,_0.75)] tw:dark:hover:[background:rgba(24,_24,_24,_0.75)] ${activeSection === 'current' ? 'is-active' : ''}`}
             onClick={openCurrentOrganization}
           >
             <span className="tw:font-[800]">Текущая организация</span>
@@ -838,7 +836,7 @@ export function OrganizationsPage({
           {canCreateOrganization && (
             <button
               type="button"
-              className={`organizations-tree-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[12px] tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:[font:inherit] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.56)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[.page_&]:text-(--heading) tw:hover:[transform:translateY(-1px)] tw:[&.is-active]:[transform:translateY(-1px)] tw:dark:[.page_&]:[background:rgba(24,_24,_24,_0.75)] ${activeSection === "create" ? "is-active" : ""}`}
+              className={`organizations-tree-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[12px] tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:[font:inherit] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.56)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[.page_&]:text-(--heading) tw:hover:[transform:translateY(-1px)] tw:[&.is-active]:[transform:translateY(-1px)] tw:dark:[.page_&]:[background:rgba(24,_24,_24,_0.75)] ${activeSection === 'create' ? 'is-active' : ''}`}
               onClick={openCreateOrganization}
             >
               <span>Создание организации</span>
@@ -849,12 +847,12 @@ export function OrganizationsPage({
             <div className="organizations-tree-group tw:grid tw:gap-[8px]">
               <button
                 type="button"
-                className={`organizations-tree-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[12px] tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:dark:border-[rgba(var(--accent-rgb),_0.56)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:dark:text-(--heading) tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[&.is-active]:border-[rgba(var(--accent-rgb),_0.56)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[background:rgba(24,_24,_24,_0.75)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:hover:[transform:translateY(-1px)] tw:[&.is-active]:[transform:translateY(-1px)] tw:dark:hover:[background:rgba(24,_24,_24,_0.75)] tw:dark:[&.is-active]:[background:rgba(24,_24,_24,_0.75)] ${activeSection === "all" ? "is-active" : ""}`}
+                className={`organizations-tree-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[12px] tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:dark:border-[rgba(var(--accent-rgb),_0.56)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:dark:text-(--heading) tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:hover:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[&.is-active]:border-[rgba(var(--accent-rgb),_0.56)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[background:rgba(24,_24,_24,_0.75)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:hover:[transform:translateY(-1px)] tw:[&.is-active]:[transform:translateY(-1px)] tw:dark:hover:[background:rgba(24,_24,_24,_0.75)] tw:dark:[&.is-active]:[background:rgba(24,_24,_24,_0.75)] ${activeSection === 'all' ? 'is-active' : ''}`}
                 onClick={openAllOrganizations}
               >
                 <span className="tw:font-[800]">Все организации</span>
               </button>
-              {(activeSection === "all" || activeSection === "details") &&
+              {(activeSection === 'all' || activeSection === 'details') &&
                 organizations.length > 0 && (
                   <>
                     <div className="organizations-tree-children tw:ml-[12px] tw:pl-[12px] tw:grid tw:gap-[6px] tw:[border-left:1px_solid_rgba(var(--accent-rgb),_0.28)]">
@@ -862,7 +860,7 @@ export function OrganizationsPage({
                         <button
                           key={organization.id}
                           type="button"
-                          className={`organizations-tree-child tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[9px_10px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:[font:inherit] tw:[&&&]:text-[0.9rem] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.56)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[.page_&]:text-(--heading) tw:hover:[transform:translateY(-1px)] tw:[&.is-active]:[transform:translateY(-1px)] tw:dark:[.page_&]:[background:rgba(24,_24,_24,_0.75)] ${selectedOrganizationId === organization.id ? "is-active" : ""}`}
+                          className={`organizations-tree-child tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.26)] tw:rounded-[14px] tw:text-(--text) tw:text-left tw:cursor-pointer tw:p-[9px_10px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.62)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.62)] tw:[background:rgba(var(--accent-rgb),_0.06)] tw:[font:inherit] tw:[&&&]:text-[0.9rem] tw:[transition:border-color_0.16s_ease,_background_0.16s_ease,_transform_0.16s_ease] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.56)] tw:hover:[background:rgba(var(--accent-rgb),_0.14)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.14)] tw:dark:[.page_&]:text-(--heading) tw:hover:[transform:translateY(-1px)] tw:[&.is-active]:[transform:translateY(-1px)] tw:dark:[.page_&]:[background:rgba(24,_24,_24,_0.75)] ${selectedOrganizationId === organization.id ? 'is-active' : ''}`}
                           onClick={() => openOrganizationDetails(organization)}
                         >
                           {organization.name}
@@ -903,7 +901,7 @@ export function OrganizationsPage({
         </aside>
 
         <div className="organizations-content tw:min-w-[0] tw:grid tw:gap-[18px]">
-          {activeSection === "current" && (
+          {activeSection === 'current' && (
             <>
               {currentLoading && (
                 <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
@@ -914,7 +912,7 @@ export function OrganizationsPage({
               )}
               {!currentLoading &&
                 currentOrganization &&
-                renderDetails(currentOrganization, "Текущая организация")}
+                renderDetails(currentOrganization, 'Текущая организация')}
               {!currentLoading && !currentOrganization && !error && (
                 <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
                   <h3>Текущая организация не определена</h3>
@@ -932,7 +930,7 @@ export function OrganizationsPage({
             </>
           )}
 
-          {activeSection === "create" && canCreateOrganization && (
+          {activeSection === 'create' && canCreateOrganization && (
             <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
               <div className="organization-panel-head tw:flex tw:items-start tw:justify-between tw:gap-[16px] tw:max-760:flex-col">
                 <div>
@@ -943,7 +941,7 @@ export function OrganizationsPage({
                 form={createForm}
                 submitLabel="Создать"
                 pendingLabel="Создаём..."
-                isPending={pendingAction === "create"}
+                isPending={pendingAction === 'create'}
                 validationErrors={validationErrors}
                 onChange={updateCreateField}
                 onSubmit={handleCreate}
@@ -952,11 +950,11 @@ export function OrganizationsPage({
             </article>
           )}
 
-          {activeSection === "details" &&
+          {activeSection === 'details' &&
             selectedOrganization &&
-            renderDetails(selectedOrganization, "Организация")}
+            renderDetails(selectedOrganization, 'Организация')}
 
-          {activeSection === "all" && canReadOrganization && (
+          {activeSection === 'all' && canReadOrganization && (
             <article className="glass-card organization-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[24px] tw:grid tw:gap-[18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
               <div className="organization-panel-head tw:flex tw:items-start tw:justify-between tw:gap-[16px] tw:max-760:flex-col">
                 <div>
@@ -1003,7 +1001,7 @@ export function OrganizationsPage({
                         )}
                       </OrganizationHeader>
                       <p className="organization-description tw:text-(--muted) tw:m-[6px_0_0]">
-                        {organization.description || "Описание не заполнено."}
+                        {organization.description || 'Описание не заполнено.'}
                       </p>
                       <OrganizationMeta organization={organization} />
                       {canDeleteOrganization && organization.is_active && (
@@ -1017,8 +1015,8 @@ export function OrganizationsPage({
                             onClick={() => handleDelete(organization.id)}
                           >
                             {pendingAction === `delete:${organization.id}`
-                              ? "Удаляем..."
-                              : "Деактивировать"}
+                              ? 'Удаляем...'
+                              : 'Деактивировать'}
                           </button>
                         </div>
                       )}
@@ -1050,9 +1048,9 @@ export function OrganizationsPage({
                       <button
                         key={pageNumber}
                         type="button"
-                        className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
+                        className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? 'is-active' : ''}`}
                         onClick={() => setPage(pageNumber)}
-                        aria-current={pageNumber === page ? "page" : undefined}
+                        aria-current={pageNumber === page ? 'page' : undefined}
                       >
                         {pageNumber}
                       </button>
@@ -1074,8 +1072,8 @@ export function OrganizationsPage({
           )}
           {canInviteToOrganization &&
             organizationId &&
-            (activeSection === "current" ||
-              (activeSection === "details" &&
+            (activeSection === 'current' ||
+              (activeSection === 'details' &&
                 selectedOrganization?.id === organizationId)) && (
               <OrganizationInvitations
                 key={organizationId}

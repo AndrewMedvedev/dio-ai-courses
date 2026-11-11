@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import {
   getCourseLearningStructure,
   type LearningCourse,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   PROGRESS_STATUS,
   getCourseProgress,
   getLessonProgressStatus,
   getLessonsProgress,
-} from "@/entities/progress";
-import { isUuid } from "@/shared/lib/uuid";
+} from '@/entities/progress';
+import { isUuid } from '@/shared/lib/uuid';
 
 export interface MyCourseProgressSummary {
   modulesCount: number;
@@ -93,7 +93,7 @@ export function useMyCoursesProgress(
       ),
     [courses],
   );
-  const courseIdsKey = courseIds.join(",");
+  const courseIdsKey = courseIds.join(',');
   const [state, setState] = useState<{
     isLoading: boolean;
     byCourseId: SummaryByCourseId;
@@ -130,7 +130,7 @@ export function useMyCoursesProgress(
       }
     }
 
-    load();
+    void load();
     return () => controller.abort();
     // courseIdsKey стабилен для одинакового набора курсов.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,14 +142,14 @@ export function useMyCoursesProgress(
     );
     const sum = (key: keyof MyCourseProgressSummary) =>
       summaries.reduce((total, summary) => total + (summary[key] || 0), 0);
-    const totalLessons = sum("totalLessons");
-    const completedLessons = sum("completedLessons");
+    const totalLessons = sum('totalLessons');
+    const completedLessons = sum('completedLessons');
     return {
       coursesCount: summaries.length,
       totalLessons,
       completedLessons,
-      completedPractices: sum("completedPractices"),
-      completedTests: sum("completedTests"),
+      completedPractices: sum('completedPractices'),
+      completedTests: sum('completedTests'),
       percent: totalLessons
         ? Math.round((completedLessons * 100) / totalLessons)
         : 0,

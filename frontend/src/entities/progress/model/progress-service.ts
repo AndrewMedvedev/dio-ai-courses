@@ -1,3 +1,4 @@
+import { toText } from '@/shared/lib/text';
 import {
   completeLessonTheory,
   createCourseProgress,
@@ -7,14 +8,14 @@ import {
   fetchLessonProgress,
   fetchModuleProgress,
   recalculateCourseProgress,
-} from "../api/progress-api";
-import type { RawApiRecord } from "@/shared/api";
+} from '../api/progress-api';
+import type { RawApiRecord } from '@/shared/api';
 
 // Статусы прохождения урока/модуля для отрисовки цветами.
 export const PROGRESS_STATUS = {
-  NOT_STARTED: "not_started",
-  IN_PROGRESS: "in_progress",
-  COMPLETED: "completed",
+  NOT_STARTED: 'not_started',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
 } as const;
 
 export type ProgressStatus =
@@ -50,9 +51,9 @@ interface BlockWithLessons {
 }
 
 export const PROGRESS_STATUS_LABELS: Record<ProgressStatus, string> = {
-  [PROGRESS_STATUS.NOT_STARTED]: "Не начат",
-  [PROGRESS_STATUS.IN_PROGRESS]: "В процессе",
-  [PROGRESS_STATUS.COMPLETED]: "Пройден",
+  [PROGRESS_STATUS.NOT_STARTED]: 'Не начат',
+  [PROGRESS_STATUS.IN_PROGRESS]: 'В процессе',
+  [PROGRESS_STATUS.COMPLETED]: 'Пройден',
 };
 
 const LESSON_PROGRESS_CONCURRENCY = 4;
@@ -76,12 +77,12 @@ function once<T>(key: string, factory: () => Promise<T>): Promise<T> {
 export function normalizeCourseProgress(
   raw: RawApiRecord | null | undefined,
 ): CourseProgress | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== 'object') return null;
   const percent = Number(raw.progress_percent ?? raw.progressPercent ?? 0);
   return {
-    id: raw.id || "",
-    courseId: raw.course_id || raw.courseId || "",
-    userId: raw.user_id || raw.userId || "",
+    id: toText(raw.id || ''),
+    courseId: toText(raw.course_id || raw.courseId || ''),
+    userId: toText(raw.user_id || raw.userId || ''),
     percent: Number.isFinite(percent) ? Math.min(100, Math.max(0, percent)) : 0,
   };
 }
@@ -89,15 +90,20 @@ export function normalizeCourseProgress(
 export function normalizeLessonProgress(
   raw: RawApiRecord | null | undefined,
 ): LessonProgress | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== 'object') return null;
   return {
-    id: raw.id || "",
-    lessonId: raw.lesson_id || raw.lessonId || "",
-    moduleProgressId: raw.module_progress_id || raw.moduleProgressId || "",
-    theoryCompletedAt: raw.theory_completed_at ?? raw.theoryCompletedAt ?? null,
+    id: toText(raw.id || ''),
+    lessonId: toText(raw.lesson_id || raw.lessonId || ''),
+    moduleProgressId: toText(
+      raw.module_progress_id || raw.moduleProgressId || '',
+    ),
+    theoryCompletedAt:
+      toText(raw.theory_completed_at ?? raw.theoryCompletedAt ?? null) || null,
     practiceCompletedAt:
-      raw.practice_completed_at ?? raw.practiceCompletedAt ?? null,
-    testCompletedAt: raw.test_completed_at ?? raw.testCompletedAt ?? null,
+      toText(raw.practice_completed_at ?? raw.practiceCompletedAt ?? null) ||
+      null,
+    testCompletedAt:
+      toText(raw.test_completed_at ?? raw.testCompletedAt ?? null) || null,
   };
 }
 

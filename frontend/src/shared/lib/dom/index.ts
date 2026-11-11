@@ -1,1 +1,1 @@
-export { autosizeTextarea } from "./autosize-textarea";
+export { autosizeTextarea } from './autosize-textarea';

@@ -1,19 +1,22 @@
+import { asArray } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
+import { asRecord } from '@/shared/api';
 // Блоки контента урока в редакторе: типы, шаблоны, нормализация и перевод в Markdown.
-import { getMediaId } from "@/shared/lib/media";
-import type { RawApiRecord } from "@/shared/api";
+import { getMediaId } from '@/shared/lib/media';
+import type { RawApiRecord } from '@/shared/api';
 
 export const MAX_CONTENT_BLOCKS = 10;
 
 export type EditorBlockType =
-  | "text"
-  | "video"
-  | "image"
-  | "program_code"
-  | "mermaid"
-  | "quiz"
-  | "math_formula"
-  | "chemical_formula"
-  | "musical_notation";
+  | 'text'
+  | 'video'
+  | 'image'
+  | 'program_code'
+  | 'mermaid'
+  | 'quiz'
+  | 'math_formula'
+  | 'chemical_formula'
+  | 'musical_notation';
 
 export interface EditorQuestion {
   question: string;
@@ -45,9 +48,9 @@ export interface EditorBlock {
 export type EditorBlockWithId = EditorBlock & { id: string };
 
 /** Блок для отправки на backend: без служебных полей интерфейса. */
-export type EditorBlockPayload = Omit<EditorBlock, "id" | "type">;
+export type EditorBlockPayload = Omit<EditorBlock, 'id' | 'type'>;
 
-export type EditorBlockFields = Partial<Omit<EditorBlock, "id" | "type">>;
+export type EditorBlockFields = Partial<Omit<EditorBlock, 'id' | 'type'>>;
 
 export interface EditorBlockTypeInfo {
   id: EditorBlockType;
@@ -59,71 +62,71 @@ export interface EditorBlockTypeInfo {
 
 export const blockTypes: EditorBlockTypeInfo[] = [
   {
-    id: "text",
-    contentType: "text",
-    label: "Текст",
-    hint: "Markdown-лекция",
-    template: { md_content: "Новый текстовый блок." },
+    id: 'text',
+    contentType: 'text',
+    label: 'Текст',
+    hint: 'Markdown-лекция',
+    template: { md_content: 'Новый текстовый блок.' },
   },
   {
-    id: "video",
-    contentType: "video",
-    label: "Видео",
-    hint: "Ссылка и описание",
-    template: { url: "", description: "" },
+    id: 'video',
+    contentType: 'video',
+    label: 'Видео',
+    hint: 'Ссылка и описание',
+    template: { url: '', description: '' },
   },
   {
-    id: "image",
-    contentType: "image",
-    label: "Изображение",
-    hint: "Файл в хранилище",
-    template: { image_id: "" },
+    id: 'image',
+    contentType: 'image',
+    label: 'Изображение',
+    hint: 'Файл в хранилище',
+    template: { image_id: '' },
   },
   {
-    id: "program_code",
-    contentType: "program_code",
-    label: "Код",
-    hint: "Язык, код и пояснение",
-    template: { language: "python", code: "", explanation: "" },
+    id: 'program_code',
+    contentType: 'program_code',
+    label: 'Код',
+    hint: 'Язык, код и пояснение',
+    template: { language: 'python', code: '', explanation: '' },
   },
   {
-    id: "mermaid",
-    contentType: "mermaid",
-    label: "Схема",
-    hint: "Mermaid-диаграмма",
+    id: 'mermaid',
+    contentType: 'mermaid',
+    label: 'Схема',
+    hint: 'Mermaid-диаграмма',
     template: {
-      title: "Новая диаграмма",
-      md_content: "flowchart TD\n  A[Начало] --> B[Шаг]",
-      explanation: "",
+      title: 'Новая диаграмма',
+      md_content: 'flowchart TD\n  A[Начало] --> B[Шаг]',
+      explanation: '',
     },
   },
   {
-    id: "quiz",
-    contentType: "quiz",
-    label: "Quiz",
-    hint: "Вопросы и ответы",
-    template: { questions: [{ question: "", answer: "" }] },
+    id: 'quiz',
+    contentType: 'quiz',
+    label: 'Quiz',
+    hint: 'Вопросы и ответы',
+    template: { questions: [{ question: '', answer: '' }] },
   },
   {
-    id: "math_formula",
-    contentType: "math_formula",
-    label: "Формула",
-    hint: "Математическая формула",
-    template: { formula: "", explanation: "" },
+    id: 'math_formula',
+    contentType: 'math_formula',
+    label: 'Формула',
+    hint: 'Математическая формула',
+    template: { formula: '', explanation: '' },
   },
   {
-    id: "chemical_formula",
-    contentType: "chemical_formula",
-    label: "Химия",
-    hint: "Химическая формула",
-    template: { formula: "", explanation: "" },
+    id: 'chemical_formula',
+    contentType: 'chemical_formula',
+    label: 'Химия',
+    hint: 'Химическая формула',
+    template: { formula: '', explanation: '' },
   },
   {
-    id: "musical_notation",
-    contentType: "musical_notation",
-    label: "Ноты",
-    hint: "Нотная запись",
-    template: { formula: "", explanation: "" },
+    id: 'musical_notation',
+    contentType: 'musical_notation',
+    label: 'Ноты',
+    hint: 'Нотная запись',
+    template: { formula: '', explanation: '' },
   },
 ];
 
@@ -139,10 +142,10 @@ export const templates = Object.fromEntries(
 ) as Record<EditorBlockType, EditorBlockFields>;
 
 export const allowedImageTypes = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/gif",
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
 ]);
 export const allowedImageExtension = /\.(png|jpe?g|webp|gif)$/i;
 export const allowedTextExtension =
@@ -151,7 +154,7 @@ const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;
 
 export function safeMarkdownUrl(url: string): string {
-  const value = String(url || "").trim();
+  const value = String(url || '').trim();
   if (allowedImageDataUrl.test(value)) {
     return value;
   }
@@ -161,33 +164,33 @@ export function safeMarkdownUrl(url: string): string {
   if (/^(\/|\.{1,2}\/|#)/.test(value)) {
     return value;
   }
-  return value.includes(":") ? "" : value;
+  return value.includes(':') ? '' : value;
 }
 
 const nextId = () =>
   `content-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const clone = <T>(value: T): T => structuredClone(value);
 const isFenceStart = (line: string) => /^\s*(```|~~~)/.test(line);
 const isTableSeparator = (line: string) =>
   /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
 const isTableRow = (line: string) =>
-  line.trim().includes("|") && !isFenceStart(line);
+  line.trim().includes('|') && !isFenceStart(line);
 const isStandaloneSeparator = (value: string) => /^\s*-{2,}\s*$/.test(value);
 
 export function detectType(content: string): EditorBlockType {
   const trimmed = content.trim();
   if (/^```mermaid/i.test(trimmed)) {
-    return "mermaid";
+    return 'mermaid';
   }
   if (/^```/i.test(trimmed) || /^~~~/i.test(trimmed)) {
-    return "program_code";
+    return 'program_code';
   }
-  const lines = trimmed.split("\n");
+  const lines = trimmed.split('\n');
   if (lines.length > 1 && isTableRow(lines[0]) && isTableSeparator(lines[1])) {
-    return "text";
+    return 'text';
   }
-  return "text";
+  return 'text';
 }
 
 function parseCodeFence(
@@ -198,50 +201,71 @@ function parseCodeFence(
     return null;
   }
   return {
-    language: match[1]?.trim() || "text",
-    code: match[2] || "",
+    language: match[1]?.trim() || 'text',
+    code: match[2] || '',
   };
 }
 
 function normalizeQuestion(rawQuestion: unknown): EditorQuestion {
   const question = rawQuestion as RawApiRecord | unknown[] | string | null;
   if (Array.isArray(question)) {
-    if (["multipart", "multiple_choice", "detailed_answer"].includes(String(question[0]).toLowerCase())) {
+    if (
+      ['multipart', 'multiple_choice', 'detailed_answer'].includes(
+        String(question[0]).toLowerCase(),
+      )
+    ) {
       return normalizeQuestion(question[1]);
     }
     return {
-      question: typeof question[0] === "string" ? question[0] : "",
-      answer: question.slice(1).filter(Boolean).join("\n"),
+      question: typeof question[0] === 'string' ? question[0] : '',
+      answer: question.slice(1).filter(Boolean).join('\n'),
       options: [],
-      explanation: "",
+      explanation: '',
     };
   }
-  if (question && typeof question === "object") {
-    const wrapper = question.multipart ?? question.multiple_choice ?? question.detailed_answer;
+  if (question && typeof question === 'object') {
+    const wrapper =
+      question.multipart ??
+      question.multiple_choice ??
+      question.detailed_answer;
     if (wrapper) return normalizeQuestion(wrapper);
     const options = Array.isArray(question.options)
-      ? question.options
-      : typeof question.options === "string"
+      ? asArray(question.options).map(toText)
+      : typeof question.options === 'string'
         ? question.options.split(/\r?\n/).filter(Boolean)
         : [];
-    const rawAnswer = question.answer ?? question.correct_answer ?? question.expected_answer ?? "";
+    const rawAnswer =
+      question.answer ??
+      question.correct_answer ??
+      question.expected_answer ??
+      '';
     return {
-      question: question.question || question.text || question.prompt || "",
-      answer: typeof rawAnswer === "number" ? options[rawAnswer] || "" : rawAnswer,
+      question: toText(
+        question.question || question.text || question.prompt || '',
+      ),
+      answer:
+        typeof rawAnswer === 'number'
+          ? options[rawAnswer] || ''
+          : toText(rawAnswer),
       options,
-      explanation: question.explanation || question.rationale || "",
+      explanation: toText(question.explanation || question.rationale || ''),
     };
   }
-  return { question: typeof question === "string" ? question : "", answer: "", options: [], explanation: "" };
+  return {
+    question: typeof question === 'string' ? question : '',
+    answer: '',
+    options: [],
+    explanation: '',
+  };
 }
 
 export function createBlock(
   templateOrContent: string | EditorBlockFields | null | undefined,
-  type: string = "text",
+  type: string = 'text',
 ): EditorBlockWithId {
   const blockType = blockTypeById.get(type) || blockTypes[0];
   const initialData =
-    typeof templateOrContent === "string"
+    typeof templateOrContent === 'string'
       ? markdownToTypedData(templateOrContent, blockType.id)
       : { ...clone(blockType.template), ...(templateOrContent || {}) };
 
@@ -259,19 +283,19 @@ function markdownToTypedData(
   content: string,
   type: string = detectType(content),
 ): EditorBlockFields {
-  if (type === "program_code") {
+  if (type === 'program_code') {
     const parsedFence = parseCodeFence(content);
     return parsedFence
-      ? { ...parsedFence, explanation: "" }
-      : { language: "text", code: content.trim(), explanation: "" };
+      ? { ...parsedFence, explanation: '' }
+      : { language: 'text', code: content.trim(), explanation: '' };
   }
 
-  if (type === "mermaid") {
+  if (type === 'mermaid') {
     const parsedFence = parseCodeFence(content);
     return {
-      title: "Диаграмма",
+      title: 'Диаграмма',
       md_content: parsedFence?.code || content.trim(),
-      explanation: "",
+      explanation: '',
     };
   }
 
@@ -290,56 +314,59 @@ export function normalizeContentBlock(
   block: unknown,
   ensureId = false,
 ): EditorBlock {
-  const source: RawApiRecord =
-    block && typeof block === "object" ? (block as RawApiRecord) : {};
-  const contentType: string = blockTypeByContentType.has(source.content_type)
-    ? source.content_type
-    : (blockTypeById.get(source.type)?.contentType ?? "text");
+  const source: RawApiRecord = asRecord(
+    block && typeof block === 'object' ? block : {},
+  );
+  const contentType: string = toText(
+    blockTypeByContentType.has(toText(source.content_type))
+      ? source.content_type
+      : (blockTypeById.get(toText(source.type))?.contentType ?? 'text'),
+  );
   const blockType = blockTypeByContentType.get(contentType) || blockTypes[0];
   const normalized: EditorBlock = {
-    id: source.id || (ensureId ? nextId() : undefined),
+    id: toText(source.id || (ensureId ? nextId() : undefined)) || undefined,
     type: blockType.id,
     content_type: blockType.contentType,
     ai_generated:
-      typeof source.ai_generated === "boolean" ? source.ai_generated : false,
+      typeof source.ai_generated === 'boolean' ? source.ai_generated : false,
     ...clone(blockType.template),
   };
 
-  if (contentType === "text") {
-    normalized.md_content = String(
+  if (contentType === 'text') {
+    normalized.md_content = toText(
       source.md_content ??
         source.content ??
         source.text ??
         source.markdown ??
-        "",
+        '',
     );
-  } else if (contentType === "video") {
-    normalized.url = String(source.url ?? "");
-    normalized.description = String(source.description ?? "");
-  } else if (contentType === "image") {
+  } else if (contentType === 'video') {
+    normalized.url = toText(source.url ?? '');
+    normalized.description = toText(source.description ?? '');
+  } else if (contentType === 'image') {
     normalized.image_id = getMediaId(
-      source.image_id ?? source.imageId ?? source.image_url ?? source.url ?? "",
+      source.image_id ?? source.imageId ?? source.image_url ?? source.url ?? '',
     );
-  } else if (contentType === "program_code") {
-    normalized.language = String(source.language ?? "text");
-    normalized.code = String(source.code ?? "");
-    normalized.explanation = String(source.explanation ?? "");
-  } else if (contentType === "mermaid") {
-    normalized.title = String(source.title ?? "Диаграмма");
-    normalized.md_content = String(source.md_content ?? source.content ?? "");
-    normalized.explanation = String(source.explanation ?? "");
-  } else if (contentType === "quiz") {
+  } else if (contentType === 'program_code') {
+    normalized.language = toText(source.language ?? 'text');
+    normalized.code = toText(source.code ?? '');
+    normalized.explanation = toText(source.explanation ?? '');
+  } else if (contentType === 'mermaid') {
+    normalized.title = toText(source.title ?? 'Диаграмма');
+    normalized.md_content = toText(source.md_content ?? source.content ?? '');
+    normalized.explanation = toText(source.explanation ?? '');
+  } else if (contentType === 'quiz') {
     const questions: unknown[] = Array.isArray(source.questions)
       ? source.questions
-      : source.questions && typeof source.questions === "object"
+      : source.questions && typeof source.questions === 'object'
         ? [source.questions]
         : [];
     normalized.questions = questions.length
       ? questions.map(normalizeQuestion)
-      : [{ question: "", answer: "" }];
+      : [{ question: '', answer: '' }];
   } else {
-    normalized.formula = String(source.formula ?? "");
-    normalized.explanation = String(source.explanation ?? "");
+    normalized.formula = toText(source.formula ?? '');
+    normalized.explanation = toText(source.explanation ?? '');
   }
 
   // Источники блока не редактируются в форме, но не должны теряться при сохранении.
@@ -353,16 +380,21 @@ function normalizeBlockSources(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
   return value
     .map((item) =>
-      item && typeof item === "object"
-        ? String(item.url || item.href || item.title || "").trim()
-        : String(item ?? "").trim(),
+      item && typeof item === 'object'
+        ? toText(
+            asRecord(item).url ||
+              asRecord(item).href ||
+              asRecord(item).title ||
+              '',
+          ).trim()
+        : String(item ?? '').trim(),
     )
     .filter(Boolean);
 }
 
 export function normalizeContentBlocks(
   blocks: unknown,
-  fallbackMarkdown = "",
+  fallbackMarkdown = '',
 ): EditorBlockWithId[] {
   if (Array.isArray(blocks) && blocks.length > 0) {
     return blocks.map((block) => normalizeContentBlock(block, true));
@@ -377,22 +409,22 @@ export function stripUiFields(block: unknown): EditorBlockPayload {
     ai_generated: false,
   };
 
-  if (normalized.content_type === "text") {
+  if (normalized.content_type === 'text') {
     payload.md_content = normalized.md_content;
-  } else if (normalized.content_type === "video") {
+  } else if (normalized.content_type === 'video') {
     payload.url = normalized.url;
     payload.description = normalized.description;
-  } else if (normalized.content_type === "image") {
+  } else if (normalized.content_type === 'image') {
     payload.image_id = normalized.image_id;
-  } else if (normalized.content_type === "program_code") {
+  } else if (normalized.content_type === 'program_code') {
     payload.language = normalized.language;
     payload.code = normalized.code;
     payload.explanation = normalized.explanation;
-  } else if (normalized.content_type === "mermaid") {
+  } else if (normalized.content_type === 'mermaid') {
     payload.title = normalized.title;
     payload.md_content = normalized.md_content;
     payload.explanation = normalized.explanation;
-  } else if (normalized.content_type === "quiz") {
+  } else if (normalized.content_type === 'quiz') {
     payload.questions = (normalized.questions || []).map(normalizeQuestion);
   } else {
     payload.formula = normalized.formula;
@@ -409,17 +441,17 @@ export function stripUiFields(block: unknown): EditorBlockPayload {
 export function splitMarkdown(
   markdown: string | null | undefined,
 ): EditorBlockWithId[] {
-  const source = (markdown || "").trim();
+  const source = (markdown || '').trim();
   if (!source) {
-    return [createBlock(templates.text, "text")];
+    return [createBlock(templates.text, 'text')];
   }
 
-  const lines = source.split("\n");
+  const lines = source.split('\n');
   const blocks: EditorBlockWithId[] = [];
   let buffer: string[] = [];
 
   const flushText = () => {
-    const content = buffer.join("\n").trim();
+    const content = buffer.join('\n').trim();
     if (content && !isStandaloneSeparator(content)) {
       blocks.push(createBlock(content, detectType(content)));
     }
@@ -441,7 +473,7 @@ export function splitMarkdown(
         }
         index += 1;
       }
-      const content = fenceLines.join("\n");
+      const content = fenceLines.join('\n');
       blocks.push(createBlock(content, detectType(content)));
       continue;
     }
@@ -455,56 +487,56 @@ export function splitMarkdown(
   }
 
   flushText();
-  return blocks.length > 0 ? blocks : [createBlock(templates.text, "text")];
+  return blocks.length > 0 ? blocks : [createBlock(templates.text, 'text')];
 }
 
 export function blockToMarkdown(block: unknown): string {
   const normalized = normalizeContentBlock(block);
 
-  if (normalized.content_type === "text") {
-    return (normalized.md_content ?? "").trim();
+  if (normalized.content_type === 'text') {
+    return (normalized.md_content ?? '').trim();
   }
-  if (normalized.content_type === "video") {
+  if (normalized.content_type === 'video') {
     return [
-      normalized.url ? `[Видео](${normalized.url})` : "Видео без ссылки",
+      normalized.url ? `[Видео](${normalized.url})` : 'Видео без ссылки',
       normalized.description,
     ]
       .filter(Boolean)
-      .join("\n\n");
+      .join('\n\n');
   }
-  if (normalized.content_type === "image") {
-    return normalized.image_id ? `Изображение: ${normalized.image_id}` : "";
+  if (normalized.content_type === 'image') {
+    return normalized.image_id ? `Изображение: ${normalized.image_id}` : '';
   }
-  if (normalized.content_type === "program_code") {
+  if (normalized.content_type === 'program_code') {
     return [
-      `\`\`\`${normalized.language || "text"}\n${normalized.code}\n\`\`\``,
+      `\`\`\`${normalized.language || 'text'}\n${normalized.code}\n\`\`\``,
       normalized.explanation,
     ]
       .filter(Boolean)
-      .join("\n\n");
+      .join('\n\n');
   }
-  if (normalized.content_type === "mermaid") {
+  if (normalized.content_type === 'mermaid') {
     return [
-      normalized.title ? `### ${normalized.title}` : "",
+      normalized.title ? `### ${normalized.title}` : '',
       `\`\`\`mermaid\n${normalized.md_content}\n\`\`\``,
       normalized.explanation,
     ]
       .filter(Boolean)
-      .join("\n\n");
+      .join('\n\n');
   }
-  if (normalized.content_type === "quiz") {
+  if (normalized.content_type === 'quiz') {
     return (normalized.questions || [])
       .map((question, index) =>
-        [`${index + 1}. **${question.question || "Вопрос"}**`, question.answer]
+        [`${index + 1}. **${question.question || 'Вопрос'}**`, question.answer]
           .filter(Boolean)
-          .join("\n\n"),
+          .join('\n\n'),
       )
-      .join("\n\n");
+      .join('\n\n');
   }
 
   return [normalized.formula, normalized.explanation]
     .filter(Boolean)
-    .join("\n\n");
+    .join('\n\n');
 }
 
 export function joinBlocks(blocks: unknown[]): string {
@@ -512,36 +544,36 @@ export function joinBlocks(blocks: unknown[]): string {
     .map(blockToMarkdown)
     .map((content) => content.trim())
     .filter((content) => content && !isStandaloneSeparator(content))
-    .join("\n\n");
+    .join('\n\n');
 }
 
 export function getBlockTitle(block: unknown): string {
   const normalized = normalizeContentBlock(block);
   const blockType = blockTypeByContentType.get(normalized.content_type);
-  const prefix = blockType?.label || "Блок";
+  const prefix = blockType?.label || 'Блок';
 
-  if (normalized.content_type === "text") {
+  if (normalized.content_type === 'text') {
     return (
-      (normalized.md_content ?? "")
-        .split("\n")
+      (normalized.md_content ?? '')
+        .split('\n')
         .find((line) => line.trim())
-        ?.replace(/^#{1,6}\s*/, "")
+        ?.replace(/^#{1,6}\s*/, '')
         .slice(0, 52) || prefix
     );
   }
-  if (normalized.content_type === "mermaid") {
+  if (normalized.content_type === 'mermaid') {
     return normalized.title || prefix;
   }
-  if (normalized.content_type === "program_code") {
-    return `${prefix}${normalized.language ? ` · ${normalized.language}` : ""}`;
+  if (normalized.content_type === 'program_code') {
+    return `${prefix}${normalized.language ? ` · ${normalized.language}` : ''}`;
   }
-  if (normalized.content_type === "quiz") {
+  if (normalized.content_type === 'quiz') {
     return `${prefix} · ${(normalized.questions || []).length} вопрос(ов)`;
   }
-  if (normalized.content_type === "video") {
+  if (normalized.content_type === 'video') {
     return normalized.url || prefix;
   }
-  if (normalized.content_type === "image") {
+  if (normalized.content_type === 'image') {
     return normalized.image_id || prefix;
   }
   return normalized.formula || prefix;

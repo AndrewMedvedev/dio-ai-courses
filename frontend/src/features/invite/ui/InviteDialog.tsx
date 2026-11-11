@@ -1,17 +1,17 @@
 // Окно приглашения в организацию. Оформлено как «Пригласить на курс»:
 // тот же модальный каркас, тот же ввод нескольких email и карточки выбора ролей.
-import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   describeRole,
   fetchInvitationRoles,
   inviteToOrganization,
   type RoleDescription,
-} from "@/entities/invitation";
-import { getErrorMessage } from "@/shared/lib/errors";
-import { notify } from "@/shared/ui/toast";
-import { useEmailRows } from "../model/use-email-rows";
-import { EmailRowsField } from "./EmailRowsField";
+} from '@/entities/invitation';
+import { getErrorMessage } from '@/shared/lib/errors';
+import { notify } from '@/shared/ui/toast';
+import { useEmailRows } from '../model/use-email-rows';
+import { EmailRowsField } from './EmailRowsField';
 
 export interface InviteDialogProps {
   open: boolean;
@@ -25,19 +25,19 @@ const statusOf = (error: unknown) =>
   (error as { status?: number } | null)?.status;
 
 const CONFIG = {
-  eyebrow: "Участники организации",
-  title: "Пригласить в организацию",
-  hint: "Если у человека ещё нет аккаунта, вместе с приглашением он получит письмо для регистрации.",
-  rolesLabel: "Роли в организации",
+  eyebrow: 'Участники организации',
+  title: 'Пригласить в организацию',
+  hint: 'Если у человека ещё нет аккаунта, вместе с приглашением он получит письмо для регистрации.',
+  rolesLabel: 'Роли в организации',
 };
 
 function sendErrorMessage(error: unknown): string {
   if (statusOf(error) === 403)
-    return "Недостаточно прав, чтобы отправлять приглашения.";
-  if (statusOf(error) === 404) return "Организация или роль не найдена.";
-  if (statusOf(error) === 409) return "Уже состоит в организации.";
-  if (statusOf(error) === 422) return "Проверьте email и выбранные роли.";
-  return getErrorMessage(error, "Не удалось отправить приглашение.") ?? "";
+    return 'Недостаточно прав, чтобы отправлять приглашения.';
+  if (statusOf(error) === 404) return 'Организация или роль не найдена.';
+  if (statusOf(error) === 409) return 'Уже состоит в организации.';
+  if (statusOf(error) === 422) return 'Проверьте email и выбранные роли.';
+  return getErrorMessage(error, 'Не удалось отправить приглашение.') ?? '';
 }
 
 export function InviteDialog({
@@ -45,7 +45,7 @@ export function InviteDialog({
   onClose,
   onSent,
   organizationId,
-  organizationName = "",
+  organizationName = '',
 }: InviteDialogProps) {
   const config = CONFIG;
   const titleId = useId();
@@ -58,7 +58,7 @@ export function InviteDialog({
   const [isSending, setIsSending] = useState(false);
   const [roles, setRoles] = useState<RoleDescription[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
-  const [rolesError, setRolesError] = useState("");
+  const [rolesError, setRolesError] = useState('');
   const [rolesAttempt, setRolesAttempt] = useState(0);
 
   useEffect(() => {
@@ -66,21 +66,21 @@ export function InviteDialog({
     let active = true;
     setRoles([]);
     setRoleIds([]);
-    setRolesError("");
+    setRolesError('');
     setRolesLoading(true);
     fetchInvitationRoles()
       .then((items) => {
         if (!active) return;
         setRoles(items.map(describeRole));
         if (!items.length)
-          setRolesError("Нет доступных ролей для приглашения.");
+          setRolesError('Нет доступных ролей для приглашения.');
       })
       .catch((error) => {
         if (active)
           setRolesError(
             statusOf(error) === 403
-              ? "Нет доступа к списку ролей. Обратитесь к администратору."
-              : "Не удалось загрузить роли. Повторите попытку.",
+              ? 'Нет доступа к списку ролей. Обратитесь к администратору.'
+              : 'Не удалось загрузить роли. Повторите попытку.',
           );
       })
       .finally(() => {
@@ -99,7 +99,7 @@ export function InviteDialog({
     setErrors({});
     const previouslyFocused = document.activeElement;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     const timer = window.setTimeout(() => emailRef.current?.focus(), 30);
     return () => {
       window.clearTimeout(timer);
@@ -111,10 +111,10 @@ export function InviteDialog({
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSending) onClose();
+      if (event.key === 'Escape' && !isSending) onClose();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [isSending, onClose, open]);
 
   if (!open) return null;
@@ -123,11 +123,11 @@ export function InviteDialog({
     if (isSending || rolesLoading || rolesError) return;
     const nextErrors: { roles?: string; form?: string } = {};
     if (!roleIds.length) {
-      nextErrors.roles = "Выберите хотя бы одну роль.";
+      nextErrors.roles = 'Выберите хотя бы одну роль.';
     }
     if (!organizationId) {
       nextErrors.form =
-        "Не удалось определить текущую организацию. Войдите заново.";
+        'Не удалось определить текущую организацию. Войдите заново.';
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -155,7 +155,7 @@ export function InviteDialog({
     if (sent.length === total) onClose();
   };
 
-  const host = document.querySelector(".page") || document.body;
+  const host = document.querySelector('.page') || document.body;
 
   return createPortal(
     <div
@@ -222,7 +222,7 @@ export function InviteDialog({
             {rolesLoading && <p role="status">Загружаем роли…</p>}
             {rolesError && (
               <p role="alert">
-                {rolesError}{" "}
+                {rolesError}{' '}
                 <button
                   type="button"
                   className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
@@ -237,7 +237,7 @@ export function InviteDialog({
               return (
                 <label
                   key={role.id}
-                  className={`course-invite-role tw:relative tw:grid tw:gap-[8px] tw:p-[18px] tw:border-solid tw:border-(--invite-border) tw:rounded-[18px] tw:cursor-pointer tw:[align-content:start] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.95)] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease,_background_0.15s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:[.course-invite-roles:disabled_&]:cursor-default tw:[&.is-active]:[box-shadow:inset_0_0_0_1px_rgba(var(--accent-rgb),_0.6)] tw:[.course-invite-roles:disabled_&]:opacity-[0.7] tw:[&:has(input:focus-visible)]:[outline:2px_solid_rgba(var(--accent-rgb),_0.85)] tw:[&:has(input:focus-visible)]:[outline-offset:2px] ${checked ? "is-active" : ""}`}
+                  className={`course-invite-role tw:relative tw:grid tw:gap-[8px] tw:p-[18px] tw:border-solid tw:border-(--invite-border) tw:rounded-[18px] tw:cursor-pointer tw:[align-content:start] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.95)] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease,_background_0.15s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:[.course-invite-roles:disabled_&]:cursor-default tw:[&.is-active]:[box-shadow:inset_0_0_0_1px_rgba(var(--accent-rgb),_0.6)] tw:[.course-invite-roles:disabled_&]:opacity-[0.7] tw:[&:has(input:focus-visible)]:[outline:2px_solid_rgba(var(--accent-rgb),_0.85)] tw:[&:has(input:focus-visible)]:[outline-offset:2px] ${checked ? 'is-active' : ''}`}
                 >
                   <input
                     className="tw:absolute tw:opacity-[0] tw:pointer-events-none"
@@ -251,7 +251,7 @@ export function InviteDialog({
                           : [...current, role.id as string],
                       );
                       if (errors.roles)
-                        setErrors((current) => ({ ...current, roles: "" }));
+                        setErrors((current) => ({ ...current, roles: '' }));
                     }}
                   />
                   <strong className="tw:text-[1.08rem]">{role.label}</strong>
@@ -288,7 +288,7 @@ export function InviteDialog({
             className="course-invite-summary tw:mr-[auto] tw:text-(--muted) tw:text-[0.95rem] tw:max-640:hidden"
             aria-live="polite"
           >
-            {rows.length > 1 ? `Адресов: ${rows.length}` : ""}
+            {rows.length > 1 ? `Адресов: ${rows.length}` : ''}
           </span>
           <button
             type="button"
@@ -312,10 +312,10 @@ export function InviteDialog({
             }
           >
             {isSending
-              ? "Отправляем…"
+              ? 'Отправляем…'
               : rows.length > 1
                 ? `Пригласить (${rows.length})`
-                : "Пригласить"}
+                : 'Пригласить'}
           </button>
         </footer>
       </section>

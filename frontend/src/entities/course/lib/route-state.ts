@@ -1,4 +1,4 @@
-import type { BlockNode, CourseNode, LessonNode } from "../model/tree";
+import type { BlockNode, CourseNode, LessonNode } from '../model/tree';
 
 /** Узел, выбранный по адресу: курса или урока по такому id может ещё не быть. */
 interface RouteNode {
@@ -21,7 +21,7 @@ export function getRouteState(
   pathname: string,
   courseList: CourseNode[] = [],
 ): RouteSelection {
-  const segments = pathname.split("/").filter(Boolean);
+  const segments = pathname.split('/').filter(Boolean);
   const defaultCourse: RouteNode = courseList[0] || {
     id: null,
     blocks: [],
@@ -35,7 +35,7 @@ export function getRouteState(
   let selectedLesson: RouteNode = selectedBlock.lessons?.[0] || { id: null };
   let selectedPractice: RouteNode | null = selectedBlock.practice?.[0] ?? null;
 
-  if (segments[0] === "course") {
+  if (segments[0] === 'course') {
     const courseId = segments[1];
     const course = courseList.find((item) => item.id === courseId);
     selectedCourse = course || { id: courseId || null, blocks: [] };
@@ -49,16 +49,16 @@ export function getRouteState(
 
     if (course) {
       const routeModeOffset =
-        segments[2] === "edit" || segments[2] === "metrics" ? 1 : 0;
+        segments[2] === 'edit' || segments[2] === 'metrics' ? 1 : 0;
       const contentTypeIndex = 2 + routeModeOffset;
       const contentIdIndex = 3 + routeModeOffset;
 
-      if (segments[contentTypeIndex] === "block" && segments[contentIdIndex]) {
+      if (segments[contentTypeIndex] === 'block' && segments[contentIdIndex]) {
         const blockId = segments[contentIdIndex];
-        const block = course.blocks!.find((item) => item.id === blockId);
+        const block = course.blocks.find((item) => item.id === blockId);
         selectedBlock = block || {
           id: blockId,
-          title: "Модуль не выбран",
+          title: 'Модуль не выбран',
           lessons: [],
           practice: [],
         };
@@ -67,19 +67,19 @@ export function getRouteState(
       }
 
       if (
-        (segments[contentTypeIndex] === "lesson" ||
-          segments[contentTypeIndex] === "lessons") &&
+        (segments[contentTypeIndex] === 'lesson' ||
+          segments[contentTypeIndex] === 'lessons') &&
         segments[contentIdIndex]
       ) {
         const lessonId = segments[contentIdIndex];
-        const block = course.blocks!.find((item) =>
-          item.lessons!.some((lesson) => lesson.id === lessonId),
+        const block = course.blocks.find((item) =>
+          item.lessons.some((lesson) => lesson.id === lessonId),
         );
         if (block) {
           selectedBlock = block;
           selectedLesson =
-            block.lessons!.find((lesson) => lesson.id === lessonId) ||
-            block.lessons![0];
+            block.lessons.find((lesson) => lesson.id === lessonId) ||
+            block.lessons[0];
           selectedPractice = block.practice?.[0] ?? null;
         } else {
           selectedLesson = { id: lessonId };
@@ -87,11 +87,11 @@ export function getRouteState(
       }
 
       if (
-        segments[contentTypeIndex] === "practice" &&
+        segments[contentTypeIndex] === 'practice' &&
         segments[contentIdIndex]
       ) {
         const practiceId = segments[contentIdIndex];
-        const block = course.blocks!.find((item) =>
+        const block = course.blocks.find((item) =>
           (item.practice || []).some((practice) => practice.id === practiceId),
         );
         if (block) {

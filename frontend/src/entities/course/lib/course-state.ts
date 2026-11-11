@@ -3,35 +3,35 @@ import type {
   CourseNode,
   LessonNode,
   PracticeNode,
-} from "../model/tree";
+} from '../model/tree';
 
 export const EMPTY_COURSE: CourseNode = {
-  id: "",
-  title: "Курс не выбран",
-  description: "",
-  category: "",
-  duration: "",
-  level: "",
-  format: "",
+  id: '',
+  title: 'Курс не выбран',
+  description: '',
+  category: '',
+  duration: '',
+  level: '',
+  format: '',
   learningObjectives: [],
   blocks: [],
 };
 
 export const EMPTY_BLOCK: BlockNode = {
-  id: "",
-  title: "Модуль не выбран",
+  id: '',
+  title: 'Модуль не выбран',
   lessons: [],
   practice: [],
   learningObjectives: [],
 };
 
 export const EMPTY_LESSON: LessonNode = {
-  id: "",
-  title: "Урок не выбран",
-  duration: "",
-  summary: "",
-  content: "",
-  markdown: "",
+  id: '',
+  title: 'Урок не выбран',
+  duration: '',
+  summary: '',
+  content: '',
+  markdown: '',
   contentBlocks: [],
 };
 
@@ -111,7 +111,7 @@ export const upsertModule = (
     return mergeModule(course, nextModule);
   }
   const block: BlockNode = {
-    duration: "Модуль курса",
+    duration: 'Модуль курса',
     learningObjectives: [],
     ...nextModule,
     lessons: nextModule.lessons || [],
@@ -166,11 +166,11 @@ export const upsertLesson = (
 // Возвращает в курсе поля модуля или урока (используется при отмене правок).
 export const applyEntityFields = (
   course: CourseNode,
-  kind: "module" | "lesson" | string,
+  kind: string,
   entityId: string,
   fields: Record<string, unknown>,
 ): CourseNode =>
-  kind === "module"
+  kind === 'module'
     ? {
         ...course,
         blocks: (course.blocks || []).map((block) =>
@@ -240,22 +240,22 @@ export function createEmptyCourseBlock(courseId: string) {
     id: blockId,
     block: {
       id: blockId,
-      title: "Новый блок",
-      description: "",
-      duration: "2 недели",
+      title: 'Новый блок',
+      description: '',
+      duration: '2 недели',
       lessons: [
         {
           id: lessonId,
-          title: "Новый урок",
-          duration: "20 минут",
-          summary: "",
-          content: "",
-          markdown: "Новый текстовый блок.",
+          title: 'Новый урок',
+          duration: '20 минут',
+          summary: '',
+          content: '',
+          markdown: 'Новый текстовый блок.',
           contentBlocks: [
             {
-              content_type: "text",
+              content_type: 'text',
               ai_generated: false,
-              md_content: "Новый текстовый блок.",
+              md_content: 'Новый текстовый блок.',
             },
           ],
         },

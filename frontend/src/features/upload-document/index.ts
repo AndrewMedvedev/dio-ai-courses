@@ -5,4 +5,4 @@ export {
   convertDocumentToMarkdown,
   saveDocument,
   uploadDocument,
-} from "./api/document-api";
+} from '@/shared/api';

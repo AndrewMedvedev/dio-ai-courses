@@ -1,18 +1,19 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { toText } from '@/shared/lib/text';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   isAgentMockEnabled,
   mockInterviewer,
   type MockAgentKind,
-} from "@/shared/lib/agent-mock";
-import { getLocalStorage } from "@/shared/lib/storage";
+} from '@/shared/lib/agent-mock';
+import { getLocalStorage } from '@/shared/lib/storage';
 import {
   askEditorAgent,
   askInterviewerAgent,
   askLessonInterviewerAgent,
   askMentorAgent,
   askModuleInterviewerAgent,
-} from "../api/agent-api";
+} from '../api/agent-api';
 import type {
   AgentConversation,
   AgentGenerationState,
@@ -20,7 +21,7 @@ import type {
   AgentPayload,
   AgentResponse,
   AgentType,
-} from "./types";
+} from './types';
 
 export interface SendAgentMessageParams {
   key: string;
@@ -50,10 +51,10 @@ interface AgentState {
   setChatId: (key: string, chatId: string | null) => void;
   appendMessage: (
     key: string,
-    role: AgentMessage["role"],
+    role: AgentMessage['role'],
     text: unknown,
   ) => void;
-  removeLastMessage: (key: string, role?: AgentMessage["role"]) => void;
+  removeLastMessage: (key: string, role?: AgentMessage['role']) => void;
   clearConversation: (key: string) => void;
   cancelRequest: (key: string) => void;
   getGeneration: (key: string) => AgentGenerationState;
@@ -64,15 +65,15 @@ interface AgentState {
   ) => Promise<AgentResponse | null>;
 }
 
-type PersistedAgentState = Pick<AgentState, "conversations" | "generations">;
+type PersistedAgentState = Pick<AgentState, 'conversations' | 'generations'>;
 
 // Диалоги интервьюеров (курс, модуль, урок) сохраняются в браузере вместе с chat_id,
 // чтобы после перезагрузки страницы можно было продолжить ту же беседу.
 // На backend нет ручки чтения истории чата, поэтому история живёт только здесь.
 const PERSISTED_AGENTS = new Set<string>([
-  "interviewer",
-  "module_interviewer",
-  "lesson_interviewer",
+  'interviewer',
+  'module_interviewer',
+  'lesson_interviewer',
 ]);
 const MAX_PERSISTED_MESSAGES = 200;
 const MAX_PERSISTED_CONVERSATIONS = 30;
@@ -88,7 +89,7 @@ const requestControllers = new Map<string, AbortController>();
 let messageSequence = 0;
 
 function createMessage(
-  role: AgentMessage["role"],
+  role: AgentMessage['role'],
   text: unknown,
 ): AgentMessage {
   messageSequence += 1;
@@ -100,13 +101,20 @@ function createMessage(
 }
 
 function normalizeUserContent(value: unknown): string {
-  const content = String(value ?? "")
-    .replace(/\0/g, "")
-    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+  const content = toText(value ?? '')
+    .replace(/\0/g, '')
+    .split('')
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return (
+        code === 9 || code === 10 || code === 13 || (code >= 32 && code !== 127)
+      );
+    })
+    .join('')
     .trim();
 
   if (!content) {
-    throw new Error("Введите сообщение.");
+    throw new Error('Введите сообщение.');
   }
   if (content.length > MAX_MESSAGE_LENGTH) {
     throw new Error(
@@ -122,21 +130,21 @@ function getPublicError(rawError: unknown): string {
     | null
     | undefined;
   const statusMessages: Record<number, string> = {
-    401: "Сессия истекла. Войдите заново.",
-    403: "Недостаточно прав для обращения к этому ИИ-агенту.",
-    422: "Запрос содержит некорректные данные. Обновите страницу и попробуйте снова.",
-    429: "Слишком много запросов. Подождите и попробуйте снова.",
+    401: 'Сессия истекла. Войдите заново.',
+    403: 'Недостаточно прав для обращения к этому ИИ-агенту.',
+    422: 'Запрос содержит некорректные данные. Обновите страницу и попробуйте снова.',
+    429: 'Слишком много запросов. Подождите и попробуйте снова.',
   };
   if (error?.status && statusMessages[error.status]) {
     return statusMessages[error.status];
   }
   if (Number(error?.status) >= 500) {
-    return "ИИ-сервис временно недоступен. Попробуйте позже.";
+    return 'ИИ-сервис временно недоступен. Попробуйте позже.';
   }
   return (
     error?.userMessage ||
     error?.message ||
-    "ИИ-сервис временно недоступен. Попробуйте позже."
+    'ИИ-сервис временно недоступен. Попробуйте позже.'
   );
 }
 
@@ -152,8 +160,8 @@ function getConversation(
       courseId,
       chatId: null,
       messages: [],
-      status: "idle",
-      error: "",
+      status: 'idle',
+      error: '',
       activeRequestId: null,
     }
   );
@@ -164,10 +172,10 @@ export const createInitialGenerationState = (): AgentGenerationState => ({
   isGenerating: false,
   taskId: null,
   generatedCourseId: null,
-  status: "Жду ответы в чате",
-  courseStatus: "",
+  status: 'Жду ответы в чате',
+  courseStatus: '',
   progress: 0,
-  error: "",
+  error: '',
   startedAt: null,
 });
 
@@ -176,9 +184,9 @@ function normalizeProgress(value: unknown): number {
 }
 
 const MOCK_AGENT_KINDS: Partial<Record<AgentType, MockAgentKind>> = {
-  interviewer: "course",
-  module_interviewer: "module",
-  lesson_interviewer: "lesson",
+  interviewer: 'course',
+  module_interviewer: 'module',
+  lesson_interviewer: 'lesson',
 };
 
 function callAgent(
@@ -191,33 +199,33 @@ function callAgent(
   if (mockKind && isAgentMockEnabled()) {
     return mockInterviewer(mockKind, payload) as Promise<AgentResponse>;
   }
-  if (agent === "interviewer") {
+  if (agent === 'interviewer') {
     return askInterviewerAgent(payload, options);
   }
-  if (agent === "module_interviewer") {
+  if (agent === 'module_interviewer') {
     return askModuleInterviewerAgent(payload, options);
   }
-  if (agent === "lesson_interviewer") {
+  if (agent === 'lesson_interviewer') {
     return askLessonInterviewerAgent(payload, options);
   }
-  if (agent === "mentor") {
+  if (agent === 'mentor') {
     return askMentorAgent(payload, options);
   }
-  if (agent === "editor") {
+  if (agent === 'editor') {
     return askEditorAgent(payload, options);
   }
-  throw new Error("Неизвестный тип ИИ-агента.");
+  throw new Error('Неизвестный тип ИИ-агента.');
 }
 
 export const createAgentConversationKey = (
   agent: AgentType,
   courseId: string | null | undefined,
-  contextId = "",
-) => [agent, courseId || "missing-course", contextId].join(":");
+  contextId = '',
+) => [agent, courseId || 'missing-course', contextId].join(':');
 
 function partializeAgentState(state: PersistedAgentState): PersistedAgentState {
-  const conversations: PersistedAgentState["conversations"] = {};
-  const generations: PersistedAgentState["generations"] = {};
+  const conversations: PersistedAgentState['conversations'] = {};
+  const generations: PersistedAgentState['generations'] = {};
   // Храним только последние диалоги, чтобы localStorage не разрастался.
   Object.entries(state.conversations || {})
     .filter(([, conversation]) => PERSISTED_AGENTS.has(conversation?.agent))
@@ -228,7 +236,7 @@ function partializeAgentState(state: PersistedAgentState): PersistedAgentState {
         ...conversation,
         messages: (conversation.messages || []).slice(-MAX_PERSISTED_MESSAGES),
         status:
-          conversation.status === "loading" ? "idle" : conversation.status,
+          conversation.status === 'loading' ? 'idle' : conversation.status,
         activeRequestId: null,
       };
       if (state.generations?.[key]) generations[key] = state.generations[key];
@@ -246,7 +254,7 @@ export const useAgentStore = create<AgentState>()(
         key,
         agent,
         courseId,
-        initialMessage = "",
+        initialMessage = '',
       }) => {
         set((state) => {
           if (state.conversations[key]) return state;
@@ -258,10 +266,10 @@ export const useAgentStore = create<AgentState>()(
                 courseId,
                 chatId: null,
                 messages: initialMessage
-                  ? [createMessage("assistant", initialMessage)]
+                  ? [createMessage('assistant', initialMessage)]
                   : [],
-                status: "idle",
-                error: "",
+                status: 'idle',
+                error: '',
                 activeRequestId: null,
               },
             },
@@ -286,7 +294,7 @@ export const useAgentStore = create<AgentState>()(
       },
 
       appendMessage: (key, role, text) => {
-        if (!String(text ?? "").trim()) return;
+        if (!toText(text ?? '').trim()) return;
         set((state) => {
           const conversation = state.conversations[key];
           if (!conversation) return state;
@@ -306,7 +314,7 @@ export const useAgentStore = create<AgentState>()(
       },
 
       // Убирает последнее сообщение указанной роли (нужно для повторной отправки после ошибки).
-      removeLastMessage: (key, role = "user") => {
+      removeLastMessage: (key, role = 'user') => {
         set((state) => {
           const conversation = state.conversations[key];
           if (!conversation) return state;
@@ -323,8 +331,8 @@ export const useAgentStore = create<AgentState>()(
                 messages: conversation.messages.filter(
                   (_, messageIndex) => messageIndex !== realIndex,
                 ),
-                status: "idle",
-                error: "",
+                status: 'idle',
+                error: '',
               },
             },
           };
@@ -354,7 +362,7 @@ export const useAgentStore = create<AgentState>()(
               ...state.conversations,
               [key]: {
                 ...conversation,
-                status: "idle",
+                status: 'idle',
                 activeRequestId: null,
               },
             },
@@ -371,8 +379,8 @@ export const useAgentStore = create<AgentState>()(
           const current =
             state.generations[key] || createInitialGenerationState();
           const nextPatch: Partial<AgentGenerationState> =
-            typeof patch === "function" ? patch(current) || {} : { ...patch };
-          if (Object.prototype.hasOwnProperty.call(nextPatch, "progress")) {
+            typeof patch === 'function' ? patch(current) || {} : { ...patch };
+          if (Object.prototype.hasOwnProperty.call(nextPatch, 'progress')) {
             nextPatch.progress = normalizeProgress(nextPatch.progress);
           }
           return {
@@ -404,12 +412,12 @@ export const useAgentStore = create<AgentState>()(
         content,
         contentBlocks = [],
         editorPayload = {},
-        emptyResponseMessage = "Агент вернул пустой ответ. Попробуйте ещё раз.",
+        emptyResponseMessage = 'Агент вернул пустой ответ. Попробуйте ещё раз.',
         responseDisplayMessage,
       }) => {
         const normalizedContent = normalizeUserContent(content);
         if (!courseId) {
-          throw new Error("Не указан курс для обращения к ИИ-агенту.");
+          throw new Error('Не указан курс для обращения к ИИ-агенту.');
         }
 
         requestControllers.get(key)?.abort();
@@ -432,10 +440,10 @@ export const useAgentStore = create<AgentState>()(
               courseId,
               messages: [
                 ...current.messages,
-                createMessage("user", normalizedContent),
+                createMessage('user', normalizedContent),
               ],
-              status: "loading",
-              error: "",
+              status: 'loading',
+              error: '',
               activeRequestId: requestId,
             },
           },
@@ -448,7 +456,7 @@ export const useAgentStore = create<AgentState>()(
               ...editorPayload,
               chat_id: current.chatId,
               course_id: courseId,
-              role: "user",
+              role: 'user',
               content: normalizedContent,
               content_blocks: Array.isArray(contentBlocks) ? contentBlocks : [],
             },
@@ -458,14 +466,14 @@ export const useAgentStore = create<AgentState>()(
           if (latest?.activeRequestId !== requestId) return response;
 
           const responseText =
-            typeof response?.content === "string"
+            typeof response?.content === 'string'
               ? response.content.trim()
-              : "";
+              : '';
           const visibleResponseText =
             responseDisplayMessage === undefined
               ? responseText
               : String(
-                  typeof responseDisplayMessage === "function"
+                  typeof responseDisplayMessage === 'function'
                     ? responseDisplayMessage(response)
                     : responseDisplayMessage,
                 ).trim();
@@ -480,13 +488,13 @@ export const useAgentStore = create<AgentState>()(
                     ? [
                         ...state.conversations[key].messages,
                         createMessage(
-                          "assistant",
+                          'assistant',
                           visibleResponseText || emptyResponseMessage,
                         ),
                       ]
                     : state.conversations[key].messages,
-                status: "success",
-                error: "",
+                status: 'success',
+                error: '',
                 activeRequestId: null,
               },
             },
@@ -498,14 +506,14 @@ export const useAgentStore = create<AgentState>()(
           if (controller.signal.aborted && !didTimeout) return null;
 
           const errorMessage = didTimeout
-            ? "ИИ-сервис не ответил вовремя. Попробуйте отправить сообщение ещё раз."
+            ? 'ИИ-сервис не ответил вовремя. Попробуйте отправить сообщение ещё раз.'
             : getPublicError(error);
           set((state) => ({
             conversations: {
               ...state.conversations,
               [key]: {
                 ...state.conversations[key],
-                status: "error",
+                status: 'error',
                 error: errorMessage,
                 activeRequestId: null,
               },
@@ -521,7 +529,7 @@ export const useAgentStore = create<AgentState>()(
       },
     }),
     {
-      name: "ai-course-agent-chats-v1",
+      name: 'ai-course-agent-chats-v1',
       version: 1,
       storage: createJSONStorage(() => getLocalStorage() || MEMORY_STORAGE),
       partialize: partializeAgentState,

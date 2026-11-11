@@ -1,12 +1,12 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   acceptInvitation,
   previewInvitation,
   type InvitationPreview,
-} from "@/entities/invitation";
-import { useSessionStore, usePermissionStore } from "@/entities/session";
-import { notify } from "@/shared/ui/toast";
+} from '@/entities/invitation';
+import { useSessionStore, usePermissionStore } from '@/entities/session';
+import { notify } from '@/shared/ui/toast';
 
 // The token determines the email and whether registration is available.
 // Existing users keep the normal login/accept flow passed as children.
@@ -26,29 +26,29 @@ export function InvitationEntry({
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [loadError, setLoadError] = useState<InvitationFailure | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const loginPath = `/login?${new URLSearchParams({
     redirect: `/invitations/organization/accept/${encodeURIComponent(token)}`,
-    invitationLogin: "1",
+    invitationLogin: '1',
   })}`;
 
   useEffect(() => {
     let active = true;
     setPreview(null);
     setLoadError(null);
-    setPassword("");
-    setConfirmation("");
-    setError("");
+    setPassword('');
+    setConfirmation('');
+    setError('');
     previewInvitation(token).then(
       (result) => {
         if (active) setPreview(result);
       },
-      (failure) => {
-        if (active) setLoadError(failure);
+      (failure: unknown) => {
+        if (active) setLoadError(failure as InvitationFailure);
       },
     );
     return () => {
@@ -62,10 +62,10 @@ export function InvitationEntry({
     event.preventDefault();
     if (submitting) return;
     if (password !== confirmation) {
-      setError("Пароли не совпадают. Проверьте повторный ввод.");
+      setError('Пароли не совпадают. Проверьте повторный ввод.');
       return;
     }
-    setError("");
+    setError('');
     setSubmitting(true);
     try {
       const tokens = await acceptInvitation({ token, password });
@@ -82,21 +82,21 @@ export function InvitationEntry({
         })
         .catch(() => {});
       session.loadCurrentUser().catch(() => {});
-      notify("Аккаунт создан. Приглашение принято!");
-      navigate("/profile", { replace: true });
+      notify('Аккаунт создан. Приглашение принято!');
+      void navigate('/profile', { replace: true });
     } catch (rawFailure) {
       const failure = rawFailure as InvitationFailure;
       if (failure.status === 404) setLoadError(failure);
       else if (failure.status === 409) {
         setError(
-          "Аккаунт с этим email уже существует. Войдите с вашим паролем.",
+          'Аккаунт с этим email уже существует. Войдите с вашим паролем.',
         );
       } else {
         setError(
           failure.validationErrors?.password ||
             (failure.status === 422 || failure.status === 400
-              ? "Пароль недостаточно надёжный. Используйте длинный уникальный пароль без имени и email."
-              : "Не удалось создать аккаунт. Проверьте соединение и попробуйте ещё раз."),
+              ? 'Пароль недостаточно надёжный. Используйте длинный уникальный пароль без имени и email.'
+              : 'Не удалось создать аккаунт. Проверьте соединение и попробуйте ещё раз.'),
         );
       }
     } finally {
@@ -111,7 +111,7 @@ export function InvitationEntry({
         <div className="auth-intro tw:max-w-[540px] tw:min-w-[0] tw:max-1100:max-w-[620px]">
           <span className="section-top-label">AI Course Lab · Приглашение</span>
           <h1 className="tw:max-w-[100%] tw:m-[14px_0_16px] tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:wrap-anywhere tw:tracking-[-0.025em] tw:[font-family:'Unbounded',_sans-serif]">
-            {loadError ? "Проверьте приглашение" : "Добро пожаловать в команду"}
+            {loadError ? 'Проверьте приглашение' : 'Добро пожаловать в команду'}
           </h1>
           <p className="tw:max-w-[460px] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
             Создайте пароль, чтобы принять приглашение и начать обучение.
@@ -127,7 +127,7 @@ export function InvitationEntry({
               Регистрация по приглашению
             </span>
             <strong className="tw:text-(--heading) tw:text-[1.55rem]">
-              {loadError ? "Не удалось продолжить" : "Создайте пароль"}
+              {loadError ? 'Не удалось продолжить' : 'Создайте пароль'}
             </strong>
           </div>
           {loadError ? (
@@ -137,8 +137,8 @@ export function InvitationEntry({
             >
               <p className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
                 {invalid
-                  ? "Ссылка недействительна: приглашение использовано, отозвано или срок его действия истёк. Попросите администратора отправить новое приглашение."
-                  : "Не удалось проверить приглашение. Проверьте соединение и повторите попытку."}
+                  ? 'Ссылка недействительна: приглашение использовано, отозвано или срок его действия истёк. Попросите администратора отправить новое приглашение.'
+                  : 'Не удалось проверить приглашение. Проверьте соединение и повторите попытку.'}
               </p>
               {!invalid && (
                 <button
@@ -179,13 +179,13 @@ export function InvitationEntry({
                 <input
                   className="tw:w-[100%] tw:min-h-[54px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.32)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_16px] tw:leading-[1.45] tw:text-[0.96rem] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.82)] tw:[&[aria-invalid=true]]:border-[#b42318] tw:[background:var(--bg)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[&[aria-invalid=true]]:[background:rgba(180,_35,_24,_0.08)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&[aria-invalid=true]]:[box-shadow:0_0_0_3px_rgba(180,_35,_24,_0.14)]"
                   name="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
                   value={password}
                   onChange={(event) => {
                     setPassword(event.target.value);
-                    setError("");
+                    setError('');
                   }}
                   disabled={submitting}
                   aria-describedby="invite-password-hint invite-password-error"
@@ -202,13 +202,13 @@ export function InvitationEntry({
                 <input
                   className="tw:w-[100%] tw:min-h-[54px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.32)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_16px] tw:leading-[1.45] tw:text-[0.96rem] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.82)] tw:[.auth-form_&[aria-invalid=true]]:border-[#b42318] tw:[background:var(--bg)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[.auth-form_&[aria-invalid=true]]:[background:rgba(180,_35,_24,_0.08)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[.auth-form_&[aria-invalid=true]]:[box-shadow:0_0_0_3px_rgba(180,_35,_24,_0.14)]"
                   name="passwordConfirmation"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
                   value={confirmation}
                   onChange={(event) => {
                     setConfirmation(event.target.value);
-                    setError("");
+                    setError('');
                   }}
                   disabled={submitting}
                   aria-invalid={Boolean(error)}
@@ -221,7 +221,7 @@ export function InvitationEntry({
                 aria-pressed={showPassword}
                 onClick={() => setShowPassword((value) => !value)}
               >
-                {showPassword ? "Скрыть пароли" : "Показать пароли"}
+                {showPassword ? 'Скрыть пароли' : 'Показать пароли'}
               </button>
               <p
                 id="invite-password-error"
@@ -236,14 +236,14 @@ export function InvitationEntry({
                 disabled={submitting || !password || !confirmation}
               >
                 {submitting
-                  ? "Создаём аккаунт…"
-                  : "Создать аккаунт и принять приглашение"}
+                  ? 'Создаём аккаунт…'
+                  : 'Создать аккаунт и принять приглашение'}
               </button>
               <small>
                 После регистрации вы автоматически войдёте в аккаунт.
               </small>
               <p className="auth-switch tw:m-[22px_0_0] tw:text-(--muted) tw:text-[1rem] tw:text-center tw:leading-[1.72] tw:tracking-[0.012em] tw:[&_a]:text-(--ink-accent) tw:[&_a]:font-[800]">
-                Уже зарегистрированы?{" "}
+                Уже зарегистрированы?{' '}
                 <Link to={loginPath}>Войти в аккаунт</Link>
               </p>
             </form>

@@ -3,4 +3,4 @@ export {
   useThemeStore,
   type ResolvedTheme,
   type Theme,
-} from "./theme-store";
+} from './theme-store';

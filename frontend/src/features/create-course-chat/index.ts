@@ -1,1 +1,1 @@
-export { CreatorChatView } from "./ui/CreatorChatView";
+export { CreatorChatView } from './ui/CreatorChatView';

@@ -1,1 +1,1 @@
-export { AppModal, type AppModalProps, type AppModalSize } from "./AppModal";
+export { AppModal, type AppModalProps, type AppModalSize } from './AppModal';

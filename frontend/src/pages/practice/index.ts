@@ -1,1 +1,1 @@
-export { PracticePage, type PracticePageProps } from "./ui/PracticePage";
+export { PracticePage, type PracticePageProps } from './ui/PracticePage';

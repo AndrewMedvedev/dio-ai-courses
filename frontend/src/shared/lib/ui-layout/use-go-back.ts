@@ -1,6 +1,6 @@
-import { useCallback, useRef } from "react";
-import { useLocation, useNavigate, type Location } from "react-router-dom";
-import { useUiLayoutStore } from "./ui-layout-store";
+import { useCallback, useRef } from 'react';
+import { useLocation, useNavigate, type Location } from 'react-router-dom';
+import { useUiLayoutStore } from './ui-layout-store';
 
 interface UseGoBackOptions {
   fallbackPath?: string;
@@ -8,10 +8,10 @@ interface UseGoBackOptions {
 }
 
 const getRouteKey = (location: Location) =>
-  `${location.pathname}${location.search || ""}${location.hash || ""}`;
+  `${location.pathname}${location.search || ''}${location.hash || ''}`;
 
 export function useGoBack({
-  fallbackPath = "/",
+  fallbackPath = '/',
   replaceFallback = true,
 }: UseGoBackOptions = {}) {
   const location = useLocation();
@@ -27,7 +27,7 @@ export function useGoBack({
     const targetRoute = getPreviousRoute(currentRoute, fallbackPath);
     const shouldReplace = targetRoute === fallbackPath ? replaceFallback : true;
 
-    navigate(targetRoute, { replace: shouldReplace });
+    void navigate(targetRoute, { replace: shouldReplace });
 
     window.setTimeout(() => {
       isNavigatingRef.current = false;

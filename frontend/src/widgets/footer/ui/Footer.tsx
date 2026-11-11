@@ -1,5 +1,5 @@
 // Полноценный футер с навигацией по продукту и служебными ссылками
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 
 export interface FooterProps {
   canCreateCourse?: boolean;

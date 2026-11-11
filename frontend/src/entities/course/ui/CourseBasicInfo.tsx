@@ -1,4 +1,4 @@
-import { formatCourseLevel } from "../model/levels";
+import { formatCourseLevel } from '../model/levels';
 
 export interface CourseBasicInfoData {
   title?: string;

@@ -3,7 +3,7 @@
  * camelCase, обёртки data / items). Его сужают мапперы в entities.
  */
 // any: формат ответа нестабилен, сужаем в мапперах.
-export type RawApiRecord = Record<string, any>;
+export type RawApiRecord = Record<string, unknown>;
 
 export interface PageParams {
   page?: number;

@@ -1,1 +1,1 @@
-export { InvitationEntry } from "./ui/InvitationEntry";
+export { InvitationEntry } from './ui/InvitationEntry';

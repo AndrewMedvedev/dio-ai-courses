@@ -3,4 +3,4 @@ export {
   type CoursePageProps,
   type CourseStatusAction,
   type LeaderboardStudent,
-} from "./ui/CoursePage";
+} from './ui/CoursePage';

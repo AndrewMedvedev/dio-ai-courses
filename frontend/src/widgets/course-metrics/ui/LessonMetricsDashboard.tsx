@@ -6,12 +6,12 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
-} from "react";
+} from 'react';
 import {
   useCourseMetricsStore,
   type MetricsPeriod,
-} from "../model/course-metrics-store";
-import { METRICS_STUDENTS_LIMIT } from "../model/constants";
+} from '../model/course-metrics-store';
+import { METRICS_STUDENTS_LIMIT } from '../model/constants';
 import {
   activeTimeTone,
   formatAxisValue,
@@ -21,7 +21,7 @@ import {
   percentTone,
   pluralRu,
   toDateInputValue,
-} from "../lib/metrics-format";
+} from '../lib/metrics-format';
 
 interface PeriodOption {
   id: MetricsPeriod;
@@ -30,13 +30,13 @@ interface PeriodOption {
 }
 
 const PERIODS: PeriodOption[] = [
-  { id: "7", label: "7 дней", days: 7 },
-  { id: "30", label: "30 дней", days: 30 },
-  { id: "all", label: "Всё время" },
-  { id: "custom", label: "Период…" },
+  { id: '7', label: '7 дней', days: 7 },
+  { id: '30', label: '30 дней', days: 30 },
+  { id: 'all', label: 'Всё время' },
+  { id: 'custom', label: 'Период…' },
 ];
 
-const SESSION_FORMS = ["сессия", "сессии", "сессий"] as const;
+const SESSION_FORMS = ['сессия', 'сессии', 'сессий'] as const;
 
 function periodRange(days: number) {
   const to = new Date();
@@ -86,8 +86,8 @@ export function LessonMetricsDashboard({
   const loadSessions = useCourseMetricsStore((state) => state.loadSessions);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
 
-  const lessonId = lesson?.id || "";
-  const period = sessionsFilters.period || "all";
+  const lessonId = lesson?.id || '';
+  const period = sessionsFilters.period || 'all';
   const isDateRangeInvalid = Boolean(
     sessionsFilters.dateFrom &&
     sessionsFilters.dateTo &&
@@ -129,10 +129,10 @@ export function LessonMetricsDashboard({
   ]);
 
   const choosePeriod = (option: PeriodOption) => {
-    if (option.id === "all") {
-      setFilters({ period: "all", dateFrom: "", dateTo: "" });
-    } else if (option.id === "custom") {
-      setFilters({ period: "custom" });
+    if (option.id === 'all') {
+      setFilters({ period: 'all', dateFrom: '', dateTo: '' });
+    } else if (option.id === 'custom') {
+      setFilters({ period: 'custom' });
     } else {
       setFilters({ period: option.id, ...periodRange(option.days ?? 0) });
     }
@@ -176,21 +176,21 @@ export function LessonMetricsDashboard({
   }, [sessions]);
 
   const periodHint =
-    period === "7"
-      ? "за 7 дней"
-      : period === "30"
-        ? "за 30 дней"
-        : period === "custom"
-          ? "за выбранный период"
-          : "за всё время";
+    period === '7'
+      ? 'за 7 дней'
+      : period === '30'
+        ? 'за 30 дней'
+        : period === 'custom'
+          ? 'за выбранный период'
+          : 'за всё время';
 
-  let body: ReactNode = null;
+  let body: ReactNode;
   if (!selectedStudentUserId) {
     body = (
       <p className="cm-empty cm-empty-large tw:m-[0] tw:text-(--muted) tw:p-[36px_20px] tw:rounded-[18px] tw:text-center tw:[border:1px_dashed_var(--cm-border)]">
         {isStudentsLoading
-          ? "Загружаем студентов…"
-          : "На курс пока никто не записан — метрик нет."}
+          ? 'Загружаем студентов…'
+          : 'На курс пока никто не записан — метрик нет.'}
       </p>
     );
   } else if (isDateRangeInvalid) {
@@ -265,14 +265,14 @@ export function LessonMetricsDashboard({
               Теория
             </span>
             <span
-              className={`cm-pill cm-pill-large tw:inline-block tw:p-[5px_12px] tw:rounded-[99px] tw:text-[0.95rem] tw:font-[800] tw:whitespace-nowrap tw:[&.is-good]:text-(--cm-good-ink) tw:[&.is-neutral]:text-(--muted) tw:[.cm-kpi_>_&:first-child]:text-[0.82rem] tw:[.cm-kpi_>_&:first-child]:font-[700] tw:[&.is-good]:[background:var(--cm-good-bg)] tw:[&.is-neutral]:[background:var(--cm-neutral-bg)] tw:[.cm-kpi_>_&:first-child]:text-(--muted) ${stats.firstCompleted ? "is-good" : "is-neutral"}`}
+              className={`cm-pill cm-pill-large tw:inline-block tw:p-[5px_12px] tw:rounded-[99px] tw:text-[0.95rem] tw:font-[800] tw:whitespace-nowrap tw:[&.is-good]:text-(--cm-good-ink) tw:[&.is-neutral]:text-(--muted) tw:[.cm-kpi_>_&:first-child]:text-[0.82rem] tw:[.cm-kpi_>_&:first-child]:font-[700] tw:[&.is-good]:[background:var(--cm-good-bg)] tw:[&.is-neutral]:[background:var(--cm-neutral-bg)] tw:[.cm-kpi_>_&:first-child]:text-(--muted) ${stats.firstCompleted ? 'is-good' : 'is-neutral'}`}
             >
               {stats.firstCompleted
                 ? `Пройдена ${formatShortDate(stats.firstCompleted)}`
-                : "Не пройдена"}
+                : 'Не пройдена'}
             </span>
             <small className="tw:text-(--muted) tw:text-[0.8rem]">
-              {stats.completedCount} из {sessions.length}{" "}
+              {stats.completedCount} из {sessions.length}{' '}
               {pluralRu(sessions.length, SESSION_FORMS)} завершены
             </small>
           </article>
@@ -284,11 +284,11 @@ export function LessonMetricsDashboard({
               Сессии по дням
             </h3>
             <span className="cm-legend tw:inline-flex tw:items-center tw:gap-[6px] tw:text-(--muted) tw:text-[0.78rem]">
-              <i className="is-good tw:w-[10px] tw:h-[10px] tw:rounded-[3px] tw:[&:is(.cm-bar_i,i.cm-chart-bar,.cm-legend_i)]:[background:var(--cm-good)]" />{" "}
+              <i className="is-good tw:w-[10px] tw:h-[10px] tw:rounded-[3px] tw:[&:is(.cm-bar_i,i.cm-chart-bar,.cm-legend_i)]:[background:var(--cm-good)]" />{' '}
               Активное время
             </span>
             <span className="cm-legend tw:inline-flex tw:items-center tw:gap-[6px] tw:text-(--muted) tw:text-[0.78rem]">
-              <i className="is-depth tw:w-[10px] tw:h-[10px] tw:rounded-[50%] tw:[background:var(--cm-depth)]" />{" "}
+              <i className="is-depth tw:w-[10px] tw:h-[10px] tw:rounded-[50%] tw:[background:var(--cm-depth)]" />{' '}
               Глубина просмотра, %
             </span>
             <span className="cm-panel-hint tw:text-(--muted) tw:text-[0.84rem] tw:leading-[1.4]">
@@ -298,7 +298,7 @@ export function LessonMetricsDashboard({
           <div className="cm-chart-scroll tw:overflow-x-auto tw:pt-[6px]">
             <div
               className="cm-chart tw:grid tw:grid-cols-[52px_repeat(var(--cm-columns,_1),_minmax(56px,_1fr))] tw:gap-x-[10px] tw:min-w-[calc(52px_+_var(--cm-columns,_1)_*_66px)] tw:h-[260px]"
-              style={{ "--cm-columns": chronological.length } as CSSProperties}
+              style={{ '--cm-columns': chronological.length } as CSSProperties}
               onMouseLeave={() => setHoveredIndex(-1)}
             >
               <div
@@ -315,12 +315,12 @@ export function LessonMetricsDashboard({
                   100,
                   Math.max(0, Math.round(session.maxScrollDepthPercent || 0)),
                 );
-                const description = `${formatDateTime(session.createdAt)} · ${formatDuration(active)} · ${depth}% · ${session.completedAt ? "завершена" : "не завершена"}`;
+                const description = `${formatDateTime(session.createdAt)} · ${formatDuration(active)} · ${depth}% · ${session.completedAt ? 'завершена' : 'не завершена'}`;
                 return (
                   <button
                     type="button"
                     key={session.id || `${session.createdAt}-${index}`}
-                    className={`cm-chart-col tw:grid tw:grid-rows-[1fr_28px] tw:min-w-[0] tw:p-[0] tw:rounded-[10px] tw:text-[inherit] tw:cursor-default tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.9)] tw:focus-visible:[outline-offset:2px] ${hoveredIndex === index ? "is-hovered" : ""}`}
+                    className={`cm-chart-col tw:grid tw:grid-rows-[1fr_28px] tw:min-w-[0] tw:p-[0] tw:rounded-[10px] tw:text-[inherit] tw:cursor-default tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.9)] tw:focus-visible:[outline-offset:2px] ${hoveredIndex === index ? 'is-hovered' : ''}`}
                     aria-label={description}
                     onMouseEnter={() => setHoveredIndex(index)}
                     onFocus={() => setHoveredIndex(index)}
@@ -339,7 +339,7 @@ export function LessonMetricsDashboard({
                       />
                       {hoveredIndex === index ? (
                         <span
-                          className={`cm-chart-tip tw:absolute tw:top-[6px] tw:left-[50%] tw:z-[2] tw:max-w-[260px] tw:p-[7px_11px] tw:rounded-[10px] tw:text-[#fbf8f2] tw:text-[0.8rem] tw:font-[600] tw:leading-[1.35] tw:text-left tw:w-[max-content] tw:whitespace-normal tw:pointer-events-none tw:[&.is-left]:left-[auto] tw:[background:#2b2724] tw:dark:text-[#1f1d1a] tw:[box-shadow:0_10px_26px_rgba(0,_0,_0,_0.24)] tw:[&.is-left]:right-[50%] tw:dark:[background:#f2e7d4] ${index > chronological.length / 2 ? "is-left" : ""}`}
+                          className={`cm-chart-tip tw:absolute tw:top-[6px] tw:left-[50%] tw:z-[2] tw:max-w-[260px] tw:p-[7px_11px] tw:rounded-[10px] tw:text-[#fbf8f2] tw:text-[0.8rem] tw:font-[600] tw:leading-[1.35] tw:text-left tw:w-[max-content] tw:whitespace-normal tw:pointer-events-none tw:[&.is-left]:left-[auto] tw:[background:#2b2724] tw:dark:text-[#1f1d1a] tw:[box-shadow:0_10px_26px_rgba(0,_0,_0,_0.24)] tw:[&.is-left]:right-[50%] tw:dark:[background:#f2e7d4] ${index > chronological.length / 2 ? 'is-left' : ''}`}
                           role="tooltip"
                         >
                           {description}
@@ -411,7 +411,7 @@ export function LessonMetricsDashboard({
                             aria-hidden="true"
                           >
                             <i
-                              className={`tw:block tw:h-[100%] tw:rounded-[inherit] tw:[.cm_&.is-danger:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-bad)] tw:[.cm_&.is-good:is(.cm-bar_i,i.cm-chart-bar,.cm-legend_i)]:[background:var(--cm-good)] tw:[.cm_&.is-warning:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-warn)] ${percentTone(depth) ?? ""}`}
+                              className={`tw:block tw:h-[100%] tw:rounded-[inherit] tw:[.cm_&.is-danger:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-bad)] tw:[.cm_&.is-good:is(.cm-bar_i,i.cm-chart-bar,.cm-legend_i)]:[background:var(--cm-good)] tw:[.cm_&.is-warning:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-warn)] ${percentTone(depth) ?? ''}`}
                               style={{ width: `${depth}%` }}
                             />
                           </div>
@@ -422,9 +422,9 @@ export function LessonMetricsDashboard({
                       </td>
                       <td className="tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0]">
                         <span
-                          className={`cm-pill tw:inline-block tw:p-[3px_10px] tw:rounded-[99px] tw:text-[0.76rem] tw:font-[800] tw:whitespace-nowrap tw:[&.is-neutral]:text-(--muted) tw:[&.is-good]:text-(--cm-good-ink) tw:[&.is-neutral]:[background:var(--cm-neutral-bg)] tw:[&.is-good]:[background:var(--cm-good-bg)] ${session.completedAt ? "is-good" : "is-neutral"}`}
+                          className={`cm-pill tw:inline-block tw:p-[3px_10px] tw:rounded-[99px] tw:text-[0.76rem] tw:font-[800] tw:whitespace-nowrap tw:[&.is-neutral]:text-(--muted) tw:[&.is-good]:text-(--cm-good-ink) tw:[&.is-neutral]:[background:var(--cm-neutral-bg)] tw:[&.is-good]:[background:var(--cm-good-bg)] ${session.completedAt ? 'is-good' : 'is-neutral'}`}
                         >
-                          {session.completedAt ? "Завершена" : "Не завершена"}
+                          {session.completedAt ? 'Завершена' : 'Не завершена'}
                         </span>
                       </td>
                     </tr>
@@ -454,7 +454,7 @@ export function LessonMetricsDashboard({
           >
             {!students.length ? (
               <option value="">
-                {isStudentsLoading ? "Загружаем…" : "Нет студентов"}
+                {isStudentsLoading ? 'Загружаем…' : 'Нет студентов'}
               </option>
             ) : null}
             {students.map((student) => {
@@ -464,7 +464,7 @@ export function LessonMetricsDashboard({
                   key={student.id || student.userId}
                   value={student.userId}
                 >
-                  {user?.fullName || user?.email || "Студент"}
+                  {user?.fullName || user?.email || 'Студент'}
                 </option>
               );
             })}
@@ -479,7 +479,7 @@ export function LessonMetricsDashboard({
             <button
               key={option.id}
               type="button"
-              className={`tw:min-h-[38px] tw:p-[0_14px] tw:rounded-[999px] tw:text-(--muted) tw:leading-[1.45] tw:text-[0.96rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:hover:text-(--heading) tw:[.cm-segmented_&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[.cm-segmented_&.is-active]:[background:var(--glass-bg-strong,_#ffffff)] tw:[.cm-segmented_&.is-active]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.14)] ${period === option.id ? "is-active" : ""}`}
+              className={`tw:min-h-[38px] tw:p-[0_14px] tw:rounded-[999px] tw:text-(--muted) tw:leading-[1.45] tw:text-[0.96rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:hover:text-(--heading) tw:[.cm-segmented_&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[.cm-segmented_&.is-active]:[background:var(--glass-bg-strong,_#ffffff)] tw:[.cm-segmented_&.is-active]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.14)] ${period === option.id ? 'is-active' : ''}`}
               aria-pressed={period === option.id}
               onClick={() => choosePeriod(option)}
             >
@@ -489,7 +489,7 @@ export function LessonMetricsDashboard({
         </div>
       </div>
 
-      {period === "custom" ? (
+      {period === 'custom' ? (
         <div className="cm-dates tw:flex tw:flex-wrap tw:gap-[12px]">
           <label className="cm-field tw:flex tw:flex-col tw:gap-[4px] tw:text-(--muted) tw:text-[0.78rem] tw:font-[700] tw:max-520:flex-[1_1_100%]">
             <span>С даты</span>

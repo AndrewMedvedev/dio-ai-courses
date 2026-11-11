@@ -1,1 +1,1 @@
-export { isUuid } from "./is-uuid";
+export { isUuid } from './is-uuid';

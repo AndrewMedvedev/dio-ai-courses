@@ -3,7 +3,7 @@
 // подключается только в dev-сборке, если файл есть у разработчика локально.
 // Без файла все функции ниже безопасно возвращают «выключено».
 
-export type MockAgentKind = "course" | "module" | "lesson";
+export type MockAgentKind = 'course' | 'module' | 'lesson';
 
 interface LocalAgentMock {
   isAgentMockEnabled?: () => boolean;
@@ -11,7 +11,7 @@ interface LocalAgentMock {
 }
 
 const modules: Record<string, unknown> = import.meta.env.DEV
-  ? import.meta.glob("/src/services/agentMock.local.js", { eager: true })
+  ? import.meta.glob('/src/services/agentMock.local.js', { eager: true })
   : {};
 const localMock =
   (Object.values(modules)[0] as LocalAgentMock | undefined) || null;
@@ -24,6 +24,6 @@ export function mockInterviewer(
   kind: MockAgentKind,
   payload: unknown,
 ): Promise<unknown> {
-  if (!localMock) throw new Error("Демо-режим ИИ недоступен.");
+  if (!localMock) throw new Error('Демо-режим ИИ недоступен.');
   return localMock.mockInterviewer(kind, payload);
 }

@@ -1,5 +1,6 @@
+import { asRecords } from '@/shared/api';
 // Прогресс прохождения курса (backend: /progress/*).
-import { requestJson, type PageParams, type RawApiRecord } from "@/shared/api";
+import { requestJson, type PageParams, type RawApiRecord } from '@/shared/api';
 
 // Прогресс всех учеников курса — для автора и преподавателей (страница метрик).
 export async function fetchCourseStudentsProgress(
@@ -14,8 +15,8 @@ export async function fetchCourseStudentsProgress(
   );
   const items = Array.isArray(data) ? data : data?.items || [];
   return {
-    items,
-    total: Number(data?.total) || items.length,
+    items: asRecords(items),
+    total: Number(data?.total) || asRecords(items).length,
     hasNext: Boolean(data?.has_next ?? data?.hasNext),
   };
 }
@@ -35,7 +36,7 @@ export async function createCourseProgress(
   courseId: string,
 ): Promise<RawApiRecord | null> {
   return requestJson(`/progress/courses/${encodeURIComponent(courseId)}`, {
-    method: "POST",
+    method: 'POST',
   });
 }
 
@@ -48,7 +49,7 @@ export async function recalculateCourseProgress(
   });
   return requestJson(
     `/progress/courses/${encodeURIComponent(courseId)}?${query.toString()}`,
-    { method: "PATCH" },
+    { method: 'PATCH' },
   );
 }
 
@@ -68,7 +69,7 @@ export async function createModuleProgress(
 ): Promise<RawApiRecord | null> {
   return requestJson(
     `/progress/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`,
-    { method: "POST" },
+    { method: 'POST' },
   );
 }
 
@@ -88,7 +89,7 @@ export async function createLessonProgress(
 ): Promise<RawApiRecord | null> {
   return requestJson(
     `/progress/module/${encodeURIComponent(moduleId)}/lessons/${encodeURIComponent(lessonId)}`,
-    { method: "POST" },
+    { method: 'POST' },
   );
 }
 
@@ -96,6 +97,6 @@ export async function completeLessonTheory(
   lessonId: string,
 ): Promise<RawApiRecord | null> {
   return requestJson(`/progress/lessons/${encodeURIComponent(lessonId)}`, {
-    method: "PATCH",
+    method: 'PATCH',
   });
 }

@@ -3,7 +3,7 @@ export {
   createApiError,
   type ApiErrorOptions,
   type ValidationErrors,
-} from "./api-error";
+} from './api-error';
 export {
   API_BASE,
   apiFetch,
@@ -14,7 +14,7 @@ export {
   setUnauthorizedHandler,
   type JsonRequestOptions,
   type RequestOptions,
-} from "./backend";
+} from './backend';
 export {
   isTokenExpired,
   normalizeTokenResponse,
@@ -25,13 +25,24 @@ export {
   tokenStorage,
   type StoredSession,
   type TokenResponse,
-} from "./session";
-export { buildQuery } from "./build-query";
-export type { ItemsPage, PageParams, Paginated, RawApiRecord } from "./types";
+} from './session';
+export { buildQuery } from './build-query';
+export type { ItemsPage, PageParams, Paginated, RawApiRecord } from './types';
 export {
   AttachmentError,
   attachmentsApi,
   runWithConcurrency,
   validateAttachmentFile,
   type Attachment,
-} from "./attachments";
+} from './attachments';
+
+export { asRecord, asArray, asRecords } from './read-values';
+
+export {
+  DOCUMENT_ALLOWED_EXTENSION,
+  DOCUMENT_ALLOWED_EXTENSIONS_LABEL,
+  DOCUMENT_MAX_SIZE_BYTES,
+  convertDocumentToMarkdown,
+  saveDocument,
+  uploadDocument,
+} from './documents';

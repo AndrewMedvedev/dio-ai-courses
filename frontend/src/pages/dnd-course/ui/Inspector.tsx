@@ -6,10 +6,10 @@ import {
   useState,
   type ChangeEvent,
   type ReactNode,
-} from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { useShallow } from "zustand/react/shallow";
+} from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useShallow } from 'zustand/react/shallow';
 import {
   ChatButton,
   ChatCard,
@@ -20,69 +20,69 @@ import {
   ChatNotice,
   ChatThread,
   ChatTyping,
-} from "@/shared/ui/ai-chat";
-import { LessonContentEditor } from "@/features/edit-lesson-content";
+} from '@/shared/ui/ai-chat';
+import { LessonContentEditor } from '@/features/edit-lesson-content';
 import {
   createAgentConversationKey,
   useAgentStore,
-} from "@/entities/agent-chat";
-import { DIFFICULTY_OPTIONS, MATERIAL_STATUS } from "../config/constants";
+} from '@/entities/agent-chat';
+import { DIFFICULTY_OPTIONS, MATERIAL_STATUS } from '../config/constants';
 import {
-  countLabel,
   formatBytes,
   getLessonBlocks,
   MAX_CONTENT_BLOCKS,
   nodeId,
   parseNodeId,
   WORDS,
-} from "../lib/helpers";
-import { Icon, Spinner } from "./icons";
-import { getProgress, getStats } from "../model/selectors";
-import { formFromEntity, hasFile, useDndCourseStore } from "../model/store";
+} from '../lib/helpers';
+import { Icon, Spinner } from './icons';
+import { getProgress, getStats } from '../model/selectors';
+import { formFromEntity, hasFile, useDndCourseStore } from '../model/store';
 import type {
   DndCourse,
   DndLesson,
   DndMaterial,
   DndModule,
   NodeType,
-} from "../model/types";
-import { SaveIndicator, StatusPill, useDndActions } from "./common";
+} from '../model/types';
+import { SaveIndicator, StatusPill } from './common';
+import { useDndActions } from './dnd-actions';
 
 const TABS: Record<string, { id: string; label: string }[]> = {
   material: [
-    { id: "content", label: "Контент" },
-    { id: "ai", label: "ИИ-редактор" },
-    { id: "props", label: "Свойства" },
+    { id: 'content', label: 'Контент' },
+    { id: 'ai', label: 'ИИ-редактор' },
+    { id: 'props', label: 'Свойства' },
   ],
   lesson: [
-    { id: "main", label: "Основное" },
-    { id: "content", label: "Контент" },
-    { id: "goals", label: "Цели" },
-    { id: "settings", label: "Настройки" },
+    { id: 'main', label: 'Основное' },
+    { id: 'content', label: 'Контент' },
+    { id: 'goals', label: 'Цели' },
+    { id: 'settings', label: 'Настройки' },
   ],
   module: [
-    { id: "main", label: "Основное" },
-    { id: "lessons", label: "Уроки" },
+    { id: 'main', label: 'Основное' },
+    { id: 'lessons', label: 'Уроки' },
   ],
   course: [
-    { id: "main", label: "Карточка" },
-    { id: "summary", label: "Сводка" },
+    { id: 'main', label: 'Карточка' },
+    { id: 'summary', label: 'Сводка' },
   ],
 };
 
 const TYPE_META: Record<string, { icon: string; label: string }> = {
-  material: { icon: "file", label: "Материал" },
-  lesson: { icon: "lesson", label: "Урок" },
-  module: { icon: "module", label: "Модуль" },
-  course: { icon: "course", label: "Курс" },
+  material: { icon: 'file', label: 'Материал' },
+  lesson: { icon: 'lesson', label: 'Урок' },
+  module: { icon: 'module', label: 'Модуль' },
+  course: { icon: 'course', label: 'Курс' },
 };
 
 /** Атрибуты, которые Field передаёт своему полю ввода. */
 interface FieldControlProps {
   id: string;
-  "aria-describedby"?: string;
-  "aria-invalid"?: boolean;
-  "aria-required"?: boolean;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  'aria-required'?: boolean;
 }
 
 function Field({
@@ -102,11 +102,11 @@ function Field({
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const describedBy =
-    [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") ||
+    [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') ||
     undefined;
   return (
     <div
-      className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error) ${error ? "has-error" : ""}`}
+      className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error) ${error ? 'has-error' : ''}`}
     >
       <label
         className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
@@ -118,16 +118,16 @@ function Field({
             className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
             aria-hidden="true"
           >
-            {" "}
+            {' '}
             *
           </span>
         ) : null}
       </label>
       {children({
         id,
-        "aria-describedby": describedBy,
-        "aria-invalid": error ? true : undefined,
-        "aria-required": required || undefined,
+        'aria-describedby': describedBy,
+        'aria-invalid': error ? true : undefined,
+        'aria-required': required || undefined,
       })}
       {hint ? (
         <small
@@ -167,7 +167,7 @@ function SaveBar({
   onReset,
   dirty,
   disabled,
-  label = "Сохранить",
+  label = 'Сохранить',
 }: {
   statusKey: string;
   onSave: () => void;
@@ -212,7 +212,7 @@ function SaveBar({
           aria-busy={pending}
         >
           {pending ? <Spinner size={13} /> : <Icon name="check" size={15} />}
-          {pending ? "Сохраняем…" : label}
+          {pending ? 'Сохраняем…' : label}
         </button>
       </div>
     </div>
@@ -256,32 +256,32 @@ function MaterialInspector({
   const retry = useDndCourseStore((state) => state.retryMaterial);
   const { pickFiles, requestDelete } = useDndActions();
   const [editing, setEditing] = useState(false);
-  const [prompt, setPrompt] = useState("");
-  const [targetLesson, setTargetLesson] = useState("");
+  const [prompt, setPrompt] = useState('');
+  const [targetLesson, setTargetLesson] = useState('');
   const conversationKey = createAgentConversationKey(
-    "editor",
+    'editor',
     course?.id,
     `manual:${material.id}`,
   );
   const conversation = useAgentStore(
     (state) => state.conversations[conversationKey],
   );
-  const aiBusy = conversation?.status === "loading";
-  const aiError = material.aiError || conversation?.error || "";
+  const aiBusy = conversation?.status === 'loading';
+  const aiError = material.aiError || conversation?.error || '';
   const messages = conversation?.messages || [];
   const lastUserMessage = [...messages]
     .reverse()
-    .find((item) => item.role === "user");
-  const isReady = material.status === "ready";
+    .find((item) => item.role === 'user');
+  const isReady = material.status === 'ready';
 
   const send = () => {
     const text = prompt.trim();
     if (!text || aiBusy) return;
-    setPrompt("");
-    askAi(material.id, text);
+    setPrompt('');
+    void askAi(material.id, text);
   };
 
-  if (tab === "ai") {
+  if (tab === 'ai') {
     return (
       <div className="dnd-ai tw:flex tw:flex-col tw:h-[min(640px,_calc(100vh_-_240px))] tw:min-h-[380px] tw:-mx-[4px]">
         {!isReady ? (
@@ -367,8 +367,8 @@ function MaterialInspector({
           disabled={!isReady}
           placeholder={
             aiBusy
-              ? "Дождитесь ответа ИИ…"
-              : "Например: сократи до тезисов и добавь пример"
+              ? 'Дождитесь ответа ИИ…'
+              : 'Например: сократи до тезисов и добавь пример'
           }
           ariaLabel="Запрос к ИИ-редактору"
           sendLabel="Отправить запрос ИИ"
@@ -376,8 +376,8 @@ function MaterialInspector({
       </div>
     );
   }
-  if (tab === "props") {
-    const status = material.lessonId ? "used" : material.status;
+  if (tab === 'props') {
+    const status = material.lessonId ? 'used' : material.status;
     return (
       <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <dl className="dnd-props tw:grid tw:grid-cols-[90px_minmax(0,_1fr)] tw:gap-[8px_12px] tw:m-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
@@ -412,7 +412,7 @@ function MaterialInspector({
           <dd className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
             <StatusPill
               tone={MATERIAL_STATUS[status]?.tone}
-              busy={material.status === "uploading"}
+              busy={material.status === 'uploading'}
             >
               {MATERIAL_STATUS[status]?.label}
             </StatusPill>
@@ -421,10 +421,10 @@ function MaterialInspector({
             Урок
           </dt>
           <dd className="tw:text-[0.84rem] tw:m-[0] tw:wrap-anywhere tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
-            {lesson ? lesson.title : "Не добавлен"}
+            {lesson ? lesson.title : 'Не добавлен'}
           </dd>
         </dl>
-        {material.status === "error" ? (
+        {material.status === 'error' ? (
           <div
             className="dnd-inline-error tw:[.page_.dnd-builder_&_>_span]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_>_span]:min-w-[0] tw:[.page_.dnd-builder_&_>_span]:wrap-anywhere"
             role="alert"
@@ -445,8 +445,8 @@ function MaterialInspector({
             >
               <Icon name="retry" size={14} />
               {hasFile(material.id) && !material.tooBig
-                ? "Повторить"
-                : "Выбрать файл"}
+                ? 'Повторить'
+                : 'Выбрать файл'}
             </button>
           </div>
         ) : null}
@@ -488,7 +488,7 @@ function MaterialInspector({
                       disabled={item.full}
                     >
                       {item.title}
-                      {item.full ? ` (лимит ${MAX_CONTENT_BLOCKS})` : ""}
+                      {item.full ? ` (лимит ${MAX_CONTENT_BLOCKS})` : ''}
                     </option>
                   ))}
                 </select>
@@ -498,7 +498,7 @@ function MaterialInspector({
                   disabled={!targetLesson}
                   onClick={() =>
                     addToLesson(targetLesson, [material.id]).then(
-                      (ok) => ok && setTargetLesson(""),
+                      (ok) => ok && setTargetLesson(''),
                     )
                   }
                 >
@@ -513,10 +513,10 @@ function MaterialInspector({
           className="dnd-btn dnd-btn--danger-ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[&&&&]:justify-start tw:[&&&&]:pl-[6px] tw:[border-width:1px] tw:[&&&&]:border-[transparent] tw:[background:transparent] tw:[&&&&]:text-(--dnd-error) tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:[&&&&]:border-[transparent] tw:[&:hover:not(:disabled)]:[background:var(--dnd-error-bg)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
           onClick={() => requestDelete(nodeId.material(material.id))}
           disabled={
-            Boolean(material.lessonId) || material.status === "uploading"
+            Boolean(material.lessonId) || material.status === 'uploading'
           }
           title={
-            material.lessonId ? "Материал уже в уроке" : "Удалить материал"
+            material.lessonId ? 'Материал уже в уроке' : 'Удалить материал'
           }
         >
           <Icon name="trash" size={15} />
@@ -528,12 +528,12 @@ function MaterialInspector({
 
   return (
     <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-      {material.status === "uploading" ? (
+      {material.status === 'uploading' ? (
         <p className="dnd-muted" role="status">
           <Spinner size={14} /> Обрабатываем документ…
         </p>
       ) : null}
-      {material.status === "error" ? (
+      {material.status === 'error' ? (
         <div
           className="dnd-inline-error tw:[.page_.dnd-builder_&_>_span]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_>_span]:min-w-[0] tw:[.page_.dnd-builder_&_>_span]:wrap-anywhere"
           role="alert"
@@ -552,7 +552,7 @@ function MaterialInspector({
             <button
               type="button"
               aria-pressed={!editing}
-              className={`tw:text-[0.8rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-h-[30px] tw:p-[0_10px] tw:rounded-[8px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-node)] tw:[&.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${!editing ? "is-on" : ""}`}
+              className={`tw:text-[0.8rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-h-[30px] tw:p-[0_10px] tw:rounded-[8px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-node)] tw:[&.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${!editing ? 'is-on' : ''}`}
               onClick={() => setEditing(false)}
             >
               <Icon name="eye" size={15} /> Просмотр
@@ -560,7 +560,7 @@ function MaterialInspector({
             <button
               type="button"
               aria-pressed={editing}
-              className={`tw:text-[0.8rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-h-[30px] tw:p-[0_10px] tw:rounded-[8px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-node)] tw:[&.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${editing ? "is-on" : ""}`}
+              className={`tw:text-[0.8rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-h-[30px] tw:p-[0_10px] tw:rounded-[8px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-node)] tw:[&.is-on]:[box-shadow:0_1px_3px_rgba(0,_0,_0,_0.12)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${editing ? 'is-on' : ''}`}
               onClick={() => setEditing(true)}
             >
               <Icon name="edit" size={15} /> Markdown
@@ -615,7 +615,7 @@ function MaterialInspector({
 function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
   const key = nodeId.lesson(lesson.id);
   const course = useDndCourseStore((state) => state.course);
-  const { values, change, dirty } = useEntityForm(key, "lesson", lesson);
+  const { values, change, dirty } = useEntityForm(key, 'lesson', lesson);
   const save = useDndCourseStore((state) => state.saveLessonMeta);
   const resetForm = useDndCourseStore((state) => state.resetForm);
   const setLessonContent = useDndCourseStore((state) => state.setLessonContent);
@@ -634,7 +634,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
         item.lessonIds.includes(lesson.id),
       );
       return {
-        moduleId: module?.id || "",
+        moduleId: module?.id || '',
         index: module ? module.lessonIds.indexOf(lesson.id) : -1,
         total: module?.lessonIds.length || 0,
       };
@@ -655,11 +655,11 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
   const openModuleDialog = useDndCourseStore((state) => state.openModuleDialog);
   const pending = useDndCourseStore((state) => Boolean(state.pending[key]));
   const { requestDelete } = useDndActions();
-  const [moveTarget, setMoveTarget] = useState("");
+  const [moveTarget, setMoveTarget] = useState('');
   const titleError =
-    dirty && !values.title.trim() ? "Укажите название урока" : "";
+    dirty && !values.title.trim() ? 'Укажите название урока' : '';
   const descriptionError =
-    dirty && !values.description.trim() ? "Добавьте описание урока" : "";
+    dirty && !values.description.trim() ? 'Добавьте описание урока' : '';
   const saveBar = (
     <SaveBar
       statusKey={key}
@@ -670,21 +670,21 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
     />
   );
 
-  if (tab === "content") {
+  if (tab === 'content') {
     return (
       <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <div className="dnd-savebar-row tw:flex tw:items-center tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <SaveIndicator
-            status={contentStatus || "saved"}
+            status={contentStatus || 'saved'}
             error={contentError}
           />
           <span className="dnd-node-actions-gap tw:flex-[1] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" />
           <small className="dnd-muted tw:text-[0.84rem] tw:m-[0] tw:text-(--dnd-muted) tw:flex tw:gap-[6px] tw:items-start tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
-            {getLessonBlocks(lesson).length}/{MAX_CONTENT_BLOCKS}{" "}
+            {getLessonBlocks(lesson).length}/{MAX_CONTENT_BLOCKS}{' '}
             {WORDS.block[2]}
           </small>
         </div>
-        {contentStatus === "error" ? (
+        {contentStatus === 'error' ? (
           <div
             className="dnd-inline-error tw:[.page_.dnd-builder_&_>_span]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_>_span]:min-w-[0] tw:[.page_.dnd-builder_&_>_span]:wrap-anywhere"
             role="alert"
@@ -702,11 +702,11 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
         ) : null}
         <div className="dnd-lesson-editor nowheel tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <LessonContentEditor
-            courseId={course?.id ?? ""}
+            courseId={course?.id ?? ''}
             lesson={{
               id: lesson.id,
               contentBlocks: getLessonBlocks(lesson),
-              markdown: "",
+              markdown: '',
             }}
             onChange={(changes) =>
               setLessonContent(lesson.id, changes.contentBlocks || [])
@@ -720,7 +720,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
     );
   }
 
-  if (tab === "goals") {
+  if (tab === 'goals') {
     return (
       <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <Field
@@ -733,8 +733,8 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
               {...props}
               rows={8}
               value={values.learningObjectives}
-              onChange={change("learningObjectives")}
-              placeholder={"Объяснить, что такое…\nПрименить … на практике"}
+              onChange={change('learningObjectives')}
+              placeholder={'Объяснить, что такое…\nПрименить … на практике'}
             />
           )}
         </Field>
@@ -743,7 +743,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
     );
   }
 
-  if (tab === "settings") {
+  if (tab === 'settings') {
     return (
       <div className="dnd-stack">
         <section className="dnd-subsection tw:grid tw:gap-[8px] tw:pb-[14px] tw:[border-bottom:1px_solid_var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
@@ -753,7 +753,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
           <p className="dnd-muted tw:text-[0.84rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:text-(--dnd-muted) tw:flex tw:gap-[6px] tw:items-start tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
             {placement.moduleId
               ? `Сейчас: «${modules.find((item) => item.id === placement.moduleId)?.title}», позиция ${placement.index + 1} из ${placement.total}.`
-              : "Урок пока в черновике: на сервер он попадёт, когда вы добавите его в модуль."}
+              : 'Урок пока в черновике: на сервер он попадёт, когда вы добавите его в модуль.'}
           </p>
           <div className="dnd-inline-form tw:flex tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             <label
@@ -791,7 +791,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
               disabled={!moveTarget || pending}
               onClick={() =>
                 moveToModule(lesson.id, moveTarget).then(() =>
-                  setMoveTarget(""),
+                  setMoveTarget(''),
                 )
               }
             >
@@ -865,7 +865,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
             className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.title}
-            onChange={change("title")}
+            onChange={change('title')}
             maxLength={200}
           />
         )}
@@ -877,7 +877,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
             {...props}
             rows={4}
             value={values.description}
-            onChange={change("description")}
+            onChange={change('description')}
           />
         )}
       </Field>
@@ -891,7 +891,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
             min="1"
             max="600"
             value={values.estimatedTimeMinutes}
-            onChange={change("estimatedTimeMinutes")}
+            onChange={change('estimatedTimeMinutes')}
           />
         )}
       </Field>
@@ -903,7 +903,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
 // ───────────── Модуль ─────────────
 function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
   const key = nodeId.module(module.id);
-  const { values, change, dirty } = useEntityForm(key, "module", module);
+  const { values, change, dirty } = useEntityForm(key, 'module', module);
   const save = useDndCourseStore((state) => state.saveModuleMeta);
   const resetForm = useDndCourseStore((state) => state.resetForm);
   const lessons = useDndCourseStore(
@@ -924,7 +924,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
   );
   const orderPending = useDndCourseStore((state) =>
     Boolean(
-      state.pending["order:modules"] || state.pending[`order:${module.id}`],
+      state.pending['order:modules'] || state.pending[`order:${module.id}`],
     ),
   );
   const moveModuleBy = useDndCourseStore((state) => state.moveModuleBy);
@@ -932,11 +932,11 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
   const openInspector = useDndCourseStore((state) => state.openInspector);
   const { requestDelete } = useDndActions();
   const titleError =
-    dirty && !values.title.trim() ? "Укажите название модуля" : "";
+    dirty && !values.title.trim() ? 'Укажите название модуля' : '';
   const descriptionError =
-    dirty && !values.description.trim() ? "Добавьте описание модуля" : "";
+    dirty && !values.description.trim() ? 'Добавьте описание модуля' : '';
 
-  if (tab === "lessons") {
+  if (tab === 'lessons') {
     return (
       <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <p className="dnd-muted tw:text-[0.84rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:text-(--dnd-muted) tw:flex tw:gap-[6px] tw:items-start tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
@@ -975,7 +975,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
                   type="button"
                   className="dnd-link tw:text-[0.96rem] tw:leading-[1.45] tw:p-[0] tw:text-(--dnd-blue-ink) tw:font-[650] tw:cursor-pointer tw:text-left tw:min-w-[0] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:[border:0] tw:[background:none] tw:[text-decoration:underline] tw:[text-underline-offset:3px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
                   onClick={() =>
-                    openInspector(nodeId.lesson(lesson.id), "main")
+                    openInspector(nodeId.lesson(lesson.id), 'main')
                   }
                   title={lesson.title}
                 >
@@ -1029,7 +1029,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
             className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.title}
-            onChange={change("title")}
+            onChange={change('title')}
             maxLength={200}
           />
         )}
@@ -1041,7 +1041,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
             {...props}
             rows={4}
             value={values.description}
-            onChange={change("description")}
+            onChange={change('description')}
           />
         )}
       </Field>
@@ -1052,7 +1052,7 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
             {...props}
             rows={5}
             value={values.learningObjectives}
-            onChange={change("learningObjectives")}
+            onChange={change('learningObjectives')}
           />
         )}
       </Field>
@@ -1069,18 +1069,18 @@ function ModuleInspector({ module, tab }: { module: DndModule; tab: string }) {
 
 // ───────────── Курс ─────────────
 function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
-  const { values, change, dirty } = useEntityForm("course", "course", course);
+  const { values, change, dirty } = useEntityForm('course', 'course', course);
   const save = useDndCourseStore((state) => state.saveCourse);
   const resetForm = useDndCourseStore((state) => state.resetForm);
   const stats = useDndCourseStore(useShallow(getStats));
   const progress = useDndCourseStore((state) => getProgress(state).percent);
   const openFinish = useDndCourseStore((state) => state.openFinish);
   const titleError =
-    dirty && !values.title.trim() ? "Укажите название курса" : "";
+    dirty && !values.title.trim() ? 'Укажите название курса' : '';
   const descriptionError =
-    dirty && !values.description.trim() ? "Добавьте описание курса" : "";
+    dirty && !values.description.trim() ? 'Добавьте описание курса' : '';
 
-  if (tab === "summary") {
+  if (tab === 'summary') {
     return (
       <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <dl className="dnd-stats tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[8px] tw:m-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.is-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&_.is-ok]:[background:var(--dnd-ok-bg)]">
@@ -1109,7 +1109,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
             </dd>
           </div>
           <div
-            className={`tw:p-[10px_12px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[&.is-warn]:border-(--dnd-warn) tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-warn]:[background:var(--dnd-warn-bg)] ${stats.unassignedLessons ? "is-warn" : ""}`}
+            className={`tw:p-[10px_12px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[&.is-warn]:border-(--dnd-warn) tw:[background:var(--dnd-node)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-warn]:[background:var(--dnd-warn-bg)] ${stats.unassignedLessons ? 'is-warn' : ''}`}
           >
             <dt className="tw:text-[0.74rem] tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.74rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
               Уроки без модуля
@@ -1149,7 +1149,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
             className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.title}
-            onChange={change("title")}
+            onChange={change('title')}
             maxLength={200}
           />
         )}
@@ -1161,7 +1161,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
             {...props}
             rows={4}
             value={values.description}
-            onChange={change("description")}
+            onChange={change('description')}
           />
         )}
       </Field>
@@ -1171,7 +1171,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
             className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.difficulty}
-            onChange={change("difficulty")}
+            onChange={change('difficulty')}
           >
             {DIFFICULTY_OPTIONS.map((option) => (
               <option
@@ -1191,7 +1191,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
             className="tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:text-[0.88rem] tw:[.page_.dnd-builder_.dnd-field_&]:leading-[1.45] tw:[.page_.dnd-builder_.dnd-field_&]:w-[100%] tw:[.page_.dnd-builder_.dnd-field_&]:min-h-[40px] tw:[.page_.dnd-builder_.dnd-field_&]:p-[9px_12px] tw:[.page_.dnd-builder_.dnd-field_&]:rounded-[10px] tw:[.page_.dnd-builder_.dnd-field_&]:border-solid tw:[.page_.dnd-builder_.dnd-field_&]:border-(--dnd-border) tw:[.page_.dnd-builder_.dnd-field_&]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:[.page_.dnd-builder_.dnd-field_&]:[font-family:inherit] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-field_&]:[border-width:1px] tw:[.page_.dnd-builder_.dnd-field_&:focus]:border-(--dnd-focus) tw:[.page_.dnd-builder_.dnd-field_&]:[background:var(--dnd-node)] tw:[.page_.dnd-builder_.dnd-field_&]:[font-style:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-variant:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-weight:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[font-stretch:inherit] tw:[.page_.dnd-builder_.dnd-field_&]:[transition:border-color_0.15s,_box-shadow_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[outline:none] tw:[.page_.dnd-builder_.dnd-field_&:focus]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring)]"
             {...props}
             value={values.tags}
-            onChange={change("tags")}
+            onChange={change('tags')}
           />
         )}
       </Field>
@@ -1199,7 +1199,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
         statusKey="course"
         dirty={dirty}
         onSave={save}
-        onReset={() => resetForm("course")}
+        onReset={() => resetForm('course')}
         disabled={Boolean(titleError || descriptionError)}
       />
     </div>
@@ -1207,7 +1207,7 @@ function CourseInspector({ course, tab }: { course: DndCourse; tab: string }) {
 }
 
 export function Inspector({
-  variant = "side",
+  variant = 'side',
   resizeHandle = null,
 }: {
   variant?: string;
@@ -1219,19 +1219,19 @@ export function Inspector({
   const closeInspector = useDndCourseStore((state) => state.closeInspector);
   const { type, entityId } = parseNodeId(activeNodeId);
   const entity = useDndCourseStore((state) => {
-    if (type === "course") return state.course;
-    if (type === "material")
+    if (type === 'course') return state.course;
+    if (type === 'material')
       return state.materials.find((item) => item.id === entityId);
-    if (type === "lesson")
+    if (type === 'lesson')
       return state.lessons.find((item) => item.id === entityId);
-    if (type === "module")
+    if (type === 'module')
       return state.modules.find((item) => item.id === entityId);
     return null;
   });
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (inspector.open && variant === "sheet") headingRef.current?.focus();
+    if (inspector.open && variant === 'sheet') headingRef.current?.focus();
   }, [activeNodeId, inspector.open, variant]);
 
   if (!inspector.open || !entity || !type || !TABS[type]) return null;
@@ -1241,7 +1241,7 @@ export function Inspector({
     tabs[0].id;
   const meta = TYPE_META[type];
   const title =
-    type === "material"
+    type === 'material'
       ? (entity as DndMaterial).fileName
       : (entity as DndCourse | DndLesson | DndModule).title;
 
@@ -1250,7 +1250,7 @@ export function Inspector({
       className={`dnd-inspector tw:flex tw:flex-col tw:min-h-[0] tw:min-w-[0] tw:[background:var(--dnd-panel)] tw:[border-left:1px_solid_var(--dnd-border)] tw:[&.dnd-inspector--side]:relative tw:[&.dnd-inspector--drawer]:absolute tw:[&.dnd-inspector--sheet]:fixed tw:[&.dnd-inspector--drawer]:z-[30] tw:[&.dnd-inspector--sheet]:z-[900] tw:[&.dnd-inspector--drawer]:top-[0] tw:[&.dnd-inspector--drawer]:right-[0] tw:[&.dnd-inspector--drawer]:bottom-[0] tw:[&.dnd-inspector--sheet]:top-[8dvh] tw:[&.dnd-inspector--sheet]:right-[0] tw:[&.dnd-inspector--sheet]:bottom-[0] tw:[&.dnd-inspector--sheet]:left-[0] tw:[&.dnd-inspector--drawer]:w-[min(440px,_92%)] tw:[&.dnd-inspector--sheet]:rounded-[18px_18px_0_0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-inspector--sheet]:[border-left:0] tw:[&.dnd-inspector--drawer]:animate-dnd-slide-right tw:[&.dnd-inspector--sheet]:animate-dnd-sheet tw:[&.dnd-inspector--drawer]:[box-shadow:var(--dnd-shadow-lg)] tw:[&.dnd-inspector--sheet]:[box-shadow:var(--dnd-shadow-lg)] tw:[&.dnd-inspector--sheet]:[border-top:1px_solid_var(--dnd-border)] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:absolute tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:z-[40] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:inset-[0] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:w-[auto] tw:[&:has(.lesson-editor-block-row.has-ai)]:[--dnd-ai-w:clamp(320px,_30vw,_460px)] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:[border-left:0] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:animate-dnd-ai-focus-in tw:motion-reduce:[&:has(.lesson-editor-block-row.has-ai)]:animate-none tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:[box-shadow:none] tw:min-1000:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:pl-(--dnd-ai-w) dnd-inspector--${variant}`}
       aria-label={`Инспектор: ${meta.label.toLowerCase()} «${title}»`}
     >
-      {variant === "side" ? resizeHandle : null}
+      {variant === 'side' ? resizeHandle : null}
       <header className="dnd-inspector-head tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:grid-rows-[auto_auto] tw:gap-x-[8px] tw:p-[14px_14px_10px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:col-[2] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:row-[1_/_span_2] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:[align-self:start]">
         <div className="dnd-inspector-kicker tw:flex tw:items-center tw:gap-[6px] tw:text-(--dnd-muted) tw:text-[0.74rem] tw:font-[700] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <Icon name={meta.icon} size={16} />
@@ -1271,7 +1271,7 @@ export function Inspector({
           aria-label="Свернуть инспектор"
           title="Свернуть инспектор"
         >
-          <Icon name={variant === "sheet" ? "close" : "panelRight"} />
+          <Icon name={variant === 'sheet' ? 'close' : 'panelRight'} />
         </button>
       </header>
       <div
@@ -1288,16 +1288,16 @@ export function Inspector({
             aria-selected={tab === item.id}
             aria-controls="dnd-tabpanel"
             tabIndex={tab === item.id ? 0 : -1}
-            className={`tw:text-[0.84rem] tw:leading-[1.45] tw:relative tw:flex-[none] tw:min-h-[40px] tw:p-[0_10px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:absolute tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:left-[8px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:right-[8px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:bottom-[-1px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:h-[2px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:rounded-[2px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:[content:''] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:[background:var(--dnd-accent-ink)] ${tab === item.id ? "is-on" : ""}`}
+            className={`tw:text-[0.84rem] tw:leading-[1.45] tw:relative tw:flex-[none] tw:min-h-[40px] tw:p-[0_10px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:absolute tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:left-[8px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:right-[8px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:bottom-[-1px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:h-[2px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:rounded-[2px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:[content:''] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:[background:var(--dnd-accent-ink)] ${tab === item.id ? 'is-on' : ''}`}
             onClick={() => setTab(item.id)}
             onKeyDown={(event) => {
               const index = tabs.findIndex((t) => t.id === tab);
-              if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
                 event.preventDefault();
                 const next =
                   tabs[
                     (index +
-                      (event.key === "ArrowRight" ? 1 : -1) +
+                      (event.key === 'ArrowRight' ? 1 : -1) +
                       tabs.length) %
                       tabs.length
                   ];
@@ -1319,28 +1319,28 @@ export function Inspector({
         aria-labelledby={`dnd-tab-${tab}`}
       >
         {/* entity выбран по type, поэтому тип сущности известен */}
-        {type === "material" ? (
+        {type === 'material' ? (
           <MaterialInspector
             key={entity.id}
             material={entity as DndMaterial}
             tab={tab}
           />
         ) : null}
-        {type === "lesson" ? (
+        {type === 'lesson' ? (
           <LessonInspector
             key={entity.id}
             lesson={entity as DndLesson}
             tab={tab}
           />
         ) : null}
-        {type === "module" ? (
+        {type === 'module' ? (
           <ModuleInspector
             key={entity.id}
             module={entity as DndModule}
             tab={tab}
           />
         ) : null}
-        {type === "course" ? (
+        {type === 'course' ? (
           <CourseInspector course={entity as DndCourse} tab={tab} />
         ) : null}
       </div>

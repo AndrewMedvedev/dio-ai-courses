@@ -23,7 +23,7 @@ export {
   updateLesson,
   updateLessonContentBlocks,
   updateModule,
-} from "./api/course-api";
+} from './api/course-api';
 export {
   SUPPORTED_CONTENT_TYPES,
   contentBlockToMarkdown,
@@ -32,14 +32,14 @@ export {
   normalizeContentType,
   normalizeTheoryContentBlocks,
   sanitizeContentBlock,
-} from "./lib/content-blocks";
-export { buildCoursePayload, mapCourseFromApi } from "./lib/mappers";
+} from './lib/content-blocks';
+export { buildCoursePayload, mapCourseFromApi } from './lib/mappers';
 export {
   COURSE_LEVELS,
   courseLevelToDifficulty,
   difficultyToCourseLevel,
   formatCourseLevel,
-} from "./model/levels";
+} from './model/levels';
 export type {
   ContentBlock,
   ContentType,
@@ -52,7 +52,7 @@ export type {
   PageParams,
   QuizQuestion,
   RawApiRecord,
-} from "./model/types";
+} from './model/types';
 export {
   EMPTY_BLOCK,
   EMPTY_COURSE,
@@ -70,32 +70,32 @@ export {
   moveItem,
   upsertLesson,
   upsertModule,
-} from "./lib/course-state";
+} from './lib/course-state';
 export {
   getBlockProgress,
   getCourseProgress,
   getLessonSequence,
   getOverallProgress,
-} from "./lib/local-progress";
-export { getRouteState, type RouteSelection } from "./lib/route-state";
+} from './lib/local-progress';
+export { getRouteState, type RouteSelection } from './lib/route-state';
 export type {
   BlockNode,
   CourseNode,
   LessonNode,
   PracticeNode,
-} from "./model/tree";
+} from './model/tree';
 export {
   getCourseStudents,
   getMyCourses,
   signCourse,
   type CourseStudent,
   type CourseStudentsPage,
-} from "./api/members-api";
-export { printLessonSummary } from "./lib/print-lesson-summary";
+} from './api/members-api';
+export { printLessonSummary } from './lib/print-lesson-summary';
 export {
   normalizeQuizQuestions,
   type NormalizedQuizQuestion,
-} from "./lib/quiz";
+} from './lib/quiz';
 export {
   enrollUserToCourse,
   forgetCourseCache,
@@ -107,39 +107,39 @@ export {
   getLessonContentBlocks,
   getModuleById,
   isUserEnrolled,
-} from "./model/course-cache";
-export { useStudentStore } from "./model/student-store";
+} from './model/course-cache';
+export { useStudentStore } from './model/student-store';
 export {
   formatModulesCount,
   useCoursesModulesCount,
-} from "./model/use-courses-modules-count";
-export { ContentBlocks, type ContentBlocksProps } from "./ui/ContentBlocks";
+} from './model/use-courses-modules-count';
+export { ContentBlocks, type ContentBlocksProps } from './ui/ContentBlocks';
+export { ContentBlockSources } from './ui/ContentBlockSources';
 export {
-  ContentBlockSources,
   hasSources,
   normalizeSources,
   type SourceItem,
-} from "./ui/ContentBlockSources";
+} from './ui/content-block-sources';
 export {
   CourseBasicInfo,
   type CourseBasicInfoData,
-} from "./ui/CourseBasicInfo";
+} from './ui/CourseBasicInfo';
 export {
   CourseNavigationTree,
   type CourseNavigationTreeProps,
-} from "./ui/CourseNavigationTree";
+} from './ui/CourseNavigationTree';
 export {
   LessonBasicInfo,
   type LessonBasicInfoData,
-} from "./ui/LessonBasicInfo";
-export { LessonList, type LessonListProps } from "./ui/LessonList";
+} from './ui/LessonBasicInfo';
+export { LessonList, type LessonListProps } from './ui/LessonList';
 export {
   ModuleBasicInfo,
   type ModuleBasicInfoData,
-} from "./ui/ModuleBasicInfo";
-export { ModuleList, type ModuleListProps } from "./ui/ModuleList";
+} from './ui/ModuleBasicInfo';
+export { ModuleList, type ModuleListProps } from './ui/ModuleList';
 export {
   COURSE_ROLES,
   COURSE_ROLE_LABEL,
   type CourseMemberRole,
-} from "./model/member-roles";
+} from './model/member-roles';

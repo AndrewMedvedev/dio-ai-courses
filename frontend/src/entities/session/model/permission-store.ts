@@ -1,11 +1,11 @@
-import { create } from "zustand";
-import { fetchIdentity } from "../api/session-api";
+import { create } from 'zustand';
+import { fetchIdentity } from '../api/session-api';
 import {
   extractPermissionsFromIdentity,
   normalizePermissionCode,
   type PermissionInput,
-} from "./permissions";
-import type { Identity } from "./types";
+} from './permissions';
+import type { Identity } from './types';
 
 interface PermissionState {
   permissions: string[];
@@ -62,7 +62,7 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
         isLoaded: true,
         error:
           (error as Error | null)?.message ||
-          "Не удалось настроить доступный функционал",
+          'Не удалось настроить доступный функционал',
       });
       return [];
     }

@@ -1,38 +1,15 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useId,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
-} from "react";
-import { Icon, Spinner } from "./icons";
-import { useDndCourseStore } from "../model/store";
-import type { SaveStatus, XY } from "../model/types";
-
-export interface PickFilesOptions {
-  position?: XY | null;
-  attachToLessonId?: string | null;
-  replaceMaterialId?: string;
-}
-
-/** Действия страницы, которые нужны узлам холста, списку и инспектору. */
-export interface DndActionsValue {
-  pickFiles: (options?: PickFilesOptions) => void;
-  requestDelete: (id: string) => void;
-  previewLesson: (lessonId: string) => void;
-}
-
-export const DndActionsContext = createContext<DndActionsValue>({
-  pickFiles: () => {},
-  requestDelete: () => {},
-  previewLesson: () => {},
-});
-
-export const useDndActions = () => useContext(DndActionsContext);
+} from 'react';
+import { Icon, Spinner } from './icons';
+import { useDndCourseStore } from '../model/store';
+import type { SaveStatus } from '../model/types';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -45,8 +22,8 @@ export function Modal({
   closeDisabled = false,
   children,
   footer,
-  size = "md",
-  className = "",
+  size = 'md',
+  className = '',
   initialFocusSelector,
 }: {
   title: ReactNode;
@@ -77,12 +54,12 @@ export function Modal({
     (first || dialog)?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         event.stopPropagation();
         if (!closeDisabledRef.current) closeRef.current?.();
         return;
       }
-      if (event.key !== "Tab" || !dialog) return;
+      if (event.key !== 'Tab' || !dialog) return;
       const items = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
         (item) => item.offsetParent !== null,
       );
@@ -97,9 +74,9 @@ export function Modal({
         firstItem.focus();
       }
     };
-    dialog?.addEventListener("keydown", onKeyDown);
+    dialog?.addEventListener('keydown', onKeyDown);
     return () => {
-      dialog?.removeEventListener("keydown", onKeyDown);
+      dialog?.removeEventListener('keydown', onKeyDown);
       if (returnTo && document.contains(returnTo)) returnTo.focus?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,7 +182,7 @@ export function ConfirmDialog() {
             aria-busy={busy}
           >
             {busy ? <Spinner size={14} /> : <Icon name="trash" size={16} />}
-            {busy ? "Удаляем…" : confirm.confirmLabel || "Удалить"}
+            {busy ? 'Удаляем…' : confirm.confirmLabel || 'Удалить'}
           </button>
         </>
       }
@@ -226,11 +203,11 @@ export function ConfirmDialog() {
 
 /** Кнопка-меню с клавиатурной навигацией. Используется как альтернатива перетаскиванию. */
 export type MenuItem =
-  | { key: string; type: "separator" }
-  | { key: string; type: "label"; label: string }
+  | { key: string; type: 'separator' }
+  | { key: string; type: 'label'; label: string }
   | {
       key: string;
-      type?: "item";
+      type?: 'item';
       label: string;
       icon?: string;
       hint?: string;
@@ -241,13 +218,13 @@ export type MenuItem =
 
 export function ActionMenu({
   label,
-  icon = "more",
+  icon = 'more',
   items,
-  className = "",
-  buttonClassName = "dnd-node-btn",
+  className = '',
+  buttonClassName = 'dnd-node-btn',
   showLabel = false,
   disabled = false,
-  align = "start",
+  align = 'start',
   iconSize = 16,
 }: {
   label: string;
@@ -266,7 +243,7 @@ export function ActionMenu({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const resolvedItems =
-    typeof items === "function" ? (open ? items() : []) : items;
+    typeof items === 'function' ? (open ? items() : []) : items;
 
   const close = useCallback((focusButton = false) => {
     setOpen(false);
@@ -278,13 +255,13 @@ export function ActionMenu({
     const onPointer = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) close();
     };
-    document.addEventListener("pointerdown", onPointer, true);
+    document.addEventListener('pointerdown', onPointer, true);
     window.requestAnimationFrame(() =>
       rootRef.current
         ?.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')
         ?.focus(),
     );
-    return () => document.removeEventListener("pointerdown", onPointer, true);
+    return () => document.removeEventListener('pointerdown', onPointer, true);
   }, [open, close]);
 
   const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -294,17 +271,17 @@ export function ActionMenu({
       ) ?? []),
     ];
     const index = options.indexOf(document.activeElement as HTMLElement);
-    if (event.key === "ArrowDown") {
+    if (event.key === 'ArrowDown') {
       event.preventDefault();
       options[(index + 1) % options.length]?.focus();
-    } else if (event.key === "ArrowUp") {
+    } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       options[(index - 1 + options.length) % options.length]?.focus();
-    } else if (event.key === "Escape") {
+    } else if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
       close(true);
-    } else if (event.key === "Tab") {
+    } else if (event.key === 'Tab') {
       close();
     }
   };
@@ -317,7 +294,7 @@ export function ActionMenu({
       <button
         ref={buttonRef}
         type="button"
-        className={`tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_&.dnd-icon-btn]:inline-grid tw:[.page_.dnd-builder_&.dnd-node-btn]:inline-grid tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&.dnd-node-btn]:w-[46px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:w-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:w-[36px] tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&.dnd-node-btn]:h-[46px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:h-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:h-[36px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:flex-[none] tw:[.page_.dnd-builder_&.dnd-icon-btn]:rounded-[9px] tw:[.page_.dnd-builder_&.dnd-node-btn]:rounded-[12px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:rounded-[8px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-node-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-[transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:border-[transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-icon-btn]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-node-btn]:text-(--dnd-muted) tw:[&.dnd-node-btn[aria-expanded=true]]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn]:cursor-pointer tw:[.page_.dnd-builder_&.dnd-node-btn]:cursor-pointer tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-node-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-node-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[background:transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:[background:transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:[background:var(--dnd-panel-2)] tw:[&.dnd-icon-btn:disabled]:cursor-not-allowed tw:[&.dnd-node-btn:disabled]:cursor-not-allowed tw:[.page_.dnd-builder_&.dnd-icon-btn]:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[.page_.dnd-builder_&.dnd-node-btn]:[transition:background_0.15s,_color_0.15s,_border-color_0.15s] tw:[&.dnd-icon-btn:disabled]:opacity-[0.4] tw:[&.dnd-node-btn:disabled]:opacity-[0.35] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${buttonClassName ?? ""}`}
+        className={`tw:text-[0.96rem] tw:leading-[1.45] tw:[.page_.dnd-builder_&.dnd-icon-btn]:inline-grid tw:[.page_.dnd-builder_&.dnd-node-btn]:inline-grid tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&.dnd-node-btn]:w-[46px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:w-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:w-[36px] tw:[.page_.dnd-builder_.dnd-topbar_&.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&.dnd-node-btn]:h-[46px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:h-[30px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:h-[36px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:flex-[none] tw:[.page_.dnd-builder_&.dnd-icon-btn]:rounded-[9px] tw:[.page_.dnd-builder_&.dnd-node-btn]:rounded-[12px] tw:[.page_.dnd-builder_&.dnd-icon-btn--sm]:rounded-[8px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-node-btn]:border-solid tw:[.page_.dnd-builder_&.dnd-icon-btn]:border-[transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:border-[transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-icon-btn]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-node-btn]:text-(--dnd-muted) tw:[&.dnd-node-btn[aria-expanded=true]]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn]:cursor-pointer tw:[.page_.dnd-builder_&.dnd-node-btn]:cursor-pointer tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-node-btn]:[place-items:center] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-node-btn]:[border-width:1px] tw:[.page_.dnd-builder_&.dnd-icon-btn]:[background:transparent] tw:[.page_.dnd-builder_&.dnd-node-btn]:[background:transparent] tw:[&.dnd-node-btn[aria-expanded=true]]:[background:var(--dnd-panel-2)] tw:[&.dnd-icon-btn:disabled]:cursor-not-allowed tw:[&.dnd-node-btn:disabled]:cursor-not-allowed tw:[.page_.dnd-builder_&.dnd-icon-btn]:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:[.page_.dnd-builder_&.dnd-node-btn]:[transition:background_0.15s,_color_0.15s,_border-color_0.15s] tw:[&.dnd-icon-btn:disabled]:opacity-[0.4] tw:[&.dnd-node-btn:disabled]:opacity-[0.35] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:border-(--dnd-border) tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:text-(--dnd-text) tw:[.page_.dnd-builder_&.dnd-icon-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&.dnd-node-btn:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${buttonClassName ?? ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -341,13 +318,13 @@ export function ActionMenu({
           onKeyDown={onMenuKeyDown}
         >
           {resolvedItems.map((item) =>
-            item.type === "separator" ? (
+            item.type === 'separator' ? (
               <div
                 key={item.key}
                 className="dnd-menu-sep tw:[.page_.dnd-builder_&]:h-[1px] tw:[.page_.dnd-builder_&]:m-[4px_6px] tw:[.page_.dnd-builder_&]:[background:var(--dnd-border)]"
                 role="separator"
               />
-            ) : item.type === "label" ? (
+            ) : item.type === 'label' ? (
               <div
                 key={item.key}
                 className="dnd-menu-label tw:[.page_.dnd-builder_&]:p-[6px_10px_2px] tw:[.page_.dnd-builder_&]:text-[0.7rem] tw:[.page_.dnd-builder_&]:font-[800] tw:[.page_.dnd-builder_&]:tracking-[0.06em] tw:[.page_.dnd-builder_&]:uppercase tw:[.page_.dnd-builder_&]:text-(--dnd-muted)"
@@ -359,7 +336,7 @@ export function ActionMenu({
                 key={item.key}
                 type="button"
                 role="menuitem"
-                className={`dnd-menu-item tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:w-[100%] tw:[.page_.dnd-builder_&]:min-h-[34px] tw:[.page_.dnd-builder_&]:p-[6px_10px] tw:[.page_.dnd-builder_&]:rounded-[8px] tw:[.page_.dnd-builder_&]:text-(--dnd-text) tw:[.page_.dnd-builder_&.is-danger]:text-(--dnd-error) tw:[.page_.dnd-builder_&]:text-left tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:cursor-pointer tw:[.page_.dnd-builder_&]:[border:0] tw:[.page_.dnd-builder_&]:[background:transparent] tw:[.page_.dnd-builder_&:disabled]:cursor-not-allowed tw:[.page_.dnd-builder_&:disabled]:opacity-[0.5] tw:[.page_.dnd-builder_&:focus-visible]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&:focus-visible]:[outline:none] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[outline:none] tw:[.page_.dnd-builder_&_span]:flex-[1] tw:[.page_.dnd-builder_&_span]:min-w-[0] tw:[.page_.dnd-builder_&_span]:overflow-hidden tw:[.page_.dnd-builder_&_span]:text-ellipsis tw:[.page_.dnd-builder_&_span]:whitespace-nowrap tw:[.page_.dnd-builder_&_small]:w-[100%] tw:[.page_.dnd-builder_&_small]:pl-[24px] tw:[.page_.dnd-builder_&_small]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_small]:text-[0.72rem] ${item.danger ? "is-danger" : ""}`}
+                className={`dnd-menu-item tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:w-[100%] tw:[.page_.dnd-builder_&]:min-h-[34px] tw:[.page_.dnd-builder_&]:p-[6px_10px] tw:[.page_.dnd-builder_&]:rounded-[8px] tw:[.page_.dnd-builder_&]:text-(--dnd-text) tw:[.page_.dnd-builder_&.is-danger]:text-(--dnd-error) tw:[.page_.dnd-builder_&]:text-left tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:cursor-pointer tw:[.page_.dnd-builder_&]:[border:0] tw:[.page_.dnd-builder_&]:[background:transparent] tw:[.page_.dnd-builder_&:disabled]:cursor-not-allowed tw:[.page_.dnd-builder_&:disabled]:opacity-[0.5] tw:[.page_.dnd-builder_&:focus-visible]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&:focus-visible]:[outline:none] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[.page_.dnd-builder_&:hover:not(:disabled)]:[outline:none] tw:[.page_.dnd-builder_&_span]:flex-[1] tw:[.page_.dnd-builder_&_span]:min-w-[0] tw:[.page_.dnd-builder_&_span]:overflow-hidden tw:[.page_.dnd-builder_&_span]:text-ellipsis tw:[.page_.dnd-builder_&_span]:whitespace-nowrap tw:[.page_.dnd-builder_&_small]:w-[100%] tw:[.page_.dnd-builder_&_small]:pl-[24px] tw:[.page_.dnd-builder_&_small]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_small]:text-[0.72rem] ${item.danger ? 'is-danger' : ''}`}
                 disabled={item.disabled}
                 title={item.hint || item.label}
                 onClick={(event) => {
@@ -393,15 +370,15 @@ export function Toasts() {
         <div
           key={toast.id}
           className={`dnd-toast tw:pointer-events-auto tw:flex tw:items-start tw:gap-[10px] tw:p-[12px_12px_12px_14px] tw:rounded-[14px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[border-left-width:4px] tw:[background:var(--dnd-panel)] tw:[box-shadow:var(--dnd-shadow-lg)] tw:animate-dnd-rise-toast tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-toast--success]:[border-left-color:var(--dnd-ok)] tw:[&.dnd-toast--error]:[border-left-color:var(--dnd-error)] tw:[&.dnd-toast--warning]:[border-left-color:var(--dnd-warn)] tw:[&.dnd-toast--info]:[border-left-color:var(--dnd-info)] dnd-toast--${toast.type}`}
-          role={toast.type === "error" ? "alert" : "status"}
+          role={toast.type === 'error' ? 'alert' : 'status'}
         >
           <Icon
             name={
-              toast.type === "success"
-                ? "check"
-                : toast.type === "error" || toast.type === "warning"
-                  ? "alert"
-                  : "info"
+              toast.type === 'success'
+                ? 'check'
+                : toast.type === 'error' || toast.type === 'warning'
+                  ? 'alert'
+                  : 'info'
             }
             size={18}
           />
@@ -458,10 +435,10 @@ export function SaveIndicator({
 }) {
   if (!status) return null;
   const map: Record<string, { text: string; icon: string | null }> = {
-    dirty: { text: "Есть несохранённые изменения", icon: "edit" },
-    saving: { text: "Сохраняем…", icon: null },
-    saved: { text: "Сохранено", icon: "check" },
-    error: { text: "Ошибка сохранения", icon: "alert" },
+    dirty: { text: 'Есть несохранённые изменения', icon: 'edit' },
+    saving: { text: 'Сохраняем…', icon: null },
+    saved: { text: 'Сохранено', icon: 'check' },
+    error: { text: 'Ошибка сохранения', icon: 'alert' },
   };
   const item = map[status];
   if (!item) return null;
@@ -469,7 +446,7 @@ export function SaveIndicator({
     <span
       className={`dnd-save tw:inline-flex tw:items-center tw:gap-[5px] tw:text-[0.76rem] tw:font-[650] tw:text-(--dnd-muted) tw:[.page_.dnd-builder_&.dnd-save--saved]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.dnd-save--dirty]:text-(--dnd-warn) tw:[&.dnd-save--error]:text-(--dnd-error) tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.dnd-save--saved]:animate-dnd-pulse dnd-save--${status}`}
       role="status"
-      title={status === "error" && error ? error : item.text}
+      title={status === 'error' && error ? error : item.text}
     >
       {item.icon ? <Icon name={item.icon} size={14} /> : <Spinner size={12} />}
       {item.text}

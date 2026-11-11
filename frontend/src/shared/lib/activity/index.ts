@@ -3,4 +3,4 @@ export {
   DEFAULT_IDLE_TIMEOUT_MS,
   useActiveTimeTracker,
   type ActiveTimeTrackerOptions,
-} from "./use-active-time-tracker";
+} from './use-active-time-tracker';

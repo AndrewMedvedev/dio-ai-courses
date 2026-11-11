@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { isUuid } from "@/shared/lib/uuid";
-import { getCourseBasicInfo } from "../api/course-api";
+import { useEffect, useMemo, useState } from 'react';
+import { isUuid } from '@/shared/lib/uuid';
+import { getCourseBasicInfo } from '../api/course-api';
 
 /**
  * Число модулей для списка курсов (профиль, «Мои курсы»).
@@ -19,14 +19,14 @@ export function useCoursesModulesCount(
       ),
     [courses],
   );
-  const courseIdsKey = courseIds.join(",");
+  const courseIdsKey = courseIds.join(',');
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!enabled || courseIds.length === 0) return undefined;
     const controller = new AbortController();
 
-    Promise.allSettled(
+    void Promise.allSettled(
       courseIds.map((courseId) =>
         getCourseBasicInfo(courseId, { signal: controller.signal }).then(
           (course): [string, number] => [
@@ -40,7 +40,7 @@ export function useCoursesModulesCount(
       setCounts((current) => {
         const next = { ...current };
         results.forEach((result) => {
-          if (result.status === "fulfilled") {
+          if (result.status === 'fulfilled') {
             const [courseId, count] = result.value;
             next[courseId] = count;
           }
@@ -57,7 +57,7 @@ export function useCoursesModulesCount(
   return counts;
 }
 
-const MODULE_FORMS = ["модуль", "модуля", "модулей"];
+const MODULE_FORMS = ['модуль', 'модуля', 'модулей'];
 
 export function formatModulesCount(count: unknown): string {
   const value = Math.max(0, Number(count) || 0);

@@ -1,6 +1,6 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { getLocalStorage } from "@/shared/lib/storage";
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { getLocalStorage } from '@/shared/lib/storage';
 
 /**
  * Запущенные генерации модулей и уроков из редактора курса.
@@ -14,8 +14,8 @@ import { getLocalStorage } from "@/shared/lib/storage";
  * }
  */
 
-export type GenerationJobKind = "module" | "lesson";
-export type GenerationJobStatus = "running" | "done" | "error";
+export type GenerationJobKind = 'module' | 'lesson';
+export type GenerationJobStatus = 'running' | 'done' | 'error';
 
 export interface GenerationJob {
   key: string;
@@ -38,7 +38,7 @@ export interface GenerationJob {
 /** Новая задача: остальные поля заполнятся значениями по умолчанию. */
 export type NewGenerationJob = Pick<
   GenerationJob,
-  "key" | "kind" | "courseId"
+  'key' | 'kind' | 'courseId'
 > &
   Partial<GenerationJob>;
 
@@ -59,11 +59,11 @@ const MEMORY_STORAGE = {
 export const generationJobKey = (
   kind: GenerationJobKind,
   courseId: string,
-  contextId = "",
-) => [kind, courseId, contextId].join(":");
+  contextId = '',
+) => [kind, courseId, contextId].join(':');
 
 export const useGenerationJobsStore = create<GenerationJobsState>()(
-  persist<GenerationJobsState, [], [], Pick<GenerationJobsState, "jobs">>(
+  persist<GenerationJobsState, [], [], Pick<GenerationJobsState, 'jobs'>>(
     (set, get) => ({
       jobs: {},
 
@@ -72,16 +72,16 @@ export const useGenerationJobsStore = create<GenerationJobsState>()(
           jobs: {
             ...state.jobs,
             [job.key]: {
-              status: "running",
+              status: 'running',
               resultId: null,
-              resultTitle: "",
+              resultTitle: '',
               lessonsCount: 0,
               lastChangeAt: null,
-              error: "",
+              error: '',
               startedAt: new Date().toISOString(),
               knownIds: [],
               ...job,
-            } as GenerationJob,
+            },
           },
         })),
 
@@ -108,7 +108,7 @@ export const useGenerationJobsStore = create<GenerationJobsState>()(
       getJob: (key) => get().jobs[key] || null,
     }),
     {
-      name: "ai-course-generation-jobs-v1",
+      name: 'ai-course-generation-jobs-v1',
       version: 1,
       storage: createJSONStorage(() => getLocalStorage() || MEMORY_STORAGE),
       partialize: (state) => ({ jobs: state.jobs }),

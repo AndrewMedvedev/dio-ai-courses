@@ -1,12 +1,12 @@
-import { isTokenExpired } from "@/shared/api";
-import { usePermissionStore } from "./permission-store";
+import { isTokenExpired } from '@/shared/api';
+import { usePermissionStore } from './permission-store';
 import {
   AI_MODEL_PERMISSIONS,
   COURSE_PERMISSIONS,
   INVITATION_PERMISSIONS,
   ORGANIZATION_PERMISSIONS,
-} from "./permissions";
-import { useSessionStore } from "./session-store";
+} from './permissions';
+import { useSessionStore } from './session-store';
 
 export function useAppPermissions() {
   const hasPermission = usePermissionStore((state) => state.hasPermission);

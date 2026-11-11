@@ -4,10 +4,10 @@ import {
   useRef,
   type ReactNode,
   type RefObject,
-} from "react";
-import { createPortal } from "react-dom";
+} from 'react';
+import { createPortal } from 'react-dom';
 
-export type AppModalSize = "sm" | "md" | "lg" | (string & {});
+export type AppModalSize = 'sm' | 'md' | 'lg' | (string & {});
 
 export interface AppModalProps {
   open: boolean;
@@ -30,12 +30,12 @@ export interface AppModalProps {
 export function AppModal({
   open,
   title,
-  eyebrow = "",
-  description = "",
+  eyebrow = '',
+  description = '',
   onClose,
   busy = false,
-  size = "md",
-  className = "",
+  size = 'md',
+  className = '',
   children,
   footer = null,
   initialFocusRef = null,
@@ -46,13 +46,13 @@ export function AppModal({
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) {
+      if (event.key === 'Escape' && !busy) {
         event.stopPropagation();
         onClose?.();
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [busy, onClose, open]);
 
   useEffect(() => {
@@ -61,11 +61,11 @@ export function AppModal({
     const focusTarget =
       initialFocusRef?.current ||
       dialogRef.current?.querySelector<HTMLElement>(
-        "[data-autofocus], textarea, input, button:not([disabled])",
+        '[data-autofocus], textarea, input, button:not([disabled])',
       );
     window.requestAnimationFrame(() => focusTarget?.focus?.());
     return () => {
-      if (previous && typeof previous.focus === "function") previous.focus();
+      if (previous && typeof previous.focus === 'function') previous.focus();
     };
   }, [initialFocusRef, open]);
 

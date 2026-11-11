@@ -1,25 +1,26 @@
+import { toText } from '@/shared/lib/text';
 // Окно «Пригласить на курс»: email-ы, роль участника и список текущих участников.
 // Пользователь проверяется точечным запросом по email (уникальный индекс) только когда
 // email введён целиком — без поиска на каждую букву.
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   COURSE_ROLES,
   COURSE_ROLE_LABEL,
   fetchCourseMembersPage,
   type CourseMemberRole,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   fetchCourseInvitationsPage,
   inviteToCourse,
   revokeCourseInvitation,
-} from "@/entities/invitation";
-import { fetchUserById, type User } from "@/entities/user";
-import type { RawApiRecord } from "@/shared/api";
-import { getErrorMessage } from "@/shared/lib/errors";
-import { notify } from "@/shared/ui/toast";
-import { useEmailRows } from "../model/use-email-rows";
-import { EmailRowsField } from "./EmailRowsField";
+} from '@/entities/invitation';
+import { fetchUserById, type User } from '@/entities/user';
+import type { RawApiRecord } from '@/shared/api';
+import { getErrorMessage } from '@/shared/lib/errors';
+import { notify } from '@/shared/ui/toast';
+import { useEmailRows } from '../model/use-email-rows';
+import { EmailRowsField } from './EmailRowsField';
 
 export interface CourseInviteDialogProps {
   open: boolean;
@@ -51,32 +52,32 @@ const EMPTY_LIST: ListState = {
   total: 0,
   hasNext: false,
   loading: false,
-  error: "",
+  error: '',
   forbidden: false,
 };
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return "";
+  if (!value) return '';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 }
 
 const MEMBERS_PAGE_SIZE = 20;
 
 const fullNameOf = (user: User | null | undefined) =>
-  String(user?.full_name || user?.fullName || "");
+  toText(user?.full_name || user?.fullName || '');
 const memberUserId = (member: RawApiRecord | null | undefined): string =>
-  member?.user_id || member?.userId || "";
+  toText(member?.user_id || member?.userId);
 
 function inviteErrorMessage(error: unknown, roleLabel: string): string {
   if (statusOf(error) === 403) {
     return `Недостаточно прав, чтобы приглашать с ролью «${roleLabel}».`;
   }
-  if (statusOf(error) === 404) return "Курс не найден.";
-  if (statusOf(error) === 409) return "Этот пользователь уже участник курса.";
-  if (statusOf(error) === 422) return "Проверьте email.";
-  return errorText(error, "Не удалось отправить приглашение.");
+  if (statusOf(error) === 404) return 'Курс не найден.';
+  if (statusOf(error) === 409) return 'Этот пользователь уже участник курса.';
+  if (statusOf(error) === 422) return 'Проверьте email.';
+  return errorText(error, 'Не удалось отправить приглашение.');
 }
 
 export function CourseInviteDialog({
@@ -85,17 +86,17 @@ export function CourseInviteDialog({
   courseId,
   courseTitle,
   canViewMembers = false,
-  currentUserId = "",
+  currentUserId = '',
 }: CourseInviteDialogProps) {
   const titleId = useId();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   // null — загружается, false — не удалось загрузить.
   const userCache = useRef(new Map<string, User | null | false>());
-  const [tab, setTab] = useState<"invite" | "members">("invite");
+  const [tab, setTab] = useState<'invite' | 'members'>('invite');
   const emails = useEmailRows();
   const { draft, rows, reset: resetEmails, sendAll } = emails;
-  const [role, setRole] = useState<CourseMemberRole>("student");
+  const [role, setRole] = useState<CourseMemberRole>('student');
   const [isSending, setIsSending] = useState(false);
   const [members, setMembers] = useState<ListState>({
     items: [],
@@ -103,17 +104,17 @@ export function CourseInviteDialog({
     total: 0,
     hasNext: false,
     loading: false,
-    error: "",
+    error: '',
   });
   const [pending, setPending] = useState<ListState>(EMPTY_LIST);
-  const [confirmRevokeId, setConfirmRevokeId] = useState("");
-  const [revokingId, setRevokingId] = useState("");
-  const [revokeError, setRevokeError] = useState("");
+  const [confirmRevokeId, setConfirmRevokeId] = useState('');
+  const [revokingId, setRevokingId] = useState('');
+  const [revokeError, setRevokeError] = useState('');
   const [, forceUsersRender] = useState(0);
 
   const loadMembers = useCallback(
     async (page: number) => {
-      setMembers((current) => ({ ...current, loading: true, error: "" }));
+      setMembers((current) => ({ ...current, loading: true, error: '' }));
       try {
         const result = await fetchCourseMembersPage(courseId, {
           page,
@@ -126,7 +127,7 @@ export function CourseInviteDialog({
           total: result.total,
           hasNext: result.hasNext,
           loading: false,
-          error: "",
+          error: '',
         }));
         // Имена подтягиваем только для текущей страницы и кэшируем: не больше
         // MEMBERS_PAGE_SIZE точечных запросов по первичному ключу.
@@ -146,7 +147,7 @@ export function CourseInviteDialog({
         setMembers((current) => ({
           ...current,
           loading: false,
-          error: errorText(error, "Не удалось загрузить участников."),
+          error: errorText(error, 'Не удалось загрузить участников.'),
         }));
       }
     },
@@ -155,7 +156,7 @@ export function CourseInviteDialog({
 
   const loadPending = useCallback(
     async (page: number) => {
-      setPending((current) => ({ ...current, loading: true, error: "" }));
+      setPending((current) => ({ ...current, loading: true, error: '' }));
       try {
         const result = await fetchCourseInvitationsPage(courseId, {
           page,
@@ -168,7 +169,7 @@ export function CourseInviteDialog({
           total: result.total,
           hasNext: result.hasNext,
           loading: false,
-          error: "",
+          error: '',
           forbidden: false,
         }));
       } catch (error) {
@@ -179,8 +180,8 @@ export function CourseInviteDialog({
           forbidden: statusOf(error) === 403,
           error:
             statusOf(error) === 403
-              ? ""
-              : errorText(error, "Не удалось загрузить приглашения."),
+              ? ''
+              : errorText(error, 'Не удалось загрузить приглашения.'),
         });
       }
     },
@@ -192,7 +193,7 @@ export function CourseInviteDialog({
     if (!invitationId || revokingId) return;
     if (confirmRevokeId !== invitationId) {
       setConfirmRevokeId(invitationId);
-      setRevokeError("");
+      setRevokeError('');
       return;
     }
     setRevokingId(invitationId);
@@ -207,68 +208,68 @@ export function CourseInviteDialog({
     } catch (error) {
       setRevokeError(
         statusOf(error) === 409
-          ? "Приглашение уже принято — отозвать его нельзя."
+          ? 'Приглашение уже принято — отозвать его нельзя.'
           : statusOf(error) === 403
-            ? "Недостаточно прав, чтобы отозвать это приглашение."
-            : errorText(error, "Не удалось отозвать приглашение."),
+            ? 'Недостаточно прав, чтобы отозвать это приглашение.'
+            : errorText(error, 'Не удалось отозвать приглашение.'),
       );
     } finally {
-      setRevokingId("");
-      setConfirmRevokeId("");
+      setRevokingId('');
+      setConfirmRevokeId('');
     }
   };
 
   useEffect(() => {
     if (!confirmRevokeId) return undefined;
-    const timer = window.setTimeout(() => setConfirmRevokeId(""), 4000);
+    const timer = window.setTimeout(() => setConfirmRevokeId(''), 4000);
     return () => window.clearTimeout(timer);
   }, [confirmRevokeId]);
 
   useEffect(() => {
     if (!open) return undefined;
-    setTab("invite");
+    setTab('invite');
     setPending(EMPTY_LIST);
-    setConfirmRevokeId("");
-    setRevokeError("");
+    setConfirmRevokeId('');
+    setRevokeError('');
     resetEmails();
-    setRole("student");
+    setRole('student');
     setMembers({
       items: [],
       page: 0,
       total: 0,
       hasNext: false,
       loading: false,
-      error: "",
+      error: '',
     });
     const previouslyFocused = document.activeElement;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     const timer = window.setTimeout(() => inputRef.current?.focus(), 30);
     return () => {
       window.clearTimeout(timer);
       document.body.style.overflow = previousOverflow;
       if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
     };
-  }, [open, courseId]);
+  }, [open, courseId, resetEmails]);
 
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSending) onClose();
+      if (event.key === 'Escape' && !isSending) onClose();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [isSending, onClose, open]);
 
   useEffect(() => {
-    if (open && tab === "members" && canViewMembers && members.page === 0) {
-      loadMembers(1);
+    if (open && tab === 'members' && canViewMembers && members.page === 0) {
+      void loadMembers(1);
     }
   }, [canViewMembers, loadMembers, members.page, open, tab]);
 
   useEffect(() => {
-    if (open && tab === "members" && canViewMembers && pending.page === 0) {
-      loadPending(1);
+    if (open && tab === 'members' && canViewMembers && pending.page === 0) {
+      void loadPending(1);
     }
   }, [canViewMembers, loadPending, open, pending.page, tab]);
 
@@ -312,18 +313,18 @@ export function CourseInviteDialog({
       ...member,
       title:
         user === null || user === undefined
-          ? "Загружаем…"
+          ? 'Загружаем…'
           : user === false
-            ? "Пользователь"
-            : fullNameOf(user) || user.username || user.email || "",
-      subtitle: user ? user.email : "",
+            ? 'Пользователь'
+            : fullNameOf(user) || user.username || user.email || '',
+      subtitle: user ? user.email : '',
       isMe: Boolean(currentUserId && userId === currentUserId),
     };
   });
 
   if (!open) return null;
 
-  const host = document.querySelector(".page") || document.body;
+  const host = document.querySelector('.page') || document.body;
 
   return createPortal(
     <div
@@ -376,25 +377,25 @@ export function CourseInviteDialog({
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "invite"}
-              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === "invite" ? "is-active" : ""}`}
-              onClick={() => setTab("invite")}
+              aria-selected={tab === 'invite'}
+              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === 'invite' ? 'is-active' : ''}`}
+              onClick={() => setTab('invite')}
             >
               Пригласить
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "members"}
-              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === "members" ? "is-active" : ""}`}
-              onClick={() => setTab("members")}
+              aria-selected={tab === 'members'}
+              className={`tw:rounded-[999px] tw:p-[9px_20px] tw:text-(--muted) tw:text-[1rem] tw:font-[700] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[&.is-active]:text-(--text) tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.22)] ${tab === 'members' ? 'is-active' : ''}`}
+              onClick={() => setTab('members')}
             >
-              Участники{members.total ? ` · ${members.total}` : ""}
+              Участники{members.total ? ` · ${members.total}` : ''}
             </button>
           </div>
         ) : null}
 
-        {tab === "invite" ? (
+        {tab === 'invite' ? (
           <div className="course-invite-body tw:grid tw:gap-[22px] tw:p-[22px_32px] tw:overflow-y-auto tw:max-640:px-[16px] tw:[overscroll-behavior:contain]">
             <EmailRowsField
               id={inputId}
@@ -412,8 +413,8 @@ export function CourseInviteDialog({
               </legend>
               {COURSE_ROLES.map((item) => (
                 <label
-                  key={item.id}
-                  className={`course-invite-role tw:relative tw:grid tw:gap-[8px] tw:p-[18px] tw:border-solid tw:border-(--invite-border) tw:rounded-[18px] tw:cursor-pointer tw:[align-content:start] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.95)] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease,_background_0.15s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:[.course-invite-roles:disabled_&]:cursor-default tw:[&.is-active]:[box-shadow:inset_0_0_0_1px_rgba(var(--accent-rgb),_0.6)] tw:[.course-invite-roles:disabled_&]:opacity-[0.7] tw:[&:has(input:focus-visible)]:[outline:2px_solid_rgba(var(--accent-rgb),_0.85)] tw:[&:has(input:focus-visible)]:[outline-offset:2px] ${role === item.id ? "is-active" : ""}`}
+                  key={toText(item.id)}
+                  className={`course-invite-role tw:relative tw:grid tw:gap-[8px] tw:p-[18px] tw:border-solid tw:border-(--invite-border) tw:rounded-[18px] tw:cursor-pointer tw:[align-content:start] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.95)] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease,_background_0.15s_ease] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:[.course-invite-roles:disabled_&]:cursor-default tw:[&.is-active]:[box-shadow:inset_0_0_0_1px_rgba(var(--accent-rgb),_0.6)] tw:[.course-invite-roles:disabled_&]:opacity-[0.7] tw:[&:has(input:focus-visible)]:[outline:2px_solid_rgba(var(--accent-rgb),_0.85)] tw:[&:has(input:focus-visible)]:[outline-offset:2px] ${role === item.id ? 'is-active' : ''}`}
                 >
                   <input
                     className="tw:absolute tw:opacity-[0] tw:pointer-events-none"
@@ -448,7 +449,7 @@ export function CourseInviteDialog({
                 aria-label="Ожидают ответа"
               >
                 <h3 className="course-invite-subtitle tw:m-[0] tw:text-(--muted) tw:text-[0.86rem] tw:font-[800] tw:tracking-[0.08em] tw:uppercase">
-                  Ожидают ответа{pending.total ? ` · ${pending.total}` : ""}
+                  Ожидают ответа{pending.total ? ` · ${pending.total}` : ''}
                 </h3>
                 {pending.error ? (
                   <p
@@ -462,40 +463,41 @@ export function CourseInviteDialog({
                   <ul className="course-invite-list tw:grid tw:gap-[10px] tw:m-[0] tw:p-[0] tw:[list-style:none]">
                     {pending.items.map((item) => (
                       <li
-                        key={item.id}
+                        key={toText(item.id)}
                         className="course-invite-row is-pending tw:grid tw:grid-cols-[42px_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:p-[12px_14px] tw:rounded-[16px] tw:[border:1px_solid_var(--invite-border)] tw:[background:var(--invite-row)]"
                       >
                         <span
                           className="course-invite-avatar tw:grid tw:w-[42px] tw:h-[42px] tw:rounded-[999px] tw:text-[1.05rem] tw:text-(--ink-accent) tw:font-[800] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.24)]"
                           aria-hidden="true"
                         >
-                          {String(item.email || "?")
+                          {toText(item.email || '?')
                             .slice(0, 1)
                             .toUpperCase()}
                         </span>
                         <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0] tw:[.course-invite-row.is-new_&_small]:text-(--info-text) tw:[.course-invite-row.is-error_&_small]:text-[#b8443c] tw:dark:[.page_.course-invite-row.is-error_&_small]:text-[#f0978f] tw:[.course-invite-row.is-pending_&_small]:text-(--muted)">
-                          <strong>{item.email}</strong>
+                          <strong>{toText(item.email)}</strong>
                           <small>
-                            {COURSE_ROLE_LABEL[item.role] || item.role}
+                            {COURSE_ROLE_LABEL[toText(item.role)] ||
+                              toText(item.role)}
                             {item.created_at
-                              ? ` · отправлено ${formatDate(item.created_at)}`
-                              : ""}
+                              ? ` · отправлено ${formatDate(toText(item.created_at))}`
+                              : ''}
                             {item.expires_at
-                              ? ` · действует до ${formatDate(item.expires_at)}`
-                              : ""}
+                              ? ` · действует до ${formatDate(toText(item.expires_at))}`
+                              : ''}
                           </small>
                         </span>
                         <button
                           type="button"
-                          className={`course-invite-revoke tw:flex-[none] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:p-[8px_14px] tw:text-(--muted) tw:text-[0.9rem] tw:font-[700] tw:whitespace-nowrap tw:cursor-pointer tw:[border-width:1px] tw:[&.is-confirm]:border-[rgba(199,_82,_74,_0.75)] tw:[background:transparent] tw:[&.is-confirm]:text-[#b8443c] tw:disabled:cursor-default tw:[transition:color_0.15s_ease,_border-color_0.15s_ease,_background_0.15s_ease] tw:disabled:opacity-[0.5] tw:[&.is-confirm]:[background:rgba(199,_82,_74,_0.12)] tw:dark:[.page_&.is-confirm]:text-[#f0978f] tw:[&:hover:not(:disabled)]:border-[rgba(199,_82,_74,_0.55)] tw:[&:hover:not(:disabled)]:text-(--text) ${confirmRevokeId === item.id ? "is-confirm" : ""}`}
-                          onClick={() => revoke(item.id)}
+                          className={`course-invite-revoke tw:flex-[none] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:p-[8px_14px] tw:text-(--muted) tw:text-[0.9rem] tw:font-[700] tw:whitespace-nowrap tw:cursor-pointer tw:[border-width:1px] tw:[&.is-confirm]:border-[rgba(199,_82,_74,_0.75)] tw:[background:transparent] tw:[&.is-confirm]:text-[#b8443c] tw:disabled:cursor-default tw:[transition:color_0.15s_ease,_border-color_0.15s_ease,_background_0.15s_ease] tw:disabled:opacity-[0.5] tw:[&.is-confirm]:[background:rgba(199,_82,_74,_0.12)] tw:dark:[.page_&.is-confirm]:text-[#f0978f] tw:[&:hover:not(:disabled)]:border-[rgba(199,_82,_74,_0.55)] tw:[&:hover:not(:disabled)]:text-(--text) ${confirmRevokeId === item.id ? 'is-confirm' : ''}`}
+                          onClick={() => revoke(toText(item.id))}
                           disabled={Boolean(revokingId)}
                         >
                           {revokingId === item.id
-                            ? "Отзываем…"
+                            ? 'Отзываем…'
                             : confirmRevokeId === item.id
-                              ? "Точно отозвать?"
-                              : "Отозвать"}
+                              ? 'Точно отозвать?'
+                              : 'Отозвать'}
                         </button>
                       </li>
                     ))}
@@ -521,7 +523,7 @@ export function CourseInviteDialog({
               </section>
             ) : null}
             <h3 className="course-invite-subtitle tw:m-[0] tw:text-(--muted) tw:text-[0.86rem] tw:font-[800] tw:tracking-[0.08em] tw:uppercase">
-              Участники{members.total ? ` · ${members.total}` : ""}
+              Участники{members.total ? ` · ${members.total}` : ''}
             </h3>
             {members.error ? (
               <p
@@ -535,7 +537,7 @@ export function CourseInviteDialog({
               <ul className="course-invite-list tw:grid tw:gap-[10px] tw:m-[0] tw:p-[0] tw:[list-style:none]">
                 {memberRows.map((member) => (
                   <li
-                    key={member.id || memberUserId(member)}
+                    key={toText(member.id) || memberUserId(member)}
                     className="course-invite-row tw:grid tw:grid-cols-[42px_minmax(0,_1fr)_auto] tw:items-center tw:gap-[14px] tw:p-[12px_14px] tw:rounded-[16px] tw:[border:1px_solid_var(--invite-border)] tw:[background:var(--invite-row)]"
                   >
                     <span
@@ -547,16 +549,17 @@ export function CourseInviteDialog({
                     <span className="course-invite-who tw:grid tw:gap-[2px] tw:min-w-[0] tw:[.course-invite-row.is-new_&_small]:text-(--info-text) tw:[.course-invite-row.is-error_&_small]:text-[#b8443c] tw:dark:[.page_.course-invite-row.is-error_&_small]:text-[#f0978f] tw:[.course-invite-row.is-pending_&_small]:text-(--muted)">
                       <strong>
                         {member.title}
-                        {member.isMe ? " (вы)" : ""}
+                        {member.isMe ? ' (вы)' : ''}
                       </strong>
                       {member.subtitle ? (
                         <small>{member.subtitle}</small>
                       ) : null}
                     </span>
                     <span
-                      className={`course-invite-badge tw:p-[5px_12px] tw:rounded-[999px] tw:border-solid tw:border-(--invite-border) tw:text-[0.86rem] tw:font-[800] tw:whitespace-nowrap tw:[border-width:1px] tw:[&.is-ok]:border-[rgba(76,_150,_104,_0.5)] tw:[&.is-ok]:text-[#3f8a5b] tw:dark:[.page_&.is-ok]:text-[#8fd1a6] tw:[&.is-teacher]:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-moderator]:[background:rgba(var(--accent-soft-rgb),_0.2)] is-${member.role}`}
+                      className={`course-invite-badge tw:p-[5px_12px] tw:rounded-[999px] tw:border-solid tw:border-(--invite-border) tw:text-[0.86rem] tw:font-[800] tw:whitespace-nowrap tw:[border-width:1px] tw:[&.is-ok]:border-[rgba(76,_150,_104,_0.5)] tw:[&.is-ok]:text-[#3f8a5b] tw:dark:[.page_&.is-ok]:text-[#8fd1a6] tw:[&.is-teacher]:[background:rgba(var(--accent-rgb),_0.22)] tw:[&.is-moderator]:[background:rgba(var(--accent-soft-rgb),_0.2)] is-${toText(member.role)}`}
                     >
-                      {COURSE_ROLE_LABEL[member.role] || member.role}
+                      {COURSE_ROLE_LABEL[toText(member.role)] ||
+                        toText(member.role)}
                     </span>
                   </li>
                 ))}
@@ -587,13 +590,13 @@ export function CourseInviteDialog({
           </div>
         )}
 
-        {tab === "invite" ? (
+        {tab === 'invite' ? (
           <footer className="course-invite-foot tw:flex tw:items-center tw:justify-end tw:gap-[12px] tw:p-[18px_32px_26px] tw:max-640:px-[16px] tw:[border-top:1px_solid_var(--invite-border)] tw:[&_.btn]:p-[13px_24px] tw:max-640:[&_.btn]:p-[12px_18px] tw:[&_.btn]:text-[1.02rem] tw:[&_.btn:disabled]:opacity-[0.55] tw:[&_.btn:disabled]:cursor-default tw:[&_.btn:disabled]:[transform:none] tw:max-640:[&_.btn]:whitespace-nowrap">
             <span
               className="course-invite-summary tw:mr-[auto] tw:text-(--muted) tw:text-[0.95rem] tw:max-640:hidden"
               aria-live="polite"
             >
-              {rows.length > 1 ? `Адресов: ${rows.length}` : ""}
+              {rows.length > 1 ? `Адресов: ${rows.length}` : ''}
             </span>
             <button
               type="button"
@@ -613,10 +616,10 @@ export function CourseInviteDialog({
               disabled={isSending || (!rows.length && !draft.trim())}
             >
               {isSending
-                ? "Отправляем…"
+                ? 'Отправляем…'
                 : rows.length > 1
                   ? `Пригласить (${rows.length})`
-                  : "Пригласить"}
+                  : 'Пригласить'}
             </button>
           </footer>
         ) : null}

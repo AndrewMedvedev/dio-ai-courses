@@ -1,7 +1,7 @@
 /** Откуда приглашение: в систему (iam) или в организацию существующего пользователя. */
-export type InvitationSource = "iam" | "organization";
+export type InvitationSource = 'iam' | 'organization';
 
-export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
 
 export interface OrganizationInvitation {
   id: string;
@@ -36,4 +36,4 @@ export interface Role {
   description?: string;
 }
 
-export type InvitationType = "course" | "organization";
+export type InvitationType = 'course' | 'organization';

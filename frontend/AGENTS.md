@@ -20,6 +20,11 @@ npm install
 npm run dev        # http://localhost:5173, /api проксируется на http://127.0.0.1:8000
 npm run build
 npm run typecheck  # проверка типов TypeScript
+npm run lint       # ESLint: TypeScript, React Hooks, Fast Refresh, границы FSD
+npm run lint:fix   # автоматические исправления ESLint
+npm run format     # форматирование Prettier
+npm run format:check # проверка форматирования без изменения файлов
+npm run check      # lint + format:check + typecheck + build (также запускается в CI)
 ```
 
 ## Архитектура
@@ -184,7 +189,7 @@ src/
 - Новый код пишем только на TypeScript (`.ts` / `.tsx`).
 - Весь `src` переведён на TypeScript, `allowJs` выключен. Новые `.js` / `.jsx` не добавляем.
 - `strict` включён. `any` без комментария не используем; данные с бэкенда описываем типами в `entities/*/model`. Для слабо типизированных ответов, которые ещё не описаны, есть `RawApiRecord` из `@/shared/api`.
-- Перед коммитом: `npm run typecheck` и `npm run build`.
+- Перед коммитом: `npm run check`. ESLint и Prettier перенесены из [dio.ai-chats](https://github.com/Andr171p/dio.ai-chats/tree/main/ai-chats.frontend), с поддержкой локальных `@x`-связей сущностей и React 18 без React Compiler. Локальные `docs/`, `scripts/` и `*.local.*` не входят в проверки.
 
 ## Локальная разработка
 

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { SectionTop } from "@/shared/ui/section-top";
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { SectionTop } from '@/shared/ui/section-top';
 import {
   useModelStore,
   type AiModel,
   type ModelForm,
-} from "@/entities/ai-model";
-import type { ValidationErrors } from "@/shared/api";
+} from '@/entities/ai-model';
+import type { ValidationErrors } from '@/shared/api';
 
 function FieldError({ message }: { message?: string }) {
   return message ? (
@@ -42,7 +42,7 @@ function ModelFormView({
         <input
           value={form.name}
           maxLength={255}
-          onChange={(event) => onChange("name", event.target.value)}
+          onChange={(event) => onChange('name', event.target.value)}
           required
         />
         <FieldError message={validationErrors.name} />
@@ -51,7 +51,7 @@ function ModelFormView({
         <span>Описание</span>
         <textarea
           value={form.description}
-          onChange={(event) => onChange("description", event.target.value)}
+          onChange={(event) => onChange('description', event.target.value)}
         />
         <FieldError message={validationErrors.description} />
       </label>
@@ -60,7 +60,7 @@ function ModelFormView({
         <textarea
           className="model-context-input tw:[.model-form_&]:min-h-[150px]"
           value={form.context}
-          onChange={(event) => onChange("context", event.target.value)}
+          onChange={(event) => onChange('context', event.target.value)}
         />
         <FieldError message={validationErrors.context} />
       </label>
@@ -71,7 +71,7 @@ function ModelFormView({
           className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
           disabled={isCreating}
         >
-          {isCreating ? "Создаём..." : "Создать модель"}
+          {isCreating ? 'Создаём...' : 'Создать модель'}
         </button>
         <button
           type="button"
@@ -87,14 +87,14 @@ function ModelFormView({
 }
 
 function splitModelDescription(
-  description = "",
+  description = '',
 ): { label: string; value: string }[] {
   const text = description.trim();
   if (!text) return [];
 
   const matches = Array.from(text.matchAll(/([A-Z_]{2,}):\s*/g));
   if (matches.length === 0) {
-    return [{ label: "Описание", value: text }];
+    return [{ label: 'Описание', value: text }];
   }
 
   return matches
@@ -103,8 +103,8 @@ function splitModelDescription(
       const valueStart = (match.index ?? 0) + match[0].length;
       const valueEnd = nextMatch?.index ?? text.length;
       return {
-        label: match[1].replaceAll("_", " "),
-        value: text.slice(valueStart, valueEnd).replace(/^[-—.\s]+|\s+$/g, ""),
+        label: match[1].replaceAll('_', ' '),
+        value: text.slice(valueStart, valueEnd).replace(/^[-—.\s]+|\s+$/g, ''),
       };
     })
     .filter((item) => item.value);
@@ -165,7 +165,7 @@ function ModelCard({
             disabled={isDeleting}
             onClick={() => onDelete(model)}
           >
-            {isDeleting ? "Удаляем..." : "Удалить"}
+            {isDeleting ? 'Удаляем...' : 'Удалить'}
           </button>
         )}
       </div>
@@ -273,7 +273,7 @@ export function ModelsPage({
   const cancelCreate = () => {
     resetCreateForm();
     setShowCreateForm(false);
-    setNotice("");
+    setNotice('');
   };
 
   return (
@@ -286,7 +286,7 @@ export function ModelsPage({
 
       {(notice || error) && (
         <article
-          className={`glass-card model-message tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[16px_18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_p]:m-[0] tw:[&_p]:text-(--success-text) tw:[&_p]:font-[700] tw:[&.is-error_p]:text-[#b42318] ${error ? "is-error" : ""}`}
+          className={`glass-card model-message tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[16px_18px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_p]:m-[0] tw:[&_p]:text-(--success-text) tw:[&_p]:font-[700] tw:[&.is-error_p]:text-[#b42318] ${error ? 'is-error' : ''}`}
         >
           <p>{error || notice}</p>
         </article>
@@ -386,10 +386,10 @@ export function ModelsPage({
                 <button
                   key={pageNumber}
                   type="button"
-                  className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
+                  className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? 'is-active' : ''}`}
                   disabled={isLoading}
                   onClick={() => setPage(pageNumber)}
-                  aria-current={pageNumber === page ? "page" : undefined}
+                  aria-current={pageNumber === page ? 'page' : undefined}
                 >
                   {pageNumber}
                 </button>

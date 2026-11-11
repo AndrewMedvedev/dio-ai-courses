@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { toText } from '@/shared/lib/text';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import {
   createSession,
   updateSession,
   updateSessionKeepalive,
   type TheorySessionMetrics,
-} from "@/entities/progress";
-import type { RawApiRecord } from "@/shared/api";
-import { useActiveTimeTracker } from "@/shared/lib/activity";
+} from '@/entities/progress';
+import type { RawApiRecord } from '@/shared/api';
+import { useActiveTimeTracker } from '@/shared/lib/activity';
 
 export interface TheorySessionTrackerOptions {
   enabled?: boolean;
@@ -59,7 +60,7 @@ function isElementScrollable(
   const overflowY = window.getComputedStyle(element).overflowY;
   return (
     element.scrollHeight > element.clientHeight + 1 &&
-    ["auto", "scroll", "overlay"].includes(overflowY)
+    ['auto', 'scroll', 'overlay'].includes(overflowY)
   );
 }
 
@@ -166,7 +167,7 @@ export function useTheorySessionTracker(
 
   const { markActivity, reset } = useActiveTimeTracker({
     enabled: enabled && Boolean(lessonId),
-    resetKey: lessonId || "",
+    resetKey: lessonId || '',
     targets: scrollContainerRef ? [scrollContainerRef] : [],
     onTick: handleActiveTimeTick,
   });
@@ -227,17 +228,17 @@ export function useTheorySessionTracker(
       metrics: TheorySessionMetrics,
       { keepalive = false }: { keepalive?: boolean } = {},
     ) => {
-      if (!session?.id || completedSessionIds.has(session.id)) {
+      if (!session?.id || completedSessionIds.has(toText(session.id))) {
         return false;
       }
 
-      completedSessionIds.add(session.id);
+      completedSessionIds.add(toText(session.id));
 
       if (keepalive) {
-        return updateSessionKeepalive(session.id, metrics);
+        return updateSessionKeepalive(toText(session.id), metrics);
       }
 
-      updateSession(session.id, metrics).catch((error) => {
+      updateSession(toText(session.id), metrics).catch((error) => {
         if ((error as { status?: number } | null)?.status === 404) {
           return;
         }
@@ -317,27 +318,27 @@ export function useTheorySessionTracker(
     const handleResize = () => updateScrollDepth(true);
 
     if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", handleScroll, {
+      scrollContainer.addEventListener('scroll', handleScroll, {
         passive: true,
       });
     }
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize);
     // Высота теории меняется после первой отрисовки (картинки, диаграммы) —
     // перемеряем, чтобы короткий урок засчитался без прокрутки.
     const resizeObserver =
-      typeof ResizeObserver === "function"
+      typeof ResizeObserver === 'function'
         ? new ResizeObserver(() => updateScrollDepth(true))
         : null;
-    resizeObserver?.observe(contentRef.current as HTMLElement);
+    resizeObserver?.observe(contentRef.current);
     updateScrollDepth(true);
 
     return () => {
       if (scrollContainer) {
-        scrollContainer.removeEventListener("scroll", handleScroll);
+        scrollContainer.removeEventListener('scroll', handleScroll);
       }
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
       resizeObserver?.disconnect();
     };
   }, [
@@ -359,7 +360,7 @@ export function useTheorySessionTracker(
       finishCurrentSession({ keepalive: true });
     };
 
-    window.addEventListener("pagehide", handlePageHide);
-    return () => window.removeEventListener("pagehide", handlePageHide);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
   }, [enabled, finishCurrentSession, lessonId]);
 }

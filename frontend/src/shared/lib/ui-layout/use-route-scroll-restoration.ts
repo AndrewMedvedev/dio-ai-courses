@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
-import { useLocation, type Location } from "react-router-dom";
-import { useUiLayoutStore } from "./ui-layout-store";
+import { useEffect, useRef } from 'react';
+import { useLocation, type Location } from 'react-router-dom';
+import { useUiLayoutStore } from './ui-layout-store';
 
 const getRouteScrollKey = (location: Location) =>
-  `${location.pathname}${location.search || ""}`;
+  `${location.pathname}${location.search || ''}`;
 
 export function useRouteScrollRestoration() {
   const location = useLocation();
@@ -16,16 +16,16 @@ export function useRouteScrollRestoration() {
   const hasHydrated = useUiLayoutStore((state) => state.hasHydrated);
   const currentRouteKeyRef = useRef(getRouteScrollKey(location));
   const lastScrollYRef = useRef(
-    typeof window === "undefined" ? 0 : window.scrollY,
+    typeof window === 'undefined' ? 0 : window.scrollY,
   );
   const frameRef = useRef<number | null>(null);
   const hasRestoredInitialRouteRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return undefined;
+    if (typeof window === 'undefined') return undefined;
 
     const previousRestoration = window.history.scrollRestoration;
-    window.history.scrollRestoration = "manual";
+    window.history.scrollRestoration = 'manual';
 
     return () => {
       window.history.scrollRestoration = previousRestoration;
@@ -33,7 +33,7 @@ export function useRouteScrollRestoration() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return undefined;
+    if (typeof window === 'undefined') return undefined;
 
     const handleScroll = () => {
       lastScrollYRef.current = window.scrollY;
@@ -49,21 +49,21 @@ export function useRouteScrollRestoration() {
       saveScrollPosition(currentRouteKeyRef.current, window.scrollY);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
       }
       saveScrollPosition(currentRouteKeyRef.current, window.scrollY);
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [saveScrollPosition]);
 
   useEffect(() => {
-    if (!hasHydrated || typeof window === "undefined") return undefined;
+    if (!hasHydrated || typeof window === 'undefined') return undefined;
 
     const previousRouteKey = currentRouteKeyRef.current;
     const nextRouteKey = getRouteScrollKey(location);
@@ -81,9 +81,9 @@ export function useRouteScrollRestoration() {
     const restoreFrame = window.requestAnimationFrame(() => {
       const savedScrollY = getScrollPosition(nextRouteKey);
       window.scrollTo({
-        top: typeof savedScrollY === "number" ? savedScrollY : 0,
+        top: typeof savedScrollY === 'number' ? savedScrollY : 0,
         left: 0,
-        behavior: "auto",
+        behavior: 'auto',
       });
     });
 

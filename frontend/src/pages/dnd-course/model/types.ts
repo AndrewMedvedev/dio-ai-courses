@@ -1,7 +1,8 @@
 // Данные конструктора курса: курс, материалы, уроки, модули и состояние холста.
-import type { RawApiRecord } from "@/shared/api";
+import type { RawApiRecord } from '@/shared/api';
 
-export type CourseDifficulty = "beginner" | "intermediate" | "advanced" | "expert";
+export type CourseDifficulty =
+  'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export interface DndCourse {
   id: string;
@@ -19,7 +20,7 @@ export interface CourseForm {
   tags: string;
 }
 
-export type MaterialStatus = "uploading" | "ready" | "error";
+export type MaterialStatus = 'uploading' | 'ready' | 'error';
 
 /** Загруженный документ: распознанный текст, из которого собираются уроки. */
 export interface DndMaterial {
@@ -82,7 +83,7 @@ export interface Viewport extends XY {
   zoom: number;
 }
 
-export type NodeType = "course" | "material" | "lesson" | "module";
+export type NodeType = 'course' | 'material' | 'lesson' | 'module';
 
 export type InspectorTab = string | null;
 
@@ -125,7 +126,7 @@ export interface DndDraft {
   moduleDialog: ModuleDialogState | null;
 }
 
-export type ToastType = "success" | "error" | "warning" | "info";
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface ToastOptions {
   timeout?: number;
@@ -154,7 +155,7 @@ export interface DropHint {
   label?: string;
 }
 
-export type SaveStatus = "dirty" | "saving" | "saved" | "error";
+export type SaveStatus = 'dirty' | 'saving' | 'saved' | 'error';
 
 /** Состояние, которое не сохраняется в черновик. */
 export interface DndTransient {
@@ -211,12 +212,18 @@ export interface DndActions {
     materialIds: string[],
     options?: { position?: XY | null },
   ) => Promise<string | null>;
-  addMaterialsToLesson: (lessonId: string, materialIds: string[]) => Promise<boolean>;
+  addMaterialsToLesson: (
+    lessonId: string,
+    materialIds: string[],
+  ) => Promise<boolean>;
   saveLessonMeta: (lessonId: string) => Promise<unknown>;
   setLessonContent: (lessonId: string, contentBlocks: RawApiRecord[]) => void;
   saveLessonContentNow: (lessonId: string) => Promise<unknown>;
   deleteLesson: (lessonId: string) => Promise<boolean>;
-  openModuleDialog: (lessonIds?: string[], options?: { pick?: boolean }) => void;
+  openModuleDialog: (
+    lessonIds?: string[],
+    options?: { pick?: boolean },
+  ) => void;
   updateModuleDialog: (patch: Partial<ModuleDialogState>) => void;
   closeModuleDialog: () => void;
   submitModuleDialog: () => Promise<unknown>;
@@ -225,7 +232,11 @@ export interface DndActions {
     targetModuleId: string | null,
     toIndex?: number | null,
   ) => Promise<unknown>;
-  reorderLesson: (moduleId: string, lessonId: string, toIndex: number) => Promise<unknown>;
+  reorderLesson: (
+    moduleId: string,
+    lessonId: string,
+    toIndex: number,
+  ) => Promise<unknown>;
   moveLessonBy: (lessonId: string, delta: number) => void;
   reorderModule: (moduleId: string, toIndex: number) => Promise<unknown>;
   moveModuleBy: (moduleId: string, delta: number) => void;
@@ -264,7 +275,9 @@ export interface DndActions {
   closeConfirm: () => void;
   openFinish: () => void;
   closeFinish: () => void;
-  finish: (onCreateCourse: (params: { courseId: string }) => unknown) => Promise<unknown>;
+  finish: (
+    onCreateCourse: (params: { courseId: string }) => unknown,
+  ) => Promise<unknown>;
   loadFromServer: (courseId: string) => Promise<unknown>;
   resetAll: (options?: { silent?: boolean }) => void;
 }

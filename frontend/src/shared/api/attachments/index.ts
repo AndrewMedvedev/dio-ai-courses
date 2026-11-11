@@ -14,4 +14,4 @@ export {
   type UploadAttachmentOptions,
   type UploadAttachmentsOptions,
   type ValidateAttachmentOptions,
-} from "./attachments";
+} from './attachments';

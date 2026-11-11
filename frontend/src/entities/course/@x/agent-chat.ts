@@ -4,4 +4,4 @@ export {
   SUPPORTED_CONTENT_TYPES,
   normalizeContentType,
   sanitizeContentBlock,
-} from "../lib/content-blocks";
+} from '../lib/content-blocks';

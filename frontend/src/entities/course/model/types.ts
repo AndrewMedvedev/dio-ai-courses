@@ -1,17 +1,17 @@
-import type { PageParams, RawApiRecord } from "@/shared/api";
+import type { PageParams, RawApiRecord } from '@/shared/api';
 
 export type { PageParams, RawApiRecord };
 
 export type ContentType =
-  | "text"
-  | "video"
-  | "image"
-  | "program_code"
-  | "mermaid"
-  | "quiz"
-  | "math_formula"
-  | "chemical_formula"
-  | "musical_notation";
+  | 'text'
+  | 'video'
+  | 'image'
+  | 'program_code'
+  | 'mermaid'
+  | 'quiz'
+  | 'math_formula'
+  | 'chemical_formula'
+  | 'musical_notation';
 
 export interface QuizQuestion {
   question: string;
@@ -22,7 +22,7 @@ export interface QuizQuestion {
 
 /** Контент-блок урока (формат бэкенда, snake_case). */
 export interface ContentBlock {
-  content_type: ContentType | string;
+  content_type: string;
   ai_generated?: boolean;
   md_content?: string;
   image_id?: string;

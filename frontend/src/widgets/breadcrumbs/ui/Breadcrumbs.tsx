@@ -1,5 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
-import { useUiLayoutStore } from "@/shared/lib/ui-layout";
+import { Link, useLocation } from 'react-router-dom';
+import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 
 interface Titled {
   id?: string | null;
@@ -14,12 +14,12 @@ export interface BreadcrumbsProps {
 }
 
 const staticRoutes: Record<string, string> = {
-  courses: "Каталог",
-  creator: "Создание курса",
-  "drag-and-drop-course": "Drag & Drop курс",
-  profile: "Личный кабинет",
-  login: "Вход",
-  register: "Регистрация",
+  courses: 'Каталог',
+  creator: 'Создание курса',
+  'drag-and-drop-course': 'Drag & Drop курс',
+  profile: 'Личный кабинет',
+  login: 'Вход',
+  register: 'Регистрация',
 };
 
 export function Breadcrumbs({
@@ -30,13 +30,13 @@ export function Breadcrumbs({
 }: BreadcrumbsProps) {
   const location = useLocation();
   const routeHistory = useUiLayoutStore((state) => state.routeHistory);
-  const segments = location.pathname.split("/").filter(Boolean);
-  const currentRoute = `${location.pathname}${location.search || ""}${location.hash || ""}`;
+  const segments = location.pathname.split('/').filter(Boolean);
+  const currentRoute = `${location.pathname}${location.search || ''}${location.hash || ''}`;
   const previousRoute = [...routeHistory]
     .reverse()
     .find(
       (route) =>
-        route !== currentRoute && route !== "/login" && route !== "/register",
+        route !== currentRoute && route !== '/login' && route !== '/register',
     );
 
   if (segments.length === 0) {
@@ -44,34 +44,34 @@ export function Breadcrumbs({
   }
 
   const crumbs: Array<{ label: string; to: string }> = [
-    { label: "Главная", to: "/" },
+    { label: 'Главная', to: '/' },
   ];
 
-  if (segments[0] !== "course") {
+  if (segments[0] !== 'course') {
     crumbs.push({
-      label: staticRoutes[segments[0]] || "Раздел",
+      label: staticRoutes[segments[0]] || 'Раздел',
       to: location.pathname,
     });
   } else {
     const courseId = selectedCourse?.id || segments[1];
     const mode =
-      segments[2] === "edit" || segments[2] === "metrics" ? segments[2] : "";
+      segments[2] === 'edit' || segments[2] === 'metrics' ? segments[2] : '';
     const contentTypeIndex = mode ? 3 : 2;
     const contentType = segments[contentTypeIndex];
     const courseRoute = courseId ? `/course/${courseId}` : location.pathname;
-    const modeRoute = mode && courseId ? `${courseRoute}/${mode}` : "";
+    const modeRoute = mode && courseId ? `${courseRoute}/${mode}` : '';
 
-    crumbs.push({ label: "Каталог", to: "/courses" });
+    crumbs.push({ label: 'Каталог', to: '/courses' });
     crumbs.push({
-      label: selectedCourse?.title || "Курс",
-      to: mode === "edit" ? modeRoute : courseRoute,
+      label: selectedCourse?.title || 'Курс',
+      to: mode === 'edit' ? modeRoute : courseRoute,
     });
 
-    if (mode === "metrics") {
-      crumbs.push({ label: "Метрики", to: modeRoute });
+    if (mode === 'metrics') {
+      crumbs.push({ label: 'Метрики', to: modeRoute });
     }
 
-    if (contentType === "block" && selectedBlock) {
+    if (contentType === 'block' && selectedBlock) {
       crumbs.push({
         label: selectedBlock.title as string,
         to: location.pathname,
@@ -79,7 +79,7 @@ export function Breadcrumbs({
     }
 
     if (
-      (contentType === "lesson" || contentType === "lessons") &&
+      (contentType === 'lesson' || contentType === 'lessons') &&
       selectedLesson
     ) {
       crumbs.push({
@@ -88,7 +88,7 @@ export function Breadcrumbs({
       });
     }
 
-    if (contentType === "practice" && selectedPractice) {
+    if (contentType === 'practice' && selectedPractice) {
       crumbs.push({
         label: selectedPractice.title as string,
         to: location.pathname,

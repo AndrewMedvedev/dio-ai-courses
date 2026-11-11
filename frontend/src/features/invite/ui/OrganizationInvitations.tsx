@@ -1,50 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   fetchOrganizationInvitations,
   resendOrganizationInvitation,
   revokeOrganizationInvitation,
   type OrganizationInvitation,
-} from "@/entities/invitation";
-import type { Paginated } from "@/shared/api";
-import { usePermissionStore } from "@/entities/session";
-import { notify } from "@/shared/ui/toast";
+} from '@/entities/invitation';
+import type { Paginated } from '@/shared/api';
+import { usePermissionStore } from '@/entities/session';
+import { notify } from '@/shared/ui/toast';
 
 const STATUS: Record<string, string> = {
-  pending: "Ожидает принятия",
-  accepted: "Принято",
-  expired: "Срок истёк",
-  revoked: "Отозвано",
+  pending: 'Ожидает принятия',
+  accepted: 'Принято',
+  expired: 'Срок истёк',
+  revoked: 'Отозвано',
 };
 const date = (value: string | null | undefined) =>
-  value ? new Date(value).toLocaleString("ru-RU") : "—";
+  value ? new Date(value).toLocaleString('ru-RU') : '—';
 
 /** Отправленные приглашения в организацию: повтор отправки и отзыв. */
 export function OrganizationInvitations({ revision }: { revision?: number }) {
   const canRevoke = usePermissionStore((state) =>
-    state.hasPermission("organization-invitations:delete"),
+    state.hasPermission('organization-invitations:delete'),
   );
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Paginated<OrganizationInvitation> | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState("");
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const [confirmation, setConfirmation] = useState("");
+  const [confirmation, setConfirmation] = useState('');
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError("");
-    setConfirmation("");
+    setError('');
+    setConfirmation('');
     fetchOrganizationInvitations(page)
       .then((result) => {
         if (active) setData(result);
       })
       .catch(() => {
         if (active)
-          setError("Не удалось загрузить приглашения. Повторите попытку.");
+          setError('Не удалось загрузить приглашения. Повторите попытку.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -56,35 +56,35 @@ export function OrganizationInvitations({ revision }: { revision?: number }) {
 
   const act = async (
     invitation: OrganizationInvitation,
-    action: "revoke" | "resend",
+    action: 'revoke' | 'resend',
   ) => {
     if (pending) return;
     setPending(`${invitation.source}:${invitation.id}`);
-    setError("");
+    setError('');
     try {
       await (
-        action === "revoke"
+        action === 'revoke'
           ? revokeOrganizationInvitation
           : resendOrganizationInvitation
       )(invitation.id, invitation.source);
       notify(
-        action === "revoke"
-          ? "Приглашение отозвано"
-          : "Приглашение отправлено повторно",
+        action === 'revoke'
+          ? 'Приглашение отозвано'
+          : 'Приглашение отправлено повторно',
       );
-      setConfirmation("");
+      setConfirmation('');
       setRefresh((value) => value + 1);
     } catch (rawFailure) {
       const failure = rawFailure as { status?: number } | null;
       setError(
         failure?.status === 403
-          ? "Недостаточно прав для этого действия."
+          ? 'Недостаточно прав для этого действия.'
           : failure?.status === 409
-            ? "Статус приглашения изменился или пользователь уже состоит в организации. Обновите список."
-            : "Не удалось выполнить действие. Обновите список и попробуйте ещё раз.",
+            ? 'Статус приглашения изменился или пользователь уже состоит в организации. Обновите список.'
+            : 'Не удалось выполнить действие. Обновите список и попробуйте ещё раз.',
       );
     } finally {
-      setPending("");
+      setPending('');
     }
   };
 
@@ -127,7 +127,7 @@ export function OrganizationInvitations({ revision }: { revision?: number }) {
             <div className="organization-list tw:grid tw:gap-[16px]">
               {data.items.map((invitation) => {
                 const key = `${invitation.source}:${invitation.id}`;
-                const actionable = ["pending", "expired"].includes(
+                const actionable = ['pending', 'expired'].includes(
                   invitation.status,
                 );
                 return (
@@ -144,7 +144,7 @@ export function OrganizationInvitations({ revision }: { revision?: number }) {
                       </span>
                     </div>
                     <p className="organization-muted tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-                      Создано: {date(invitation.created_at)} · Действует до:{" "}
+                      Создано: {date(invitation.created_at)} · Действует до:{' '}
                       {date(invitation.expires_at)}
                     </p>
                     {invitation.used_at && (
@@ -161,7 +161,7 @@ export function OrganizationInvitations({ revision }: { revision?: number }) {
                           type="button"
                           className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                           disabled={Boolean(pending)}
-                          onClick={() => act(invitation, "resend")}
+                          onClick={() => act(invitation, 'resend')}
                         >
                           Повторить отправку
                         </button>
@@ -173,7 +173,7 @@ export function OrganizationInvitations({ revision }: { revision?: number }) {
                                 type="button"
                                 className="btn btn-outline organization-danger-btn tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(180,_35,_24,_0.34)] tw:font-[700] tw:tracking-[0.01em] tw:text-[#b42318] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:[justify-self:start] tw:hover:[transform:translateY(-1px)]"
                                 disabled={Boolean(pending)}
-                                onClick={() => act(invitation, "revoke")}
+                                onClick={() => act(invitation, 'revoke')}
                               >
                                 Да, отозвать
                               </button>
@@ -181,7 +181,7 @@ export function OrganizationInvitations({ revision }: { revision?: number }) {
                                 type="button"
                                 className="btn btn-ghost tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:font-[700] tw:tracking-[0.01em] tw:[text-decoration:none] tw:[border:1px_solid_transparent] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:hover:[transform:translateY(-1px)]"
                                 disabled={Boolean(pending)}
-                                onClick={() => setConfirmation("")}
+                                onClick={() => setConfirmation('')}
                               >
                                 Отмена
                               </button>

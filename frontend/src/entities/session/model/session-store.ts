@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import {
   isTokenExpired,
   normalizeTokenResponse,
@@ -11,8 +11,8 @@ import {
   type TokenResponse,
   type ValidationErrors,
   attachmentsApi,
-} from "@/shared/api";
-import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
+} from '@/shared/api';
+import { getMediaId, getMediaUrl, MEDIA_FOLDERS } from '@/shared/lib/media';
 import {
   authenticateWithMembership,
   fetchCurrentUser,
@@ -20,7 +20,7 @@ import {
   login as loginApi,
   logout as logoutApi,
   updateCurrentUser,
-} from "../api/session-api";
+} from '../api/session-api';
 import type {
   Identity,
   LoginCredentials,
@@ -28,7 +28,7 @@ import type {
   LoginStep,
   Membership,
   SessionUser,
-} from "./types";
+} from './types';
 
 interface SessionData {
   accessToken: string | null;
@@ -70,13 +70,13 @@ export interface SessionState extends SessionData {
   logout: () => Promise<void>;
 }
 
-type PersistedSession = Pick<SessionData, "user" | "membershipId">;
+type PersistedSession = Pick<SessionData, 'user' | 'membershipId'>;
 
 /** Ошибка из requestJson (ApiError) или обычная Error. */
 const asApiError = (error: unknown) => error as Partial<ApiError> & Error;
 
 const initialStoredSession = readStoredSession();
-const SESSION_CACHE_STORAGE_KEY = "aicolab-session-cache";
+const SESSION_CACHE_STORAGE_KEY = 'aicolab-session-cache';
 const SESSION_CACHE_VERSION = 1;
 let identityRequestPromise: Promise<Identity | null> | null = null;
 let currentUserRequestPromise: Promise<SessionUser | null> | null = null;
@@ -91,7 +91,7 @@ const initialState: SessionData = {
   memberships: [],
   identity: null,
   user: null,
-  loginStep: "credentials",
+  loginStep: 'credentials',
   isLoading: false,
   error: null,
   validationErrors: {},
@@ -99,7 +99,7 @@ const initialState: SessionData = {
 };
 
 function getSessionUserId(user: SessionUser | null | undefined): string {
-  return user?.id || user?.user_id || user?.userId || "";
+  return user?.id || user?.user_id || user?.userId || '';
 }
 
 function normalizeSessionUser(user: SessionUser): SessionUser;
@@ -109,12 +109,12 @@ function normalizeSessionUser(
 function normalizeSessionUser(
   user: SessionUser | null | undefined,
 ): SessionUser | null | undefined {
-  if (!user || typeof user !== "object") return user;
+  if (!user || typeof user !== 'object') return user;
   const userId = getSessionUserId(user);
   const avatarId = getMediaId(user.avatar_url || user.avatarUrl);
   return {
     ...user,
-    avatar_url: avatarId || user.avatar_url || "",
+    avatar_url: avatarId || user.avatar_url || '',
     avatarUrl: getMediaUrl(userId, MEDIA_FOLDERS.AVATAR, avatarId),
   };
 }
@@ -175,8 +175,8 @@ export const useSessionStore = create<SessionState>()(
         const state = get();
         return Boolean(
           state.accessToken &&
-            state.expiresAt &&
-            (!isTokenExpired(state.expiresAt) || state.refreshToken),
+          state.expiresAt &&
+          (!isTokenExpired(state.expiresAt) || state.refreshToken),
         );
       },
 
@@ -210,7 +210,7 @@ export const useSessionStore = create<SessionState>()(
             memberships: Array.isArray(data.memberships)
               ? data.memberships
               : [],
-            loginStep: "organization",
+            loginStep: 'organization',
             isLoading: false,
             error: null,
             validationErrors: {},
@@ -222,8 +222,8 @@ export const useSessionStore = create<SessionState>()(
             isLoading: false,
             error:
               error.status === 401
-                ? "Неверный email или пароль."
-                : error.userMessage || error.message || "Не удалось войти.",
+                ? 'Неверный email или пароль.'
+                : error.userMessage || error.message || 'Не удалось войти.',
             validationErrors: error.validationErrors || {},
           });
           throw error;
@@ -243,9 +243,9 @@ export const useSessionStore = create<SessionState>()(
 
         if (!authenticationToken) {
           const error = new Error(
-            "Сессия выбора организации истекла. Войдите заново.",
+            'Сессия выбора организации истекла. Войдите заново.',
           );
-          set({ error: error.message, loginStep: "credentials" });
+          set({ error: error.message, loginStep: 'credentials' });
           throw error;
         }
 
@@ -263,18 +263,18 @@ export const useSessionStore = create<SessionState>()(
           set({
             authenticationToken: null,
             memberships: [],
-            loginStep: "credentials",
+            loginStep: 'credentials',
           });
           const identity = await loadIdentity();
           if (!identity) {
             const error = new Error(
-              "Не удалось подтвердить сессию выбранной организации.",
+              'Не удалось подтвердить сессию выбранной организации.',
             );
             set({ isLoading: false, error: error.message });
             throw error;
           }
 
-          get().loadCurrentUser();
+          void get().loadCurrentUser();
           set({ isLoading: false });
           return tokens;
         } catch (rawError) {
@@ -283,16 +283,16 @@ export const useSessionStore = create<SessionState>()(
           set({
             isLoading: false,
             error: isExpiredSelection
-              ? "Сессия выбора организации истекла. Войдите заново."
+              ? 'Сессия выбора организации истекла. Войдите заново.'
               : error.userMessage ||
                 error.message ||
-                "Не удалось выбрать организацию.",
+                'Не удалось выбрать организацию.',
             validationErrors: error.validationErrors || {},
             authenticationToken: isExpiredSelection
               ? null
               : authenticationToken,
             memberships: isExpiredSelection ? [] : memberships,
-            loginStep: isExpiredSelection ? "credentials" : "organization",
+            loginStep: isExpiredSelection ? 'credentials' : 'organization',
           });
           throw error;
         }
@@ -325,7 +325,7 @@ export const useSessionStore = create<SessionState>()(
               error:
                 error.userMessage ||
                 error.message ||
-                "Не удалось загрузить данные текущей сессии.",
+                'Не удалось загрузить данные текущей сессии.',
             });
             return null;
           })
@@ -355,7 +355,7 @@ export const useSessionStore = create<SessionState>()(
                   ? null
                   : error.userMessage ||
                     error.message ||
-                    "Не удалось загрузить профиль пользователя.",
+                    'Не удалось загрузить профиль пользователя.',
             });
             return null;
           })
@@ -370,7 +370,7 @@ export const useSessionStore = create<SessionState>()(
         set({
           authenticationToken: null,
           memberships: [],
-          loginStep: "credentials",
+          loginStep: 'credentials',
           error: null,
           validationErrors: {},
         }),
@@ -389,7 +389,7 @@ export const useSessionStore = create<SessionState>()(
             error:
               error.userMessage ||
               error.message ||
-              "Не удалось обновить профиль.",
+              'Не удалось обновить профиль.',
             validationErrors: error.validationErrors || {},
           });
           throw error;
@@ -445,7 +445,7 @@ export const useSessionStore = create<SessionState>()(
             error:
               error.userMessage ||
               error.message ||
-              "Не удалось загрузить аватар.",
+              'Не удалось загрузить аватар.',
             validationErrors: error.validationErrors || {},
           });
           throw error;
@@ -468,7 +468,7 @@ export const useSessionStore = create<SessionState>()(
           memberships: [],
           identity: null,
           user: null,
-          loginStep: "credentials",
+          loginStep: 'credentials',
           isLoading: false,
           error: null,
           validationErrors: {},

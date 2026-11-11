@@ -11,7 +11,7 @@ export {
   resendOrganizationInvitation,
   revokeCourseInvitation,
   revokeOrganizationInvitation,
-} from "./api/invitation-api";
+} from './api/invitation-api';
 export {
   EMAIL_RE,
   INVITATION_TYPES,
@@ -19,7 +19,7 @@ export {
   describeRole,
   type AcceptErrorDescription,
   type RoleDescription,
-} from "./model/invitations";
+} from './model/invitations';
 export type {
   AcceptInvitationParams,
   InvitationPreview,
@@ -28,4 +28,4 @@ export type {
   InvitationType,
   OrganizationInvitation,
   Role,
-} from "./model/types";
+} from './model/types';

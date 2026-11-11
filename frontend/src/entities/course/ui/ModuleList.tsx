@@ -1,7 +1,7 @@
 import {
   PROGRESS_STATUS_LABELS,
   type ModuleProgressSummary,
-} from "@/entities/progress/@x/course";
+} from '@/entities/progress/@x/course';
 
 export interface ModuleListItem {
   id: string;
@@ -57,13 +57,13 @@ export function ModuleList({
             >
               <button
                 type="button"
-                className={String.raw`course-pick-item tw:items-start tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[16px] tw:text-[inherit] tw:cursor-pointer tw:grid tw:gap-[8px] tw:grid-cols-[auto_1fr] tw:p-[14px] tw:text-left tw:w-[100%] tw:text-[0.96rem] tw:leading-[1.45] tw:[border-width:1px] tw:[&.is-selected]:border-[var(--accent,_#6c63ff)] tw:[&.has-progress.is-in\_progress]:border-(--progress-active) tw:[&.has-progress.is-completed]:border-(--progress-done) tw:[background:var(--glass-bg-strong)] tw:disabled:cursor-not-allowed tw:[&.has-progress]:grid-cols-[auto_1fr_auto] tw:[transition:border-color_0.2s_ease,_transform_0.2s_ease,_background_0.2s_ease] tw:disabled:opacity-[0.64] tw:[&.is-selected]:[background:rgba(111,_119,_255,_0.14)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:border-[rgba(233,_222,_203,_0.16)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&.is-selected]:border-(--contrast) tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:text-(--text) tw:[&:not(:disabled):hover]:border-[var(--accent,_#6c63ff)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[background:rgba(233,_222,_203,_0.05)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&.is-selected]:[background:rgba(203,_170,_203,_0.12)] tw:[&:not(:disabled):hover]:[transform:translateY(-1px)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:not(:disabled):hover]:border-(--accent) ${isSelected ? "is-selected" : ""} ${progress ? `has-progress is-${progress.status}` : ""}`}
+                className={String.raw`course-pick-item tw:items-start tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[16px] tw:text-[inherit] tw:cursor-pointer tw:grid tw:gap-[8px] tw:grid-cols-[auto_1fr] tw:p-[14px] tw:text-left tw:w-[100%] tw:text-[0.96rem] tw:leading-[1.45] tw:[border-width:1px] tw:[&.is-selected]:border-[var(--accent,_#6c63ff)] tw:[&.has-progress.is-in\_progress]:border-(--progress-active) tw:[&.has-progress.is-completed]:border-(--progress-done) tw:[background:var(--glass-bg-strong)] tw:disabled:cursor-not-allowed tw:[&.has-progress]:grid-cols-[auto_1fr_auto] tw:[transition:border-color_0.2s_ease,_transform_0.2s_ease,_background_0.2s_ease] tw:disabled:opacity-[0.64] tw:[&.is-selected]:[background:rgba(111,_119,_255,_0.14)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:border-[rgba(233,_222,_203,_0.16)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&.is-selected]:border-(--contrast) tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:text-(--text) tw:[&:not(:disabled):hover]:border-[var(--accent,_#6c63ff)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[background:rgba(233,_222,_203,_0.05)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&.is-selected]:[background:rgba(203,_170,_203,_0.12)] tw:[&:not(:disabled):hover]:[transform:translateY(-1px)] tw:dark:[.page_:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:not(:disabled):hover]:border-(--accent) ${isSelected ? 'is-selected' : ''} ${progress ? `has-progress is-${progress.status}` : ''}`}
                 onClick={() => onSelectModule(module.id)}
                 disabled={disabled}
               >
                 {/* Номер по месту в списке: order с бэкенда начинается с 1. */}
                 <span className="course-pick-order tw:text-(--ink-accent) tw:font-[800]">
-                  {String(index + 1).padStart(2, "0")}
+                  {String(index + 1).padStart(2, '0')}
                 </span>
                 <span>{module.title}</span>
                 {progress && (

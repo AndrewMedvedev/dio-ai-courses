@@ -1,13 +1,15 @@
-import { createApiError } from "./api-error";
+import type { TokenResponse } from './session';
+import type { RawApiRecord } from './types';
+import { createApiError } from './api-error';
 import {
   clearTokens,
   getTokens,
   isTokenExpired,
   saveTokensFromResponse,
   shouldRefresh,
-} from "./session";
+} from './session';
 
-export const API_BASE = "/api/v1";
+export const API_BASE = '/api/v1';
 
 export interface RequestOptions {
   /** Подставлять Bearer-токен (по умолчанию да). */
@@ -19,7 +21,7 @@ export interface RequestOptions {
 }
 
 export type JsonRequestOptions = RequestInit &
-  Pick<RequestOptions, "auth" | "retry">;
+  Pick<RequestOptions, 'auth' | 'retry'>;
 
 let refreshPromise: Promise<string | null> | null = null;
 let unauthorizedHandler: (() => void) | null = null;
@@ -37,7 +39,7 @@ export function isAuthenticated(): boolean {
 
 export function redirectToLogin(): void {
   clearTokens();
-  if (typeof unauthorizedHandler === "function") {
+  if (typeof unauthorizedHandler === 'function') {
     unauthorizedHandler();
   }
 }
@@ -48,8 +50,8 @@ function handleUnauthorized(): void {
 
 async function postRefreshToken(body: unknown): Promise<Response> {
   return fetch(`${API_BASE}/auth/token/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 }
@@ -68,10 +70,10 @@ async function refreshAccessToken(): Promise<string | null> {
         }
 
         if (!response.ok) {
-          throw await createApiError(response, "Сессия истекла.");
+          throw await createApiError(response, 'Сессия истекла.');
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as unknown as TokenResponse;
         const session = saveTokensFromResponse(data);
         return session.accessToken;
       })
@@ -100,7 +102,9 @@ export async function apiFetch(
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> | undefined),
   };
-  let { access, expiresAt } = getTokens();
+  const tokens = getTokens();
+  let access = tokens.access;
+  const expiresAt = tokens.expiresAt;
 
   if (auth && !access) {
     if (clearOnUnauthorized) {
@@ -151,7 +155,7 @@ export async function apiFetch(
  * не-JSON → текст. При ошибке бросает ApiError с понятным сообщением.
  */
 // any: ответы бэкенда типизируются в entities по мере переноса.
-export async function requestJson<T = any>(
+export async function requestJson<T = RawApiRecord>(
   path: string,
   options: RequestInit = {},
   {
@@ -168,7 +172,7 @@ export async function requestJson<T = any>(
   if (!response.ok) {
     throw await createApiError(
       response,
-      `Ошибка запроса ${options.method || "GET"} ${path}`,
+      `Ошибка запроса ${options.method || 'GET'} ${path}`,
     );
   }
   if (response.status === 204) return null as T;
@@ -185,7 +189,7 @@ export async function requestJson<T = any>(
 
 /** JSON-запрос: сериализует body и ставит Content-Type. */
 // any: см. requestJson.
-export async function jsonRequest<T = any>(
+export async function jsonRequest<T = RawApiRecord>(
   path: string,
   method: string,
   body?: unknown,
@@ -198,8 +202,8 @@ export async function jsonRequest<T = any>(
       ...fetchOptions,
       method,
       headers: {
-        "Content-Type": "application/json",
-        ...((fetchOptions.headers as Record<string, string> | undefined) || {}),
+        'Content-Type': 'application/json',
+        ...(fetchOptions.headers || {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     },

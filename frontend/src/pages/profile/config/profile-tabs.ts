@@ -5,7 +5,7 @@ export interface ProfileTabItem {
 }
 
 export const profileTabItems: ProfileTabItem[] = [
-  { id: "overview", label: "Профиль" },
-  { id: "active-course", label: "Активный курс" },
-  { id: "teacher", label: "Кабинет автора" },
+  { id: 'overview', label: 'Профиль' },
+  { id: 'active-course', label: 'Активный курс' },
+  { id: 'teacher', label: 'Кабинет автора' },
 ];

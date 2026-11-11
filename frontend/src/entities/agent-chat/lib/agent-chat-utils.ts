@@ -1,3 +1,4 @@
+import { toText } from '@/shared/lib/text';
 // Общие помощники для диалогов с ИИ-интервьюерами (курс, модуль, урок).
 
 interface ChatMessageLike {
@@ -22,13 +23,13 @@ const USER_ASKS_CHANGES =
   /(^|[\s,])(но|однако|кроме|только)(?=[\s,])|измен|поменя|добав|убер|убра|замен|исправ|передела|не\s/iu;
 
 export const CONFIRM_LAUNCH_MESSAGE =
-  "Подтверждаю эту версию. Запускай генерацию.";
+  'Подтверждаю эту версию. Запускай генерацию.';
 
 export function getLastAssistantMessage<T extends ChatMessageLike>(
   messages: T[] = [],
 ): T | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === "assistant") return messages[index];
+    if (messages[index]?.role === 'assistant') return messages[index];
   }
   return null;
 }
@@ -38,12 +39,12 @@ export function isAwaitingLaunchConfirmation(
   messages: ChatMessageLike[] = [],
 ): boolean {
   const last = messages[messages.length - 1];
-  if (!last || last.role !== "assistant") return false;
-  return ASKS_CONFIRMATION.test(String(last.text || ""));
+  if (!last || last.role !== 'assistant') return false;
+  return ASKS_CONFIRMATION.test(String(last.text || ''));
 }
 
 export function looksLikeLaunchConfirmation(text: unknown): boolean {
-  const value = String(text || "").trim();
+  const value = toText(text || '').trim();
   return (
     value.length <= 120 &&
     USER_CONFIRMS.test(value) &&
@@ -52,11 +53,11 @@ export function looksLikeLaunchConfirmation(text: unknown): boolean {
 }
 
 function parseMaybeJson(value: unknown): unknown {
-  if (typeof value !== "string") return value;
+  if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!/^[{[]/.test(trimmed)) return value;
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(trimmed) as unknown;
   } catch {
     return value;
   }
@@ -67,11 +68,11 @@ export function extractTaskId(
   response: AgentResponseLike | null | undefined,
 ): string | null {
   const content = parseMaybeJson(response?.content);
-  if (content && typeof content === "object") {
+  if (content && typeof content === 'object') {
     const record = content as { task_id?: string; taskId?: string };
     return record.task_id || record.taskId || null;
   }
-  const match = String(content || "").match(/task_id\s*[=:]\s*([\w-]+)/i);
+  const match = toText(content || '').match(/task_id\s*[=:]\s*([\w-]+)/i);
   return match ? match[1] : null;
 }
 
@@ -81,15 +82,15 @@ export function getResponseText(
   startedText: string,
 ): string {
   const content = parseMaybeJson(response?.content);
-  if (content && typeof content === "object") {
+  if (content && typeof content === 'object') {
     const record = content as { task_id?: string; taskId?: string };
-    return record.task_id || record.taskId ? startedText : "";
+    return record.task_id || record.taskId ? startedText : '';
   }
-  return String(content || "").trim();
+  return toText(content || '').trim();
 }
 
 export function safeLinkHref(href: unknown): string | null {
-  const value = String(href || "").trim();
+  const value = toText(href || '').trim();
   if (/^https?:\/\//i.test(value) || /^mailto:/i.test(value)) return value;
   return null;
 }

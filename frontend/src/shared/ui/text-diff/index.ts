@@ -1,1 +1,2 @@
-export { TextDiff, diffText, type DiffSegment } from "./TextDiff";
+export { TextDiff } from './TextDiff';
+export { diffText, type DiffSegment } from './diff-text';

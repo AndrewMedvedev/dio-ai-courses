@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 import {
   BrowserRouter,
   Navigate,
@@ -6,33 +6,33 @@ import {
   Routes,
   useLocation,
   useNavigate,
-} from "react-router-dom";
-import { Header } from "@/widgets/header";
-import { Footer } from "@/widgets/footer";
-import { Breadcrumbs } from "@/widgets/breadcrumbs";
-import { Toaster, notify } from "@/shared/ui/toast";
-import { ProtectedRoute } from "@/app/router";
-import { HomePage } from "@/pages/home";
-import { CoursesPage } from "@/pages/catalog";
-import { CoursePage } from "@/pages/course-edit";
+} from 'react-router-dom';
+import { Header } from '@/widgets/header';
+import { Footer } from '@/widgets/footer';
+import { Breadcrumbs } from '@/widgets/breadcrumbs';
+import { Toaster, notify } from '@/shared/ui/toast';
+import { ProtectedRoute } from '@/app/router';
+import { HomePage } from '@/pages/home';
+import { CoursesPage } from '@/pages/catalog';
+import { CoursePage } from '@/pages/course-edit';
 import {
   InvitationAcceptPage,
   InvitationLinkRedirect,
-} from "@/pages/invitation-accept";
-import { CourseViewer } from "@/pages/course-view";
-import { BlockPage } from "@/pages/module-edit";
-import { LessonPage } from "@/pages/lesson-edit";
-import { PracticePage } from "@/pages/practice";
-import { CreatorPage } from "@/pages/creator";
+} from '@/pages/invitation-accept';
+import { CourseViewer } from '@/pages/course-view';
+import { BlockPage } from '@/pages/module-edit';
+import { LessonPage } from '@/pages/lesson-edit';
+import { PracticePage } from '@/pages/practice';
+import { CreatorPage } from '@/pages/creator';
 import {
   DragAndDropCoursePage,
   DragAndDropCoursePreviewPage,
-} from "@/pages/dnd-course";
-import { ProfilePage } from "@/pages/profile";
-import { OrganizationsPage } from "@/pages/organizations";
-import { ModelsPage } from "@/pages/models";
-import { AuthPage } from "@/pages/auth";
-import { getErrorMessage } from "@/shared/lib/errors";
+} from '@/pages/dnd-course';
+import { ProfilePage } from '@/pages/profile';
+import { OrganizationsPage } from '@/pages/organizations';
+import { ModelsPage } from '@/pages/models';
+import { AuthPage } from '@/pages/auth';
+import { getErrorMessage } from '@/shared/lib/errors';
 import {
   getRouteState,
   archiveCourse as archiveCourseApi,
@@ -63,9 +63,7 @@ import {
   moveItem,
   upsertLesson,
   upsertModule,
-  getBlockProgress,
   getCourseProgress,
-  getLessonSequence,
   getOverallProgress,
   forgetLessonTheory,
   type BlockNode,
@@ -73,15 +71,15 @@ import {
   type LearningBlock,
   type LessonNode,
   type PracticeNode,
-} from "@/entities/course";
-import type { CourseStatusAction } from "@/pages/course-edit";
-import type { LessonChanges, UpdateLessonOptions } from "@/pages/lesson-edit";
-import type { DraftEdit } from "@/features/edit-course-draft";
+} from '@/entities/course';
+import type { CourseStatusAction } from '@/pages/course-edit';
+import type { LessonChanges, UpdateLessonOptions } from '@/pages/lesson-edit';
+import type { DraftEdit } from '@/features/edit-course-draft';
 import {
   useRouteHistoryTracker,
   useRouteScrollRestoration,
   useUiLayoutStore,
-} from "@/shared/lib/ui-layout";
+} from '@/shared/lib/ui-layout';
 import {
   COURSE_PERMISSIONS,
   INVITATION_PERMISSIONS,
@@ -89,14 +87,14 @@ import {
   usePermissionStore,
   useSessionStore,
   useAppPermissions,
-} from "@/entities/session";
-import { resolveTheme, useThemeStore } from "@/shared/lib/theme";
-import { isUuid } from "@/shared/lib/uuid";
+} from '@/entities/session';
+import { resolveTheme, useThemeStore } from '@/shared/lib/theme';
+import { isUuid } from '@/shared/lib/uuid';
 import {
   EditorSaveBar,
   useEditorDraftStore,
-} from "@/features/edit-course-draft";
-import { useGenerationJobsWatcher } from "@/features/track-generation";
+} from '@/features/edit-course-draft';
+import { useGenerationJobsWatcher } from '@/features/track-generation';
 
 type CompletedMap = Record<string, boolean | undefined>;
 
@@ -104,19 +102,19 @@ const errorText = (error: unknown, fallback: string): string =>
   getErrorMessage(error, fallback) ?? fallback;
 
 function getCourseRouteTarget(pathname: string): { type: string; id: string } {
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments[0] !== "course") return { type: "", id: "" };
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments[0] !== 'course') return { type: '', id: '' };
 
   const routeModeOffset =
-    segments[2] === "edit" || segments[2] === "metrics" ? 1 : 0;
+    segments[2] === 'edit' || segments[2] === 'metrics' ? 1 : 0;
   const contentTypeIndex = 2 + routeModeOffset;
   const contentIdIndex = 3 + routeModeOffset;
   return {
     type:
-      segments[contentTypeIndex] === "lessons"
-        ? "lesson"
-        : segments[contentTypeIndex] || "course",
-    id: segments[contentIdIndex] || "",
+      segments[contentTypeIndex] === 'lessons'
+        ? 'lesson'
+        : segments[contentTypeIndex] || 'course',
+    id: segments[contentIdIndex] || '',
   };
 }
 
@@ -167,7 +165,7 @@ function AppContent() {
     : document.documentElement.dataset.theme || resolvedTheme;
   const [editableCourses, setEditableCourses] = useState<CourseNode[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
-  const [coursesError, setCoursesError] = useState("");
+  const [coursesError, setCoursesError] = useState('');
   const [coursesPageSize] = useState(9);
   const [coursesTotalPages, setCoursesTotalPages] = useState(1);
   const [coursesTotal, setCoursesTotal] = useState(0);
@@ -191,7 +189,7 @@ function AppContent() {
   const [selectedPracticeId, setSelectedPracticeId] = useState<
     string | null | undefined
   >(initialRouteState.practiceId);
-  const [completedLessons, setCompletedLessons] = useState<CompletedMap>({});
+  const [completedLessons] = useState<CompletedMap>({});
   const [completedPractices, setCompletedPractices] = useState<CompletedMap>(
     {},
   );
@@ -209,10 +207,10 @@ function AppContent() {
       return;
     }
 
-    loadIdentity().then((identity) => {
+    void loadIdentity().then((identity) => {
       setPermissionsFromIdentity(identity);
     });
-    loadCurrentUser();
+    void loadCurrentUser();
   }, [
     accessToken,
     loadIdentity,
@@ -224,7 +222,7 @@ function AppContent() {
   useEffect(() => {
     if (!canBrowseCourses) {
       setEditableCourses([]);
-      setCoursesError("");
+      setCoursesError('');
       return undefined;
     }
 
@@ -232,7 +230,7 @@ function AppContent() {
     coursesPageRequestRef.current = requestId;
     const controller = new AbortController();
     setCoursesLoading(true);
-    setCoursesError("");
+    setCoursesError('');
 
     fetchCoursesPage(
       { page: coursesPage, size: coursesPageSize },
@@ -254,7 +252,7 @@ function AppContent() {
         ) {
           return;
         }
-        setCoursesError(errorText(error, "Не удалось загрузить курсы."));
+        setCoursesError(errorText(error, 'Не удалось загрузить курсы.'));
         setEditableCourses([]);
         setCoursesTotalPages(1);
         setCoursesTotal(0);
@@ -266,10 +264,10 @@ function AppContent() {
       });
 
     return () => controller.abort();
-  }, [canBrowseCourses, coursesPage, coursesPageSize]);
+  }, [canBrowseCourses, coursesPage, coursesPageSize, selectedCourseId]);
 
   useEffect(() => {
-    if (!location.pathname.startsWith("/course")) {
+    if (!location.pathname.startsWith('/course')) {
       return;
     }
 
@@ -299,7 +297,7 @@ function AppContent() {
     const requestId = courseRequestRef.current + 1;
     courseRequestRef.current = requestId;
     setCoursesLoading(true);
-    setCoursesError("");
+    setCoursesError('');
 
     getCourse(selectedCourseId)
       .then((nextCourse) => {
@@ -308,7 +306,7 @@ function AppContent() {
       })
       .catch((error) => {
         if (courseRequestRef.current === requestId) {
-          setCoursesError(errorText(error, "Не удалось загрузить курс."));
+          setCoursesError(errorText(error, 'Не удалось загрузить курс.'));
         }
       })
       .finally(() => {
@@ -333,7 +331,7 @@ function AppContent() {
 
     const target = getCourseRouteTarget(location.pathname);
 
-    if (target.type === "block" && target.id) {
+    if (target.type === 'block' && target.id) {
       const block = selectedCourse.blocks.find((item) => item.id === target.id);
       const shouldLoadBlock =
         block &&
@@ -346,7 +344,7 @@ function AppContent() {
       loadedModuleDetailsRef.current.add(block.id);
       const requestId = moduleRequestRef.current + 1;
       moduleRequestRef.current = requestId;
-      setCoursesError("");
+      setCoursesError('');
 
       getModuleBasicInfo(block.id)
         .then((loadedBlock) => {
@@ -365,13 +363,13 @@ function AppContent() {
         .catch((error) => {
           if (moduleRequestRef.current === requestId) {
             setCoursesError(
-              errorText(error, "Не удалось загрузить уроки модуля."),
+              errorText(error, 'Не удалось загрузить уроки модуля.'),
             );
           }
         });
     }
 
-    if (target.type === "lesson" && target.id) {
+    if (target.type === 'lesson' && target.id) {
       const blockWithLesson = selectedCourse.blocks.find((block) =>
         (block.lessons || []).some((lesson) => lesson.id === target.id),
       );
@@ -400,7 +398,7 @@ function AppContent() {
       );
       const requestId = moduleRequestRef.current + 1;
       moduleRequestRef.current = requestId;
-      setCoursesError("");
+      setCoursesError('');
 
       Promise.all(modulesToLoad.map((block) => getModuleBasicInfo(block.id)))
         .then((loadedBlocks) => {
@@ -428,7 +426,7 @@ function AppContent() {
         .catch((error) => {
           if (moduleRequestRef.current === requestId) {
             setCoursesError(
-              errorText(error, "Не удалось загрузить уроки модулей."),
+              errorText(error, 'Не удалось загрузить уроки модулей.'),
             );
           }
         });
@@ -466,13 +464,13 @@ function AppContent() {
     );
     const courseId = selectedCourse.id;
 
-    Promise.allSettled(
+    void Promise.allSettled(
       modulesToLoad.map((block) => getModuleBasicInfo(block.id)),
     ).then((results) => {
       const loadedBlocks = results
         .filter(
           (result): result is PromiseFulfilledResult<LearningBlock> =>
-            result.status === "fulfilled" && Boolean(result.value),
+            result.status === 'fulfilled' && Boolean(result.value),
         )
         .map((result) => result.value);
       if (!loadedBlocks.length) return;
@@ -523,7 +521,7 @@ function AppContent() {
     loadedLessonDetailsRef.current.add(lesson.id);
     const requestId = lessonRequestRef.current + 1;
     lessonRequestRef.current = requestId;
-    setCoursesError("");
+    setCoursesError('');
 
     getLessonBasicInfo(lesson.id)
       .then((loadedLesson) => {
@@ -538,26 +536,11 @@ function AppContent() {
       })
       .catch((error) => {
         if (lessonRequestRef.current === requestId) {
-          setCoursesError(errorText(error, "Не удалось загрузить урок."));
+          setCoursesError(errorText(error, 'Не удалось загрузить урок.'));
         }
       });
   }, [canViewCourseInfo, selectedCourse, selectedLessonId]);
 
-  const lessonSequence = getLessonSequence(selectedCourse);
-  const currentLessonIndex = lessonSequence.findIndex(
-    (item) => item.lessonId === selectedLesson.id,
-  );
-  const hasPrevLesson = currentLessonIndex > 0;
-  const hasNextLesson =
-    currentLessonIndex >= 0 && currentLessonIndex < lessonSequence.length - 1;
-
-  const {
-    completedLessonsInBlock,
-    completedPracticesInBlock,
-    totalItemsInBlock,
-    completedInBlock,
-    blockProgressPercent,
-  } = getBlockProgress(selectedBlock, completedLessons, completedPractices);
   const {
     totalLessonsCount,
     totalPracticesCount,
@@ -577,10 +560,10 @@ function AppContent() {
   );
 
   useEffect(() => {
-    if (location.pathname.includes("/edit") && canUpdateCourse) {
+    if (location.pathname.includes('/edit') && canUpdateCourse) {
       setIsCourseEditMode(true);
     }
-    if (!location.pathname.includes("/edit") && isCourseEditMode) {
+    if (!location.pathname.includes('/edit') && isCourseEditMode) {
       setIsCourseEditMode(false);
     }
   }, [canUpdateCourse, isCourseEditMode, location.pathname]);
@@ -595,7 +578,7 @@ function AppContent() {
     .map((block) => block.title);
 
   const openCourses = () => {
-    navigate("/courses");
+    void navigate('/courses');
   };
 
   const changeCoursesPage = (page: number) => {
@@ -608,7 +591,7 @@ function AppContent() {
       return;
     }
 
-    navigate("/creator");
+    void navigate('/creator');
   };
 
   const openCourse = async (courseId: string | null | undefined) => {
@@ -619,7 +602,7 @@ function AppContent() {
     const requestId = courseRequestRef.current + 1;
     courseRequestRef.current = requestId;
     setCoursesLoading(true);
-    setCoursesError("");
+    setCoursesError('');
 
     try {
       const localCourse = editableCourses.find(
@@ -635,10 +618,10 @@ function AppContent() {
       setSelectedBlockId(nextCourse.blocks?.[0]?.id ?? null);
       setSelectedLessonId(nextCourse.blocks?.[0]?.lessons?.[0]?.id ?? null);
       setSelectedPracticeId(nextCourse.blocks?.[0]?.practice?.[0]?.id ?? null);
-      navigate(`/course/${nextCourse.id}`);
+      void navigate(`/course/${nextCourse.id}`);
     } catch (error) {
       if (courseRequestRef.current === requestId) {
-        setCoursesError(errorText(error, "Не удалось загрузить курс."));
+        setCoursesError(errorText(error, 'Не удалось загрузить курс.'));
       }
     } finally {
       if (courseRequestRef.current === requestId) {
@@ -654,10 +637,10 @@ function AppContent() {
     if (!courseId) {
       return null;
     }
-    if (action !== "archive" && !canUpdateCourse) {
+    if (action !== 'archive' && !canUpdateCourse) {
       return null;
     }
-    if (action === "archive" && !canDeleteCourse) {
+    if (action === 'archive' && !canDeleteCourse) {
       return null;
     }
 
@@ -675,11 +658,11 @@ function AppContent() {
       const result = await statusAction(courseId);
       const nextStatus =
         result?.status ||
-        (action === "publish"
-          ? "published"
-          : action === "invite_only"
-            ? "invite_only"
-            : "archived");
+        (action === 'publish'
+          ? 'published'
+          : action === 'invite_only'
+            ? 'invite_only'
+            : 'archived');
       setEditableCourses((prev) =>
         prev.map((course) =>
           course.id === courseId ? { ...course, status: nextStatus } : course,
@@ -687,7 +670,7 @@ function AppContent() {
       );
       return nextStatus;
     } catch (error) {
-      setCoursesError(errorText(error, "Не удалось изменить статус курса."));
+      setCoursesError(errorText(error, 'Не удалось изменить статус курса.'));
       throw error;
     }
   };
@@ -697,11 +680,11 @@ function AppContent() {
       return;
     }
 
-    await updateCourseStatus(courseId, "archive");
+    await updateCourseStatus(courseId, 'archive');
 
     if (selectedCourse?.id === courseId) {
       setIsCourseEditMode(false);
-      navigate("/courses", { replace: true });
+      void navigate('/courses', { replace: true });
     }
   };
 
@@ -711,13 +694,13 @@ function AppContent() {
     if (!canOpenCourse || !blockId || !selectedCourse.id) return null;
     const requestId = moduleRequestRef.current + 1;
     moduleRequestRef.current = requestId;
-    setCoursesError("");
+    setCoursesError('');
 
     const fallbackBlock = selectedCourse.blocks.find(
       (block) => block.id === blockId,
     ) || {
       id: blockId,
-      title: "Модуль не выбран",
+      title: 'Модуль не выбран',
       lessons: [],
       practice: [],
     };
@@ -742,7 +725,7 @@ function AppContent() {
       return nextBlock;
     } catch (error) {
       if (moduleRequestRef.current === requestId) {
-        setCoursesError(errorText(error, "Не удалось загрузить модуль."));
+        setCoursesError(errorText(error, 'Не удалось загрузить модуль.'));
       }
       return null;
     }
@@ -751,7 +734,9 @@ function AppContent() {
   const openBlock = async (blockId: string | null | undefined) => {
     const nextBlock = await loadBlockDetails(blockId);
     if (!nextBlock) return;
-    navigate(`/course/${selectedCourse.id}/block/${nextBlock.id || blockId}`);
+    void navigate(
+      `/course/${selectedCourse.id}/block/${nextBlock.id || blockId}`,
+    );
   };
 
   const openBlockInEditMode = async (blockId: string) => {
@@ -761,13 +746,9 @@ function AppContent() {
 
     const nextBlock = await loadBlockDetails(blockId);
     if (!nextBlock) return;
-    navigate(
+    void navigate(
       `/course/${selectedCourse.id}/edit/block/${nextBlock.id || blockId}`,
     );
-  };
-
-  const openBlockPage = async (blockId: string) => {
-    await openBlock(blockId);
   };
 
   const openBlockPageInEditMode = async (blockId: string) => {
@@ -780,7 +761,7 @@ function AppContent() {
     if (!canOpenCourse || !lessonId || !selectedCourse.id) return null;
     const requestId = lessonRequestRef.current + 1;
     lessonRequestRef.current = requestId;
-    setCoursesError("");
+    setCoursesError('');
 
     const nextBlock = selectedCourse.blocks.find((block) =>
       (block.lessons || []).some((lesson) => lesson.id === lessonId),
@@ -806,16 +787,10 @@ function AppContent() {
       return loadedLesson;
     } catch (error) {
       if (lessonRequestRef.current === requestId) {
-        setCoursesError(errorText(error, "Не удалось загрузить урок."));
+        setCoursesError(errorText(error, 'Не удалось загрузить урок.'));
       }
       return null;
     }
-  };
-
-  const openLesson = async (lessonId: string) => {
-    const loadedLesson = await loadLessonDetails(lessonId);
-    if (!loadedLesson) return;
-    navigate(`/course/${selectedCourse.id}/lesson/${lessonId}`);
   };
 
   const openLessonInEditMode = async (lessonId: string) => {
@@ -825,46 +800,7 @@ function AppContent() {
 
     const loadedLesson = await loadLessonDetails(lessonId);
     if (!loadedLesson) return;
-    navigate(`/course/${selectedCourse.id}/edit/lesson/${lessonId}`);
-  };
-
-  const openLessonBySequenceIndex = (index: number) => {
-    const target = lessonSequence[index];
-    if (!target) {
-      return;
-    }
-
-    openLesson(target.lessonId);
-  };
-
-  const openPrevLesson = () => {
-    if (!hasPrevLesson) {
-      return;
-    }
-    openLessonBySequenceIndex(currentLessonIndex - 1);
-  };
-
-  const openNextLesson = () => {
-    if (!hasNextLesson) {
-      return;
-    }
-    openLessonBySequenceIndex(currentLessonIndex + 1);
-  };
-
-  const openPractice = (practiceId: string) => {
-    if (!canOpenCourse) {
-      return;
-    }
-
-    const nextBlock = selectedCourse.blocks.find((block) =>
-      (block.practice || []).some((practice) => practice.id === practiceId),
-    );
-    if (nextBlock) {
-      setSelectedBlockId(nextBlock.id);
-      setSelectedLessonId(nextBlock.lessons[0]?.id ?? null);
-    }
-    setSelectedPracticeId(practiceId);
-    navigate(`/course/${selectedCourse.id}/practice/${practiceId}`);
+    void navigate(`/course/${selectedCourse.id}/edit/lesson/${lessonId}`);
   };
 
   const openPracticeInEditMode = (practiceId: string) => {
@@ -880,7 +816,7 @@ function AppContent() {
       setSelectedLessonId(nextBlock.lessons[0]?.id ?? null);
     }
     setSelectedPracticeId(practiceId);
-    navigate(`/course/${selectedCourse.id}/edit/practice/${practiceId}`);
+    void navigate(`/course/${selectedCourse.id}/edit/practice/${practiceId}`);
   };
 
   const openCourseInEditMode = (courseId: string = selectedCourse.id) => {
@@ -889,14 +825,7 @@ function AppContent() {
     }
 
     setIsCourseEditMode(true);
-    navigate(`/course/${courseId}/edit`);
-  };
-
-  const toggleLessonComplete = (lessonId: string) => {
-    setCompletedLessons((prev) => ({
-      ...prev,
-      [lessonId]: !prev[lessonId],
-    }));
+    void navigate(`/course/${courseId}/edit`);
   };
 
   const togglePracticeComplete = (practiceId: string) => {
@@ -925,7 +854,7 @@ function AppContent() {
           }
         })
         .catch((error) => {
-          setCoursesError(errorText(error, "Не удалось сохранить курс."));
+          setCoursesError(errorText(error, 'Не удалось сохранить курс.'));
         });
     }
   };
@@ -953,10 +882,10 @@ function AppContent() {
     if (isUuid(selectedCourse.id) && isUuid(blockId)) {
       const block = selectedCourse.blocks.find((item) => item.id === blockId);
       useEditorDraftStore.getState().recordEdit({
-        kind: "module",
+        kind: 'module',
         courseId: selectedCourse.id,
         entityId: blockId,
-        label: changes.title || block?.title || "",
+        label: changes.title || block?.title || '',
         entity: block,
         changes,
       });
@@ -1005,22 +934,22 @@ function AppContent() {
     const moduleOrder = safeIndex + 1;
     try {
       const savedModule = await createModuleApi(selectedCourse.id, {
-        title: "Новый блок",
-        description: "",
+        title: 'Новый блок',
+        description: '',
         order: moduleOrder,
         learningObjectives: [],
       });
 
       if (!savedModule?.id || !isUuid(savedModule.id)) {
-        throw new Error("Backend не вернул корректный id модуля.");
+        throw new Error('Backend не вернул корректный id модуля.');
       }
 
       const newBlock = {
         ...savedModule,
-        title: savedModule.title || "Новый блок",
-        description: savedModule.description || "",
+        title: savedModule.title || 'Новый блок',
+        description: savedModule.description || '',
         order: savedModule.order ?? moduleOrder,
-        duration: savedModule.duration || "Модуль курса",
+        duration: savedModule.duration || 'Модуль курса',
         lessons: [],
         practice: savedModule.practice || [],
       };
@@ -1043,14 +972,14 @@ function AppContent() {
           ),
       ).catch((error) => {
         setCoursesError(
-          errorText(error, "Модуль создан, но порядок не удалось сохранить."),
+          errorText(error, 'Модуль создан, но порядок не удалось сохранить.'),
         );
       });
 
       return savedModule.id;
     } catch (error) {
       setCoursesError(
-        errorText(error, "Не удалось создать модуль на backend."),
+        errorText(error, 'Не удалось создать модуль на backend.'),
       );
       return null;
     }
@@ -1069,10 +998,10 @@ function AppContent() {
     }
 
     const lessonOrder = (targetBlock.lessons?.length || 0) + 1;
-    const defaultMarkdown = "Новый текстовый блок.";
+    const defaultMarkdown = 'Новый текстовый блок.';
     const defaultContentBlocks = [
       {
-        content_type: "text",
+        content_type: 'text',
         ai_generated: false,
         md_content: defaultMarkdown,
       },
@@ -1083,9 +1012,9 @@ function AppContent() {
       const newLesson = {
         id: lessonId,
         title: `Урок ${lessonOrder}`,
-        duration: "20 минут",
-        summary: "",
-        description: "",
+        duration: '20 минут',
+        summary: '',
+        description: '',
         content: defaultMarkdown,
         markdown: defaultMarkdown,
         contentBlocks: defaultContentBlocks,
@@ -1116,7 +1045,7 @@ function AppContent() {
       const savedLesson = await createLessonApi({
         moduleId: blockId,
         title: `Урок ${lessonOrder}`,
-        description: "",
+        description: '',
         order: lessonOrder,
         learningObjectives: [],
         estimatedTimeMinutes: 20,
@@ -1129,9 +1058,9 @@ function AppContent() {
         ...(lessonWithContent || savedLesson),
         title:
           (lessonWithContent || savedLesson)?.title || `Урок ${lessonOrder}`,
-        duration: (lessonWithContent || savedLesson)?.duration || "20 мин.",
-        summary: (lessonWithContent || savedLesson)?.summary || "",
-        description: (lessonWithContent || savedLesson)?.description || "",
+        duration: (lessonWithContent || savedLesson)?.duration || '20 мин.',
+        summary: (lessonWithContent || savedLesson)?.summary || '',
+        description: (lessonWithContent || savedLesson)?.description || '',
         content: (lessonWithContent || savedLesson)?.content || defaultMarkdown,
         markdown:
           (lessonWithContent || savedLesson)?.markdown || defaultMarkdown,
@@ -1164,7 +1093,7 @@ function AppContent() {
 
       return newLesson.id;
     } catch (error) {
-      setCoursesError(errorText(error, "Не удалось создать урок."));
+      setCoursesError(errorText(error, 'Не удалось создать урок.'));
       return null;
     }
   };
@@ -1205,10 +1134,10 @@ function AppContent() {
         .flatMap((block) => block.lessons || [])
         .find((item) => item.id === lessonId);
       useEditorDraftStore.getState().recordEdit({
-        kind: "lesson",
+        kind: 'lesson',
         courseId: selectedCourse.id,
         entityId: lessonId,
-        label: changeFields.title || lesson?.title || "",
+        label: changeFields.title || lesson?.title || '',
         entity:
           lesson && Array.isArray(options.originalContentBlocks)
             ? { ...lesson, contentBlocks: options.originalContentBlocks }
@@ -1224,8 +1153,7 @@ function AppContent() {
 
     for (const edit of edits) {
       try {
-        if (edit.kind === "module") {
-          // eslint-disable-next-line no-await-in-loop
+        if (edit.kind === 'module') {
           const savedModule = await updateModuleApi(
             edit.courseId,
             edit.entityId,
@@ -1250,7 +1178,6 @@ function AppContent() {
           } = edit.changes;
           const blocks = contentBlocks ?? contentBlocksSnake;
           if (Object.keys(meta).length) {
-            // eslint-disable-next-line no-await-in-loop
             const savedLesson = await updateLessonApi(
               edit.courseId,
               edit.entityId,
@@ -1272,7 +1199,6 @@ function AppContent() {
             }
           }
           if (blocks !== undefined) {
-            // eslint-disable-next-line no-await-in-loop
             await updateLessonApi(edit.courseId, edit.entityId, {
               contentBlocks: blocks,
             });
@@ -1284,13 +1210,13 @@ function AppContent() {
         hasFailures = true;
         drafts.setEditError(
           edit.key,
-          errorText(error, "Не удалось сохранить изменения."),
+          errorText(error, 'Не удалось сохранить изменения.'),
         );
       }
     }
 
     if (!hasFailures) {
-      notify("Изменения сохранены");
+      notify('Изменения сохранены');
     }
     return !hasFailures;
   };
@@ -1431,9 +1357,9 @@ function AppContent() {
         (block) => block.id === blockId,
       );
       const drafts = useEditorDraftStore.getState();
-      drafts.removeEntity("module", blockId);
+      drafts.removeEntity('module', blockId);
       (removedBlock?.lessons || []).forEach((lesson) =>
-        drafts.removeEntity("lesson", lesson.id),
+        drafts.removeEntity('lesson', lesson.id),
       );
     }
 
@@ -1446,7 +1372,7 @@ function AppContent() {
     );
 
     if (selectedBlock.id === blockId) {
-      navigate(`/course/${selectedCourse.id}`, { replace: true });
+      void navigate(`/course/${selectedCourse.id}`, { replace: true });
     }
     return true;
   };
@@ -1464,7 +1390,7 @@ function AppContent() {
 
     if (isUuid(selectedCourse.id) && isUuid(lessonId)) {
       await deleteLessonApi(lessonId);
-      useEditorDraftStore.getState().removeEntity("lesson", lessonId);
+      useEditorDraftStore.getState().removeEntity('lesson', lessonId);
     }
 
     setEditableCourses((prev) =>
@@ -1488,7 +1414,7 @@ function AppContent() {
     );
 
     if (selectedLesson.id === lessonId) {
-      navigate(`/course/${selectedCourse.id}/block/${blockId}`, {
+      void navigate(`/course/${selectedCourse.id}/block/${blockId}`, {
         replace: true,
       });
     }
@@ -1518,14 +1444,14 @@ function AppContent() {
       );
     },
     onDone: (job) => {
-      if (job.status === "done") {
+      if (job.status === 'done') {
         notify(
-          job.kind === "module"
-            ? `Модуль «${job.resultTitle || "без названия"}» сгенерирован`
-            : `Урок «${job.resultTitle || "без названия"}» сгенерирован`,
+          job.kind === 'module'
+            ? `Модуль «${job.resultTitle || 'без названия'}» сгенерирован`
+            : `Урок «${job.resultTitle || 'без названия'}» сгенерирован`,
         );
       } else if (job.error) {
-        notify(job.error, { tone: "error", duration: 8000 });
+        notify(job.error, { tone: 'error', duration: 8000 });
       }
     },
   });
@@ -1562,7 +1488,7 @@ function AppContent() {
     );
 
     if (selectedPractice?.id === practiceId) {
-      navigate(`/course/${selectedCourse.id}/block/${blockId}`, {
+      void navigate(`/course/${selectedCourse.id}/block/${blockId}`, {
         replace: true,
       });
     }
@@ -1570,7 +1496,7 @@ function AppContent() {
 
   return (
     <div
-      className={`page tw:relative tw:isolate tw:min-h-[100vh] tw:[--progress-done:#2f7d4f] tw:[--progress-done-bg:rgba(47,_125,_79,_0.14)] tw:[--progress-active:#a86a00] tw:[--progress-active-bg:rgba(212,_150,_30,_0.18)] tw:[--progress-idle:rgba(114,_121,_156,_0.38)] tw:[--progress-idle-bg:rgba(114,_121,_156,_0.1)] tw:[--progress-track:rgba(var(--accent-rgb),_0.2)] tw:[background:linear-gradient(180deg,_var(--bg)_0%,_var(--bg-dark)_100%)] tw:dark:[&[data-theme=dark]]:[--progress-done:#7fd19b] tw:dark:[&[data-theme=dark]]:[--progress-done-bg:rgba(127,_209,_155,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-active:#f0c060] tw:dark:[&[data-theme=dark]]:[--progress-active-bg:rgba(240,_192,_96,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-idle:rgba(255,_255,_255,_0.26)] tw:dark:[&[data-theme=dark]]:[--progress-idle-bg:rgba(255,_255,_255,_0.06)] tw:dark:[&[data-theme=dark]]:[--progress-track:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--bg:#2b2b2b] tw:dark:[&[data-theme=dark]]:[--bg-dark:#1f1f1f] tw:dark:[&[data-theme=dark]]:[--surface:#333333] tw:dark:[&[data-theme=dark]]:[--line:#4f4f4f] tw:dark:[&[data-theme=dark]]:[--line-strong:#626262] tw:dark:[&[data-theme=dark]]:[--text:#e9decb] tw:dark:[&[data-theme=dark]]:[--muted:#c4b9a7] tw:dark:[&[data-theme=dark]]:[--accent:#b4a48f] tw:dark:[&[data-theme=dark]]:[--accent-soft:#7f7f7f] tw:dark:[&[data-theme=dark]]:[--eyebrow:#a0c4ff] tw:dark:[&[data-theme=dark]]:[--contrast:#cbaacb] tw:dark:[&[data-theme=dark]]:[--cta:var(--contrast)] tw:dark:[&[data-theme=dark]]:[--accent-rgb:180,_164,_143] tw:dark:[&[data-theme=dark]]:[--accent-soft-rgb:120,_120,_120] tw:dark:[&[data-theme=dark]]:[--success-rgb:203,_170,_203] tw:dark:[&[data-theme=dark]]:[--ink-accent:#dfd2bf] tw:dark:[&[data-theme=dark]]:[--ink-muted-strong:#dccfba] tw:dark:[&[data-theme=dark]]:[--ink-info:#c8bcaa] tw:dark:[&[data-theme=dark]]:[--info-text:#b7ab99] tw:dark:[&[data-theme=dark]]:[--success-text:#ead9ea] tw:dark:[&[data-theme=dark]]:[--footer-text:#baae9c] tw:dark:[&[data-theme=dark]]:[--text-solid:#1f1d1a] tw:dark:[&[data-theme=dark]]:[--heading:#f2e7d4] tw:dark:[&[data-theme=dark]]:[--grid-overlay:linear-gradient(_180deg,_rgba(10,_10,_10,_0.7),_rgba(0,_0,_0,_0.34)_)] tw:dark:[&[data-theme=dark]]:[--grid-line-rgb:226,_211,_186] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-y:0.32] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-x:0.28] tw:dark:[&[data-theme=dark]]:[--glass-highlight:rgba(255,_255,_255,_0.03)] tw:dark:[&[data-theme=dark]]:[--glass-glow:rgba(233,_222,_203,_0.14)] tw:dark:[&[data-theme=dark]]:[--glass-top-shine:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--glass-border:rgba(233,_222,_203,_0.24)] tw:dark:[&[data-theme=dark]]:[--glass-shadow:0_10px_24px_rgba(0,_0,_0,_0.34)] tw:dark:[&[data-theme=dark]]:[--glass-inset:inset_0_1px_0_rgba(255,_255,_255,_0.09),_inset_0_-1px_0_rgba(255,_255,_255,_0.05)] tw:[&.is-home-page_.glass-card]:[background:transparent] tw:[&.is-home-page_.glass-card]:[backdrop-filter:none] tw:[&.is-home-page_.glass-card]:[-webkit-backdrop-filter:none] tw:[&.is-home-page_.glass-card::after]:[content:''] tw:[&.is-home-page_.glass-card::after]:absolute tw:[&.is-home-page_.glass-card::after]:inset-[0] tw:[&.is-home-page_.glass-card::after]:z-[-1] tw:[&.is-home-page_.glass-card::after]:rounded-[inherit] tw:[&.is-home-page_.glass-card::after]:[backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[filter:url(#glass-distortion)] tw:[&.is-home-page_.glass-card::after]:[-webkit-filter:url('#glass-distortion')] tw:[&.is-home-page_.glass-card::after]:pointer-events-none tw:[&.is-inner-page_.course-category]:text-[0.88rem] tw:[&.is-inner-page_.course-category]:tracking-[0.09em] tw:[&.is-inner-page_.course-category]:text-(--info-text) tw:[&.is-inner-page_.lesson-markdown]:mt-[18px] tw:[&.is-inner-page_.lesson-markdown]:p-[clamp(20px,_2.6vw,_32px)] tw:[&.is-inner-page_.lesson-markdown]:border-[rgba(var(--accent-rgb),_0.38)] tw:[&.is-inner-page_.lesson-markdown]:rounded-[18px] tw:[&.is-inner-page_.lesson-markdown]:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.35),_rgba(255,_255,_255,_0.12))] tw:dark:[&.is-inner-page_.lesson-markdown]:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.07),_rgba(255,_255,_255,_0.025))] tw:[&.is-inner-page_main_p]:text-[1rem] tw:[&.is-inner-page_main_p]:leading-[1.72] tw:[&.is-inner-page_main_p]:tracking-[0.012em] tw:[&.is-inner-page_main_li]:text-[1rem] tw:[&.is-inner-page_main_li]:leading-[1.72] tw:[&.is-inner-page_main_li]:tracking-[0.012em] tw:[&.is-inner-page_main_h2]:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:[&.is-inner-page_main_h2]:leading-[1.28] tw:[&.is-inner-page_main_h2]:tracking-[-0.016em] tw:[&.is-inner-page_main_h1]:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:[&.is-inner-page_main_h1]:leading-[1.18] tw:[&.is-inner-page_main_h1]:tracking-[-0.025em] ${location.pathname === "/" ? "is-home-page" : "is-inner-page"}`}
+      className={`page tw:relative tw:isolate tw:min-h-[100vh] tw:[--progress-done:#2f7d4f] tw:[--progress-done-bg:rgba(47,_125,_79,_0.14)] tw:[--progress-active:#a86a00] tw:[--progress-active-bg:rgba(212,_150,_30,_0.18)] tw:[--progress-idle:rgba(114,_121,_156,_0.38)] tw:[--progress-idle-bg:rgba(114,_121,_156,_0.1)] tw:[--progress-track:rgba(var(--accent-rgb),_0.2)] tw:[background:linear-gradient(180deg,_var(--bg)_0%,_var(--bg-dark)_100%)] tw:dark:[&[data-theme=dark]]:[--progress-done:#7fd19b] tw:dark:[&[data-theme=dark]]:[--progress-done-bg:rgba(127,_209,_155,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-active:#f0c060] tw:dark:[&[data-theme=dark]]:[--progress-active-bg:rgba(240,_192,_96,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-idle:rgba(255,_255,_255,_0.26)] tw:dark:[&[data-theme=dark]]:[--progress-idle-bg:rgba(255,_255,_255,_0.06)] tw:dark:[&[data-theme=dark]]:[--progress-track:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--bg:#2b2b2b] tw:dark:[&[data-theme=dark]]:[--bg-dark:#1f1f1f] tw:dark:[&[data-theme=dark]]:[--surface:#333333] tw:dark:[&[data-theme=dark]]:[--line:#4f4f4f] tw:dark:[&[data-theme=dark]]:[--line-strong:#626262] tw:dark:[&[data-theme=dark]]:[--text:#e9decb] tw:dark:[&[data-theme=dark]]:[--muted:#c4b9a7] tw:dark:[&[data-theme=dark]]:[--accent:#b4a48f] tw:dark:[&[data-theme=dark]]:[--accent-soft:#7f7f7f] tw:dark:[&[data-theme=dark]]:[--eyebrow:#a0c4ff] tw:dark:[&[data-theme=dark]]:[--contrast:#cbaacb] tw:dark:[&[data-theme=dark]]:[--cta:var(--contrast)] tw:dark:[&[data-theme=dark]]:[--accent-rgb:180,_164,_143] tw:dark:[&[data-theme=dark]]:[--accent-soft-rgb:120,_120,_120] tw:dark:[&[data-theme=dark]]:[--success-rgb:203,_170,_203] tw:dark:[&[data-theme=dark]]:[--ink-accent:#dfd2bf] tw:dark:[&[data-theme=dark]]:[--ink-muted-strong:#dccfba] tw:dark:[&[data-theme=dark]]:[--ink-info:#c8bcaa] tw:dark:[&[data-theme=dark]]:[--info-text:#b7ab99] tw:dark:[&[data-theme=dark]]:[--success-text:#ead9ea] tw:dark:[&[data-theme=dark]]:[--footer-text:#baae9c] tw:dark:[&[data-theme=dark]]:[--text-solid:#1f1d1a] tw:dark:[&[data-theme=dark]]:[--heading:#f2e7d4] tw:dark:[&[data-theme=dark]]:[--grid-overlay:linear-gradient(_180deg,_rgba(10,_10,_10,_0.7),_rgba(0,_0,_0,_0.34)_)] tw:dark:[&[data-theme=dark]]:[--grid-line-rgb:226,_211,_186] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-y:0.32] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-x:0.28] tw:dark:[&[data-theme=dark]]:[--glass-highlight:rgba(255,_255,_255,_0.03)] tw:dark:[&[data-theme=dark]]:[--glass-glow:rgba(233,_222,_203,_0.14)] tw:dark:[&[data-theme=dark]]:[--glass-top-shine:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--glass-border:rgba(233,_222,_203,_0.24)] tw:dark:[&[data-theme=dark]]:[--glass-shadow:0_10px_24px_rgba(0,_0,_0,_0.34)] tw:dark:[&[data-theme=dark]]:[--glass-inset:inset_0_1px_0_rgba(255,_255,_255,_0.09),_inset_0_-1px_0_rgba(255,_255,_255,_0.05)] tw:[&.is-home-page_.glass-card]:[background:transparent] tw:[&.is-home-page_.glass-card]:[backdrop-filter:none] tw:[&.is-home-page_.glass-card]:[-webkit-backdrop-filter:none] tw:[&.is-home-page_.glass-card::after]:[content:''] tw:[&.is-home-page_.glass-card::after]:absolute tw:[&.is-home-page_.glass-card::after]:inset-[0] tw:[&.is-home-page_.glass-card::after]:z-[-1] tw:[&.is-home-page_.glass-card::after]:rounded-[inherit] tw:[&.is-home-page_.glass-card::after]:[backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[filter:url(#glass-distortion)] tw:[&.is-home-page_.glass-card::after]:[-webkit-filter:url('#glass-distortion')] tw:[&.is-home-page_.glass-card::after]:pointer-events-none tw:[&.is-inner-page_.course-category]:text-[0.88rem] tw:[&.is-inner-page_.course-category]:tracking-[0.09em] tw:[&.is-inner-page_.course-category]:text-(--info-text) tw:[&.is-inner-page_.lesson-markdown]:mt-[18px] tw:[&.is-inner-page_.lesson-markdown]:p-[clamp(20px,_2.6vw,_32px)] tw:[&.is-inner-page_.lesson-markdown]:border-[rgba(var(--accent-rgb),_0.38)] tw:[&.is-inner-page_.lesson-markdown]:rounded-[18px] tw:[&.is-inner-page_.lesson-markdown]:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.35),_rgba(255,_255,_255,_0.12))] tw:dark:[&.is-inner-page_.lesson-markdown]:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.07),_rgba(255,_255,_255,_0.025))] tw:[&.is-inner-page_main_p]:text-[1rem] tw:[&.is-inner-page_main_p]:leading-[1.72] tw:[&.is-inner-page_main_p]:tracking-[0.012em] tw:[&.is-inner-page_main_li]:text-[1rem] tw:[&.is-inner-page_main_li]:leading-[1.72] tw:[&.is-inner-page_main_li]:tracking-[0.012em] tw:[&.is-inner-page_main_h2]:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:[&.is-inner-page_main_h2]:leading-[1.28] tw:[&.is-inner-page_main_h2]:tracking-[-0.016em] tw:[&.is-inner-page_main_h1]:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:[&.is-inner-page_main_h1]:leading-[1.18] tw:[&.is-inner-page_main_h1]:tracking-[-0.025em] ${location.pathname === '/' ? 'is-home-page' : 'is-inner-page'}`}
       data-theme={appliedTheme}
     >
       <div

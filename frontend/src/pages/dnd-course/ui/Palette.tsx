@@ -1,30 +1,31 @@
-import { DRAG_MIME, MATERIAL_STATUS } from "../config/constants";
-import { Icon } from "./icons";
-import { useDndCourseStore } from "../model/store";
-import { StatusPill, useDndActions } from "./common";
+import { DRAG_MIME, MATERIAL_STATUS } from '../config/constants';
+import { Icon } from './icons';
+import { useDndCourseStore } from '../model/store';
+import { StatusPill } from './common';
+import { useDndActions } from './dnd-actions';
 
 const ADD_ITEMS = [
   {
-    id: "material",
-    icon: "upload",
-    label: "Загрузить материалы",
-    hint: "PDF, DOCX, TXT и другие документы до 30 МБ",
+    id: 'material',
+    icon: 'upload',
+    label: 'Загрузить материалы',
+    hint: 'PDF, DOCX, TXT и другие документы до 30 МБ',
   },
   {
-    id: "lesson",
-    icon: "lesson",
-    label: "Создать урок",
-    hint: "Из выделенных или выбранных материалов",
+    id: 'lesson',
+    icon: 'lesson',
+    label: 'Создать урок',
+    hint: 'Из выделенных или выбранных материалов',
   },
   {
-    id: "module",
-    icon: "module",
-    label: "Создать модуль",
-    hint: "Из готовых уроков",
+    id: 'module',
+    icon: 'module',
+    label: 'Создать модуль',
+    hint: 'Из готовых уроков',
   },
 ];
 
-export function Palette({ variant = "side" }) {
+export function Palette({ variant = 'side' }) {
   const restartOnboarding = useDndCourseStore(
     (state) => state.restartOnboarding,
   );
@@ -40,16 +41,16 @@ export function Palette({ variant = "side" }) {
 
   const runAdd = (id: string) => {
     const state = useDndCourseStore.getState();
-    if (id === "material") pickFiles();
-    if (id === "lesson") {
+    if (id === 'material') pickFiles();
+    if (id === 'lesson') {
       const selected = state.selectedIds
-        .filter((item) => item.startsWith("material:"))
-        .map((item) => item.slice("material:".length));
-      if (selected.length) createLesson(selected);
+        .filter((item) => item.startsWith('material:'))
+        .map((item) => item.slice('material:'.length));
+      if (selected.length) void createLesson(selected);
       else openMaterialPicker();
     }
-    if (id === "module") openModuleDialog([], { pick: true });
-    if (variant === "sheet") setPaletteOpen(false);
+    if (id === 'module') openModuleDialog([], { pick: true });
+    if (variant === 'sheet') setPaletteOpen(false);
   };
 
   return (
@@ -68,7 +69,7 @@ export function Palette({ variant = "side" }) {
           aria-label="Свернуть палитру"
           title="Свернуть палитру"
         >
-          <Icon name={variant === "sheet" ? "close" : "panel"} />
+          <Icon name={variant === 'sheet' ? 'close' : 'panel'} />
         </button>
       </div>
 
@@ -90,7 +91,7 @@ export function Palette({ variant = "side" }) {
             draggable
             onDragStart={(event) => {
               event.dataTransfer.setData(DRAG_MIME, item.id);
-              event.dataTransfer.effectAllowed = "copy";
+              event.dataTransfer.effectAllowed = 'copy';
             }}
             onClick={() => runAdd(item.id)}
             title={`${item.label}. Можно нажать или перетащить на холст`}
@@ -179,13 +180,13 @@ export function Palette({ variant = "side" }) {
                 <StatusPill
                   tone={value.tone}
                   icon={
-                    key === "error"
-                      ? "alert"
-                      : key === "used"
-                        ? "link"
-                        : key === "ready"
-                          ? "check"
-                          : "clock"
+                    key === 'error'
+                      ? 'alert'
+                      : key === 'used'
+                        ? 'link'
+                        : key === 'ready'
+                          ? 'check'
+                          : 'clock'
                   }
                 >
                   {value.label}

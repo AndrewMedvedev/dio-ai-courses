@@ -5,16 +5,16 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
+} from 'react';
 import {
   LessonAiChat,
   type LessonAiChatProps,
-} from "@/features/lesson-mentor-chat";
+} from '@/features/lesson-mentor-chat';
 
 /** Свойства чата, которые задаёт страница; остальное управляется раскладкой. */
 export type LessonChatProps = Omit<
   LessonAiChatProps,
-  "panelId" | "focusOnOpen" | "isOpen" | "onClose" | "onAssistantResponse"
+  'panelId' | 'focusOnOpen' | 'isOpen' | 'onClose' | 'onAssistantResponse'
 >;
 
 export interface LessonChatWorkspaceProps {
@@ -28,7 +28,7 @@ export interface LessonChatWorkspaceProps {
 
 /** Раскладка урока с кнопкой «Спросить ИИ»; сам чат открывается в общей панели справа. */
 export function LessonChatWorkspace({
-  className = "",
+  className = '',
   children,
   chatEnabled,
   chatAvailable,
@@ -88,14 +88,14 @@ export function LessonChatWorkspace({
               ref={openButtonRef}
               type="button"
               className={`lesson-chat-open-button tw:fixed tw:z-[45] tw:top-[auto] tw:right-[max(56px,_env(safe-area-inset-right))] tw:bottom-[max(56px,_env(safe-area-inset-bottom))] tw:left-[auto] tw:min-h-[44px] tw:inline-flex tw:items-center tw:gap-[8px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.92)] tw:rounded-[999px] tw:text-(--text-solid) tw:p-[10px_16px] tw:cursor-pointer tw:max-1300:right-[max(40px,_env(safe-area-inset-right))] tw:max-760:right-[max(28px,_env(safe-area-inset-right))] tw:max-760:bottom-[max(32px,_env(safe-area-inset-bottom))] tw:[border-width:1px] tw:[&.has-unread-response]:border-(--accent-soft) tw:[background:var(--cta)] tw:[font:inherit] tw:[&&]:font-[800] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[box-shadow:0_12px_30px_rgba(0,_0,_0,_0.28),_0_0_0_3px_rgba(var(--accent-rgb),_0.16)] tw:[transform:none] tw:[transition:transform_160ms_ease,_background_160ms_ease,_box-shadow_160ms_ease] tw:dark:[.page_&.has-unread-response]:border-(--accent-soft) tw:dark:[&.has-unread-response]:border-[rgba(var(--accent-rgb),_0.92)] tw:hover:[background:var(--accent)] tw:[&.has-unread-response]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:hover:[box-shadow:0_14px_34px_rgba(0,_0,_0,_0.34),_0_0_0_4px_rgba(var(--accent-rgb),_0.22)] tw:[&.has-unread-response]:[box-shadow:0_16px_38px_rgba(0,_0,_0,_0.34),_0_0_0_5px_rgba(var(--accent-soft-rgb),_0.24)] tw:hover:[transform:translateY(-2px)] tw:motion-reduce:[transition:none] tw:focus-visible:[outline:3px_solid_rgba(var(--accent-soft-rgb),_0.86)] tw:focus-visible:[outline-offset:3px] tw:dark:[.page_&.has-unread-response]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:dark:hover:[background:var(--cta)] tw:dark:[&.has-unread-response]:[background:var(--cta)] tw:dark:[.page_&.has-unread-response]:[&.has-unread-response]:[&&&&]:border-(--accent-soft) tw:dark:[.page_&.has-unread-response]:[&.has-unread-response]:[&&&&]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] tw:dark:[.page_&.has-unread-response]:hover:[&&&&]:[background:linear-gradient(135deg,_var(--accent-soft),_var(--cta))] ${
-                hasUnreadResponse ? "has-unread-response" : ""
+                hasUnreadResponse ? 'has-unread-response' : ''
               }`}
               onClick={openChat}
               aria-haspopup="dialog"
               aria-controls={chatPanelId}
               aria-expanded="false"
               aria-label={
-                hasUnreadResponse ? "Открыть новый ответ ИИ" : "Открыть ИИ-чат"
+                hasUnreadResponse ? 'Открыть новый ответ ИИ' : 'Открыть ИИ-чат'
               }
             >
               <span
@@ -108,7 +108,7 @@ export function LessonChatWorkspace({
                 className="lesson-chat-open-label tw:whitespace-nowrap"
                 aria-live="polite"
               >
-                {hasUnreadResponse ? "Ответ ИИ готов" : "Спросить ИИ"}
+                {hasUnreadResponse ? 'Ответ ИИ готов' : 'Спросить ИИ'}
               </span>
               {hasUnreadResponse && (
                 <span

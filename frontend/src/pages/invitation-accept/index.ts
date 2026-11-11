@@ -1,4 +1,4 @@
 export {
   InvitationAcceptPage,
   InvitationLinkRedirect,
-} from "./ui/InvitationAcceptPage";
+} from './ui/InvitationAcceptPage';

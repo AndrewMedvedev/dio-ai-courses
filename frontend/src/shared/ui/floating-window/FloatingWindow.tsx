@@ -1,3 +1,4 @@
+import { asRecord } from '@/shared/api';
 import {
   useCallback,
   useEffect,
@@ -7,9 +8,9 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-} from "react";
-import { createPortal } from "react-dom";
-import { getLocalStorage } from "@/shared/lib/storage";
+} from 'react';
+import { createPortal } from 'react-dom';
+import { getLocalStorage } from '@/shared/lib/storage';
 
 export interface FloatingWindowSize {
   width: number;
@@ -23,7 +24,7 @@ interface Rect {
   h: number;
 }
 
-type GestureMode = "move" | "e" | "w" | "s" | "se" | "sw";
+type GestureMode = 'move' | 'e' | 'w' | 's' | 'se' | 'sw';
 
 interface Gesture {
   mode: GestureMode;
@@ -34,16 +35,23 @@ interface Gesture {
 
 const MARGIN = 12;
 const MIN_VISIBLE = 120;
-const MOBILE_QUERY = "(max-width: 720px)";
+const MOBILE_QUERY = '(max-width: 720px)';
 
 function readRect(storageKey: string): Rect | null {
   if (!storageKey) return null;
   try {
-    const value = JSON.parse(
-      getLocalStorage()?.getItem(`floating-window:${storageKey}`) || "null",
+    const value = asRecord(
+      JSON.parse(
+        getLocalStorage()?.getItem(`floating-window:${storageKey}`) || 'null',
+      ),
     );
     return value && Number.isFinite(value.x) && Number.isFinite(value.w)
-      ? value
+      ? {
+          x: Number(value.x),
+          y: Number(value.y),
+          w: Number(value.w),
+          h: Number(value.h),
+        }
       : null;
   } catch {
     return null;
@@ -106,14 +114,14 @@ export interface FloatingWindowProps {
 export function FloatingWindow({
   open,
   title,
-  eyebrow = "",
-  subtitle = "",
+  eyebrow = '',
+  subtitle = '',
   onClose,
-  storageKey = "",
+  storageKey = '',
   defaultSize = { width: 460, height: 600 },
   minSize = { width: 320, height: 260 },
   headerActions = null,
-  className = "",
+  className = '',
   children,
 }: FloatingWindowProps) {
   const titleId = useId();
@@ -121,7 +129,7 @@ export function FloatingWindow({
   const [minimized, setMinimized] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () =>
-      typeof window !== "undefined" && window.matchMedia(MOBILE_QUERY).matches,
+      typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches,
   );
   const gestureRef = useRef<Gesture | null>(null);
   const rectRef = useRef<Rect | null>(null);
@@ -139,13 +147,13 @@ export function FloatingWindow({
   useEffect(() => {
     const media = window.matchMedia(MOBILE_QUERY);
     const onChange = () => setIsMobile(media.matches);
-    media.addEventListener("change", onChange);
+    media.addEventListener('change', onChange);
     const onResize = () =>
       setRect((current) => (current ? clampRect(current, minSize) : current));
-    window.addEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
     return () => {
-      media.removeEventListener("change", onChange);
-      window.removeEventListener("resize", onResize);
+      media.removeEventListener('change', onChange);
+      window.removeEventListener('resize', onResize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -154,8 +162,8 @@ export function FloatingWindow({
     (event: ReactPointerEvent<HTMLElement>, mode: GestureMode) => {
       if (isMobile || event.button !== 0 || !rectRef.current) return;
       if (
-        mode === "move" &&
-        (event.target as Element).closest("button, a, input, textarea")
+        mode === 'move' &&
+        (event.target as Element).closest('button, a, input, textarea')
       ) {
         return;
       }
@@ -179,19 +187,19 @@ export function FloatingWindow({
       const dy = event.clientY - gesture.startY;
       const { start, mode } = gesture;
       let next = { ...start };
-      if (mode === "move") {
+      if (mode === 'move') {
         next = { ...start, x: start.x + dx, y: start.y + dy };
       } else {
-        if (mode.includes("e")) next.w = start.w + dx;
-        if (mode.includes("s")) next.h = start.h + dy;
-        if (mode.includes("w")) {
+        if (mode.includes('e')) next.w = start.w + dx;
+        if (mode.includes('s')) next.h = start.h + dy;
+        if (mode.includes('w')) {
           next.w = start.w - dx;
           next.x = start.x + dx;
         }
       }
       const clamped = clampRect(next, minSize);
       // При растягивании влево фиксируем правый край окна.
-      if (mode.includes("w") && clamped.w !== next.w) {
+      if (mode.includes('w') && clamped.w !== next.w) {
         clamped.x = start.x + start.w - clamped.w;
       }
       setRect(clamped);
@@ -213,12 +221,12 @@ export function FloatingWindow({
         left: rect.x,
         top: rect.y,
         width: rect.w,
-        height: minimized ? "auto" : rect.h,
+        height: minimized ? 'auto' : rect.h,
       };
 
   return createPortal(
     <section
-      className={`floating-window tw:fixed tw:z-[1050] tw:flex tw:flex-col tw:min-w-[0] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.45)] tw:rounded-[18px] tw:text-(--text) tw:overflow-hidden tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[background:#faf7f1] tw:[box-shadow:0_22px_60px_rgba(0,_0,_0,_0.26),_0_2px_6px_rgba(0,_0,_0,_0.08)] tw:animate-floating-window-in tw:[&.is-minimized]:h-[auto] tw:[&.is-mobile]:h-[min(72vh,_620px)]! tw:[&.is-mobile.is-minimized]:h-[auto]! tw:[&.is-mobile]:left-[8px]! tw:[&.is-mobile]:right-[8px] tw:[&.is-mobile]:bottom-[8px] tw:[&.is-mobile]:top-[auto]! tw:[&.is-mobile]:w-[auto]! tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:#262626] tw:[&_input::placeholder]:text-(--muted) tw:[&_input::placeholder]:opacity-[0.9] ${minimized ? "is-minimized" : ""} ${isMobile ? "is-mobile" : ""} ${className}`.trim()}
+      className={`floating-window tw:fixed tw:z-[1050] tw:flex tw:flex-col tw:min-w-[0] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.45)] tw:rounded-[18px] tw:text-(--text) tw:overflow-hidden tw:[--app-modal-row:rgba(255,_255,_255,_0.6)] tw:[--app-modal-border:rgba(43,_43,_43,_0.12)] tw:[--app-modal-danger:#b42318] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[background:#faf7f1] tw:[box-shadow:0_22px_60px_rgba(0,_0,_0,_0.26),_0_2px_6px_rgba(0,_0,_0,_0.08)] tw:animate-floating-window-in tw:[&.is-minimized]:h-[auto] tw:[&.is-mobile]:h-[min(72vh,_620px)]! tw:[&.is-mobile.is-minimized]:h-[auto]! tw:[&.is-mobile]:left-[8px]! tw:[&.is-mobile]:right-[8px] tw:[&.is-mobile]:bottom-[8px] tw:[&.is-mobile]:top-[auto]! tw:[&.is-mobile]:w-[auto]! tw:dark:[--app-modal-row:rgba(233,_222,_203,_0.05)] tw:dark:[--app-modal-border:rgba(233,_222,_203,_0.16)] tw:dark:[--app-modal-danger:#ff9a8f] tw:dark:[background:#262626] tw:[&_input::placeholder]:text-(--muted) tw:[&_input::placeholder]:opacity-[0.9] ${minimized ? 'is-minimized' : ''} ${isMobile ? 'is-mobile' : ''} ${className}`.trim()}
       style={style}
       role="dialog"
       aria-modal="false"
@@ -229,12 +237,12 @@ export function FloatingWindow({
     >
       <header
         className="floating-window-head tw:flex tw:items-start tw:gap-[10px] tw:p-[12px_12px_10px_16px] tw:cursor-grab tw:[border-bottom:1px_solid_var(--app-modal-border)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:active:cursor-grabbing tw:[.floating-window.is-mobile_&]:cursor-default tw:[user-select:none] tw:[touch-action:none] tw:[.floating-window.is-minimized_&]:[border-bottom:0]"
-        onPointerDown={(event) => startGesture(event, "move")}
+        onPointerDown={(event) => startGesture(event, 'move')}
         onDoubleClick={(event) => {
-          if (!(event.target as Element).closest("button"))
+          if (!(event.target as Element).closest('button'))
             setMinimized((value) => !value);
         }}
-        title={isMobile ? undefined : "Перетащите, чтобы переместить окно"}
+        title={isMobile ? undefined : 'Перетащите, чтобы переместить окно'}
       >
         <div className="floating-window-titles tw:flex-[1_1_auto] tw:min-w-[0]">
           {eyebrow ? (
@@ -260,10 +268,10 @@ export function FloatingWindow({
             type="button"
             className="floating-window-btn tw:grid tw:w-[32px] tw:h-[32px] tw:border-solid tw:border-(--app-modal-border) tw:rounded-[999px] tw:text-(--muted) tw:text-[1.05rem] tw:leading-[1] tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.7)] tw:[background:transparent] tw:hover:text-(--text)"
             onClick={() => setMinimized((value) => !value)}
-            aria-label={minimized ? "Развернуть окно" : "Свернуть окно"}
-            title={minimized ? "Развернуть" : "Свернуть"}
+            aria-label={minimized ? 'Развернуть окно' : 'Свернуть окно'}
+            title={minimized ? 'Развернуть' : 'Свернуть'}
           >
-            {minimized ? "▢" : "–"}
+            {minimized ? '▢' : '–'}
           </button>
           <button
             type="button"
@@ -285,28 +293,28 @@ export function FloatingWindow({
         <>
           <span
             className="floating-window-resize is-e tw:absolute tw:z-[2] tw:top-[16px] tw:right-[-3px] tw:bottom-[16px] tw:w-[8px] tw:[touch-action:none] tw:[cursor:ew-resize]"
-            onPointerDown={(event) => startGesture(event, "e")}
+            onPointerDown={(event) => startGesture(event, 'e')}
             aria-hidden="true"
           />
           <span
             className="floating-window-resize is-w tw:absolute tw:z-[2] tw:top-[16px] tw:left-[-3px] tw:bottom-[16px] tw:w-[8px] tw:[touch-action:none] tw:[cursor:ew-resize]"
-            onPointerDown={(event) => startGesture(event, "w")}
+            onPointerDown={(event) => startGesture(event, 'w')}
             aria-hidden="true"
           />
           <span
             className="floating-window-resize is-s tw:absolute tw:z-[2] tw:left-[16px] tw:right-[16px] tw:bottom-[-3px] tw:h-[8px] tw:[touch-action:none] tw:[cursor:ns-resize]"
-            onPointerDown={(event) => startGesture(event, "s")}
+            onPointerDown={(event) => startGesture(event, 's')}
             aria-hidden="true"
           />
           <span
             className="floating-window-resize is-se tw:absolute tw:z-[2] tw:bottom-[-2px] tw:w-[18px] tw:h-[18px] tw:right-[-2px] tw:[touch-action:none] tw:[cursor:nwse-resize] tw:[background:linear-gradient(_135deg,_transparent_55%,_rgba(var(--accent-rgb),_0.55)_55%,_rgba(var(--accent-rgb),_0.55)_62%,_transparent_62%,_transparent_72%,_rgba(var(--accent-rgb),_0.55)_72%,_rgba(var(--accent-rgb),_0.55)_79%,_transparent_79%_)]"
-            onPointerDown={(event) => startGesture(event, "se")}
+            onPointerDown={(event) => startGesture(event, 'se')}
             aria-hidden="true"
             title="Потяните, чтобы изменить размер"
           />
           <span
             className="floating-window-resize is-sw tw:absolute tw:z-[2] tw:bottom-[-2px] tw:w-[18px] tw:h-[18px] tw:left-[-2px] tw:[touch-action:none] tw:[cursor:nesw-resize]"
-            onPointerDown={(event) => startGesture(event, "sw")}
+            onPointerDown={(event) => startGesture(event, 'sw')}
             aria-hidden="true"
           />
         </>
@@ -314,6 +322,6 @@ export function FloatingWindow({
     </section>,
     // Внутрь .page, как и модальные окна: там действуют цвета и стили темы
     // (.page[data-theme="dark"] …) — иначе поле ввода в тёмной теме было нечитаемым.
-    document.querySelector(".page") || document.body,
+    document.querySelector('.page') || document.body,
   );
 }

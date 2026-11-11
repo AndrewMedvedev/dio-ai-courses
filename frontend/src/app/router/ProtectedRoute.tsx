@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
-import { Navigate, Outlet, useLocation, type Location } from "react-router-dom";
+import type { ReactNode } from 'react';
+import { Navigate, Outlet, useLocation, type Location } from 'react-router-dom';
 import {
   usePermissionStore,
   useSessionStore,
   type PermissionInput,
-} from "@/entities/session";
-import { isTokenExpired } from "@/shared/api";
+} from '@/entities/session';
+import { isTokenExpired } from '@/shared/api';
 
 function buildRedirect(location: Location) {
   return `${location.pathname}${location.search}`;

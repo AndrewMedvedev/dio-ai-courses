@@ -1,7 +1,10 @@
+import { asRecord } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
+import { asRecords } from '@/shared/api';
 // Запись на курс, ученики курса и курсы текущего ученика (backend: /members).
-import { apiFetch, type PageParams, type RawApiRecord } from "@/shared/api";
-import { mapCourseFromApi } from "../lib/mappers";
-import type { CoursesPage } from "../model/types";
+import { apiFetch, type PageParams, type RawApiRecord } from '@/shared/api';
+import { mapCourseFromApi } from '../lib/mappers';
+import type { CoursesPage } from '../model/types';
 
 export interface CourseStudent {
   id: string;
@@ -37,7 +40,7 @@ function normalizePaginatedCourses(
   const rawItems = Array.isArray(data)
     ? data
     : data?.items || data?.courses || data?.results || [];
-  const items = rawItems.map(mapCourseFromApi);
+  const items = asRecords(rawItems).map(mapCourseFromApi);
   const total =
     Number(data?.total) || Number(data?.total_items) || items.length;
   const pages =
@@ -62,13 +65,14 @@ async function parseError(
   response: Response,
   fallbackMessage: string,
 ): Promise<MembersError> {
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
+  const contentType = response.headers.get('content-type') || '';
+  const payload: unknown = contentType.includes('application/json')
     ? await response.json().catch(() => null)
-    : await response.text().catch(() => "");
-  const detail = payload?.detail || payload?.error?.message || payload;
+    : await response.text().catch(() => '');
+  const record = asRecord(payload);
+  const detail = record.detail || asRecord(record.error).message || payload;
   const message =
-    typeof detail === "string" && detail.trim() ? detail : fallbackMessage;
+    typeof detail === 'string' && detail.trim() ? detail : fallbackMessage;
   const error: MembersError = new Error(message);
   error.status = response.status;
   error.payload = payload;
@@ -84,25 +88,25 @@ export async function signCourse(
     `/members/${encodeURIComponent(courseId)}/enroll`,
     {
       ...options,
-      method: "POST",
+      method: 'POST',
     },
   );
 
   if (!response.ok) {
-    throw await parseError(response, "Не удалось записаться на курс.");
+    throw await parseError(response, 'Не удалось записаться на курс.');
   }
 
-  return response.json();
+  return asRecord(await response.json());
 }
 
 function normalizeStudent(raw: RawApiRecord = {}): CourseStudent {
   return {
-    id: raw.id || "",
-    courseId: raw.course_id || raw.courseId || "",
-    userId: raw.user_id || raw.userId || "",
-    createdAt: raw.created_at || raw.createdAt || "",
-    updatedAt: raw.updated_at || raw.updatedAt || "",
-    deletedAt: raw.deleted_at ?? raw.deletedAt ?? null,
+    id: toText(raw.id || ''),
+    courseId: toText(raw.course_id || raw.courseId || ''),
+    userId: toText(raw.user_id || raw.userId || ''),
+    createdAt: toText(raw.created_at || raw.createdAt || ''),
+    updatedAt: toText(raw.updated_at || raw.updatedAt || ''),
+    deletedAt: toText(raw.deleted_at ?? raw.deletedAt ?? null) || null,
   };
 }
 
@@ -110,7 +114,7 @@ function normalizeStudentPage(
   data: RawApiRecord | null | undefined,
   { page = 1, size = 10 }: PageParams = {},
 ): CourseStudentsPage {
-  const items = (data?.items || []).map(normalizeStudent);
+  const items = asRecords(data?.items || []).map(normalizeStudent);
   const total = Number(data?.total) || items.length;
   const pages =
     Number(data?.pages) || Math.max(1, Math.ceil(total / Math.max(1, size)));
@@ -137,15 +141,15 @@ export async function getCourseStudents(
     `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
     {
       ...options,
-      method: "GET",
+      method: 'GET',
     },
   );
 
   if (!response.ok) {
-    throw await parseError(response, "Не удалось загрузить студентов курса.");
+    throw await parseError(response, 'Не удалось загрузить студентов курса.');
   }
 
-  const data = await response.json();
+  const data = asRecord(await response.json());
   return normalizeStudentPage(data, { page, size });
 }
 
@@ -156,13 +160,13 @@ export async function getMyCourses(
   const query = new URLSearchParams({ page: String(page), size: String(size) });
   const response = await apiFetch(`/members?${query.toString()}`, {
     ...options,
-    method: "GET",
+    method: 'GET',
   });
 
   if (!response.ok) {
-    throw await parseError(response, "Не удалось загрузить ваши курсы.");
+    throw await parseError(response, 'Не удалось загрузить ваши курсы.');
   }
 
-  const data = await response.json();
+  const data = asRecord(await response.json());
   return normalizePaginatedCourses(data, { page, size });
 }

@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { safeLinkHref } from "../lib/agent-chat-utils";
+import { toText } from '@/shared/lib/text';
+import type { ReactNode } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { safeLinkHref } from '../lib/agent-chat-utils';
 
 const components: Components = {
   a: ({ href, children }) => {
@@ -20,7 +21,7 @@ const components: Components = {
 export function AgentMarkdown({ children }: { children?: ReactNode }) {
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {String(children || "")}
+      {toText(children || '')}
     </ReactMarkdown>
   );
 }

@@ -1,8 +1,10 @@
+import { toText } from '@/shared/lib/text';
+import { asRecord } from '@/shared/api';
 // Запущенная генерация курса в localStorage: после перезагрузки страницы
 // чат продолжает ту же беседу и следит за той же генерацией.
-import { getLocalStorage } from "@/shared/lib/storage";
+import { getLocalStorage } from '@/shared/lib/storage';
 
-export const ACTIVE_CREATOR_COURSE_KEY = "course-generation:active-course";
+export const ACTIVE_CREATOR_COURSE_KEY = 'course-generation:active-course';
 
 export interface StoredGeneration {
   courseId: string;
@@ -15,9 +17,9 @@ export interface StoredGeneration {
 
 export function createUuid(): string {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (value) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (value) => {
     const random = Math.floor(Math.random() * 16);
-    const digit = value === "x" ? random : (random & 0x3) | 0x8;
+    const digit = value === 'x' ? random : (random & 0x3) | 0x8;
     return digit.toString(16);
   });
 }
@@ -34,10 +36,18 @@ export function readGenerationState(courseId: string): StoredGeneration | null {
   const storage = getLocalStorage();
   if (!storage || !courseId) return null;
   try {
-    const value = JSON.parse(
-      storage.getItem(getGenerationKey(courseId)) || "null",
+    const value = asRecord(
+      JSON.parse(storage.getItem(getGenerationKey(courseId)) || 'null'),
     );
-    return value?.courseId === courseId ? value : null;
+    if (value.courseId !== courseId) return null;
+    return {
+      courseId,
+      chatId: toText(value.chatId) || null,
+      taskId: toText(value.taskId) || null,
+      generatedCourseId: toText(value.generatedCourseId) || null,
+      generationStartedAt: toText(value.generationStartedAt),
+      status: toText(value.status),
+    };
   } catch {
     return null;
   }

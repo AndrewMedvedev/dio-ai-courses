@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getCourseLearningStructure,
   type LearningCourse,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   PROGRESS_STATUS,
   ensureCourseProgress,
@@ -14,7 +14,7 @@ import {
   syncCourseProgressPercent,
   type CourseProgress,
   type LessonProgress,
-} from "@/entities/progress";
+} from '@/entities/progress';
 
 type LessonProgressById = Record<string, LessonProgress | null>;
 
@@ -28,7 +28,7 @@ interface CourseProgressState {
 }
 
 /** Поле, которое должно появиться после проверки практики или теста. */
-export type LessonCompletionField = "practiceCompletedAt" | "testCompletedAt";
+export type LessonCompletionField = 'practiceCompletedAt' | 'testCompletedAt';
 
 // Практика и тест отмечаются на backend событием после проверки (асинхронно),
 // поэтому после проверки несколько раз перечитываем прогресс урока.
@@ -36,7 +36,7 @@ const REFRESH_DELAYS_MS = [800, 1500, 3000, 5000, 8000];
 
 const EMPTY_STATE: CourseProgressState = {
   isLoading: false,
-  error: "",
+  error: '',
   courseProgress: null,
   lessonProgressById: {},
   lessonIds: [],
@@ -145,7 +145,7 @@ export function useCourseProgress(
         };
         setState({
           isLoading: false,
-          error: "",
+          error: '',
           courseProgress,
           lessonProgressById: lessonProgressRef.current,
           lessonIds,
@@ -153,7 +153,7 @@ export function useCourseProgress(
         });
         // Практика/тест могли закрыться событием, пока страница была закрыта, —
         // пересчитываем сохранённый процент курса.
-        syncPercent(targetCourseId);
+        void syncPercent(targetCourseId);
       } catch (rawError) {
         if (controller.signal.aborted || !isActive(targetCourseId)) return;
         const error = rawError as {
@@ -166,12 +166,12 @@ export function useCourseProgress(
           error:
             error?.userMessage ||
             error?.message ||
-            "Не удалось загрузить прогресс курса.",
+            'Не удалось загрузить прогресс курса.',
         }));
       }
     }
 
-    load();
+    void load();
 
     return () => {
       controller.abort();
@@ -216,7 +216,7 @@ export function useCourseProgress(
         if (!isActive(targetCourseId) || !progress) return;
         setLessonProgress(lessonId, progress);
         if (getLessonProgressStatus(progress) === PROGRESS_STATUS.COMPLETED) {
-          syncPercent(targetCourseId);
+          void syncPercent(targetCourseId);
         }
       } catch {
         // Не получилось — дадим ещё одну попытку при следующей прокрутке до конца.
@@ -251,7 +251,7 @@ export function useCourseProgress(
           // Пробуем ещё раз со следующей задержкой.
         }
       }
-      syncPercent(targetCourseId);
+      void syncPercent(targetCourseId);
     },
     [isActive, setLessonProgress, syncPercent],
   );

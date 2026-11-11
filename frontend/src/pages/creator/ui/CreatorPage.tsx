@@ -1,6 +1,6 @@
 // Страница генерации курса с интерактивным чатом
-import { SectionTop } from "@/shared/ui/section-top";
-import { CreatorChatView } from "@/features/create-course-chat";
+import { SectionTop } from '@/shared/ui/section-top';
+import { CreatorChatView } from '@/features/create-course-chat';
 
 export function CreatorPage() {
   return (

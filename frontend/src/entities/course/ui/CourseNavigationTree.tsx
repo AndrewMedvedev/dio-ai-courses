@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 import {
   PROGRESS_STATUS_LABELS,
   getLessonProgressStatus,
   getModuleProgressSummary,
   type LessonProgress,
-} from "@/entities/progress/@x/course";
+} from '@/entities/progress/@x/course';
 
 interface NavItem {
   id: string;
@@ -26,7 +26,7 @@ export interface CourseNavigationTreeProps {
   openBlock: (blockId: string) => void;
   openLesson: (lessonId: string) => void;
   openPractice: (practiceId: string) => void;
-  mode?: "theory" | "practice" | "metrics" | string;
+  mode?: string;
   /** Прогресс ученика с backend: { [lessonId]: LessonProgress | null }. */
   lessonProgressById?: Record<string, LessonProgress | null> | null;
   progressSummary?: {
@@ -39,9 +39,9 @@ export interface CourseNavigationTreeProps {
 }
 
 const LESSON_PARTS: Array<{ key: keyof LessonProgress; label: string }> = [
-  { key: "theoryCompletedAt", label: "Теория" },
-  { key: "practiceCompletedAt", label: "Практика" },
-  { key: "testCompletedAt", label: "Проверочные вопросы" },
+  { key: 'theoryCompletedAt', label: 'Теория' },
+  { key: 'practiceCompletedAt', label: 'Практика' },
+  { key: 'testCompletedAt', label: 'Проверочные вопросы' },
 ];
 
 // Одна точка на урок: серая — не начат, жёлтая — пройден частично,
@@ -53,8 +53,8 @@ function LessonProgressMark({
 }) {
   const status = getLessonProgressStatus(progress);
   const details = LESSON_PARTS.map(
-    (part) => `${part.label}: ${progress?.[part.key] ? "пройдено" : "нет"}`,
-  ).join(", ");
+    (part) => `${part.label}: ${progress?.[part.key] ? 'пройдено' : 'нет'}`,
+  ).join(', ');
 
   return (
     <span
@@ -75,13 +75,13 @@ export function CourseNavigationTree({
   openBlock,
   openLesson,
   openPractice,
-  mode = "theory",
+  mode = 'theory',
   lessonProgressById = null,
   progressSummary = null,
   summaryItem = null,
 }: CourseNavigationTreeProps) {
-  const isPracticeMode = mode === "practice";
-  const isMetricsMode = mode === "metrics";
+  const isPracticeMode = mode === 'practice';
+  const isMetricsMode = mode === 'metrics';
   const hasProgress =
     !isPracticeMode && !isMetricsMode && Boolean(lessonProgressById);
   const treeRef = useRef<HTMLElement>(null);
@@ -93,8 +93,8 @@ export function CourseNavigationTree({
     const tree = treeRef.current;
     if (!tree) return;
     const activeItem =
-      tree.querySelector(".course-nav-item-btn.is-active") ||
-      tree.querySelector(".course-nav-block.is-active .course-nav-block-btn");
+      tree.querySelector('.course-nav-item-btn.is-active') ||
+      tree.querySelector('.course-nav-block.is-active .course-nav-block-btn');
     if (!activeItem) return;
 
     const treeRect = tree.getBoundingClientRect();
@@ -123,10 +123,10 @@ export function CourseNavigationTree({
     0,
   );
   const progressLabel = isMetricsMode
-    ? "Метрики"
+    ? 'Метрики'
     : isPracticeMode
-      ? "Практика"
-      : "Теория";
+      ? 'Практика'
+      : 'Теория';
 
   const openBlockInCurrentMode = (block: NavBlock) => {
     if (isPracticeMode && block.practice[0]) {
@@ -175,7 +175,7 @@ export function CourseNavigationTree({
         ) : (
           <span className="tw:text-(--muted) tw:text-[0.86rem] tw:dark:text-[#cfc2ad]">
             {isMetricsMode
-              ? "Сводка и уроки"
+              ? 'Сводка и уроки'
               : `${progressLabel}: ${completedItems}/${totalItems}`}
           </span>
         )}
@@ -183,8 +183,8 @@ export function CourseNavigationTree({
       {summaryItem ? (
         <button
           type="button"
-          className={`course-nav-summary-btn tw:block tw:w-[100%] tw:m-[4px_0_8px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--heading) tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.6)] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] ${summaryItem.active ? "is-active" : ""}`}
-          aria-current={summaryItem.active ? "page" : undefined}
+          className={`course-nav-summary-btn tw:block tw:w-[100%] tw:m-[4px_0_8px] tw:p-[10px_12px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--heading) tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.6)] tw:hover:border-[rgba(var(--accent-rgb),_0.6)] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] ${summaryItem.active ? 'is-active' : ''}`}
+          aria-current={summaryItem.active ? 'page' : undefined}
           onClick={summaryItem.onOpen}
         >
           {summaryItem.label}
@@ -199,11 +199,11 @@ export function CourseNavigationTree({
           return (
             <li
               key={block.id}
-              className={String.raw`course-nav-block tw:pl-[8px] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border-left:3px_solid_transparent] tw:[&.has-progress.is-active]:rounded-[0_10px_10px_0] tw:[&.is-active]:[border-left-color:rgb(var(--success-rgb))] tw:[&.has-progress]:[border-left-color:var(--progress-idle)] tw:[&.has-progress.is-in\_progress]:[border-left-color:var(--progress-active)] tw:[&.has-progress.is-completed]:[border-left-color:var(--progress-done)] tw:[&.has-progress.is-active]:[background:rgba(var(--accent-rgb),_0.07)] ${selectedBlock.id === block.id ? "is-active" : ""} ${moduleProgress ? `has-progress is-${moduleProgress.status}` : ""}`}
+              className={String.raw`course-nav-block tw:pl-[8px] tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border-left:3px_solid_transparent] tw:[&.has-progress.is-active]:rounded-[0_10px_10px_0] tw:[&.is-active]:[border-left-color:rgb(var(--success-rgb))] tw:[&.has-progress]:[border-left-color:var(--progress-idle)] tw:[&.has-progress.is-in\_progress]:[border-left-color:var(--progress-active)] tw:[&.has-progress.is-completed]:[border-left-color:var(--progress-done)] tw:[&.has-progress.is-active]:[background:rgba(var(--accent-rgb),_0.07)] ${selectedBlock.id === block.id ? 'is-active' : ''} ${moduleProgress ? `has-progress is-${moduleProgress.status}` : ''}`}
             >
               <button
                 type="button"
-                className={`course-nav-block-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[24px_minmax(0,_1fr)] tw:gap-[10px] tw:p-[9px_0] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[24px_minmax(0,_1fr)_auto] tw:[align-items:start] ${moduleProgress ? "has-progress" : ""}`}
+                className={`course-nav-block-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[24px_minmax(0,_1fr)] tw:gap-[10px] tw:p-[9px_0] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[24px_minmax(0,_1fr)_auto] tw:[align-items:start] ${moduleProgress ? 'has-progress' : ''}`}
                 onClick={() => openBlockInCurrentMode(block)}
               >
                 <span className="tw:text-(--ink-accent) tw:font-[800] tw:dark:text-[#cbaacb]">
@@ -227,7 +227,7 @@ export function CourseNavigationTree({
                       <li key={practice.id}>
                         <button
                           type="button"
-                          className={`course-nav-item-btn course-nav-practice-btn tw:w-[100%] tw:text-(--ink-accent) tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[8px] tw:items-center tw:min-h-[34px] tw:rounded-[8px] tw:p-[6px_8px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[.page.is-inner-page_&]:gap-[10px] tw:[.page.is-inner-page_&]:min-h-[42px] tw:[.page.is-inner-page_&]:p-[8px_10px] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&]:text-[#d8c9b1] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&:hover]:[background:rgba(255,_255,_255,_0.08)] ${selectedPracticeId === practice.id ? "is-active" : ""}`}
+                          className={`course-nav-item-btn course-nav-practice-btn tw:w-[100%] tw:text-(--ink-accent) tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[8px] tw:items-center tw:min-h-[34px] tw:rounded-[8px] tw:p-[6px_8px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[.page.is-inner-page_&]:gap-[10px] tw:[.page.is-inner-page_&]:min-h-[42px] tw:[.page.is-inner-page_&]:p-[8px_10px] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&]:text-[#d8c9b1] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_&:hover]:[background:rgba(255,_255,_255,_0.08)] ${selectedPracticeId === practice.id ? 'is-active' : ''}`}
                           onClick={() => openPractice(practice.id)}
                         >
                           <span className="course-nav-item-number tw:text-(--ink-accent) tw:text-[0.82rem] tw:font-[800] tw:whitespace-nowrap tw:[.course-nav-item-btn.has-progress.is-completed_&]:text-(--progress-done) tw:[.course-nav-item-btn.has-progress.is-in\_progress_&]:text-(--progress-active) tw:[.page.is-inner-page_&]:text-(--info-text) tw:[.page.is-inner-page_&]:text-[0.88rem] tw:dark:[.page_&]:text-[#cbaacb]">
@@ -237,7 +237,7 @@ export function CourseNavigationTree({
                             {practice.title}
                           </span>
                           <span
-                            className={`course-nav-item-status tw:w-[8px] tw:h-[8px] tw:rounded-[50%] tw:[justify-self:end] tw:[background:rgba(var(--accent-rgb),_0.32)] tw:[&.is-done]:[background:rgb(var(--success-rgb))] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.22)] ${completedPractices[practice.id] ? "is-done" : ""}`}
+                            className={`course-nav-item-status tw:w-[8px] tw:h-[8px] tw:rounded-[50%] tw:[justify-self:end] tw:[background:rgba(var(--accent-rgb),_0.32)] tw:[&.is-done]:[background:rgb(var(--success-rgb))] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.22)] ${completedPractices[practice.id] ? 'is-done' : ''}`}
                           />
                         </button>
                       </li>
@@ -249,7 +249,7 @@ export function CourseNavigationTree({
                       >
                         <button
                           type="button"
-                          className={`course-nav-item-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[10px] tw:items-center tw:min-h-[42px] tw:rounded-[8px] tw:p-[8px_10px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[36px_minmax(0,_1fr)_auto] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:hover:[&&&&]:[background:rgba(255,_255,_255,_0.08)] ${selectedLessonId === lesson.id ? "is-active" : ""} ${hasProgress ? `has-progress is-${getLessonProgressStatus(lessonProgressById?.[lesson.id])}` : ""}`}
+                          className={`course-nav-item-btn tw:w-[100%] tw:text-[inherit] tw:cursor-pointer tw:text-left tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_10px] tw:gap-[10px] tw:items-center tw:min-h-[42px] tw:rounded-[8px] tw:p-[8px_10px] tw:[border:0] tw:[background:transparent] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45] tw:[&.has-progress]:grid-cols-[36px_minmax(0,_1fr)_auto] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.13)] tw:hover:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[background:rgba(255,_255,_255,_0.08)] tw:dark:hover:[&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:hover:[&&&&]:[background:rgba(var(--accent-rgb),_0.13)] tw:dark:[.page_&.is-active]:hover:[&&&&]:[background:rgba(255,_255,_255,_0.08)] ${selectedLessonId === lesson.id ? 'is-active' : ''} ${hasProgress ? `has-progress is-${getLessonProgressStatus(lessonProgressById?.[lesson.id])}` : ''}`}
                           onClick={() => openLesson(lesson.id)}
                         >
                           <span className="course-nav-item-number tw:text-(--info-text) tw:text-[0.88rem] tw:font-[800] tw:whitespace-nowrap tw:[.course-nav-item-btn.has-progress.is-in\_progress_&]:text-(--progress-active) tw:[.course-nav-item-btn.has-progress.is-completed_&]:text-(--progress-done)">
@@ -265,7 +265,7 @@ export function CourseNavigationTree({
                           ) : (
                             !isMetricsMode && (
                               <span
-                                className={`course-nav-item-status tw:w-[8px] tw:h-[8px] tw:rounded-[50%] tw:[justify-self:end] tw:[background:rgba(var(--accent-rgb),_0.32)] tw:dark:[background:rgba(255,_255,_255,_0.22)] tw:[&.is-done]:[background:rgb(var(--success-rgb))] tw:dark:[&.is-done]:[background:rgba(255,_255,_255,_0.22)] ${completedLessons[lesson.id] ? "is-done" : ""}`}
+                                className={`course-nav-item-status tw:w-[8px] tw:h-[8px] tw:rounded-[50%] tw:[justify-self:end] tw:[background:rgba(var(--accent-rgb),_0.32)] tw:dark:[background:rgba(255,_255,_255,_0.22)] tw:[&.is-done]:[background:rgb(var(--success-rgb))] tw:dark:[&.is-done]:[background:rgba(255,_255,_255,_0.22)] ${completedLessons[lesson.id] ? 'is-done' : ''}`}
                               />
                             )
                           )}

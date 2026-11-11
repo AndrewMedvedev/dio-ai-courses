@@ -4,15 +4,15 @@ export {
   generateLessonPractice,
   generateLessonTest,
   type CreatedPractice,
-} from "./api/assessment-api";
+} from './api/assessment-api';
 export type {
   AssessmentResult,
   LessonTest,
   PracticeAssignment,
   TestQuestion,
-} from "./model/types";
+} from './model/types';
 export {
   LessonPracticeAgent,
   LessonTestAgent,
   type LessonAssessmentProps,
-} from "./ui/LessonAgentAssessments";
+} from './ui/LessonAgentAssessments';

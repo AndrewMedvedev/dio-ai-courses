@@ -1,8 +1,10 @@
+import { asRecords, asRecord, asArray } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
 import {
   courseLevelToDifficulty,
   difficultyToCourseLevel,
   formatCourseLevel,
-} from "../model/levels";
+} from '../model/levels';
 import type {
   CoursesPage,
   LearningBlock,
@@ -10,35 +12,35 @@ import type {
   LearningLesson,
   PageParams,
   RawApiRecord,
-} from "../model/types";
+} from '../model/types';
 import {
   lessonMarkdownFromBlocks,
   normalizeTheoryContentBlocks,
   sanitizeContentBlock,
-} from "./content-blocks";
+} from './content-blocks';
 
 export function parseMinutes(value: unknown): number | null {
-  const match = /(\d+)/.exec(String(value || ""));
+  const match = /(\d+)/.exec(toText(value || ''));
   return match ? Number(match[1]) : null;
 }
 
 function blocksToPayload(blocks: RawApiRecord[] | null | undefined) {
   return (blocks || []).map((block) => ({
-    title: block.title || "",
-    description: block.description || "",
-    duration: block.duration || "",
+    title: block.title || '',
+    description: block.description || '',
+    duration: block.duration || '',
     learning_objectives: block.learningObjectives || [],
-    lessons: (block.lessons || []).map((lesson: RawApiRecord) => ({
-      title: lesson.title || "",
-      description: lesson.summary || "",
+    lessons: asRecords(block.lessons || []).map((lesson: RawApiRecord) => ({
+      title: lesson.title || '',
+      description: lesson.summary || '',
       estimated_time_minutes: parseMinutes(lesson.duration),
       learning_objectives: [],
       content_blocks: lesson.contentBlocks
-        ? lesson.contentBlocks.map(sanitizeContentBlock)
+        ? asRecords(lesson.contentBlocks).map(sanitizeContentBlock)
         : lesson.markdown
           ? [
               {
-                content_type: "text",
+                content_type: 'text',
                 md_content: lesson.markdown,
                 ai_generated: false,
               },
@@ -50,15 +52,15 @@ function blocksToPayload(blocks: RawApiRecord[] | null | undefined) {
 
 export function buildCoursePayload(course: RawApiRecord) {
   return {
-    title: course.title || "Новый курс",
-    description: course.description || "",
+    title: course.title || 'Новый курс',
+    description: course.description || '',
     difficulty: courseLevelToDifficulty(course.level),
-    category: course.category || "",
-    duration: course.duration || "",
-    format: course.format || "",
+    category: course.category || '',
+    duration: course.duration || '',
+    format: course.format || '',
     learning_objectives: course.learningObjectives || [],
     tags: course.tags || [],
-    modules: blocksToPayload(course.blocks),
+    modules: blocksToPayload(asRecords(course.blocks)),
   };
 }
 
@@ -75,39 +77,42 @@ export function readCourseModules(
     data?.moduleIdsList ||
     [];
 
-  return Array.isArray(modules) ? modules : [];
+  return asArray(modules).filter(
+    (item): item is RawApiRecord | string =>
+      typeof item === 'string' ||
+      (item !== null && typeof item === 'object' && !Array.isArray(item)),
+  );
 }
 
 function getModuleId(
   data: RawApiRecord | string | null | undefined,
   fallbackId?: string,
 ): string {
-  if (!data || typeof data !== "object") {
+  if (!data || typeof data !== 'object') {
     // Исторически id мог остаться пустым — вызывающий код это учитывает.
     return fallbackId as string;
   }
 
-  return (
+  return toText(
     data.module_id ||
-    data.moduleId ||
-    data.module_uuid ||
-    data.moduleUuid ||
-    data.uuid ||
-    data.module?.id ||
-    data.module?.module_id ||
-    data.module?.moduleId ||
-    data.data?.module_id ||
-    data.data?.moduleId ||
-    data.data?.id ||
-    data.id ||
-    fallbackId
+      data.moduleId ||
+      data.module_uuid ||
+      data.moduleUuid ||
+      data.uuid ||
+      asRecord(data.module)?.id ||
+      asRecord(data.module)?.module_id ||
+      asRecord(data.module)?.moduleId ||
+      asRecord(data.data)?.module_id ||
+      asRecord(data.data)?.moduleId ||
+      asRecord(data.data)?.id ||
+      data.id ||
+      fallbackId,
   );
 }
 
-export function normalizeModuleRef(
-  module: RawApiRecord | string | null | undefined,
-): RawApiRecord {
-  if (typeof module === "string") {
+export function normalizeModuleRef(value: unknown): RawApiRecord {
+  const module = typeof value === 'string' ? value : asRecord(value);
+  if (typeof module === 'string') {
     return { id: module };
   }
 
@@ -134,13 +139,16 @@ function readModuleLessons(
     data?.lessons_ids ||
     [];
 
-  return Array.isArray(lessons) ? lessons : [];
+  return asArray(lessons).filter(
+    (item): item is RawApiRecord | string =>
+      typeof item === 'string' ||
+      (item !== null && typeof item === 'object' && !Array.isArray(item)),
+  );
 }
 
-export function normalizeLessonRef(
-  lesson: RawApiRecord | string | null | undefined,
-): RawApiRecord {
-  if (typeof lesson === "string") {
+export function normalizeLessonRef(value: unknown): RawApiRecord {
+  const lesson = typeof value === 'string' ? value : asRecord(value);
+  if (typeof lesson === 'string') {
     return { id: lesson };
   }
 
@@ -157,61 +165,80 @@ export function normalizeLessonRef(
 
 /** Полный курс с модулями и уроками → модель интерфейса. */
 export function mapCourseFromApi(data: RawApiRecord): LearningCourse {
-  const blocks = readCourseModules(data).map((rawModule, moduleIndex) => {
-    const module = normalizeModuleRef(rawModule);
-    return {
-      id: module.id,
-      title: module.title || "Модуль без названия",
-      description: module.description || "",
-      order: Number.isFinite(module.order) ? module.order : moduleIndex,
-      duration: module.duration || "Модуль курса",
-      learningObjectives:
-        module.learning_objectives || module.learningObjectives || [],
-      learning_objectives:
-        module.learning_objectives || module.learningObjectives || [],
-      lessons: readModuleLessons(module).map((rawLesson, lessonIndex) => {
-        const lesson = normalizeLessonRef(rawLesson);
-        const contentBlocks = normalizeTheoryContentBlocks(
-          lesson.content_blocks || lesson.contentBlocks || lesson.blocks || [],
-        );
-        return {
-          id: lesson.id,
-          title: lesson.title || "Урок без названия",
-          duration: Number.isFinite(lesson.estimated_time_minutes)
-            ? `${lesson.estimated_time_minutes} мин.`
-            : "Материал урока",
-          summary: lesson.description || "",
-          description: lesson.description || "",
-          content: lessonMarkdownFromBlocks(contentBlocks),
-          markdown: lessonMarkdownFromBlocks(contentBlocks),
-          contentBlocks,
-          content_blocks: contentBlocks,
-          order: Number.isFinite(lesson.order) ? lesson.order : lessonIndex,
-          learningObjectives:
-            lesson.learning_objectives || lesson.learningObjectives || [],
-          learning_objectives:
-            lesson.learning_objectives || lesson.learningObjectives || [],
-        };
-      }),
-      practice: [],
-    };
-  });
+  const blocks = readCourseModules(data).map(
+    (rawModule, moduleIndex): LearningBlock => {
+      const module = normalizeModuleRef(rawModule);
+      return {
+        id: toText(module.id),
+        title: toText(module.title || 'Модуль без названия'),
+        description: toText(module.description || ''),
+        order: Number(
+          Number.isFinite(module.order) ? module.order : moduleIndex,
+        ),
+        duration: toText(module.duration || 'Модуль курса'),
+        learningObjectives: asArray(
+          module.learning_objectives || module.learningObjectives || [],
+        ).map(toText),
+        learning_objectives: asArray(
+          module.learning_objectives || module.learningObjectives || [],
+        ).map(toText),
+        lessons: readModuleLessons(module).map(
+          (rawLesson, lessonIndex): LearningLesson => {
+            const lesson = normalizeLessonRef(rawLesson);
+            const contentBlocks = normalizeTheoryContentBlocks(
+              lesson.content_blocks ||
+                lesson.contentBlocks ||
+                lesson.blocks ||
+                [],
+            );
+            return {
+              id: toText(lesson.id),
+              title: toText(lesson.title || 'Урок без названия'),
+              duration: Number.isFinite(lesson.estimated_time_minutes)
+                ? `${toText(lesson.estimated_time_minutes)} мин.`
+                : 'Материал урока',
+              summary: toText(lesson.description || ''),
+              description: toText(lesson.description || ''),
+              content: lessonMarkdownFromBlocks(contentBlocks),
+              markdown: lessonMarkdownFromBlocks(contentBlocks),
+              contentBlocks,
+              content_blocks: contentBlocks,
+              order: Number(
+                Number.isFinite(lesson.order) ? lesson.order : lessonIndex,
+              ),
+              learningObjectives: asArray(
+                lesson.learning_objectives || lesson.learningObjectives || [],
+              ).map(toText),
+              learning_objectives: asArray(
+                lesson.learning_objectives || lesson.learningObjectives || [],
+              ).map(toText),
+            };
+          },
+        ),
+        practice: [],
+      };
+    },
+  );
 
   return {
     ...data,
-    id: data.id,
-    title: data.title || "",
-    category: data.category || "",
-    description: data.description || "",
-    duration: data.duration || "",
+    id: toText(data.id),
+    title: toText(data.title || ''),
+    category: toText(data.category || ''),
+    description: toText(data.description || ''),
+    duration: toText(data.duration || ''),
     level: difficultyToCourseLevel(data.difficulty),
-    difficulty: data.difficulty || difficultyToCourseLevel(data.difficulty),
-    format: data.format || "",
-    tags: data.tags || [],
-    learningObjectives:
+    difficulty: toText(
+      data.difficulty || difficultyToCourseLevel(data.difficulty),
+    ),
+    format: toText(data.format || ''),
+    tags: asArray(data.tags || []).map(toText),
+    learningObjectives: asArray(
       data.learning_objectives || data.learningObjectives || [],
-    learning_objectives:
+    ).map(toText),
+    learning_objectives: asArray(
       data.learning_objectives || data.learningObjectives || [],
+    ).map(toText),
     blocks,
     modules: blocks,
   };
@@ -219,24 +246,24 @@ export function mapCourseFromApi(data: RawApiRecord): LearningCourse {
 
 export function courseChangesToPatch(changes: RawApiRecord): RawApiRecord {
   const patch: RawApiRecord = {};
-  if ("title" in changes) patch.title = changes.title;
-  if ("description" in changes) patch.description = changes.description;
-  if ("tags" in changes) patch.tags = changes.tags;
-  if ("level" in changes)
+  if ('title' in changes) patch.title = changes.title;
+  if ('description' in changes) patch.description = changes.description;
+  if ('tags' in changes) patch.tags = changes.tags;
+  if ('level' in changes)
     patch.difficulty = courseLevelToDifficulty(changes.level);
-  if ("difficulty" in changes) patch.difficulty = changes.difficulty;
+  if ('difficulty' in changes) patch.difficulty = changes.difficulty;
   return patch;
 }
 
 export function moduleChangesToPatch(changes: RawApiRecord): RawApiRecord {
   const patch: RawApiRecord = {};
-  if ("title" in changes) patch.title = changes.title;
-  if ("description" in changes) patch.description = changes.description;
-  if ("order" in changes) patch.order = changes.order;
-  if ("learningObjectives" in changes) {
+  if ('title' in changes) patch.title = changes.title;
+  if ('description' in changes) patch.description = changes.description;
+  if ('order' in changes) patch.order = changes.order;
+  if ('learningObjectives' in changes) {
     patch.learning_objectives = changes.learningObjectives;
   }
-  if ("learning_objectives" in changes) {
+  if ('learning_objectives' in changes) {
     patch.learning_objectives = changes.learning_objectives;
   }
   return patch;
@@ -244,37 +271,37 @@ export function moduleChangesToPatch(changes: RawApiRecord): RawApiRecord {
 
 export function lessonChangesToPatch(changes: RawApiRecord): RawApiRecord {
   const patch: RawApiRecord = {};
-  if ("title" in changes) patch.title = changes.title;
-  if ("description" in changes) patch.description = changes.description;
-  if ("summary" in changes) patch.description = changes.summary;
-  if ("order" in changes) patch.order = changes.order;
-  if ("learningObjectives" in changes) {
+  if ('title' in changes) patch.title = changes.title;
+  if ('description' in changes) patch.description = changes.description;
+  if ('summary' in changes) patch.description = changes.summary;
+  if ('order' in changes) patch.order = changes.order;
+  if ('learningObjectives' in changes) {
     patch.learning_objectives = changes.learningObjectives;
   }
-  if ("learning_objectives" in changes) {
+  if ('learning_objectives' in changes) {
     patch.learning_objectives = changes.learning_objectives;
   }
-  if ("estimatedTimeMinutes" in changes) {
+  if ('estimatedTimeMinutes' in changes) {
     patch.estimated_time_minutes = changes.estimatedTimeMinutes;
   }
-  if ("estimated_time_minutes" in changes) {
+  if ('estimated_time_minutes' in changes) {
     patch.estimated_time_minutes = changes.estimated_time_minutes;
   }
-  if ("duration" in changes)
+  if ('duration' in changes)
     patch.estimated_time_minutes = parseMinutes(changes.duration);
-  if ("contentBlocks" in changes) {
-    patch.content_blocks = (changes.contentBlocks || []).map(
+  if ('contentBlocks' in changes) {
+    patch.content_blocks = asRecords(changes.contentBlocks || []).map(
       sanitizeContentBlock,
     );
-  } else if ("content_blocks" in changes) {
-    patch.content_blocks = (changes.content_blocks || []).map(
+  } else if ('content_blocks' in changes) {
+    patch.content_blocks = asRecords(changes.content_blocks || []).map(
       sanitizeContentBlock,
     );
-  } else if ("markdown" in changes) {
+  } else if ('markdown' in changes) {
     patch.content_blocks = changes.markdown
       ? [
           {
-            content_type: "text",
+            content_type: 'text',
             md_content: changes.markdown,
             ai_generated: false,
           },
@@ -288,34 +315,40 @@ export function lessonChangesToPatch(changes: RawApiRecord): RawApiRecord {
 export function courseBasicToLearningCourse(
   data: RawApiRecord,
 ): LearningCourse {
-  const blocks = readCourseModules(data).map((rawModule, moduleIndex) => {
-    const module = normalizeModuleRef(rawModule);
-    return {
-      id: module.id,
-      title: module.title || "Модуль без названия",
-      description: module.description || "",
-      order: Number.isFinite(module.order) ? module.order : moduleIndex,
-      duration: module.duration || "Модуль курса",
-      learningObjectives:
-        module.learning_objectives || module.learningObjectives || [],
-      learning_objectives:
-        module.learning_objectives || module.learningObjectives || [],
-      lessons: readModuleLessons(module).map((lesson, lessonIndex) =>
-        lessonBasicToLearningLesson(normalizeLessonRef(lesson), {
-          order: lessonIndex,
-        }),
-      ),
-      practice: [],
-    };
-  });
+  const blocks = readCourseModules(data).map(
+    (rawModule, moduleIndex): LearningBlock => {
+      const module = normalizeModuleRef(rawModule);
+      return {
+        id: toText(module.id),
+        title: toText(module.title || 'Модуль без названия'),
+        description: toText(module.description || ''),
+        order: Number(
+          Number.isFinite(module.order) ? module.order : moduleIndex,
+        ),
+        duration: toText(module.duration || 'Модуль курса'),
+        learningObjectives: asArray(
+          module.learning_objectives || module.learningObjectives || [],
+        ).map(toText),
+        learning_objectives: asArray(
+          module.learning_objectives || module.learningObjectives || [],
+        ).map(toText),
+        lessons: readModuleLessons(module).map((lesson, lessonIndex) =>
+          lessonBasicToLearningLesson(normalizeLessonRef(lesson), {
+            order: lessonIndex,
+          }),
+        ),
+        practice: [],
+      };
+    },
+  );
 
   return {
     ...data,
-    category: data.category || "",
-    duration: data.duration || "По индивидуальному темпу",
-    level: data.difficulty ? formatCourseLevel(data.difficulty) : "Не указан",
-    difficulty: data.difficulty || data.level || "Не указан",
-    format: data.format || "Теория + практика",
+    category: data.category || '',
+    duration: data.duration || 'По индивидуальному темпу',
+    level: data.difficulty ? formatCourseLevel(data.difficulty) : 'Не указан',
+    difficulty: data.difficulty || data.level || 'Не указан',
+    format: data.format || 'Теория + практика',
     learningObjectives:
       data.learning_objectives || data.learningObjectives || [],
     learning_objectives:
@@ -330,18 +363,27 @@ export function moduleBasicToLearningBlock(
   data: RawApiRecord | string,
   currentBlock: RawApiRecord = {},
 ): LearningBlock {
-  if (typeof data === "string") {
+  if (typeof data === 'string') {
     return {
       ...currentBlock,
       id: data,
-      title: currentBlock.title || "Модуль без названия",
-      description: currentBlock.description || "",
-      order: currentBlock.order || 0,
-      duration: currentBlock.duration || "Модуль курса",
-      learningObjectives: currentBlock.learningObjectives || [],
-      learning_objectives: currentBlock.learning_objectives || [],
-      lessons: currentBlock.lessons || [],
-      practice: currentBlock.practice || [],
+      title: toText(currentBlock.title || 'Модуль без названия'),
+      description: toText(currentBlock.description || ''),
+      order: Number(currentBlock.order || 0),
+      duration: toText(currentBlock.duration || 'Модуль курса'),
+      learningObjectives: asArray(currentBlock.learningObjectives || []).map(
+        toText,
+      ),
+      learning_objectives: asArray(currentBlock.learning_objectives || []).map(
+        toText,
+      ),
+      lessons: asRecords(currentBlock.lessons).map((lesson) =>
+        lessonBasicToLearningLesson(lesson),
+      ),
+      practice: asRecords(currentBlock.practice).map((item) => ({
+        ...item,
+        id: toText(item.id),
+      })),
     };
   }
 
@@ -349,19 +391,24 @@ export function moduleBasicToLearningBlock(
     data.learning_objectives || data.learningObjectives || [];
   return {
     ...currentBlock,
-    id: getModuleId(data, currentBlock.id),
-    title: data.title || "Модуль без названия",
-    description: data.description || "",
-    order: Number.isFinite(data.order) ? data.order : currentBlock.order || 0,
-    duration: data.duration || currentBlock.duration || "Модуль курса",
-    learningObjectives,
-    learning_objectives: learningObjectives,
+    id: getModuleId(data, toText(currentBlock.id)),
+    title: toText(data.title || 'Модуль без названия'),
+    description: toText(data.description || ''),
+    order: Number(
+      Number.isFinite(data.order) ? data.order : currentBlock.order || 0,
+    ),
+    duration: toText(data.duration || currentBlock.duration || 'Модуль курса'),
+    learningObjectives: asArray(learningObjectives).map(toText),
+    learning_objectives: asArray(learningObjectives).map(toText),
     lessons: readModuleLessons(data).map((lesson, lessonIndex) =>
       lessonBasicToLearningLesson(normalizeLessonRef(lesson), {
         order: lessonIndex,
       }),
     ),
-    practice: currentBlock.practice || [],
+    practice: asRecords(currentBlock.practice).map((item) => ({
+      ...item,
+      id: toText(item.id),
+    })),
   };
 }
 
@@ -380,20 +427,26 @@ export function lessonBasicToLearningLesson(
     data.learning_objectives || data.learningObjectives || [];
   return {
     ...currentLesson,
-    id: data.id,
-    title: data.title || "Урок без названия",
-    duration: Number.isFinite(data.estimated_time_minutes)
-      ? `${data.estimated_time_minutes} мин.`
-      : currentLesson.duration || "Время не указано",
-    summary: data.description || "",
-    description: data.description || "",
-    content: markdown || data.description || currentLesson.content || "",
-    markdown: markdown || currentLesson.markdown || "",
+    id: toText(data.id),
+    title: toText(data.title || 'Урок без названия'),
+    duration: toText(
+      Number.isFinite(data.estimated_time_minutes)
+        ? `${toText(data.estimated_time_minutes)} мин.`
+        : currentLesson.duration || 'Время не указано',
+    ),
+    summary: toText(data.description || ''),
+    description: toText(data.description || ''),
+    content: toText(
+      markdown || data.description || currentLesson.content || '',
+    ),
+    markdown: toText(markdown || currentLesson.markdown || ''),
     contentBlocks,
     content_blocks: contentBlocks,
-    order: Number.isFinite(data.order) ? data.order : currentLesson.order || 0,
-    learningObjectives,
-    learning_objectives: learningObjectives,
+    order: Number(
+      Number.isFinite(data.order) ? data.order : currentLesson.order || 0,
+    ),
+    learningObjectives: asArray(learningObjectives).map(toText),
+    learning_objectives: asArray(learningObjectives).map(toText),
   };
 }
 
@@ -404,7 +457,7 @@ export function normalizePaginatedResponse(
   const rawItems = Array.isArray(data)
     ? data
     : data?.items || data?.courses || data?.results || [];
-  const items = rawItems.map((course: RawApiRecord) =>
+  const items = asRecords(rawItems).map((course: RawApiRecord) =>
     readCourseModules(course).length
       ? mapCourseFromApi(course)
       : courseBasicToLearningCourse(course),
@@ -435,14 +488,14 @@ export function normalizePaginatedResponse(
 export function extractCourseStatus(
   data: RawApiRecord | string | null | undefined,
 ): string {
-  if (typeof data === "string") return data;
-  if (!data || typeof data !== "object") return "";
-  return (
+  if (typeof data === 'string') return data;
+  if (!data || typeof data !== 'object') return '';
+  return toText(
     data.status ||
-    data.course_status ||
-    data.courseStatus ||
-    data.state ||
-    Object.values(data).find((value) => typeof value === "string") ||
-    ""
+      data.course_status ||
+      data.courseStatus ||
+      data.state ||
+      Object.values(data).find((value) => typeof value === 'string') ||
+      '',
   );
 }

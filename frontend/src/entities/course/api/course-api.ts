@@ -1,3 +1,5 @@
+import { toText } from '@/shared/lib/text';
+import { asRecord, asRecords } from '@/shared/api';
 import {
   ApiError,
   jsonRequest,
@@ -5,14 +7,14 @@ import {
   type ItemsPage,
   type JsonRequestOptions,
   type RequestOptions,
-} from "@/shared/api";
-import { withoutEmptyValues } from "@/shared/lib/object";
-import { isUuid } from "@/shared/lib/uuid";
-import { validateMermaidSource } from "@/shared/ui/mermaid-diagram";
+} from '@/shared/api';
+import { withoutEmptyValues } from '@/shared/lib/object';
+import { isUuid } from '@/shared/lib/uuid';
+import { validateMermaidSource } from '@/shared/ui/mermaid-diagram';
 import {
   normalizeTheoryContentBlocks,
   sanitizeContentBlock,
-} from "../lib/content-blocks";
+} from '../lib/content-blocks';
 import {
   courseBasicToLearningCourse,
   extractCourseStatus,
@@ -26,7 +28,7 @@ import {
   normalizeModuleRef,
   normalizePaginatedResponse,
   readCourseModules,
-} from "../lib/mappers";
+} from '../lib/mappers';
 import type {
   ContentBlock,
   CourseStatusResult,
@@ -36,15 +38,15 @@ import type {
   LearningLesson,
   PageParams,
   RawApiRecord,
-} from "../model/types";
+} from '../model/types';
 
 export async function fetchCoursesPage(
   { page = 1, size = 20 }: PageParams = {},
   options: JsonRequestOptions = {},
 ): Promise<CoursesPage> {
   const data = await jsonRequest(
-    "/courses/search",
-    "POST",
+    '/courses/search',
+    'POST',
     { page, size },
     { ...options, auth: false },
   );
@@ -64,8 +66,8 @@ export async function fetchMyCoursesPage(
   options: JsonRequestOptions = {},
 ): Promise<CoursesPage> {
   const data = await jsonRequest(
-    "/courses/my-courses",
-    "POST",
+    '/courses/my-courses',
+    'POST',
     { page, size },
     options,
   );
@@ -77,13 +79,13 @@ export async function createCourse(
   options: JsonRequestOptions = {},
 ): Promise<LearningCourse> {
   const response = await jsonRequest(
-    "/courses",
-    "POST",
+    '/courses',
+    'POST',
     {
-      title: data.title || "Новый курс",
-      description: data.description || "",
-      difficulty: data.difficulty || "beginner",
-      status: data.status || "draft",
+      title: data.title || 'Новый курс',
+      description: data.description || '',
+      difficulty: data.difficulty || 'beginner',
+      status: data.status || 'draft',
       tags: Array.isArray(data.tags) ? data.tags : [],
     },
     options,
@@ -96,9 +98,9 @@ export async function getCourseBasicInfo(
   options: RequestInit = {},
 ): Promise<LearningCourse> {
   if (!isUuid(courseId)) {
-    throw new ApiError("Некорректный идентификатор курса.", {
+    throw new ApiError('Некорректный идентификатор курса.', {
       status: 400,
-      code: "invalid_course_id",
+      code: 'invalid_course_id',
     });
   }
 
@@ -159,7 +161,7 @@ export async function updateCourse(
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
     `/courses/${encodeURIComponent(courseId)}`,
-    "PUT",
+    'PUT',
     patch,
   );
   return data?.modules
@@ -174,25 +176,25 @@ export async function createModule(
 ): Promise<LearningBlock> {
   const query = courseId
     ? `?${new URLSearchParams({ course_id: courseId }).toString()}`
-    : "";
+    : '';
   const payload = {
-    title: data.title || "Новый модуль",
-    description: data.description || "",
+    title: data.title || 'Новый модуль',
+    description: data.description || '',
     order: Number.isFinite(data.order) ? data.order : 1,
     learning_objectives:
       data.learning_objectives || data.learningObjectives || [],
   };
   const response = await jsonRequest(
     `/modules${query}`,
-    "POST",
+    'POST',
     payload,
     options,
   );
 
-  const directModule = response?.module || response?.data?.module;
+  const directModule = response?.module || asRecord(response?.data)?.module;
   const courseModules = [
     ...readCourseModules(response),
-    ...readCourseModules(response?.data),
+    ...readCourseModules(asRecord(response?.data)),
   ];
   const createdModule =
     directModule ||
@@ -207,7 +209,7 @@ export async function createModule(
     response?.data ||
     response;
 
-  return moduleBasicToLearningBlock(createdModule, {
+  return moduleBasicToLearningBlock(asRecord(createdModule), {
     title: payload.title,
     description: payload.description,
     order: payload.order,
@@ -224,7 +226,7 @@ export async function assignModuleToCourse(
   return requestJson(
     `/modules/${encodeURIComponent(moduleId)}/courses/${encodeURIComponent(courseId)}`,
     {
-      method: "POST",
+      method: 'POST',
     },
     options,
   );
@@ -236,14 +238,14 @@ export async function createLesson(
 ): Promise<LearningLesson> {
   const moduleId = data.module_id || data.moduleId;
   const query = moduleId
-    ? `?${new URLSearchParams({ module_id: moduleId }).toString()}`
-    : "";
+    ? `?${new URLSearchParams({ module_id: toText(moduleId) }).toString()}`
+    : '';
   const response = await jsonRequest(
     `/lessons${query}`,
-    "POST",
+    'POST',
     {
-      title: data.title || "Новый урок",
-      description: data.description || "",
+      title: data.title || 'Новый урок',
+      description: data.description || '',
       order: Number.isFinite(data.order) ? data.order : 1,
       learning_objectives:
         data.learning_objectives || data.learningObjectives || [],
@@ -253,10 +255,10 @@ export async function createLesson(
     options,
   );
   return lessonBasicToLearningLesson(
-    normalizeLessonRef(response?.lesson || response),
+    normalizeLessonRef(asRecord(response?.lesson || response)),
     {
-      title: data.title || "Новый урок",
-      description: data.description || "",
+      title: data.title || 'Новый урок',
+      description: data.description || '',
       order: Number.isFinite(data.order) ? data.order : 1,
       learningObjectives:
         data.learning_objectives || data.learningObjectives || [],
@@ -274,7 +276,7 @@ export async function assignLessonToModule(
   return requestJson(
     `/lessons/${encodeURIComponent(lessonId)}/modules/${encodeURIComponent(moduleId)}`,
     {
-      method: "POST",
+      method: 'POST',
     },
     options,
   );
@@ -289,7 +291,7 @@ export async function updateModule(
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
     `/modules/${encodeURIComponent(moduleId)}`,
-    "PUT",
+    'PUT',
     patch,
   );
   return moduleBasicToLearningBlock(data);
@@ -301,12 +303,12 @@ export async function updateLesson(
   changes: RawApiRecord,
 ): Promise<LearningLesson | null> {
   if (
-    "contentBlocks" in changes ||
-    "content_blocks" in changes ||
-    "markdown" in changes
+    'contentBlocks' in changes ||
+    'content_blocks' in changes ||
+    'markdown' in changes
   ) {
     const contentBlocks =
-      "markdown" in changes
+      'markdown' in changes
         ? lessonChangesToPatch(changes).content_blocks
         : changes.contentBlocks || changes.content_blocks || [];
     return updateLessonContentBlocks(lessonId, contentBlocks);
@@ -315,7 +317,7 @@ export async function updateLesson(
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
     `/lessons/${encodeURIComponent(lessonId)}`,
-    "PUT",
+    'PUT',
     patch,
   );
   return lessonBasicToLearningLesson(data);
@@ -332,24 +334,24 @@ export async function updateLessonContentBlocks(
   if (
     payload.some(
       (block) =>
-        block.content_type === "mermaid" ||
-        (block.content_type === "text" &&
-          /```mermaid\s*\n/i.test(block.md_content || "")),
+        block.content_type === 'mermaid' ||
+        (block.content_type === 'text' &&
+          /```mermaid\s*\n/i.test(block.md_content || '')),
     )
   ) {
     for (const [index, block] of payload.entries()) {
       try {
-        if (block.content_type === "mermaid") {
+        if (block.content_type === 'mermaid') {
           block.md_content = await validateMermaidSource(block.md_content);
         } else if (
-          block.content_type === "text" &&
-          /```mermaid\s*\n/i.test(block.md_content || "")
+          block.content_type === 'text' &&
+          /```mermaid\s*\n/i.test(block.md_content || '')
         ) {
-          const source = block.md_content ?? "";
+          const source = block.md_content ?? '';
           const matches = [
             ...source.matchAll(/```mermaid\s*\n([\s\S]*?)\n```/gi),
           ];
-          let normalized = "";
+          let normalized = '';
           let offset = 0;
           for (const match of matches) {
             normalized += source.slice(offset, match.index);
@@ -360,14 +362,15 @@ export async function updateLessonContentBlocks(
         }
       } catch (error) {
         throw new Error(
-          `Блок ${index + 1}: ${(error as Error).message || "ошибка Mermaid"}`,
+          `Блок ${index + 1}: ${(error as Error).message || 'ошибка Mermaid'}`,
+          { cause: error },
         );
       }
     }
   }
   const data = await jsonRequest(
     `/lessons/${encodeURIComponent(lessonId)}/content-blocks`,
-    "PUT",
+    'PUT',
     payload,
   );
   return lessonBasicToLearningLesson({
@@ -383,7 +386,7 @@ export async function deleteModule(
 ): Promise<unknown> {
   return requestJson(
     `/modules/${encodeURIComponent(moduleId)}`,
-    { method: "DELETE" },
+    { method: 'DELETE' },
     options,
   );
 }
@@ -394,7 +397,7 @@ export async function deleteLesson(
 ): Promise<unknown> {
   return requestJson(
     `/lessons/${encodeURIComponent(lessonId)}`,
-    { method: "DELETE" },
+    { method: 'DELETE' },
     options,
   );
 }
@@ -405,7 +408,7 @@ export async function fetchCourseStatus(
 ): Promise<CourseStatusResult> {
   const data = await requestJson(
     `/courses/${encodeURIComponent(courseId)}/status`,
-    { method: "GET", ...(options || {}) },
+    { method: 'GET', ...(options || {}) },
   );
   return { raw: data, status: extractCourseStatus(data) };
 }
@@ -421,11 +424,11 @@ export async function publishCourse(
       const blocks = await getLessonTheory(lesson.id, options);
       for (const [index, block] of blocks.entries()) {
         const diagrams =
-          block.content_type === "mermaid"
+          block.content_type === 'mermaid'
             ? [block.md_content]
-            : block.content_type === "text"
+            : block.content_type === 'text'
               ? [
-                  ...String(block.md_content || "").matchAll(
+                  ...String(block.md_content || '').matchAll(
                     /```mermaid\s*\n([\s\S]*?)\n```/gi,
                   ),
                 ].map((match) => match[1])
@@ -436,6 +439,7 @@ export async function publishCourse(
           } catch (error) {
             throw new Error(
               `Урок «${lesson.title || lesson.id}», блок ${index + 1}: ${(error as Error).message}`,
+              { cause: error },
             );
           }
         }
@@ -444,9 +448,9 @@ export async function publishCourse(
   }
   const data = await requestJson(
     `/courses/${encodeURIComponent(courseId)}/status`,
-    { method: "PATCH", ...(options || {}) },
+    { method: 'PATCH', ...(options || {}) },
   );
-  return { raw: data, status: extractCourseStatus(data) || "published" };
+  return { raw: data, status: extractCourseStatus(data) || 'published' };
 }
 
 export async function setCourseInviteOnly(
@@ -455,9 +459,9 @@ export async function setCourseInviteOnly(
 ): Promise<CourseStatusResult> {
   const data = await requestJson(
     `/courses/${encodeURIComponent(courseId)}/invite-only`,
-    { method: "POST", ...(options || {}) },
+    { method: 'POST', ...(options || {}) },
   );
-  return { raw: data, status: extractCourseStatus(data) || "invite_only" };
+  return { raw: data, status: extractCourseStatus(data) || 'invite_only' };
 }
 
 export async function archiveCourse(
@@ -465,10 +469,10 @@ export async function archiveCourse(
   options: RequestInit = {},
 ): Promise<CourseStatusResult> {
   const data = await requestJson(`/courses/${encodeURIComponent(courseId)}`, {
-    method: "DELETE",
+    method: 'DELETE',
     ...(options || {}),
   });
-  return { raw: data, status: extractCourseStatus(data) || "archived" };
+  return { raw: data, status: extractCourseStatus(data) || 'archived' };
 }
 
 /** Участники курса (ученики и преподаватели). */
@@ -482,10 +486,10 @@ export async function fetchCourseMembersPage(
   );
   const items = Array.isArray(data) ? data : data?.items || [];
   return {
-    items,
+    items: asRecords(items),
     page: Number(data?.page) || page,
     size: Number(data?.size) || size,
-    total: Number(data?.total) || items.length,
+    total: Number(data?.total) || asRecords(items).length,
     hasNext: Boolean(data?.has_next ?? data?.hasNext),
   };
 }

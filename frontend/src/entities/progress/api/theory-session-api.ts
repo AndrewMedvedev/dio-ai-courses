@@ -1,10 +1,12 @@
+import { asRecord, asRecords } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
 // Сессии чтения теории урока: активное время и глубина прокрутки (backend: /theory-sessions).
 import {
   API_BASE,
   apiFetch,
   readStoredSession,
   type RawApiRecord,
-} from "@/shared/api";
+} from '@/shared/api';
 
 export interface TheorySession {
   id: string;
@@ -39,13 +41,14 @@ async function parseError(
   response: Response,
   fallbackMessage: string,
 ): Promise<TheorySessionError> {
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
+  const contentType = response.headers.get('content-type') || '';
+  const payload: unknown = contentType.includes('application/json')
     ? await response.json().catch(() => null)
-    : await response.text().catch(() => "");
-  const detail = payload?.detail || payload?.error?.message || payload;
+    : await response.text().catch(() => '');
+  const record = asRecord(payload);
+  const detail = record.detail || asRecord(record.error).message || payload;
   const message =
-    typeof detail === "string" && detail.trim() ? detail : fallbackMessage;
+    typeof detail === 'string' && detail.trim() ? detail : fallbackMessage;
   const error: TheorySessionError = new Error(message);
   error.status = response.status;
   error.payload = payload;
@@ -61,16 +64,16 @@ export async function createSession(
     `/theory-sessions/${encodeURIComponent(lessonId)}`,
     {
       ...options,
-      method: "POST",
+      method: 'POST',
     },
     { clearOnUnauthorized: false },
   );
 
   if (!response.ok) {
-    throw await parseError(response, "Не удалось создать сессию теории.");
+    throw await parseError(response, 'Не удалось создать сессию теории.');
   }
 
-  return response.json();
+  return asRecord(await response.json());
 }
 
 export async function updateSession(
@@ -82,10 +85,10 @@ export async function updateSession(
     `/theory-sessions/${encodeURIComponent(sessionId)}`,
     {
       ...options,
-      method: "PUT",
+      method: 'PUT',
       headers: {
-        "Content-Type": "application/json",
-        ...((options.headers as Record<string, string> | undefined) || {}),
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
       },
       body: JSON.stringify(metrics),
     },
@@ -93,33 +96,33 @@ export async function updateSession(
   );
 
   if (!response.ok) {
-    throw await parseError(response, "Не удалось сохранить метрики теории.");
+    throw await parseError(response, 'Не удалось сохранить метрики теории.');
   }
 
-  return response.json();
+  return asRecord(await response.json());
 }
 
 function normalizeTheorySession(raw: RawApiRecord = {}): TheorySession {
   return {
-    id: raw.id || "",
-    lessonId: raw.lesson_id || raw.lessonId || "",
-    userId: raw.user_id || raw.userId || "",
-    completedAt: raw.completed_at ?? raw.completedAt ?? null,
+    id: toText(raw.id || ''),
+    lessonId: toText(raw.lesson_id || raw.lessonId || ''),
+    userId: toText(raw.user_id || raw.userId || ''),
+    completedAt: toText(raw.completed_at ?? raw.completedAt ?? null) || null,
     activeTimeSeconds:
       Number(raw.active_time_seconds ?? raw.activeTimeSeconds ?? 0) || 0,
     maxScrollDepthPercent:
       Number(raw.max_scroll_depth_percent ?? raw.maxScrollDepthPercent ?? 0) ||
       0,
-    createdAt: raw.created_at || raw.createdAt || "",
-    updatedAt: raw.updated_at || raw.updatedAt || "",
+    createdAt: toText(raw.created_at || raw.createdAt || ''),
+    updatedAt: toText(raw.updated_at || raw.updatedAt || ''),
   };
 }
 
 function buildSessionsQuery(filters: TheorySessionsFilters = {}): string {
   const query = new URLSearchParams();
-  if (filters.createdFrom) query.append("created_from", filters.createdFrom);
-  if (filters.createdTo) query.append("created_to", filters.createdTo);
-  if (filters.sort) query.append("sort", filters.sort);
+  if (filters.createdFrom) query.append('created_from', filters.createdFrom);
+  if (filters.createdTo) query.append('created_to', filters.createdTo);
+  if (filters.sort) query.append('sort', filters.sort);
   return query.toString();
 }
 
@@ -130,25 +133,24 @@ export async function getTheorySessions(
   options: RequestInit = {},
 ): Promise<TheorySession[]> {
   if (!lessonId || !userId) {
-    throw new Error("Для загрузки метрик нужно выбрать урок и студента.");
+    throw new Error('Для загрузки метрик нужно выбрать урок и студента.');
   }
 
   const query = buildSessionsQuery(filters);
   const response = await apiFetch(
-    `/theory-sessions/${encodeURIComponent(lessonId)}/users/${encodeURIComponent(userId)}${query ? `?${query}` : ""}`,
+    `/theory-sessions/${encodeURIComponent(lessonId)}/users/${encodeURIComponent(userId)}${query ? `?${query}` : ''}`,
     {
       ...options,
-      method: "GET",
+      method: 'GET',
     },
     { clearOnUnauthorized: false },
   );
 
   if (!response.ok) {
-    throw await parseError(response, "Не удалось загрузить метрики теории.");
+    throw await parseError(response, 'Не удалось загрузить метрики теории.');
   }
 
-  const data = await response.json();
-  return Array.isArray(data) ? data.map(normalizeTheorySession) : [];
+  return asRecords(await response.json()).map(normalizeTheorySession);
 }
 
 /** Отправка метрик при закрытии страницы (fetch с keepalive). */
@@ -163,10 +165,10 @@ export function updateSessionKeepalive(
   }
 
   fetch(`${API_BASE}/theory-sessions/${encodeURIComponent(sessionId)}`, {
-    method: "PUT",
+    method: 'PUT',
     keepalive: true,
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(metrics),

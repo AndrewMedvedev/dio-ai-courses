@@ -8,7 +8,7 @@ export {
   fetchLessonProgress,
   fetchModuleProgress,
   recalculateCourseProgress,
-} from "./api/progress-api";
+} from './api/progress-api';
 export {
   PROGRESS_STATUS,
   PROGRESS_STATUS_LABELS,
@@ -28,7 +28,7 @@ export {
   type LessonProgress,
   type ModuleProgressSummary,
   type ProgressStatus,
-} from "./model/progress-service";
+} from './model/progress-service';
 export {
   createSession,
   getTheorySessions,
@@ -37,4 +37,4 @@ export {
   type TheorySession,
   type TheorySessionMetrics,
   type TheorySessionsFilters,
-} from "./api/theory-session-api";
+} from './api/theory-session-api';

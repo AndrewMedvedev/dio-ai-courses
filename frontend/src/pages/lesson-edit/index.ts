@@ -3,4 +3,4 @@ export {
   type LessonChanges,
   type LessonPageProps,
   type UpdateLessonOptions,
-} from "./ui/LessonPage";
+} from './ui/LessonPage';

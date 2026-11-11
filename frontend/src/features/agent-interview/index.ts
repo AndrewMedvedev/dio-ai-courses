@@ -1,5 +1,5 @@
 export {
   AgentInterviewDialog,
-  resetAgentInterview,
   type AgentInterviewDialogProps,
-} from "./ui/AgentInterviewDialog";
+} from './ui/AgentInterviewDialog';
+export { resetAgentInterview } from './ui/agent-interview';

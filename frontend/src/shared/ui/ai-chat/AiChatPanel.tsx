@@ -8,10 +8,10 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type RefObject,
-} from "react";
-import { createPortal } from "react-dom";
-import { ChatIconButton } from "./ChatParts";
-import { IconClose, IconCollapse, IconExpand } from "./icons";
+} from 'react';
+import { createPortal } from 'react-dom';
+import { ChatIconButton } from './ChatParts';
+import { IconClose, IconCollapse, IconExpand } from './icons';
 
 /*
  * Панель ИИ-чата у правого края экрана — как панель DIOS AI:
@@ -20,20 +20,17 @@ import { IconClose, IconCollapse, IconExpand } from "./icons";
  * Панель располагается поверх страницы и не меняет ширину её содержимого.
  * На узком экране (≤ 1024 px) панель занимает всю ширину.
  */
-const WIDTH_KEY = "ai-chat-panel-width";
+const WIDTH_KEY = 'ai-chat-panel-width';
 const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 440;
 const HANDLE_WIDTH = 6;
 const RESIZE_STEP = 16;
 const WIDE_RESIZE_STEP = 48;
-const WIDE_QUERY = "(min-width: 1025px)";
-const OPEN_EVENT = "ai-chat-panel:open";
+const WIDE_QUERY = '(min-width: 1025px)';
+const OPEN_EVENT = 'ai-chat-panel:open';
 
 const clampWidth = (value: number) => {
-  const max = Math.max(
-    MIN_WIDTH,
-    window.innerWidth - HANDLE_WIDTH,
-  );
+  const max = Math.max(MIN_WIDTH, window.innerWidth - HANDLE_WIDTH);
   return Math.round(Math.min(Math.max(value, MIN_WIDTH), max));
 };
 
@@ -55,7 +52,7 @@ function storeWidth(value: number) {
 }
 
 const matchesWide = () =>
-  typeof window !== "undefined" && window.matchMedia(WIDE_QUERY).matches;
+  typeof window !== 'undefined' && window.matchMedia(WIDE_QUERY).matches;
 
 export interface AiChatPanelProps {
   open: boolean;
@@ -85,12 +82,12 @@ export function AiChatPanel({
   headerActions,
   children,
   id,
-  className = "",
+  className = '',
   initialFocusRef,
-  closeLabel = "Закрыть чат",
+  closeLabel = 'Закрыть чат',
 }: AiChatPanelProps) {
   const reactId = useId();
-  const panelId = id || `ai-chat-panel-${reactId.replace(/:/g, "")}`;
+  const panelId = id || `ai-chat-panel-${reactId.replace(/:/g, '')}`;
   const titleId = `${panelId}-title`;
   const [expanded, setExpanded] = useState(false);
   const [isWide, setIsWide] = useState(matchesWide);
@@ -106,15 +103,15 @@ export function AiChatPanel({
 
   const docked = open && isWide && !expanded;
   const currentWidth =
-    typeof window === "undefined" ? width : clampWidth(width);
+    typeof window === 'undefined' ? width : clampWidth(width);
 
   useEffect(() => {
     const media = window.matchMedia(WIDE_QUERY);
     const handleChange = (event: MediaQueryListEvent) =>
       setIsWide(event.matches);
     setIsWide(media.matches);
-    media.addEventListener("change", handleChange);
-    return () => media.removeEventListener("change", handleChange);
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
   }, []);
 
   useEffect(() => {
@@ -136,14 +133,15 @@ export function AiChatPanel({
   useEffect(() => {
     if (!open) return undefined;
     const handleResize = () => setWidth((value) => clampWidth(value));
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [open]);
 
   // Фокус: в поле ввода при открытии, обратно на кнопку открытия при закрытии.
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
     const frame = window.requestAnimationFrame(() => {
       const target = initialFocusRef?.current || panelRef.current;
       target?.focus({ preventScroll: true });
@@ -153,7 +151,7 @@ export function AiChatPanel({
       if (
         previous &&
         document.contains(previous) &&
-        panelRef.current?.contains(document.activeElement)
+        panel?.contains(document.activeElement)
       ) {
         previous.focus({ preventScroll: true });
       }
@@ -163,7 +161,7 @@ export function AiChatPanel({
   useEffect(() => {
     if (!open) return undefined;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
       // Поверх панели открыт модальный диалог — Esc закрывает его, а не чат.
       const modal = Array.from(
         document.querySelectorAll('[aria-modal="true"]'),
@@ -172,8 +170,8 @@ export function AiChatPanel({
       if (expandedRef.current) setExpanded(false);
       else onCloseRef.current();
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open]);
 
   useEffect(() => {
@@ -181,8 +179,8 @@ export function AiChatPanel({
     const { body } = document;
     const previousCursor = body.style.cursor;
     const previousSelect = body.style.userSelect;
-    body.style.cursor = "col-resize";
-    body.style.userSelect = "none";
+    body.style.cursor = 'col-resize';
+    body.style.userSelect = 'none';
     const handleMove = (event: PointerEvent) => {
       event.preventDefault();
       setWidth(
@@ -190,17 +188,17 @@ export function AiChatPanel({
       );
     };
     const stop = () => setIsResizing(false);
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", stop);
-    window.addEventListener("pointercancel", stop);
-    window.addEventListener("blur", stop);
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    window.addEventListener('blur', stop);
     return () => {
       body.style.cursor = previousCursor;
       body.style.userSelect = previousSelect;
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", stop);
-      window.removeEventListener("pointercancel", stop);
-      window.removeEventListener("blur", stop);
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      window.removeEventListener('blur', stop);
       storeWidth(widthRef.current);
     };
   }, [isResizing]);
@@ -215,17 +213,17 @@ export function AiChatPanel({
   );
 
   const resizeWithKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     const step = event.shiftKey ? WIDE_RESIZE_STEP : RESIZE_STEP;
     const next = clampWidth(
-      widthRef.current + (event.key === "ArrowLeft" ? step : -step),
+      widthRef.current + (event.key === 'ArrowLeft' ? step : -step),
     );
     setWidth(next);
     storeWidth(next);
   };
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
     <>
@@ -237,7 +235,7 @@ export function AiChatPanel({
         />
       ) : null}
       <div
-        className={`ai-chat-dock tw:fixed tw:top-0 tw:right-0 tw:bottom-0 tw:z-[56] tw:flex tw:pointer-events-none ${expanded ? "tw:w-full" : "tw:max-1024:w-full"}`}
+        className={`ai-chat-dock tw:fixed tw:top-0 tw:right-0 tw:bottom-0 tw:z-[56] tw:flex tw:pointer-events-none ${expanded ? 'tw:w-full' : 'tw:max-1024:w-full'}`}
       >
         {docked ? (
           <div
@@ -248,7 +246,10 @@ export function AiChatPanel({
             aria-orientation="vertical"
             aria-controls={panelId}
             aria-valuemin={MIN_WIDTH}
-            aria-valuemax={Math.max(MIN_WIDTH, window.innerWidth - HANDLE_WIDTH)}
+            aria-valuemax={Math.max(
+              MIN_WIDTH,
+              window.innerWidth - HANDLE_WIDTH,
+            )}
             aria-valuenow={currentWidth}
             title="Потяните, чтобы изменить ширину"
             onPointerDown={startResize}
@@ -256,7 +257,7 @@ export function AiChatPanel({
             data-active={isResizing || undefined}
           >
             <span
-              className={`tw:absolute tw:top-1/2 tw:left-1/2 tw:-translate-x-1/2 tw:-translate-y-1/2 tw:h-[44px] tw:w-[4px] tw:rounded-full tw:transition-colors ${isResizing ? "tw:bg-(--cta)" : "tw:bg-(--line)"}`}
+              className={`tw:absolute tw:top-1/2 tw:left-1/2 tw:-translate-x-1/2 tw:-translate-y-1/2 tw:h-[44px] tw:w-[4px] tw:rounded-full tw:transition-colors ${isResizing ? 'tw:bg-(--cta)' : 'tw:bg-(--line)'}`}
               aria-hidden="true"
             />
             <span
@@ -268,10 +269,10 @@ export function AiChatPanel({
         <section
           ref={panelRef}
           id={panelId}
-          className={`ai-chat-panel tw:relative tw:flex tw:flex-col tw:h-full tw:min-w-0 tw:pointer-events-auto tw:outline-none tw:bg-[#f8f5ef] tw:dark:bg-[#333333] tw:text-(--text) tw:[border-left:1px_solid_var(--line)] tw:shadow-[-18px_0_48px_rgba(43,32,20,0.14)] tw:dark:shadow-[-18px_0_48px_rgba(0,0,0,0.42)] tw:animate-ai-panel-in tw:motion-reduce:animate-none ${expanded || !isWide ? "tw:w-full" : ""} ${className}`}
+          className={`ai-chat-panel tw:relative tw:flex tw:flex-col tw:h-full tw:min-w-0 tw:pointer-events-auto tw:outline-none tw:bg-[#f8f5ef] tw:dark:bg-[#333333] tw:text-(--text) tw:[border-left:1px_solid_var(--line)] tw:shadow-[-18px_0_48px_rgba(43,32,20,0.14)] tw:dark:shadow-[-18px_0_48px_rgba(0,0,0,0.42)] tw:animate-ai-panel-in tw:motion-reduce:animate-none ${expanded || !isWide ? 'tw:w-full' : ''} ${className}`}
           style={docked ? { width: currentWidth } : undefined}
           role="dialog"
-          aria-modal={expanded || !isWide ? "true" : undefined}
+          aria-modal={expanded || !isWide ? 'true' : undefined}
           aria-labelledby={titleId}
           tabIndex={-1}
         >
@@ -287,7 +288,7 @@ export function AiChatPanel({
                   id={titleId}
                   className="ai-chat-title tw:m-0 tw:text-[13.5px] tw:leading-[1.35] tw:font-semibold tw:text-(--heading) tw:truncate"
                 >
-                  {title || "ИИ-чат"}
+                  {title || 'ИИ-чат'}
                 </h2>
                 {subtitle ? (
                   <p className="tw:m-0! tw:text-[12px]! tw:leading-[1.4]! tw:text-(--muted) tw:truncate">
@@ -300,7 +301,7 @@ export function AiChatPanel({
               {headerActions}
               {isWide ? (
                 <ChatIconButton
-                  label={expanded ? "Свернуть" : "Развернуть на весь экран"}
+                  label={expanded ? 'Свернуть' : 'Развернуть на весь экран'}
                   onClick={() => setExpanded((value) => !value)}
                   aria-pressed={expanded}
                 >

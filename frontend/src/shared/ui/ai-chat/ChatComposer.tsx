@@ -4,11 +4,11 @@ import {
   type KeyboardEvent,
   type MutableRefObject,
   type ReactNode,
-} from "react";
-import { autosizeTextarea } from "@/shared/lib/dom";
-import { ChatIconButton } from "./ChatParts";
-import { chatScrollbarClass } from "./scrollbar";
-import { IconArrowUp, IconClose, IconFile, IconPlus, IconStop } from "./icons";
+} from 'react';
+import { autosizeTextarea } from '@/shared/lib/dom';
+import { ChatIconButton } from './ChatParts';
+import { chatScrollbarClass } from './scrollbar';
+import { IconArrowUp, IconClose, IconFile, IconPlus, IconStop } from './icons';
 
 export interface ChatComposerFile {
   id: string;
@@ -53,7 +53,7 @@ export function ChatComposer({
   value,
   onChange,
   onSubmit,
-  placeholder = "Напишите сообщение…",
+  placeholder = 'Напишите сообщение…',
   disabled = false,
   busy = false,
   onStop,
@@ -61,17 +61,17 @@ export function ChatComposer({
   maxLength = 10_000,
   maxHeight = 180,
   onAttach,
-  attachLabel = "Прикрепить файл",
+  attachLabel = 'Прикрепить файл',
   attachDisabled = false,
   files = [],
   onRemoveFile,
-  hint = "Enter — отправить · Shift + Enter — новая строка",
+  hint = 'Enter — отправить · Shift + Enter — новая строка',
   extra,
   textareaRef,
-  ariaLabel = "Сообщение",
-  sendLabel = "Отправить сообщение",
+  ariaLabel = 'Сообщение',
+  sendLabel = 'Отправить сообщение',
   id,
-  className = "",
+  className = '',
 }: ChatComposerProps) {
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const allowed = canSubmit ?? Boolean(value.trim());
@@ -83,7 +83,7 @@ export function ChatComposer({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) return;
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!sendDisabled) onSubmit();
     }
@@ -178,7 +178,7 @@ export function ChatComposer({
               className="ai-chat-send tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b] tw:transition-opacity tw:disabled:opacity-45 tw:disabled:cursor-not-allowed tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]"
               onClick={onSubmit}
               disabled={sendDisabled}
-              aria-label={busy ? "ИИ готовит ответ" : sendLabel}
+              aria-label={busy ? 'ИИ готовит ответ' : sendLabel}
               title="Отправить"
             >
               <IconArrowUp size={17} />

@@ -1,7 +1,9 @@
-import { create } from "zustand";
-import type { RawApiRecord } from "@/shared/api";
-import { getMyCourses, signCourse } from "../api/members-api";
-import type { LearningCourse } from "./types";
+import { toText } from '@/shared/lib/text';
+import { asArray } from '@/shared/api';
+import { create } from 'zustand';
+import type { RawApiRecord } from '@/shared/api';
+import { getMyCourses, signCourse } from '../api/members-api';
+import type { LearningCourse } from './types';
 
 interface MyCoursesMeta {
   page: number;
@@ -43,16 +45,18 @@ const DEFAULT_MY_COURSES_META: MyCoursesMeta = {
 };
 
 function getCourseStudentIds(course: LearningCourse): string[] {
-  return ((course?.students as RawApiRecord[] | undefined) || [])
-    .map((student) => student?.course_id || student?.courseId || course?.id)
-    .filter(Boolean);
+  return asArray(
+    ((course?.students as RawApiRecord[] | undefined) || [])
+      .map((student) => student?.course_id || student?.courseId || course?.id)
+      .filter(Boolean),
+  ).map(toText);
 }
 
 export const useStudentStore = create<StudentState>((set, get) => ({
   myCourses: [],
   myCoursesMeta: DEFAULT_MY_COURSES_META,
   isMyCoursesLoading: false,
-  myCoursesError: "",
+  myCoursesError: '',
   enrolledCourseIds: new Set(),
   signingCourseIds: new Set(),
 
@@ -60,7 +64,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   isCourseSigning: (courseId) => get().signingCourseIds.has(courseId),
 
   loadMyCourses: async ({ page = 1, size = 10 } = {}, options = {}) => {
-    set({ isMyCoursesLoading: true, myCoursesError: "" });
+    set({ isMyCoursesLoading: true, myCoursesError: '' });
 
     try {
       const response = await getMyCourses({ page, size }, options);
@@ -94,7 +98,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
       const message =
         errorText(error)?.userMessage ||
         errorText(error)?.message ||
-        "Не удалось загрузить ваши курсы.";
+        'Не удалось загрузить ваши курсы.';
       set({
         myCourses: [],
         myCoursesError: message,
@@ -111,7 +115,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
 
     set((state) => ({
       signingCourseIds: new Set([...state.signingCourseIds, courseId]),
-      myCoursesError: "",
+      myCoursesError: '',
     }));
 
     try {
@@ -142,7 +146,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         myCoursesError:
           errorText(error)?.userMessage ||
           errorText(error)?.message ||
-          "Не удалось записаться на курс.",
+          'Не удалось записаться на курс.',
       }));
       throw error;
     }

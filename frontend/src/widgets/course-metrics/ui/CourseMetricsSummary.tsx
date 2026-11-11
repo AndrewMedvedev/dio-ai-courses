@@ -1,17 +1,17 @@
 // Сводка по курсу на странице метрик: плитки, таблица студентов и распределение
 // по прогрессу. Данные: участники курса (/members) и их прогресс (/progress/.../students).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import {
   normalizeCourseProgress,
   fetchCourseStudentsProgress,
   type CourseProgress,
-} from "@/entities/progress";
-import { useCourseMetricsStore } from "../model/course-metrics-store";
-import { METRICS_STUDENTS_LIMIT } from "../model/constants";
-import { getInitials, percentTone, pluralRu } from "../lib/metrics-format";
+} from '@/entities/progress';
+import { useCourseMetricsStore } from '../model/course-metrics-store';
+import { METRICS_STUDENTS_LIMIT } from '../model/constants';
+import { getInitials, percentTone, pluralRu } from '../lib/metrics-format';
 
-const BUCKETS = ["0–25%", "25–50%", "50–75%", "75–100%"];
-const STUDENT_FORMS = ["студент", "студента", "студентов"] as const;
+const BUCKETS = ['0–25%', '25–50%', '50–75%', '75–100%'];
+const STUDENT_FORMS = ['студент', 'студента', 'студентов'] as const;
 
 interface ProgressState {
   loading: boolean;
@@ -24,9 +24,9 @@ function bucketOf(percent: number) {
 }
 
 function statusOf(record: CourseProgress | null) {
-  if (!record) return { label: "Не начал", tone: "is-neutral" };
-  if (record.percent >= 100) return { label: "Завершил", tone: "is-good" };
-  return { label: "Учится", tone: "is-warning" };
+  if (!record) return { label: 'Не начал', tone: 'is-neutral' };
+  if (record.percent >= 100) return { label: 'Завершил', tone: 'is-good' };
+  return { label: 'Учится', tone: 'is-warning' };
 }
 
 export interface CourseMetricsSummaryProps {
@@ -49,7 +49,7 @@ export function CourseMetricsSummary({
   const loadStudents = useCourseMetricsStore((state) => state.loadStudents);
   const [progress, setProgress] = useState<ProgressState>({
     loading: true,
-    error: "",
+    error: '',
     byUser: {},
   });
 
@@ -63,7 +63,7 @@ export function CourseMetricsSummary({
   useEffect(() => {
     if (!courseId) return undefined;
     const controller = new AbortController();
-    setProgress({ loading: true, error: "", byUser: {} });
+    setProgress({ loading: true, error: '', byUser: {} });
     fetchCourseStudentsProgress(
       courseId,
       { size: METRICS_STUDENTS_LIMIT },
@@ -76,13 +76,13 @@ export function CourseMetricsSummary({
           const record = normalizeCourseProgress(item);
           if (record?.userId) byUser[record.userId] = record;
         });
-        setProgress({ loading: false, error: "", byUser });
+        setProgress({ loading: false, error: '', byUser });
       })
       .catch((error: Error | null) => {
         if (controller.signal.aborted) return;
         setProgress({
           loading: false,
-          error: error?.message || "Не удалось загрузить прогресс студентов.",
+          error: error?.message || 'Не удалось загрузить прогресс студентов.',
           byUser: {},
         });
       });
@@ -98,9 +98,9 @@ export function CourseMetricsSummary({
           return {
             key: student.id || student.userId,
             userId: student.userId,
-            name: user?.fullName || user?.email || "Студент",
-            email: user?.fullName ? user?.email || "" : "",
-            avatarUrl: user?.avatarUrl || "",
+            name: user?.fullName || user?.email || 'Студент',
+            email: user?.fullName ? user?.email || '' : '',
+            avatarUrl: user?.avatarUrl || '',
             record,
             percent: record ? Math.round(record.percent) : 0,
             status: statusOf(record),
@@ -110,7 +110,7 @@ export function CourseMetricsSummary({
           (a, b) =>
             Number(Boolean(b.record)) - Number(Boolean(a.record)) ||
             b.percent - a.percent ||
-            a.name.localeCompare(b.name, "ru"),
+            a.name.localeCompare(b.name, 'ru'),
         ),
     [progress.byUser, students, usersCache],
   );
@@ -163,7 +163,7 @@ export function CourseMetricsSummary({
             Студентов
           </span>
           <strong className="tw:text-(--heading) tw:text-[1.75rem] tw:leading-[1.15]">
-            {isLoading ? "…" : totalStudents}
+            {isLoading ? '…' : totalStudents}
           </strong>
           <small className="tw:text-(--muted) tw:text-[0.8rem]">
             записаны на курс
@@ -174,7 +174,7 @@ export function CourseMetricsSummary({
             Средний прогресс
           </span>
           <strong className="tw:text-(--heading) tw:text-[1.75rem] tw:leading-[1.15]">
-            {isLoading ? "…" : `${totals.average}%`}
+            {isLoading ? '…' : `${totals.average}%`}
           </strong>
           <small className="tw:text-(--muted) tw:text-[0.8rem]">
             по всем студентам
@@ -185,10 +185,10 @@ export function CourseMetricsSummary({
             Завершили курс
           </span>
           <strong className="tw:text-(--heading) tw:text-[1.75rem] tw:leading-[1.15]">
-            {isLoading ? "…" : totals.completed}
+            {isLoading ? '…' : totals.completed}
           </strong>
           <small className="tw:text-(--muted) tw:text-[0.8rem]">
-            {isLoading ? "" : `${completedShare}% студентов`}
+            {isLoading ? '' : `${completedShare}% студентов`}
           </small>
         </article>
         <article className="cm-kpi tw:flex tw:flex-col tw:items-start tw:gap-[3px] tw:min-w-[0] tw:p-[14px_16px] tw:rounded-[16px] tw:[border:1px_solid_var(--cm-border)] tw:[background:var(--cm-panel)]">
@@ -196,7 +196,7 @@ export function CourseMetricsSummary({
             Не начали
           </span>
           <strong className="tw:text-(--heading) tw:text-[1.75rem] tw:leading-[1.15]">
-            {isLoading ? "…" : totals.notStarted}
+            {isLoading ? '…' : totals.notStarted}
           </strong>
           <small className="tw:text-(--muted) tw:text-[0.8rem]">
             ещё не открывали курс
@@ -295,7 +295,7 @@ export function CourseMetricsSummary({
                             aria-valuenow={row.percent}
                           >
                             <i
-                              className={`tw:block tw:h-[100%] tw:rounded-[inherit] tw:[.cm_&.is-good:is(.cm-bar_i,i.cm-chart-bar,.cm-legend_i)]:[background:var(--cm-good)] tw:[.cm_&.is-danger:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-bad)] tw:[.cm_&.is-warning:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-warn)] ${percentTone(row.percent) ?? ""}`}
+                              className={`tw:block tw:h-[100%] tw:rounded-[inherit] tw:[.cm_&.is-good:is(.cm-bar_i,i.cm-chart-bar,.cm-legend_i)]:[background:var(--cm-good)] tw:[.cm_&.is-danger:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-bad)] tw:[.cm_&.is-warning:is(.cm-bar_i,i.cm-chart-bar)]:[background:var(--cm-warn)] ${percentTone(row.percent) ?? ''}`}
                               style={{ width: `${row.percent}%` }}
                             />
                           </div>
@@ -319,7 +319,7 @@ export function CourseMetricsSummary({
           )}
           {totalStudents > rows.length && rows.length > 0 ? (
             <p className="cm-panel-hint tw:text-(--muted) tw:text-[0.84rem] tw:leading-[1.4] tw:[.page_.cm_&]:m-[0]">
-              Показаны первые {rows.length} из {totalStudents}{" "}
+              Показаны первые {rows.length} из {totalStudents}{' '}
               {pluralRu(totalStudents, STUDENT_FORMS)}.
             </p>
           ) : null}
@@ -350,7 +350,7 @@ export function CourseMetricsSummary({
                   style={{
                     height: `${Math.max(3, (totals.buckets[index] / maxBucket) * 100)}%`,
                   }}
-                  className={`tw:w-[70%] tw:rounded-[8px_8px_3px_3px] tw:[align-self:end] tw:[background:rgba(var(--accent-rgb),_0.85)] tw:[.cm-histogram-col_&.is-empty]:[background:rgba(var(--accent-rgb),_0.3)] ${totals.buckets[index] ? "" : "is-empty"}`}
+                  className={`tw:w-[70%] tw:rounded-[8px_8px_3px_3px] tw:[align-self:end] tw:[background:rgba(var(--accent-rgb),_0.85)] tw:[.cm-histogram-col_&.is-empty]:[background:rgba(var(--accent-rgb),_0.3)] ${totals.buckets[index] ? '' : 'is-empty'}`}
                 />
                 <span className="tw:text-(--muted) tw:text-[0.76rem] tw:whitespace-nowrap">
                   {label}

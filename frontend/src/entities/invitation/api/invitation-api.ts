@@ -1,3 +1,4 @@
+import { asRecords } from '@/shared/api';
 import {
   jsonRequest,
   requestJson,
@@ -6,14 +7,14 @@ import {
   type Paginated,
   type RawApiRecord,
   type TokenResponse,
-} from "@/shared/api";
+} from '@/shared/api';
 import type {
   AcceptInvitationParams,
   InvitationPreview,
   InvitationSource,
   OrganizationInvitation,
   Role,
-} from "../model/types";
+} from '../model/types';
 
 /** Регистрация нового пользователя по приглашению: вернёт токены сессии. */
 export async function acceptInvitation({
@@ -25,8 +26,8 @@ export async function acceptInvitation({
   return requestJson(
     `/invitations/accept/${encodeURIComponent(token)}`,
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password, full_name, username }),
     },
     { auth: false },
@@ -51,7 +52,7 @@ export async function fetchInvitationRoles(): Promise<Role[]> {
     page += 1;
   } while (result.has_next);
   // Preserve the supported invitation roles, resolving their actual database IDs.
-  return roles.filter((role) => ["default_role", "admin"].includes(role.code));
+  return roles.filter((role) => ['default_role', 'admin'].includes(role.code));
 }
 
 // Приглашение в текущую организацию (бэкенд берёт её из токена); роли — массив UUID.
@@ -62,7 +63,7 @@ export async function inviteToOrganization({
   email: string;
   grantedRoles?: string[];
 }): Promise<unknown> {
-  return jsonRequest("/organizations/invitations", "POST", {
+  return jsonRequest('/organizations/invitations', 'POST', {
     email,
     grantedRoles,
   });
@@ -80,7 +81,7 @@ export function revokeOrganizationInvitation(
 ): Promise<unknown> {
   return requestJson(
     `/organizations/invitations/revoke/${encodeURIComponent(id)}?source=${encodeURIComponent(source)}`,
-    { method: "DELETE" },
+    { method: 'DELETE' },
   );
 }
 
@@ -90,7 +91,7 @@ export function resendOrganizationInvitation(
 ): Promise<OrganizationInvitation> {
   return requestJson(
     `/organizations/invitations/${encodeURIComponent(id)}/resend?source=${encodeURIComponent(source)}`,
-    { method: "POST" },
+    { method: 'POST' },
   );
 }
 
@@ -100,7 +101,7 @@ export async function acceptOrganizationInvitation(
 ): Promise<RawApiRecord | null> {
   return requestJson(
     `/organizations/invitations/accept/${encodeURIComponent(token)}`,
-    { method: "POST" },
+    { method: 'POST' },
   );
 }
 
@@ -113,7 +114,7 @@ export async function inviteToCourse({
   email: string;
   role: string;
 }): Promise<unknown> {
-  return jsonRequest("/courses/invitations", "POST", {
+  return jsonRequest('/courses/invitations', 'POST', {
     course_id: courseId,
     email,
     role,
@@ -133,10 +134,10 @@ export async function fetchCourseInvitationsPage(
   const data = await requestJson(`/courses/invitations?${query.toString()}`);
   const items = Array.isArray(data) ? data : data?.items || [];
   return {
-    items,
+    items: asRecords(items),
     page: Number(data?.page) || page,
     size: Number(data?.size) || size,
-    total: Number(data?.total) || items.length,
+    total: Number(data?.total) || asRecords(items).length,
     hasNext: Boolean(data?.has_next ?? data?.hasNext),
   };
 }
@@ -146,7 +147,7 @@ export async function revokeCourseInvitation(
 ): Promise<unknown> {
   return requestJson(
     `/courses/invitations/revoke/${encodeURIComponent(invitationId)}`,
-    { method: "DELETE" },
+    { method: 'DELETE' },
   );
 }
 
@@ -155,6 +156,6 @@ export async function acceptCourseInvitation(
 ): Promise<RawApiRecord | null> {
   return requestJson(
     `/courses/invitations/accept/${encodeURIComponent(token)}`,
-    { method: "POST" },
+    { method: 'POST' },
   );
 }

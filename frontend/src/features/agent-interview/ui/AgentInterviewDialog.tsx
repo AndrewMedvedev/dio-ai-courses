@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AppModal } from "@/shared/ui/app-modal";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AppModal } from '@/shared/ui/app-modal';
 import {
   AiChatPanel,
   ChatButton,
@@ -14,8 +14,8 @@ import {
   ChatTyping,
   IconNewChat,
   IconRetry,
-} from "@/shared/ui/ai-chat";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+} from '@/shared/ui/ai-chat';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import {
   CONFIRM_LAUNCH_MESSAGE,
   extractTaskId,
@@ -23,109 +23,15 @@ import {
   getResponseText,
   isAwaitingLaunchConfirmation,
   looksLikeLaunchConfirmation,
-  createAgentConversationKey,
   useAgentStore,
-  type AgentType,
-} from "@/entities/agent-chat";
-import { isAgentMockEnabled } from "@/shared/lib/agent-mock";
+} from '@/entities/agent-chat';
+import { isAgentMockEnabled } from '@/shared/lib/agent-mock';
 import {
-  generationJobKey,
   useGenerationJobsStore,
   type GenerationJob,
   type GenerationJobKind,
-} from "@/entities/generation-job";
-
-interface InterviewTexts {
-  agent: AgentType;
-  eyebrow: string;
-  title: string;
-  intro: string;
-  placeholder: string;
-  started: string;
-  confirmTitle: string;
-  running: (job: GenerationJob) => string;
-  done: (job: GenerationJob) => string;
-  open: string;
-  another: string;
-  anotherHint: string;
-}
-
-const TEXTS: Record<GenerationJobKind, InterviewTexts> = {
-  module: {
-    agent: "module_interviewer",
-    eyebrow: "ИИ-генерация модуля",
-    title: "Новый модуль с ИИ",
-    intro:
-      "Расскажите, какой модуль нужен: тема, для кого он и что студент должен уметь после него. Агент задаст пару уточняющих вопросов, покажет структуру и стоимость и попросит подтвердить запуск.",
-    placeholder:
-      "Например: модуль про расчёт отпускных для бухгалтеров-новичков",
-    started: "Генерация модуля запущена.",
-    confirmTitle: "Запустить генерацию модуля?",
-    running: (job) =>
-      job.resultId
-        ? `Модуль «${job.resultTitle || "без названия"}» создаётся. Готово уроков: ${job.lessonsCount}.`
-        : "Модуль генерируется. Это может занять несколько минут — окно можно закрыть.",
-    done: (job) =>
-      `Модуль «${job.resultTitle || "без названия"}» готов: ${job.lessonsCount} урок(ов).`,
-    open: "Открыть модуль",
-    another: "Сгенерировать ещё модуль",
-    anotherHint:
-      "Новый модуль встанет сразу после этого. Другое место можно выбрать в списке модулей — кнопка «Сгенерировать модуль здесь».",
-  },
-  lesson: {
-    agent: "lesson_interviewer",
-    eyebrow: "ИИ-генерация урока",
-    title: "Новый урок с ИИ",
-    intro:
-      "Опишите урок: какую тему он раскрывает, что студент уже знает и чему должен научиться. Агент уточнит детали, покажет структуру и попросит подтвердить запуск.",
-    placeholder: "Например: урок о том, как считать НДФЛ с премии",
-    started: "Генерация урока запущена.",
-    confirmTitle: "Запустить генерацию урока?",
-    running: () =>
-      "Урок генерируется. Это может занять несколько минут — окно можно закрыть.",
-    done: (job) => `Урок «${job.resultTitle || "без названия"}» готов.`,
-    open: "Открыть урок",
-    another: "Сгенерировать ещё урок",
-    anotherHint:
-      "Новый урок встанет сразу после этого. Другое место можно выбрать в списке уроков — кнопка «Сгенерировать урок здесь».",
-  },
-};
-
-const conversationKeyFor = (
-  kind: GenerationJobKind,
-  courseId: string,
-  moduleId = "",
-) =>
-  createAgentConversationKey(
-    (TEXTS[kind] || TEXTS.module).agent,
-    courseId,
-    kind === "lesson" ? moduleId : "new-module",
-  );
-
-const jobKeyFor = (kind: GenerationJobKind, courseId: string, moduleId = "") =>
-  generationJobKey(kind, courseId, kind === "lesson" ? moduleId : "");
-
-/**
- * Начинает генерацию заново: удаляет переписку (следующий запрос уйдёт с новым chat_id)
- * и завершённую или упавшую генерацию. Окно чата при этом остаётся открытым.
- */
-export function resetAgentInterview({
-  kind,
-  courseId,
-  moduleId = "",
-}: {
-  kind: GenerationJobKind;
-  courseId: string;
-  moduleId?: string;
-}) {
-  const key = conversationKeyFor(kind, courseId, moduleId);
-  const agentState = useAgentStore.getState();
-  agentState.cancelRequest(key);
-  agentState.clearConversation(key);
-  useGenerationJobsStore
-    .getState()
-    .removeJob(jobKeyFor(kind, courseId, moduleId));
-}
+} from '@/entities/generation-job';
+import { TEXTS, conversationKeyFor, jobKeyFor } from './agent-interview';
 
 export interface AgentInterviewDialogProps {
   open: boolean;
@@ -138,7 +44,7 @@ export interface AgentInterviewDialogProps {
   contextTitle?: string;
   onOpenResult?: (job: GenerationJob) => void;
   onStartAnother?: (job: GenerationJob | null) => void;
-  variant?: "modal" | "floating";
+  variant?: 'modal' | 'floating';
 }
 
 /**
@@ -151,16 +57,16 @@ export function AgentInterviewDialog({
   onClose,
   kind,
   courseId,
-  moduleId = "",
+  moduleId = '',
   order,
   knownIds = [],
-  contextTitle = "",
+  contextTitle = '',
   onOpenResult,
   // Вызывается по кнопке «Сгенерировать ещё»: родитель выбирает место для следующего.
   onStartAnother,
   // "modal" — модальное окно, "floating" — плавающее окно, которое можно
   // перетаскивать и растягивать, не закрывая доступ к редактору.
-  variant = "modal",
+  variant = 'modal',
 }: AgentInterviewDialogProps) {
   const texts = TEXTS[kind] || TEXTS.module;
   const conversationKey = useMemo(
@@ -176,7 +82,7 @@ export function AgentInterviewDialog({
     (state) => state.initializeConversation,
   );
   const sendAgentMessage = useAgentStore((state) => state.sendMessage);
-  const appendMessage = useAgentStore((state) => state.appendMessage);
+
   const removeLastMessage = useAgentStore((state) => state.removeLastMessage);
   const clearConversation = useAgentStore((state) => state.clearConversation);
   const cancelRequest = useAgentStore((state) => state.cancelRequest);
@@ -184,24 +90,24 @@ export function AgentInterviewDialog({
   const startJob = useGenerationJobsStore((state) => state.startJob);
   const removeJob = useGenerationJobsStore((state) => state.removeJob);
 
-  const [input, setInput] = useState("");
-  const [lastSent, setLastSent] = useState("");
+  const [input, setInput] = useState('');
+  const [lastSent, setLastSent] = useState('');
   const [confirmText, setConfirmText] = useState<string | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const isFloating = variant === "floating";
+  const isFloating = variant === 'floating';
 
   const messages = conversation?.messages || [];
-  const isThinking = conversation?.status === "loading";
-  const error = conversation?.status === "error" ? conversation.error : "";
-  const isRunning = job?.status === "running";
-  const isDone = job?.status === "done";
-  const isFailed = job?.status === "error";
+  const isThinking = conversation?.status === 'loading';
+  const error = conversation?.status === 'error' ? conversation.error : '';
+  const isRunning = job?.status === 'running';
+  const isDone = job?.status === 'done';
+  const isFailed = job?.status === 'error';
   const awaitingConfirmation =
     !job && !isThinking && isAwaitingLaunchConfirmation(messages);
   const lastAssistant = getLastAssistantMessage(messages);
   const canWrite =
-    Boolean(courseId) && (kind !== "lesson" || Boolean(moduleId));
+    Boolean(courseId) && (kind !== 'lesson' || Boolean(moduleId));
 
   useEffect(() => {
     if (!open || !courseId) return;
@@ -213,10 +119,10 @@ export function AgentInterviewDialog({
   }, [conversationKey, courseId, initializeConversation, open, texts.agent]);
 
   const send = async (text: string) => {
-    const content = String(text || "").trim();
+    const content = String(text || '').trim();
     if (!content || isThinking || job || !canWrite) return;
     setLastSent(content);
-    setInput("");
+    setInput('');
     try {
       const response = await sendAgentMessage({
         key: conversationKey,
@@ -225,10 +131,10 @@ export function AgentInterviewDialog({
         content,
         editorPayload: {
           order,
-          ...(kind === "lesson" ? { module_id: moduleId } : {}),
+          ...(kind === 'lesson' ? { module_id: moduleId } : {}),
         },
         emptyResponseMessage:
-          "Агент вернул пустой ответ. Попробуйте переформулировать.",
+          'Агент вернул пустой ответ. Попробуйте переформулировать.',
         responseDisplayMessage: (result) =>
           getResponseText(result, texts.started),
       });
@@ -259,13 +165,13 @@ export function AgentInterviewDialog({
       setConfirmText(text);
       return;
     }
-    send(text);
+    void send(text);
   };
 
   const retry = () => {
     if (!lastSent) return;
-    removeLastMessage(conversationKey, "user");
-    send(lastSent);
+    removeLastMessage(conversationKey, 'user');
+    void send(lastSent);
   };
 
   const resetDialog = () => {
@@ -277,8 +183,8 @@ export function AgentInterviewDialog({
       agent: texts.agent,
       courseId,
     });
-    setInput("");
-    setLastSent("");
+    setInput('');
+    setLastSent('');
     setIsResetOpen(false);
   };
 
@@ -298,12 +204,12 @@ export function AgentInterviewDialog({
     onOpenResult?.(result);
   };
 
-  const panelTag = kind === "lesson" ? "Новый урок" : "Новый модуль";
+  const panelTag = kind === 'lesson' ? 'Новый урок' : 'Новый модуль';
 
   const thread = (
     <ChatThread
       busy={isThinking}
-      scrollKey={`${messages.length}:${isThinking}:${open}:${job?.status || ""}:${error}`}
+      scrollKey={`${messages.length}:${isThinking}:${open}:${job?.status || ''}:${error}`}
       centered={messages.length === 0 && !isThinking}
       label="Переписка с агентом"
     >
@@ -398,7 +304,7 @@ export function AgentInterviewDialog({
             </ChatButton>
           }
         >
-          {job.error || "Генерация не завершилась."}
+          {job.error || 'Генерация не завершилась.'}
         </ChatNotice>
       ) : null}
     </ChatThread>
@@ -493,7 +399,7 @@ export function AgentInterviewDialog({
         }}
       >
         <div className="agent-launch-summary tw:p-[12px_14px] tw:rounded-[14px] tw:max-h-[46vh] tw:overflow-y-auto tw:leading-[1.5] tw:wrap-anywhere tw:[border:1px_solid_var(--app-modal-border)] tw:[background:var(--app-modal-row)] tw:[&_p]:m-[0_0_8px] tw:[&_ul]:m-[0_0_8px] tw:[&_ul]:pl-[20px] tw:[&_ol]:m-[0_0_8px] tw:[&_ol]:pl-[20px]">
-          <ChatMarkdown>{lastAssistant?.text || ""}</ChatMarkdown>
+          <ChatMarkdown>{lastAssistant?.text || ''}</ChatMarkdown>
         </div>
         <p className="app-modal-note tw:m-[0] tw:text-(--muted) tw:text-[0.9rem]">
           После подтверждения агент поставит генерацию в очередь. Готовый
@@ -506,8 +412,8 @@ export function AgentInterviewDialog({
         title="Начать новый диалог?"
         description={
           isRunning
-            ? "Текущая переписка удалится. Уже запущенная генерация продолжится на сервере, но окно перестанет за ней следить."
-            : "Текущая переписка с агентом удалится, следующий диалог начнётся с нуля."
+            ? 'Текущая переписка удалится. Уже запущенная генерация продолжится на сервере, но окно перестанет за ней следить.'
+            : 'Текущая переписка с агентом удалится, следующий диалог начнётся с нуля.'
         }
         confirmLabel="Начать заново"
         danger

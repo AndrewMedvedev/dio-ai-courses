@@ -1,30 +1,31 @@
-import type { Identity } from "./types";
+import { toText } from '@/shared/lib/text';
+import type { Identity } from './types';
 
 export const COURSE_PERMISSIONS = {
-  READ: "course:read",
-  COURSE_READ: "course:course_read",
-  CREATE: "course:create",
-  UPDATE: "course:update",
-  DELETE: "course:delete",
+  READ: 'course:read',
+  COURSE_READ: 'course:course_read',
+  CREATE: 'course:create',
+  UPDATE: 'course:update',
+  DELETE: 'course:delete',
 } as const;
 
 export const ORGANIZATION_PERMISSIONS = {
-  CREATE: "organization:create",
-  READ: "organization:read",
-  ORGANIZATION_READ: "organization:organization_read",
-  UPDATE: "organization:update",
-  DELETE: "organization:delete",
+  CREATE: 'organization:create',
+  READ: 'organization:read',
+  ORGANIZATION_READ: 'organization:organization_read',
+  UPDATE: 'organization:update',
+  DELETE: 'organization:delete',
 } as const;
 
 // Приглашения в организацию. Отдельного приглашения в систему в интерфейсе нет:
 // новых пользователей бэкенд регистрирует через приглашение в организацию.
 export const INVITATION_PERMISSIONS = {
-  ORGANIZATION_INVITE: "organization-invitations:invite",
+  ORGANIZATION_INVITE: 'organization-invitations:invite',
 } as const;
 
 export const AI_MODEL_PERMISSIONS = {
-  CREATE: "ai_model:create",
-  DELETE: "ai_model:delete",
+  CREATE: 'ai_model:create',
+  DELETE: 'ai_model:delete',
 } as const;
 
 /** Право в виде строки ("course:read", "course.read") или объекта с бэкенда. */
@@ -41,28 +42,28 @@ export type PermissionInput =
   | undefined;
 
 function normalizePermissionString(value: unknown): string {
-  const permission = String(value || "")
+  const permission = toText(value || '')
     .trim()
     .toLowerCase();
-  if (!permission) return "";
+  if (!permission) return '';
 
-  const withoutScope = permission.split(":")[0];
-  const [resource, action] = withoutScope.includes(".")
-    ? withoutScope.split(".", 2)
-    : permission.split(":", 2);
+  const withoutScope = permission.split(':')[0];
+  const [resource, action] = withoutScope.includes('.')
+    ? withoutScope.split('.', 2)
+    : permission.split(':', 2);
 
-  if (!resource || !action) return permission.replace(".", ":");
+  if (!resource || !action) return permission.replace('.', ':');
 
   return `${resource}:${action}`;
 }
 
 export function normalizePermissionCode(permission: unknown): string {
-  if (typeof permission === "string") {
+  if (typeof permission === 'string') {
     return normalizePermissionString(permission);
   }
 
-  if (!permission || typeof permission !== "object") {
-    return "";
+  if (!permission || typeof permission !== 'object') {
+    return '';
   }
 
   const source = permission as Exclude<
@@ -70,7 +71,7 @@ export function normalizePermissionCode(permission: unknown): string {
     string | null | undefined
   >;
   const rawCode = source.code || source.name || source.permission;
-  if (typeof rawCode === "string" && rawCode.trim()) {
+  if (typeof rawCode === 'string' && rawCode.trim()) {
     return normalizePermissionString(rawCode);
   }
 
@@ -78,7 +79,7 @@ export function normalizePermissionCode(permission: unknown): string {
     return normalizePermissionString(`${source.resource}:${source.action}`);
   }
 
-  return "";
+  return '';
 }
 
 export function extractPermissionsFromIdentity(
@@ -88,7 +89,7 @@ export function extractPermissionsFromIdentity(
     return identity.map(normalizePermissionCode).filter(Boolean);
   }
 
-  if (!identity || typeof identity !== "object") {
+  if (!identity || typeof identity !== 'object') {
     return [];
   }
 

@@ -1,34 +1,34 @@
 // Страница деталей выбранного курса с описанием, блоками и лидербордом
-import { Fragment, useState } from "react";
-import { SectionTop } from "@/shared/ui/section-top";
+import { Fragment, useState } from 'react';
+import { SectionTop } from '@/shared/ui/section-top';
 import {
   CourseNavigationTree,
   COURSE_LEVELS,
   formatCourseLevel,
   type BlockNode,
   type CourseNode,
-} from "@/entities/course";
-import { CourseInviteDialog } from "@/features/invite";
+} from '@/entities/course';
+import { CourseInviteDialog } from '@/features/invite';
 import {
   AgentInterviewDialog,
   resetAgentInterview,
-} from "@/features/agent-interview";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { useGoBack } from "@/shared/lib/ui-layout";
+} from '@/features/agent-interview';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useGoBack } from '@/shared/lib/ui-layout';
 import {
   generationJobKey,
   useGenerationJobsStore,
-} from "@/entities/generation-job";
-import { useSessionStore } from "@/entities/session";
-import { isUuid } from "@/shared/lib/uuid";
+} from '@/entities/generation-job';
+import { useSessionStore } from '@/entities/session';
+import { isUuid } from '@/shared/lib/uuid';
 
 // На странице курса в дереве не выделен ни один модуль.
-const NO_SELECTED_BLOCK = { id: "" };
+const NO_SELECTED_BLOCK = { id: '' };
 
 type CompletedMap = Record<string, boolean | undefined>;
 
 /** Смена статуса курса: публикация, только по приглашению, архив. */
-export type CourseStatusAction = "publish" | "invite_only" | "archive";
+export type CourseStatusAction = 'publish' | 'invite_only' | 'archive';
 
 export interface LeaderboardStudent {
   id: string;
@@ -38,7 +38,7 @@ export interface LeaderboardStudent {
 }
 
 interface PendingDelete {
-  type: "module" | "course";
+  type: 'module' | 'course';
   id: string;
   title?: string;
 }
@@ -92,7 +92,7 @@ export function CoursePage({
   deleteBlock,
 }: CoursePageProps) {
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [statusAction, setStatusAction] = useState("");
+  const [statusAction, setStatusAction] = useState('');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   // Позиция в списке модулей, где открыт чат генерации модуля (null — закрыт).
   const [moduleAgentIndex, setModuleAgentIndex] = useState<number | null>(null);
@@ -102,13 +102,13 @@ export function CoursePage({
     null,
   );
   const currentUserId = useSessionStore(
-    (state) => state.identity?.id || state.user?.id || "",
+    (state) => state.identity?.id || state.user?.id || '',
   );
   const moduleJob = useGenerationJobsStore(
     (state) =>
-      state.jobs[generationJobKey("module", selectedCourse.id, "")] || null,
+      state.jobs[generationJobKey('module', selectedCourse.id, '')] || null,
   );
-  const goBack = useGoBack({ fallbackPath: "/courses" });
+  const goBack = useGoBack({ fallbackPath: '/courses' });
 
   if (!canReadCourse) {
     return (
@@ -145,7 +145,7 @@ export function CoursePage({
   };
 
   const addObjective = () => {
-    updateCourse({ learningObjectives: [...learningObjectives, ""] });
+    updateCourse({ learningObjectives: [...learningObjectives, ''] });
   };
 
   const removeObjective = (index: number) => {
@@ -169,7 +169,7 @@ export function CoursePage({
     try {
       await updateCourseStatus(selectedCourse.id, action);
     } finally {
-      setStatusAction("");
+      setStatusAction('');
     }
   };
 
@@ -182,7 +182,7 @@ export function CoursePage({
 
   const describeModulePosition = (index: number) => {
     const blocks = selectedCourse.blocks;
-    if (!blocks.length) return "Модуль станет первым в курсе.";
+    if (!blocks.length) return 'Модуль станет первым в курсе.';
     if (index <= 0)
       return `Модуль встанет в начало, перед «${blocks[0].title}».`;
     if (index >= blocks.length) {
@@ -191,7 +191,7 @@ export function CoursePage({
     return `Модуль встанет между «${blocks[index - 1].title}» и «${blocks[index].title}».`;
   };
 
-  const isModuleJobRunning = moduleJob?.status === "running";
+  const isModuleJobRunning = moduleJob?.status === 'running';
 
   // Открывает чат у выбранного места или переносит туда уже открытый чат — окно не
   // закрывается. Пока генерация идёт, место менять нельзя: модуль уже ставится в очередь
@@ -199,11 +199,11 @@ export function CoursePage({
   const openModuleAgent = (index: number) => {
     const currentJob =
       useGenerationJobsStore.getState().jobs[
-        generationJobKey("module", selectedCourse.id, "")
+        generationJobKey('module', selectedCourse.id, '')
       ];
-    if (currentJob?.status === "running") return;
+    if (currentJob?.status === 'running') return;
     if (currentJob) {
-      resetAgentInterview({ kind: "module", courseId: selectedCourse.id });
+      resetAgentInterview({ kind: 'module', courseId: selectedCourse.id });
     }
     setModuleAgentIndex(index);
     setIsModuleChatVisible(true);
@@ -214,14 +214,14 @@ export function CoursePage({
   const closeModuleAgent = () => {
     const currentJob =
       useGenerationJobsStore.getState().jobs[
-        generationJobKey("module", selectedCourse.id, "")
+        generationJobKey('module', selectedCourse.id, '')
       ];
-    if (currentJob?.status === "running") {
+    if (currentJob?.status === 'running') {
       setIsModuleChatVisible(false);
       return;
     }
     if (currentJob) {
-      resetAgentInterview({ kind: "module", courseId: selectedCourse.id });
+      resetAgentInterview({ kind: 'module', courseId: selectedCourse.id });
     }
     setModuleAgentIndex(null);
   };
@@ -236,13 +236,13 @@ export function CoursePage({
           key={`insert-${index}`}
         >
           <span>
-            {moduleJob?.status === "running"
+            {moduleJob?.status === 'running'
               ? moduleJob.resultId
-                ? `✦ Модуль «${moduleJob.resultTitle || "без названия"}» генерируется — ниже`
-                : "✦ Здесь появится модуль — генерация идёт"
-              : moduleJob?.status === "done"
-                ? "✦ Модуль сгенерирован — ниже"
-                : "✦ Сюда встанет модуль из чата с ИИ"}
+                ? `✦ Модуль «${moduleJob.resultTitle || 'без названия'}» генерируется — ниже`
+                : '✦ Здесь появится модуль — генерация идёт'
+              : moduleJob?.status === 'done'
+                ? '✦ Модуль сгенерирован — ниже'
+                : '✦ Сюда встанет модуль из чата с ИИ'}
           </span>
           <div className="tw:flex tw:gap-[6px]">
             {!isModuleChatVisible && (
@@ -287,13 +287,13 @@ export function CoursePage({
               disabled={isModuleJobRunning}
               title={
                 isModuleJobRunning
-                  ? "Дождитесь окончания текущей генерации модуля"
+                  ? 'Дождитесь окончания текущей генерации модуля'
                   : undefined
               }
             >
               {moduleAgentAt === null
-                ? "✦ Сгенерировать модуль с ИИ"
-                : "✦ Сгенерировать модуль здесь"}
+                ? '✦ Сгенерировать модуль с ИИ'
+                : '✦ Сгенерировать модуль здесь'}
             </button>
           )}
         </div>
@@ -339,7 +339,7 @@ export function CoursePage({
         />
         <div className="course-edit-main tw:grid tw:gap-[14px] tw:[align-content:start]">
           <div className="course-page-actions tw:mt-[0] tw:flex tw:flex-wrap tw:items-center tw:gap-[10px]">
-            {canUpdateCourse && selectedCourse.status !== "archived" && (
+            {canUpdateCourse && selectedCourse.status !== 'archived' && (
               <button
                 type="button"
                 className="btn btn-outline course-invite-toggle tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
@@ -359,50 +359,50 @@ export function CoursePage({
             )}
             {isCourseEditMode &&
               canUpdateCourse &&
-              selectedCourse.status !== "archived" && (
+              selectedCourse.status !== 'archived' && (
                 <>
-                  {selectedCourse.status !== "published" && (
+                  {selectedCourse.status !== 'published' && (
                     <button
                       type="button"
                       className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-                      onClick={() => changeStatus("publish")}
-                      disabled={statusAction === "publish"}
+                      onClick={() => changeStatus('publish')}
+                      disabled={statusAction === 'publish'}
                     >
-                      {statusAction === "publish"
-                        ? "Публикуем..."
-                        : "Опубликовать"}
+                      {statusAction === 'publish'
+                        ? 'Публикуем...'
+                        : 'Опубликовать'}
                     </button>
                   )}
-                  {selectedCourse.status !== "invite_only" && (
+                  {selectedCourse.status !== 'invite_only' && (
                     <button
                       type="button"
                       className="btn btn-outline tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-                      onClick={() => changeStatus("invite_only")}
-                      disabled={statusAction === "invite_only"}
+                      onClick={() => changeStatus('invite_only')}
+                      disabled={statusAction === 'invite_only'}
                     >
-                      {statusAction === "invite_only"
-                        ? "Сохраняем..."
-                        : "Только для приглашённых"}
+                      {statusAction === 'invite_only'
+                        ? 'Сохраняем...'
+                        : 'Только для приглашённых'}
                     </button>
                   )}
                 </>
               )}
             {isCourseEditMode &&
               canDeleteCourse &&
-              selectedCourse.status !== "archived" && (
+              selectedCourse.status !== 'archived' && (
                 <button
                   type="button"
                   className="btn btn-outline course-delete-btn tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                   onClick={() =>
                     setPendingDelete({
-                      type: "course",
+                      type: 'course',
                       id: selectedCourse.id,
                       title: selectedCourse.title,
                     })
                   }
-                  disabled={statusAction === "archive"}
+                  disabled={statusAction === 'archive'}
                 >
-                  {statusAction === "archive" ? "Удаляем..." : "Удалить курс"}
+                  {statusAction === 'archive' ? 'Удаляем...' : 'Удалить курс'}
                 </button>
               )}
           </div>
@@ -429,7 +429,7 @@ export function CoursePage({
                       </span>
                       <input
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedCourse.category || ""}
+                        value={selectedCourse.category || ''}
                         onChange={(event) =>
                           updateCourse({ category: event.target.value })
                         }
@@ -441,7 +441,7 @@ export function CoursePage({
                       </span>
                       <input
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedCourse.duration || ""}
+                        value={selectedCourse.duration || ''}
                         onChange={(event) =>
                           updateCourse({ duration: event.target.value })
                         }
@@ -471,7 +471,7 @@ export function CoursePage({
                       </span>
                       <input
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[11px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:max-w-[100%] tw:min-h-[46px] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedCourse.format || ""}
+                        value={selectedCourse.format || ''}
                         onChange={(event) =>
                           updateCourse({ format: event.target.value })
                         }
@@ -483,7 +483,7 @@ export function CoursePage({
                       </span>
                       <textarea
                         className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:min-h-[105px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                        value={selectedCourse.description || ""}
+                        value={selectedCourse.description || ''}
                         onChange={(event) =>
                           updateCourse({ description: event.target.value })
                         }
@@ -603,7 +603,7 @@ export function CoursePage({
                         {isCourseEditMode ? (
                           <article className="course-block-item course-block-editor is-editing tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:rounded-[12px] tw:p-[14px] tw:cursor-pointer tw:text-left tw:grid tw:gap-[4px] tw:[border-width:1px] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[font:inherit] tw:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.12)]">
                             <span className="course-block-index tw:text-(--ink-accent) tw:text-[0.74rem] tw:font-[700] tw:uppercase tw:tracking-[0.06em]">
-                              {String(index + 1).padStart(2, "0")}
+                              {String(index + 1).padStart(2, '0')}
                             </span>
                             <div className="course-editor-grid tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:w-[100%] tw:min-w-[0] tw:max-760:grid-cols-[1fr]">
                               <label className="course-editor-field tw:grid tw:gap-[7px] tw:min-w-[0]">
@@ -640,7 +640,7 @@ export function CoursePage({
                                 </span>
                                 <textarea
                                   className="tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.28)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_13px] tw:text-[0.96rem] tw:leading-[1.45] tw:min-h-[160px] tw:resize-y tw:max-w-[100%] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.72)] tw:dark:border-[rgba(255,_255,_255,_0.18)] tw:[background:rgba(var(--accent-soft-rgb),_0.07)] tw:dark:text-[#f2e7d4] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[transition:border-color_0.2s_ease,_background_0.2s_ease,_box-shadow_0.2s_ease] tw:placeholder:text-(--muted) tw:placeholder:opacity-[0.78] tw:dark:focus:border-[rgba(203,_170,_203,_0.72)] tw:dark:[background:rgba(255,_255,_255,_0.035)] tw:focus:[background:rgba(var(--accent-rgb),_0.09)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.08)] tw:dark:focus:[background:rgba(255,_255,_255,_0.07)] tw:dark:focus:[box-shadow:0_0_0_3px_rgba(203,_170,_203,_0.1)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:var(--glass-bg-strong)] tw:dark:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[background:rgba(255,_255,_255,_0.035)] tw:dark:focus:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&:is(.course-editor-field_input,.course-editor-field_textarea,.course-editor-field_select)]:[&&&&]:[background:rgba(255,_255,_255,_0.07)]"
-                                  value={block.description || ""}
+                                  value={block.description || ''}
                                   onChange={(event) =>
                                     updateCourseBlock(block.id, {
                                       description: event.target.value,
@@ -681,7 +681,7 @@ export function CoursePage({
                                 className="btn btn-flat editor-danger-btn tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[8px_13px] tw:border-solid tw:border-[rgba(220,_53,_69,_0.36)] tw:font-[700] tw:tracking-[0.01em] tw:text-[#b53945] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:dark:text-[#ff7d8b] tw:[background:rgba(220,_53,_69,_0.08)] tw:[backdrop-filter:blur(22px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(22px)_saturate(145%)] tw:[&&]:text-[0.96rem] tw:hover:[transform:translateY(-1px)] tw:dark:[background:rgba(220,_53,_69,_0.16)] tw:[.course-editor-actions_&:disabled]:opacity-[0.5] tw:[.course-editor-actions_&:disabled]:cursor-not-allowed tw:[.course-editor-actions_&:disabled]:[transform:none]"
                                 onClick={() =>
                                   setPendingDelete({
-                                    type: "module",
+                                    type: 'module',
                                     id: block.id,
                                     title: block.title,
                                   })
@@ -695,7 +695,7 @@ export function CoursePage({
                         ) : (
                           <button
                             type="button"
-                            className={`course-block-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.36)] tw:rounded-[12px] tw:p-[10px_12px] tw:cursor-pointer tw:text-left tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.72)] tw:[&.is-editing]:border-[rgba(var(--accent-rgb),_0.78)] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&.is-editing]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.12)] ${isActive ? "is-editing" : ""}`}
+                            className={`course-block-item tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.36)] tw:rounded-[12px] tw:p-[10px_12px] tw:cursor-pointer tw:text-left tw:grid tw:gap-[4px] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.72)] tw:[&.is-editing]:border-[rgba(var(--accent-rgb),_0.78)] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&.is-editing]:[box-shadow:0_0_0_2px_rgba(var(--accent-rgb),_0.12)] ${isActive ? 'is-editing' : ''}`}
                             onClick={() =>
                               isCourseEditMode
                                 ? setActiveBlockId((current) =>
@@ -705,7 +705,7 @@ export function CoursePage({
                             }
                           >
                             <span className="course-block-index tw:text-(--ink-accent) tw:text-[0.74rem] tw:font-[700] tw:uppercase tw:tracking-[0.06em]">
-                              {String(index + 1).padStart(2, "0")}
+                              {String(index + 1).padStart(2, '0')}
                             </span>
                             <span className="course-block-title tw:text-(--text) tw:font-[700] tw:text-[0.92rem]">
                               {block.title}
@@ -716,7 +716,7 @@ export function CoursePage({
                               </span>
                             )}
                             <span className="course-block-meta tw:text-(--muted) tw:text-[0.82rem]">
-                              {block.duration} • {block.lessons.length} урока •{" "}
+                              {block.duration} • {block.lessons.length} урока •{' '}
                               {block.practice.length} практики
                             </span>
                             <span className="course-block-progress tw:text-(--ink-accent) tw:text-[0.8rem]">
@@ -769,7 +769,7 @@ export function CoursePage({
           knownIds={selectedCourse.blocks.map((block) => block.id)}
           contextTitle={
             moduleJob?.resultId
-              ? `Модуль «${moduleJob.resultTitle || "без названия"}» уже в списке.`
+              ? `Модуль «${moduleJob.resultTitle || 'без названия'}» уже в списке.`
               : describeModulePosition(moduleAgentAt)
           }
           onClose={closeModuleAgent}
@@ -795,12 +795,12 @@ export function CoursePage({
         danger
         eyebrow="Необратимое действие"
         title={
-          pendingDelete?.type === "course" ? "Удалить курс?" : "Удалить модуль?"
+          pendingDelete?.type === 'course' ? 'Удалить курс?' : 'Удалить модуль?'
         }
         description={
-          pendingDelete?.type === "course"
-            ? `Курс «${pendingDelete?.title || ""}» будет перенесён в архив и пропадёт из каталога.`
-            : `Модуль «${pendingDelete?.title || ""}» и все его уроки будут удалены. Отменить удаление нельзя.`
+          pendingDelete?.type === 'course'
+            ? `Курс «${pendingDelete?.title || ''}» будет перенесён в архив и пропадёт из каталога.`
+            : `Модуль «${pendingDelete?.title || ''}» и все его уроки будут удалены. Отменить удаление нельзя.`
         }
         confirmLabel="Удалить"
         busyLabel="Удаляем..."
@@ -808,12 +808,12 @@ export function CoursePage({
         onConfirm={async () => {
           const target = pendingDelete;
           if (!target) return;
-          if (target.type === "course") {
-            setStatusAction("archive");
+          if (target.type === 'course') {
+            setStatusAction('archive');
             try {
               await deleteCourse(target.id);
             } finally {
-              setStatusAction("");
+              setStatusAction('');
             }
           } else {
             const deleted = await deleteBlock(target.id);

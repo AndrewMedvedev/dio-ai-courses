@@ -1,5 +1,5 @@
 // Прогресс по локальным отметкам «пройдено» (без запросов к бэкенду).
-import type { BlockNode, CourseNode } from "../model/tree";
+import type { BlockNode, CourseNode } from '../model/tree';
 
 type CompletedMap = Record<string, boolean | undefined>;
 

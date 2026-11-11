@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 
 type ActivityTarget =
-  | EventTarget
-  | RefObject<EventTarget | null>
-  | null
-  | undefined;
+  EventTarget | RefObject<EventTarget | null> | null | undefined;
 
 export interface ActiveTimeTrackerOptions {
   enabled?: boolean;
@@ -26,7 +23,7 @@ export function useActiveTimeTracker({
   enabled = true,
   idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS,
   activityThrottleMs = DEFAULT_ACTIVITY_THROTTLE_MS,
-  resetKey = "",
+  resetKey = '',
   targets = [],
   onTick,
 }: ActiveTimeTrackerOptions = {}) {
@@ -114,40 +111,40 @@ export function useActiveTimeTracker({
       }
     };
 
-    window.addEventListener("mousemove", markActivity, activityOptions);
-    window.addEventListener("scroll", markActivity, activityOptions);
-    window.addEventListener("keydown", markActivity, true);
-    window.addEventListener("input", markActivity, true);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener('mousemove', markActivity, activityOptions);
+    window.addEventListener('scroll', markActivity, activityOptions);
+    window.addEventListener('keydown', markActivity, true);
+    window.addEventListener('input', markActivity, true);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const resolvedTargets = targets
       .map((target): EventTarget | null => {
         if (!target) return null;
-        if (typeof (target as EventTarget).addEventListener === "function") {
+        if (typeof (target as EventTarget).addEventListener === 'function') {
           return target as EventTarget;
         }
         return (target as RefObject<EventTarget | null>).current || null;
       })
       .filter(
         (target): target is EventTarget =>
-          typeof target?.addEventListener === "function",
+          typeof target?.addEventListener === 'function',
       );
     resolvedTargets.forEach((target) => {
-      target.addEventListener("scroll", markActivity, activityOptions);
-      target.addEventListener("input", markActivity, true);
-      target.addEventListener("keydown", markActivity, true);
+      target.addEventListener('scroll', markActivity, activityOptions);
+      target.addEventListener('input', markActivity, true);
+      target.addEventListener('keydown', markActivity, true);
     });
 
     return () => {
-      window.removeEventListener("mousemove", markActivity, activityOptions);
-      window.removeEventListener("scroll", markActivity, activityOptions);
-      window.removeEventListener("keydown", markActivity, true);
-      window.removeEventListener("input", markActivity, true);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener('mousemove', markActivity, activityOptions);
+      window.removeEventListener('scroll', markActivity, activityOptions);
+      window.removeEventListener('keydown', markActivity, true);
+      window.removeEventListener('input', markActivity, true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       resolvedTargets.forEach((target) => {
-        target.removeEventListener("scroll", markActivity, activityOptions);
-        target.removeEventListener("input", markActivity, true);
-        target.removeEventListener("keydown", markActivity, true);
+        target.removeEventListener('scroll', markActivity, activityOptions);
+        target.removeEventListener('input', markActivity, true);
+        target.removeEventListener('keydown', markActivity, true);
       });
       if (idleTimeoutRef.current) {
         clearTimeout(idleTimeoutRef.current);

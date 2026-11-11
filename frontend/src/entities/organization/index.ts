@@ -4,9 +4,9 @@ export {
   fetchOrganizationById,
   fetchOrganizationsPage,
   updateOrganization,
-} from "./api/organization-api";
+} from './api/organization-api';
 export type {
   Organization,
   OrganizationPayload,
   OrganizationsPage,
-} from "./model/types";
+} from './model/types';

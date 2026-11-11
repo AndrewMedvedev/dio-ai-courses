@@ -1,15 +1,15 @@
-import { useId, useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useId, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   countLabel,
   getLessonBlocks,
   MAX_CONTENT_BLOCKS,
   WORDS,
-} from "../lib/helpers";
-import { Icon, Spinner } from "./icons";
-import { canFinish, getProblems, getStats } from "../model/selectors";
-import { useDndCourseStore } from "../model/store";
-import { Modal } from "./common";
+} from '../lib/helpers';
+import { Icon, Spinner } from './icons';
+import { canFinish, getProblems, getStats } from '../model/selectors';
+import { useDndCourseStore } from '../model/store';
+import { Modal } from './common';
 
 export function ModuleDialog() {
   const dialog = useDndCourseStore((state) => state.moduleDialog);
@@ -27,7 +27,7 @@ export function ModuleDialog() {
     [allLessons, allModules],
   );
   const busy = useDndCourseStore((state) =>
-    Boolean(state.pending["create-module"]),
+    Boolean(state.pending['create-module']),
   );
   const update = useDndCourseStore((state) => state.updateModuleDialog);
   const close = useDndCourseStore((state) => state.closeModuleDialog);
@@ -73,7 +73,7 @@ export function ModuleDialog() {
             aria-busy={busy}
           >
             {busy ? <Spinner size={14} /> : <Icon name="check" size={16} />}
-            {busy ? "Создаём модуль…" : "Создать модуль"}
+            {busy ? 'Создаём модуль…' : 'Создать модуль'}
           </button>
         </>
       }
@@ -84,11 +84,11 @@ export function ModuleDialog() {
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          submit();
+          void submit();
         }}
       >
         <div
-          className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error) ${titleMissing ? "has-error" : ""}`}
+          className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error) ${titleMissing ? 'has-error' : ''}`}
         >
           <label
             className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
@@ -99,7 +99,7 @@ export function ModuleDialog() {
               className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
               aria-hidden="true"
             >
-              {" "}
+              {' '}
               *
             </span>
           </label>
@@ -116,7 +116,7 @@ export function ModuleDialog() {
           />
         </div>
         <div
-          className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error) ${descriptionMissing ? "has-error" : ""}`}
+          className={`dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error) ${descriptionMissing ? 'has-error' : ''}`}
         >
           <label
             className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
@@ -127,7 +127,7 @@ export function ModuleDialog() {
               className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
               aria-hidden="true"
             >
-              {" "}
+              {' '}
               *
             </span>
           </label>
@@ -224,12 +224,12 @@ export function MaterialPickerDialog() {
   const materials = useDndCourseStore(
     useShallow((state) =>
       state.materials.filter(
-        (item) => item.status === "ready" && !item.lessonId,
+        (item) => item.status === 'ready' && !item.lessonId,
       ),
     ),
   );
   const busy = useDndCourseStore((state) =>
-    Boolean(state.pending["create-lesson"]),
+    Boolean(state.pending['create-lesson']),
   );
   const toggle = useDndCourseStore((state) => state.toggleMaterialPick);
   const close = useDndCourseStore((state) => state.closeMaterialPicker);
@@ -266,7 +266,7 @@ export function MaterialPickerDialog() {
             }}
           >
             {busy ? <Spinner size={14} /> : <Icon name="check" size={16} />}
-            {busy ? "Создаём урок…" : "Объединить в урок"}
+            {busy ? 'Создаём урок…' : 'Объединить в урок'}
           </button>
         </>
       }
@@ -304,7 +304,7 @@ export function MaterialPickerDialog() {
           className="dnd-inline-error tw:[.page_.dnd-builder_&_>_span]:flex-[1_1_180px] tw:[.page_.dnd-builder_&_>_span]:min-w-[0] tw:[.page_.dnd-builder_&_>_span]:wrap-anywhere"
           role="alert"
         >
-          <Icon name="alert" size={16} />В одном уроке может быть не больше{" "}
+          <Icon name="alert" size={16} />В одном уроке может быть не больше{' '}
           {MAX_CONTENT_BLOCKS} блоков.
         </p>
       ) : null}
@@ -345,12 +345,12 @@ export function FinishDialog({
   );
   if (!open) return null;
 
-  const attention = problems.filter((item) => item.severity !== "info").length;
+  const attention = problems.filter((item) => item.severity !== 'info').length;
   const blocking = !finishable;
 
   return (
     <Modal
-      title={blocking ? "Структура ещё не готова" : "Курс готов"}
+      title={blocking ? 'Структура ещё не готова' : 'Курс готов'}
       onClose={close}
       closeDisabled={busy}
       size="md"
@@ -373,10 +373,10 @@ export function FinishDialog({
           >
             {busy ? <Spinner size={14} /> : <Icon name="flag" size={16} />}
             {busy
-              ? "Открываем курс…"
+              ? 'Открываем курс…'
               : error
-                ? "Повторить"
-                : "Завершить и посмотреть курс"}
+                ? 'Повторить'
+                : 'Завершить и посмотреть курс'}
           </button>
         </>
       }
@@ -394,9 +394,9 @@ export function FinishDialog({
           <dt>Материалы</dt>
           <dd>{countLabel(stats.materials, WORDS.material)}</dd>
         </div>
-        <div className={attention ? "is-warn" : "is-ok"}>
+        <div className={attention ? 'is-warn' : 'is-ok'}>
           <dt>Требуют внимания</dt>
-          <dd>{attention ? countLabel(attention, WORDS.item) : "нет"}</dd>
+          <dd>{attention ? countLabel(attention, WORDS.item) : 'нет'}</dd>
         </div>
       </dl>
       {blocking ? (
@@ -407,8 +407,8 @@ export function FinishDialog({
           <Icon name="alert" size={16} />
           <span>
             {stats.nonEmptyModules === 0
-              ? "Чтобы завершить, нужен хотя бы один модуль с уроком."
-              : "Дождитесь окончания сохранения и обработки документов."}
+              ? 'Чтобы завершить, нужен хотя бы один модуль с уроком.'
+              : 'Дождитесь окончания сохранения и обработки документов.'}
           </span>
         </p>
       ) : null}
@@ -417,7 +417,7 @@ export function FinishDialog({
           {problems.map((problem) => (
             <li key={problem.id} className={`is-${problem.severity}`}>
               <Icon
-                name={problem.severity === "info" ? "info" : "alert"}
+                name={problem.severity === 'info' ? 'info' : 'alert'}
                 size={15}
               />
               <span>{problem.text}</span>
@@ -427,8 +427,8 @@ export function FinishDialog({
                   className="dnd-link dnd-link--sm tw:[.page_.dnd-builder_&]:text-[0.8rem]"
                   onClick={() => {
                     close();
-                    openInspector(problem.nodeId ?? "");
-                    requestFocus([problem.nodeId ?? ""]);
+                    openInspector(problem.nodeId ?? '');
+                    requestFocus([problem.nodeId ?? '']);
                   }}
                 >
                   Показать

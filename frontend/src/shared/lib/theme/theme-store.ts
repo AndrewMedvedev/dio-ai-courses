@@ -1,12 +1,12 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-const THEME_STORAGE_KEY = "app-theme-storage";
+const THEME_STORAGE_KEY = 'app-theme-storage';
 const THEME_STORAGE_VERSION = 1;
-const SUPPORTED_THEMES = new Set<string>(["light", "dark", "system"]);
+const SUPPORTED_THEMES = new Set<string>(['light', 'dark', 'system']);
 
-export type Theme = "light" | "dark" | "system";
-export type ResolvedTheme = Exclude<Theme, "system">;
+export type Theme = 'light' | 'dark' | 'system';
+export type ResolvedTheme = Exclude<Theme, 'system'>;
 
 interface ThemeState {
   theme: Theme;
@@ -16,25 +16,25 @@ interface ThemeState {
   toggleTheme: () => void;
 }
 
-type PersistedTheme = Pick<ThemeState, "theme">;
+type PersistedTheme = Pick<ThemeState, 'theme'>;
 
 const getSystemTheme = (): ResolvedTheme => {
-  if (typeof window === "undefined" || !window.matchMedia) {
-    return "light";
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return 'light';
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 };
 
 export const resolveTheme = (theme: Theme): ResolvedTheme =>
-  theme === "system" ? getSystemTheme() : theme;
+  theme === 'system' ? getSystemTheme() : theme;
 
 export const useThemeStore = create<ThemeState>()(
   persist<ThemeState, [], [], PersistedTheme>(
     (set, get) => ({
-      theme: "light" as Theme,
+      theme: 'light',
       hasHydrated: false,
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
@@ -44,24 +44,24 @@ export const useThemeStore = create<ThemeState>()(
       },
       toggleTheme: () => {
         const currentTheme = resolveTheme(get().theme);
-        set({ theme: currentTheme === "dark" ? "light" : "dark" });
+        set({ theme: currentTheme === 'dark' ? 'light' : 'dark' });
       },
     }),
     {
       name: THEME_STORAGE_KEY,
       version: THEME_STORAGE_VERSION,
       partialize: (state) => ({
-        theme: SUPPORTED_THEMES.has(state.theme) ? state.theme : "light",
+        theme: SUPPORTED_THEMES.has(state.theme) ? state.theme : 'light',
       }),
       migrate: (persistedState, version) => {
         if (version !== THEME_STORAGE_VERSION) {
-          return { theme: "light" };
+          return { theme: 'light' };
         }
 
         const state = persistedState as Partial<PersistedTheme> | undefined;
         return state?.theme && SUPPORTED_THEMES.has(state.theme)
           ? (state as PersistedTheme)
-          : { theme: "light" };
+          : { theme: 'light' };
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

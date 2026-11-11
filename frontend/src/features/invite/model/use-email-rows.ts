@@ -1,17 +1,13 @@
+import { toText } from '@/shared/lib/text';
 // Список адресов для приглашения: ввод нескольких email, проверка формата,
 // подсказка «есть в системе / нет в системе» и последовательная отправка.
 // Общий для окон «Пригласить на курс», «в организацию» и «в систему».
-import { useCallback, useRef, useState } from "react";
-import { EMAIL_RE } from "@/entities/invitation";
-import { findUserByEmail, type User } from "@/entities/user";
+import { useCallback, useRef, useState } from 'react';
+import { EMAIL_RE } from '@/entities/invitation';
+import { findUserByEmail, type User } from '@/entities/user';
 
 export type EmailRowStatus =
-  | "checking"
-  | "found"
-  | "new"
-  | "unknown"
-  | "sending"
-  | "error";
+  'checking' | 'found' | 'new' | 'unknown' | 'sending' | 'error';
 
 export interface EmailRow {
   email: string;
@@ -26,8 +22,8 @@ export const MAX_EMAILS = 20;
 
 export function useEmailRows() {
   const lookupCache = useRef(new Map<string, User | null>());
-  const [draft, setDraft] = useState("");
-  const [draftError, setDraftError] = useState("");
+  const [draft, setDraft] = useState('');
+  const [draftError, setDraftError] = useState('');
   const [rows, setRows] = useState<EmailRow[]>([]);
 
   const updateRow = useCallback(
@@ -52,16 +48,16 @@ export function useEmailRows() {
     async (email: string) => {
       if (lookupCache.current.has(email)) {
         const user = lookupCache.current.get(email) ?? null;
-        updateRow(email, { status: user ? "found" : "new", user }, "checking");
+        updateRow(email, { status: user ? 'found' : 'new', user }, 'checking');
         return;
       }
       try {
         const user = await findUserByEmail(email);
         lookupCache.current.set(email, user);
-        updateRow(email, { status: user ? "found" : "new", user }, "checking");
+        updateRow(email, { status: user ? 'found' : 'new', user }, 'checking');
       } catch {
         // Проверка — только подсказка: приглашение всё равно можно отправить.
-        updateRow(email, { status: "unknown", user: null }, "checking");
+        updateRow(email, { status: 'unknown', user: null }, 'checking');
       }
     },
     [updateRow],
@@ -70,7 +66,7 @@ export function useEmailRows() {
   // Возвращает добавленные адреса или false, если во вводе есть некорректные.
   const addEmails = useCallback(
     (raw: unknown): string[] | false => {
-      const parts = String(raw || "")
+      const parts = toText(raw || '')
         .split(/[\s,;]+/)
         .map((part) => part.trim().toLowerCase())
         .filter(Boolean);
@@ -88,25 +84,27 @@ export function useEmailRows() {
           ...current,
           ...accepted.map((email) => ({
             email,
-            status: "checking" as const,
+            status: 'checking' as const,
             user: null,
-            message: "",
+            message: '',
           })),
         ]);
-        accepted.forEach(checkEmail);
+        accepted.forEach((email) => {
+          void checkEmail(email);
+        });
       }
 
       if (invalid.length) {
-        setDraftError(`Некорректный email: ${invalid.join(", ")}`);
-        setDraft(invalid.join(", "));
+        setDraftError(`Некорректный email: ${invalid.join(', ')}`);
+        setDraft(invalid.join(', '));
         return false;
       }
       if (fresh.length > room) {
         setDraftError(`За один раз можно пригласить до ${MAX_EMAILS} человек.`);
       } else {
-        setDraftError("");
+        setDraftError('');
       }
-      setDraft("");
+      setDraft('');
       return accepted;
     },
     [checkEmail, rows],
@@ -118,8 +116,8 @@ export function useEmailRows() {
 
   const reset = useCallback(() => {
     setRows([]);
-    setDraft("");
-    setDraftError("");
+    setDraft('');
+    setDraftError('');
   }, []);
 
   // Отправляет приглашения по очереди. Успешные адреса убираются из списка,
@@ -137,18 +135,18 @@ export function useEmailRows() {
       }
       const targets = [...rows.map((row) => row.email), ...added];
       if (!targets.length) {
-        setDraftError("Добавьте хотя бы один email.");
+        setDraftError('Добавьте хотя бы один email.');
         return null;
       }
 
       const sent: string[] = [];
       for (const email of targets) {
-        updateRow(email, { status: "sending", message: "" });
+        updateRow(email, { status: 'sending', message: '' });
         try {
           await sendOne(email);
           sent.push(email);
         } catch (error) {
-          updateRow(email, { status: "error", message: errorMessage(error) });
+          updateRow(email, { status: 'error', message: errorMessage(error) });
         }
       }
       setRows((current) => current.filter((row) => !sent.includes(row.email)));

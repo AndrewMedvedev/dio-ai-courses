@@ -1,10 +1,12 @@
+import { asRecord } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
 import {
   apiFetch,
   requestJson,
   type ApiError,
   type RawApiRecord,
-} from "@/shared/api";
-import type { User, UserProfile } from "../model/types";
+} from '@/shared/api';
+import type { User, UserProfile } from '../model/types';
 
 // Точечный поиск по уникальному email (индекс в БД): null, если такого пользователя нет.
 export async function findUserByEmail(
@@ -32,13 +34,14 @@ async function parseError(
 ): Promise<
   Error & { status?: number; payload?: unknown; userMessage?: string }
 > {
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
+  const contentType = response.headers.get('content-type') || '';
+  const payload: unknown = contentType.includes('application/json')
     ? await response.json().catch(() => null)
-    : await response.text().catch(() => "");
-  const detail = payload?.detail || payload?.error?.message || payload;
+    : await response.text().catch(() => '');
+  const record = asRecord(payload);
+  const detail = record.detail || asRecord(record.error).message || payload;
   const message =
-    typeof detail === "string" && detail.trim() ? detail : fallbackMessage;
+    typeof detail === 'string' && detail.trim() ? detail : fallbackMessage;
   const error: Error & {
     status?: number;
     payload?: unknown;
@@ -52,14 +55,14 @@ async function parseError(
 
 function normalizeUser(raw: RawApiRecord = {}): UserProfile {
   return {
-    id: raw.id || raw.user_id || raw.userId || "",
-    fullName: raw.fullName || raw.full_name || "",
-    avatarUrl: raw.avatarUrl || raw.avatar_url || "",
-    email: raw.email || "",
-    username: raw.username || "",
-    isActive: raw.isActive ?? raw.is_active ?? true,
-    createdAt: raw.createdAt || raw.created_at || "",
-    updatedAt: raw.updatedAt || raw.updated_at || "",
+    id: toText(raw.id || raw.user_id || raw.userId || ''),
+    fullName: toText(raw.fullName || raw.full_name || ''),
+    avatarUrl: toText(raw.avatarUrl || raw.avatar_url || ''),
+    email: toText(raw.email || ''),
+    username: toText(raw.username || ''),
+    isActive: Boolean(raw.isActive ?? raw.is_active ?? true),
+    createdAt: toText(raw.createdAt || raw.created_at || ''),
+    updatedAt: toText(raw.updatedAt || raw.updated_at || ''),
   };
 }
 
@@ -70,15 +73,15 @@ export async function getUserById(
 ): Promise<UserProfile> {
   const response = await apiFetch(`/users/${encodeURIComponent(userId)}`, {
     ...options,
-    method: "GET",
+    method: 'GET',
   });
 
   if (!response.ok) {
     throw await parseError(
       response,
-      "Не удалось загрузить данные пользователя.",
+      'Не удалось загрузить данные пользователя.',
     );
   }
 
-  return normalizeUser(await response.json());
+  return normalizeUser(asRecord(await response.json()));
 }

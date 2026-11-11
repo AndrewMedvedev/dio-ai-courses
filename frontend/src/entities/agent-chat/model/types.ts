@@ -1,15 +1,15 @@
 export type AgentType =
-  | "interviewer"
-  | "module_interviewer"
-  | "lesson_interviewer"
-  | "editor"
-  | "mentor";
+  | 'interviewer'
+  | 'module_interviewer'
+  | 'lesson_interviewer'
+  | 'editor'
+  | 'mentor';
 
-export type AgentStatus = "idle" | "loading" | "success" | "error";
+export type AgentStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface AgentMessage {
   id: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   text: string;
 }
 

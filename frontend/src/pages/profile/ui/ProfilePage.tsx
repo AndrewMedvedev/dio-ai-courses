@@ -1,3 +1,4 @@
+import { toText } from '@/shared/lib/text';
 // Личный кабинет с карточками прогресса, навигацией по вкладкам и управлением потоками преподавателя
 import {
   useEffect,
@@ -5,13 +6,13 @@ import {
   useState,
   type ChangeEvent,
   type FormEvent,
-} from "react";
-import { SectionTop } from "@/shared/ui/section-top";
+} from 'react';
+import { SectionTop } from '@/shared/ui/section-top';
 import {
   COURSE_PERMISSIONS,
   usePermissionStore,
   useSessionStore,
-} from "@/entities/session";
+} from '@/entities/session';
 import {
   useStudentStore,
   formatModulesCount,
@@ -20,12 +21,12 @@ import {
   formatCourseLevel,
   type CourseNode,
   type LearningCourse,
-} from "@/entities/course";
-import { useMyCoursesProgress } from "@/features/course-progress";
-import { getMediaUrl, MEDIA_FOLDERS } from "@/shared/lib/media";
-import { useUiLayoutStore } from "@/shared/lib/ui-layout";
-import { profileTabItems } from "../config/profile-tabs";
-import { useTeacherGroups } from "../model/use-teacher-groups";
+} from '@/entities/course';
+import { useMyCoursesProgress } from '@/features/course-progress';
+import { getMediaUrl, MEDIA_FOLDERS } from '@/shared/lib/media';
+import { useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { profileTabItems } from '../config/profile-tabs';
+import { useTeacherGroups } from '../model/use-teacher-groups';
 
 interface ProfileForm {
   username: string;
@@ -50,14 +51,14 @@ interface CoursesMeta {
   has_prev: boolean;
 }
 
-const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const AVATAR_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const AVATAR_MAX_SIZE_BYTES = 15 * 1024 * 1024;
 
 function getDisplayText(rawValue: unknown): string {
   const value = rawValue as Record<string, unknown> | string | number | null;
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number") return String(value);
-  if (!value || typeof value !== "object") return "";
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number') return String(value);
+  if (!value || typeof value !== 'object') return '';
 
   return getDisplayText(
     value.value || value.label || value.name || value.email || value.username,
@@ -69,55 +70,55 @@ function getDisplayName(user: Record<string, unknown> | null | undefined) {
     getDisplayText(user?.full_name) ||
     getDisplayText(user?.username) ||
     getDisplayText(user?.email) ||
-    "Загружаем профиль..."
+    'Загружаем профиль...'
   );
 }
 
 function getInitials(nameOrEmail: string) {
-  const value = String(nameOrEmail || "Профиль").trim();
-  if (value.includes("@")) return value[0]?.toUpperCase() || "П";
+  const value = String(nameOrEmail || 'Профиль').trim();
+  if (value.includes('@')) return value[0]?.toUpperCase() || 'П';
 
   return (
     value
-      .split(" ")
+      .split(' ')
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0])
-      .join("")
-      .toUpperCase() || "П"
+      .join('')
+      .toUpperCase() || 'П'
   );
 }
 
 function validateUsername(value: string): string {
-  if (!value) return "";
+  if (!value) return '';
   if (value.length < 3 || value.length > 30) {
-    return "Никнейм должен быть от 3 до 30 символов.";
+    return 'Никнейм должен быть от 3 до 30 символов.';
   }
   if (!/^[A-Za-z0-9._-]+$/.test(value)) {
-    return "Используйте латинские буквы, цифры, точку, дефис или подчёркивание.";
+    return 'Используйте латинские буквы, цифры, точку, дефис или подчёркивание.';
   }
   if (/^[._-]|[._-]$/.test(value)) {
-    return "Никнейм не должен начинаться или заканчиваться спецсимволом.";
+    return 'Никнейм не должен начинаться или заканчиваться спецсимволом.';
   }
   if (/[._-]{2}/.test(value)) {
-    return "Никнейм не должен содержать два спецсимвола подряд.";
+    return 'Никнейм не должен содержать два спецсимвола подряд.';
   }
   if (/^\d+$/.test(value)) {
-    return "Никнейм не должен состоять только из цифр.";
+    return 'Никнейм не должен состоять только из цифр.';
   }
-  return "";
+  return '';
 }
 
 function validateFullName(value: string): string {
-  if (!value) return "";
-  if (value.length > 155) return "ФИО должно быть не длиннее 155 символов.";
+  if (!value) return '';
+  if (value.length > 155) return 'ФИО должно быть не длиннее 155 символов.';
   if (!/^[\p{L}\s'-]+$/u.test(value)) {
-    return "ФИО может содержать только буквы, пробелы, дефис и апостроф.";
+    return 'ФИО может содержать только буквы, пробелы, дефис и апостроф.';
   }
   if (value.trim().split(/\s+/).length < 2) {
-    return "Укажите минимум имя и фамилию.";
+    return 'Укажите минимум имя и фамилию.';
   }
-  return "";
+  return '';
 }
 
 function validateProfileForm(values: ProfileForm): FormErrors {
@@ -132,18 +133,18 @@ function hasErrors(errors: FormErrors) {
 }
 
 const COURSE_STATUS_LABELS: Record<string, string> = {
-  in_generation: "Генерируется",
-  draft: "Черновик",
-  invite_only: "Только по приглашению",
-  published: "Опубликован",
-  archived: "В архиве",
+  in_generation: 'Генерируется',
+  draft: 'Черновик',
+  invite_only: 'Только по приглашению',
+  published: 'Опубликован',
+  archived: 'В архиве',
 };
 
 function getCourseStatusLabel(status: unknown): string {
   return (
     COURSE_STATUS_LABELS[String(status)] ||
-    (status ? String(status) : "") ||
-    "Статус не указан"
+    (status ? toText(status) : '') ||
+    'Статус не указан'
   );
 }
 
@@ -154,13 +155,13 @@ function getApiErrorMessage(rawError: unknown, fallback: string): string {
 
 function validateAvatarFile(file: File | null): asserts file is File {
   if (!file) {
-    throw new Error("Выберите файл для загрузки.");
+    throw new Error('Выберите файл для загрузки.');
   }
   if (!AVATAR_MIME_TYPES.has(file.type)) {
-    throw new Error("Выберите изображение PNG, JPEG или WebP.");
+    throw new Error('Выберите изображение PNG, JPEG или WebP.');
   }
   if (file.size > AVATAR_MAX_SIZE_BYTES) {
-    throw new Error("Максимальный размер аватара — 15 МБ.");
+    throw new Error('Максимальный размер аватара — 15 МБ.');
   }
 }
 
@@ -168,10 +169,10 @@ function CourseProgressLine({ summary }: { summary: CourseSummary }) {
   const status =
     summary.totalLessons > 0 &&
     summary.completedLessons === summary.totalLessons
-      ? "completed"
+      ? 'completed'
       : summary.startedLessons > 0
-        ? "in_progress"
-        : "not_started";
+        ? 'in_progress'
+        : 'not_started';
 
   return (
     <span
@@ -231,7 +232,6 @@ export function ProfilePage({
   completedLessonsCount,
   completedPracticesCount,
   overallProgressPercent,
-  totalContentCount,
   coursesData,
   openCourse,
   openBlock,
@@ -249,7 +249,7 @@ export function ProfilePage({
     activeTeacherGroup,
     setActiveTeacherGroupId,
     teacherLeaderboard,
-  } = useTeacherGroups(coursesData, "");
+  } = useTeacherGroups(coursesData, '');
   const user = useSessionStore((state) => state.user);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const updateProfile = useSessionStore((state) => state.updateProfile);
@@ -259,14 +259,14 @@ export function ProfilePage({
     (state) => state.validationErrors,
   );
   const [profileForm, setProfileForm] = useState<ProfileForm>({
-    username: "",
-    full_name: "",
+    username: '',
+    full_name: '',
   });
   const [isProfileEditing, setIsProfileEditing] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState("");
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [profileNotice, setProfileNotice] = useState("");
+  const [profileNotice, setProfileNotice] = useState('');
   const currentUserId = user?.id || user?.user_id || user?.userId;
   const savedAvatarUrl = getMediaUrl(
     currentUserId,
@@ -288,7 +288,7 @@ export function ProfilePage({
   });
   const [isAuthoredCoursesLoading, setIsAuthoredCoursesLoading] =
     useState(false);
-  const [authoredCoursesError, setAuthoredCoursesError] = useState("");
+  const [authoredCoursesError, setAuthoredCoursesError] = useState('');
   const myCourses = useStudentStore((state) => state.myCourses);
   const myCoursesMeta = useStudentStore((state) => state.myCoursesMeta);
   const isMyCoursesLoading = useStudentStore(
@@ -298,14 +298,14 @@ export function ProfilePage({
   const loadMyCourses = useStudentStore((state) => state.loadMyCourses);
   // Реальный прогресс ученика с backend по курсам, на которые он записан.
   const myCoursesProgress = useMyCoursesProgress(myCourses, {
-    enabled: activeProfileTab === "overview",
+    enabled: activeProfileTab === 'overview',
   });
   // Списки курсов приходят без модулей — число модулей дочитываем по каждому курсу.
   const myCoursesModules = useCoursesModulesCount(myCourses, {
-    enabled: activeProfileTab === "overview",
+    enabled: activeProfileTab === 'overview',
   });
   const authoredCoursesModules = useCoursesModulesCount(authoredCourses, {
-    enabled: activeProfileTab === "teacher",
+    enabled: activeProfileTab === 'teacher',
   });
   const progressTotals = myCoursesProgress.hasData
     ? myCoursesProgress.totals
@@ -322,19 +322,19 @@ export function ProfilePage({
     canDeleteCourse || hasPermission(COURSE_PERMISSIONS.DELETE);
   const canManageCourses =
     canCreateCourse || canUpdateOwnCourses || canDeleteOwnCourses;
-  const isAuthorMode = canManageCourses && activeProfileTab === "teacher";
+  const isAuthorMode = canManageCourses && activeProfileTab === 'teacher';
   const visibleTabs = profileTabItems.filter((tab) =>
-    isAuthorMode ? tab.id === "teacher" : tab.id !== "teacher",
+    isAuthorMode ? tab.id === 'teacher' : tab.id !== 'teacher',
   );
   const displayName = useMemo(() => getDisplayName(user), [user]);
-  const profileEmail = getDisplayText(user?.email) || "Email загружается...";
+  const profileEmail = getDisplayText(user?.email) || 'Email загружается...';
   const initials = getInitials(displayName);
   const mergedErrors = { ...formErrors, ...apiValidationErrors };
 
   useEffect(() => {
     if (!user) {
       setIsProfileLoading(true);
-      loadCurrentUser().finally(() => setIsProfileLoading(false));
+      void loadCurrentUser().finally(() => setIsProfileLoading(false));
     }
   }, [loadCurrentUser, user]);
 
@@ -346,13 +346,13 @@ export function ProfilePage({
   }, [user]);
 
   useEffect(() => {
-    if (!canManageCourses && activeProfileTab === "teacher") {
-      setActiveProfileTab("overview");
+    if (!canManageCourses && activeProfileTab === 'teacher') {
+      setActiveProfileTab('overview');
     }
   }, [activeProfileTab, canManageCourses, setActiveProfileTab]);
 
   useEffect(() => {
-    if (activeProfileTab !== "overview") {
+    if (activeProfileTab !== 'overview') {
       return undefined;
     }
 
@@ -362,7 +362,7 @@ export function ProfilePage({
       { signal: controller.signal },
     ).catch((error) => {
       if (!controller.signal.aborted) {
-        getApiErrorMessage(error, "Не удалось загрузить ваши курсы.");
+        getApiErrorMessage(error, 'Не удалось загрузить ваши курсы.');
       }
     });
 
@@ -370,13 +370,13 @@ export function ProfilePage({
   }, [activeProfileTab, loadMyCourses, myCoursesPage, myCoursesMeta.size]);
 
   useEffect(() => {
-    if (!canManageCourses || activeProfileTab !== "teacher") {
+    if (!canManageCourses || activeProfileTab !== 'teacher') {
       return undefined;
     }
 
     const controller = new AbortController();
     setIsAuthoredCoursesLoading(true);
-    setAuthoredCoursesError("");
+    setAuthoredCoursesError('');
 
     fetchMyCoursesPage(
       { page: authoredCoursesPage, size: authoredCoursesMeta.size },
@@ -397,7 +397,7 @@ export function ProfilePage({
         if (controller.signal.aborted) return;
         setAuthoredCourses([]);
         setAuthoredCoursesError(
-          getApiErrorMessage(error, "Не удалось загрузить созданные курсы."),
+          getApiErrorMessage(error, 'Не удалось загрузить созданные курсы.'),
         );
       })
       .finally(() => {
@@ -416,7 +416,7 @@ export function ProfilePage({
 
   useEffect(() => {
     if (!avatarFile) {
-      setAvatarPreviewUrl("");
+      setAvatarPreviewUrl('');
       return undefined;
     }
 
@@ -427,8 +427,8 @@ export function ProfilePage({
 
   const updateProfileField = (field: keyof ProfileForm, value: string) => {
     setProfileForm((prev) => ({ ...prev, [field]: value }));
-    setProfileNotice("");
-    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+    setProfileNotice('');
+    setFormErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
   const resetProfileEdit = () => {
@@ -438,7 +438,7 @@ export function ProfilePage({
     });
     setAvatarFile(null);
     setFormErrors({});
-    setProfileNotice("");
+    setProfileNotice('');
   };
 
   const startProfileEdit = () => {
@@ -453,8 +453,8 @@ export function ProfilePage({
 
   const handleAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
-    setProfileNotice("");
-    setFormErrors((prev) => ({ ...prev, avatar: "" }));
+    setProfileNotice('');
+    setFormErrors((prev) => ({ ...prev, avatar: '' }));
 
     if (!file) {
       setAvatarFile(null);
@@ -469,14 +469,14 @@ export function ProfilePage({
       setFormErrors((prev) => ({
         ...prev,
         avatar:
-          (error as Error | null)?.message || "Не удалось выбрать аватар.",
+          (error as Error | null)?.message || 'Не удалось выбрать аватар.',
       }));
     }
   };
 
   const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setProfileNotice("");
+    setProfileNotice('');
     setIsSavingProfile(true);
 
     const normalized = {
@@ -502,31 +502,31 @@ export function ProfilePage({
     try {
       let updatedUser = null;
       if (avatarFile) {
-        setProfileNotice("Загружаем аватар...");
+        setProfileNotice('Загружаем аватар...');
         updatedUser = await uploadAvatar(avatarFile);
       }
 
       if (Object.keys(changes).length) {
-        setProfileNotice("Сохраняем профиль...");
+        setProfileNotice('Сохраняем профиль...');
         updatedUser = await updateProfile(changes);
       }
 
       if (!updatedUser) {
-        setProfileNotice("Изменений для сохранения нет.");
+        setProfileNotice('Изменений для сохранения нет.');
         setIsSavingProfile(false);
         return;
       }
       setAvatarFile(null);
       setIsProfileEditing(false);
-      setProfileNotice("Профиль обновлён.");
+      setProfileNotice('Профиль обновлён.');
     } catch (rawError) {
       const error = rawError as { step?: string; message?: string } | null;
-      setProfileNotice("");
+      setProfileNotice('');
       setFormErrors((prev) => ({
         ...prev,
         avatar:
-          error?.step === "validation" || error?.step?.includes("upload")
-            ? (error.message ?? "")
+          error?.step === 'validation' || error?.step?.includes('upload')
+            ? (error.message ?? '')
             : prev.avatar,
       }));
     } finally {
@@ -560,7 +560,7 @@ export function ProfilePage({
             <small className="profile-user-meta tw:block tw:mt-[8px] tw:text-(--ink-accent) tw:text-[0.82rem] tw:font-[800] tw:wrap-anywhere">
               {getDisplayText(user?.username)
                 ? `@${getDisplayText(user?.username)}`
-                : "Данные аккаунта загружаются..."}
+                : 'Данные аккаунта загружаются...'}
             </small>
           </article>
 
@@ -571,16 +571,16 @@ export function ProfilePage({
             <div className="profile-mode-switch tw:mt-[10px] tw:grid tw:gap-[6px]">
               <button
                 type="button"
-                className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${!isAuthorMode ? "is-active" : ""}`}
-                onClick={() => setActiveProfileTab("overview")}
+                className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${!isAuthorMode ? 'is-active' : ''}`}
+                onClick={() => setActiveProfileTab('overview')}
               >
                 Обучаюсь
               </button>
               {canManageCourses && (
                 <button
                   type="button"
-                  className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${isAuthorMode ? "is-active" : ""}`}
-                  onClick={() => setActiveProfileTab("teacher")}
+                  className={`tw:w-[100%] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[10px] tw:text-(--muted) tw:p-[9px_10px] tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:text-left tw:cursor-pointer tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:transparent] tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${isAuthorMode ? 'is-active' : ''}`}
+                  onClick={() => setActiveProfileTab('teacher')}
                 >
                   Мои курсы
                 </button>
@@ -597,7 +597,7 @@ export function ProfilePage({
                 >
                   <button
                     type="button"
-                    className={`profile-tab-btn tw:w-[100%] tw:text-left tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_14px] tw:cursor-pointer tw:text-[0.96rem] tw:leading-[1.45] tw:font-[700] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[&.is-active]:text-(--ink-accent) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${activeProfileTab === tab.id ? "is-active" : ""}`}
+                    className={`profile-tab-btn tw:w-[100%] tw:text-left tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_14px] tw:cursor-pointer tw:text-[0.96rem] tw:leading-[1.45] tw:font-[700] tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.72)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:[&.is-active]:text-(--ink-accent) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] ${activeProfileTab === tab.id ? 'is-active' : ''}`}
                     onClick={() => setActiveProfileTab(tab.id)}
                   >
                     {tab.label}
@@ -609,7 +609,7 @@ export function ProfilePage({
         </aside>
 
         <div className="profile-content tw:grid tw:gap-[14px] tw:[align-content:start]">
-          {activeProfileTab === "active-course" && (
+          {activeProfileTab === 'active-course' && (
             <article className="glass-card profile-track-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
               <div className="profile-track-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:[&_span]:text-[0.78rem] tw:[&_span]:uppercase tw:[&_span]:tracking-[0.08em] tw:[&_span]:text-(--muted) tw:[&_span]:font-[700] tw:[&_h3]:mt-[8px] tw:[&_h3]:text-[1.2rem]">
                 <div>
@@ -640,7 +640,7 @@ export function ProfilePage({
             </article>
           )}
 
-          {activeProfileTab === "overview" && (
+          {activeProfileTab === 'overview' && (
             <>
               <article className="glass-card profile-edit-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
                 <div className="profile-edit-head tw:flex tw:items-center tw:justify-between tw:gap-[12px]">
@@ -688,7 +688,7 @@ export function ProfilePage({
                         Email
                       </span>
                       <strong className="tw:block tw:mt-[7px] tw:text-(--text) tw:text-[0.95rem] tw:wrap-anywhere">
-                        {getDisplayText(user?.email) || "Загружается..."}
+                        {getDisplayText(user?.email) || 'Загружается...'}
                       </strong>
                     </div>
                     <div className="tw:rounded-[12px] tw:p-[12px_14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[background:rgba(var(--accent-rgb),_0.06)]">
@@ -696,7 +696,7 @@ export function ProfilePage({
                         Никнейм
                       </span>
                       <strong className="tw:block tw:mt-[7px] tw:text-(--text) tw:text-[0.95rem] tw:wrap-anywhere">
-                        {getDisplayText(user?.username) || "Не указан"}
+                        {getDisplayText(user?.username) || 'Не указан'}
                       </strong>
                     </div>
                     <div className="tw:rounded-[12px] tw:p-[12px_14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[background:rgba(var(--accent-rgb),_0.06)]">
@@ -704,7 +704,7 @@ export function ProfilePage({
                         ФИО
                       </span>
                       <strong className="tw:block tw:mt-[7px] tw:text-(--text) tw:text-[0.95rem] tw:wrap-anywhere">
-                        {getDisplayText(user?.full_name) || "Не указано"}
+                        {getDisplayText(user?.full_name) || 'Не указано'}
                       </strong>
                     </div>
                     <div className="tw:rounded-[12px] tw:p-[12px_14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.24)] tw:[background:rgba(var(--accent-rgb),_0.06)]">
@@ -712,7 +712,7 @@ export function ProfilePage({
                         Аватар
                       </span>
                       <strong className="tw:block tw:mt-[7px] tw:text-(--text) tw:text-[0.95rem] tw:wrap-anywhere">
-                        {user?.avatar_url ? "Загружен" : "Не загружен"}
+                        {user?.avatar_url ? 'Загружен' : 'Не загружен'}
                       </strong>
                     </div>
                     {profileNotice && (
@@ -771,7 +771,7 @@ export function ProfilePage({
                         type="text"
                         value={profileForm.username}
                         onChange={(event) =>
-                          updateProfileField("username", event.target.value)
+                          updateProfileField('username', event.target.value)
                         }
                         placeholder="ivan.ivanov"
                         aria-invalid={Boolean(mergedErrors.username)}
@@ -788,7 +788,7 @@ export function ProfilePage({
                         type="text"
                         value={profileForm.full_name}
                         onChange={(event) =>
-                          updateProfileField("full_name", event.target.value)
+                          updateProfileField('full_name', event.target.value)
                         }
                         placeholder="Иванов Иван"
                         aria-invalid={Boolean(mergedErrors.full_name)}
@@ -805,7 +805,7 @@ export function ProfilePage({
                         className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                         disabled={isSavingProfile}
                       >
-                        {isSavingProfile ? "Сохраняем..." : "Сохранить"}
+                        {isSavingProfile ? 'Сохраняем...' : 'Сохранить'}
                       </button>
                       <button
                         type="button"
@@ -824,7 +824,7 @@ export function ProfilePage({
                             className="profile-spinner tw:w-[14px] tw:h-[14px] tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.24)] tw:[border-width:2px] tw:[border-top-color:var(--ink-accent)] tw:animate-profile-spinner-rotate"
                             aria-hidden="true"
                           />
-                          {profileNotice || "Сохраняем изменения..."}
+                          {profileNotice || 'Сохраняем изменения...'}
                         </span>
                       )}
                       {!isSavingProfile && profileNotice && (
@@ -897,8 +897,8 @@ export function ProfilePage({
                                 onClick={() => openCourse(course.id)}
                                 onKeyDown={(event) => {
                                   if (
-                                    event.key === "Enter" ||
-                                    event.key === " "
+                                    event.key === 'Enter' ||
+                                    event.key === ' '
                                   ) {
                                     event.preventDefault();
                                     openCourse(course.id);
@@ -916,7 +916,7 @@ export function ProfilePage({
                                     {course.category ||
                                       (course.difficulty &&
                                         formatCourseLevel(course.difficulty)) ||
-                                      "Курс"}
+                                      'Курс'}
                                   </small>
                                 </span>
                                 <span className="teacher-authored-course-meta tw:text-(--muted) tw:text-[0.76rem] tw:flex-[0_0_auto] tw:grid tw:gap-[3px] tw:min-w-[max-content] tw:[justify-items:end]">
@@ -956,7 +956,7 @@ export function ProfilePage({
                     aria-label="Пагинация моих курсов"
                   >
                     <span>
-                      Всего: {myCoursesMeta.total}. Страница{" "}
+                      Всего: {myCoursesMeta.total}. Страница{' '}
                       {myCoursesMeta.page} из {myCoursesMeta.pages}
                     </span>
                     <div className="courses-pagination-actions tw:flex tw:items-center tw:flex-wrap tw:gap-[8px]">
@@ -1046,7 +1046,7 @@ export function ProfilePage({
             </>
           )}
 
-          {activeProfileTab === "active-course" && (
+          {activeProfileTab === 'active-course' && (
             <article className="glass-card profile-detail-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[22px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_h3]:text-[1.05rem]">
               <h3>Блоки активного курса</h3>
               <ul className="profile-action-list tw:m-[12px_0_0] tw:p-[0] tw:text-(--muted) tw:grid tw:gap-[8px] tw:[list-style:none]">
@@ -1065,7 +1065,7 @@ export function ProfilePage({
             </article>
           )}
 
-          {canManageCourses && activeProfileTab === "teacher" && (
+          {canManageCourses && activeProfileTab === 'teacher' && (
             <>
               <section className="author-dashboard tw:grid tw:gap-[16px]">
                 <div className="author-dashboard-head tw:flex tw:justify-between tw:gap-[20px] tw:[align-items:end] tw:max-760:items-start tw:max-760:flex-col tw:[&_span]:text-(--eyebrow) tw:[&_span]:text-[0.78rem] tw:[&_span]:font-[800] tw:[&_span]:tracking-[0.1em] tw:[&_span]:uppercase tw:[&_h2]:mt-[6px] tw:[&_h2]:[font-family:'Unbounded',_sans-serif] tw:[&_h2]:text-[clamp(1.35rem,_2.5vw,_2rem)] tw:[&_p]:m-[8px_0_0] tw:[&_p]:text-(--muted)">
@@ -1163,8 +1163,8 @@ export function ProfilePage({
                                 onClick={() => openCourse(course.id)}
                                 onKeyDown={(event) => {
                                   if (
-                                    event.key === "Enter" ||
-                                    event.key === " "
+                                    event.key === 'Enter' ||
+                                    event.key === ' '
                                   ) {
                                     event.preventDefault();
                                     openCourse(course.id);
@@ -1179,7 +1179,7 @@ export function ProfilePage({
                                     {course.category ||
                                       (course.difficulty &&
                                         formatCourseLevel(course.difficulty)) ||
-                                      "Авторский курс"}
+                                      'Авторский курс'}
                                   </small>
                                 </span>
                                 <span className="teacher-authored-course-meta tw:text-(--muted) tw:text-[0.76rem] tw:flex-[0_0_auto] tw:grid tw:gap-[3px] tw:[justify-items:end] tw:[.profile-my-course-summary_&]:min-w-[max-content]">
@@ -1210,8 +1210,8 @@ export function ProfilePage({
                         aria-label="Пагинация созданных курсов"
                       >
                         <span>
-                          Всего: {authoredCoursesMeta.total}. Страница{" "}
-                          {authoredCoursesMeta.page} из{" "}
+                          Всего: {authoredCoursesMeta.total}. Страница{' '}
+                          {authoredCoursesMeta.page} из{' '}
                           {authoredCoursesMeta.pages}
                         </span>
                         <div className="courses-pagination-actions tw:flex tw:items-center tw:flex-wrap tw:gap-[8px]">
@@ -1270,12 +1270,12 @@ export function ProfilePage({
                           <li key={group.id}>
                             <button
                               type="button"
-                              className={`teacher-group-btn tw:w-[100%] tw:text-left tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.36)] tw:rounded-[12px] tw:p-[10px_12px] tw:cursor-pointer tw:grid tw:gap-[4px] tw:text-(--text) tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.8)] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&.is-active]:[box-shadow:0_0_0_1px_rgba(var(--accent-rgb),_0.2)_inset] tw:[&_strong]:text-[0.92rem] tw:[&_span]:text-[0.8rem] tw:[&_span]:text-(--muted) tw:dark:[.page_&_strong]:text-(--heading) tw:dark:[.page_&_span]:text-(--muted) ${group.id === activeTeacherGroup?.id ? "is-active" : ""}`}
+                              className={`teacher-group-btn tw:w-[100%] tw:text-left tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.36)] tw:rounded-[12px] tw:p-[10px_12px] tw:cursor-pointer tw:grid tw:gap-[4px] tw:text-(--text) tw:[border-width:1px] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.8)] tw:[background:rgba(var(--accent-rgb),_0.1)] tw:[font:inherit] tw:[&.is-active]:[box-shadow:0_0_0_1px_rgba(var(--accent-rgb),_0.2)_inset] tw:[&_strong]:text-[0.92rem] tw:[&_span]:text-[0.8rem] tw:[&_span]:text-(--muted) tw:dark:[.page_&_strong]:text-(--heading) tw:dark:[.page_&_span]:text-(--muted) ${group.id === activeTeacherGroup?.id ? 'is-active' : ''}`}
                               onClick={() => setActiveTeacherGroupId(group.id)}
                             >
                               <strong>{group.name}</strong>
                               <span>
-                                {groupCourse?.title || "Курс не выбран"}
+                                {groupCourse?.title || 'Курс не выбран'}
                               </span>
                               <span>
                                 {group.students.length} учеников • средний

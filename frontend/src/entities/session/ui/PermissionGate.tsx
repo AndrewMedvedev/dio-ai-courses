@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
-import { usePermissionStore } from "../model/permission-store";
-import type { PermissionInput } from "../model/permissions";
+import type { ReactNode } from 'react';
+import { usePermissionStore } from '../model/permission-store';
+import type { PermissionInput } from '../model/permissions';
 
 export interface PermissionGateProps {
   permission?: PermissionInput;

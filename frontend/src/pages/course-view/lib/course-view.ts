@@ -1,14 +1,16 @@
+import { asRecords } from '@/shared/api';
+import { toText } from '@/shared/lib/text';
 // Помощники страницы просмотра курса: поиск модуля по уроку и данные для карточек.
 import type {
   LearningBlock,
   LearningCourse,
   LearningLesson,
   LessonBasicInfoData,
-} from "@/entities/course";
-import type { RawApiRecord } from "@/shared/api";
+} from '@/entities/course';
+import type { RawApiRecord } from '@/shared/api';
 
 // В режиме метрик на сводке курса ни один модуль в дереве не выделен.
-export const NO_SELECTED_BLOCK = { id: "" };
+export const NO_SELECTED_BLOCK = { id: '' };
 
 export function findBlockByLesson(
   course: LearningCourse | null | undefined,
@@ -60,7 +62,7 @@ export function toModuleBasicInfoFromLearningBlock(
   return {
     id: block.id,
     title: block.title,
-    description: block.description || "",
+    description: block.description || '',
     order: Number.isFinite(block.order) ? block.order : 0,
     learning_objectives: learningObjectives,
     learningObjectives,
@@ -79,7 +81,7 @@ export function toLessonBasicInfoFromLearningLesson(
     return null;
   }
 
-  const estimatedTimeMatch = /^([0-9]+)\s*мин\.?$/i.exec(lesson.duration || "");
+  const estimatedTimeMatch = /^([0-9]+)\s*мин\.?$/i.exec(lesson.duration || '');
   const learningObjectives = Array.isArray(lesson.learningObjectives)
     ? lesson.learningObjectives
     : Array.isArray(lesson.learning_objectives)
@@ -89,7 +91,7 @@ export function toLessonBasicInfoFromLearningLesson(
   return {
     id: lesson.id,
     title: lesson.title,
-    description: lesson.summary || lesson.description || lesson.content || "",
+    description: lesson.summary || lesson.description || lesson.content || '',
     order: Number.isFinite(lesson.order) ? lesson.order : 0,
     learning_objectives: learningObjectives,
     learningObjectives,
@@ -103,7 +105,7 @@ export function toLessonBasicInfoFromLearningLesson(
 export function getCourseStudents(
   course: LearningCourse | null | undefined,
 ): RawApiRecord[] {
-  return Array.isArray(course?.students) ? course.students : [];
+  return asRecords(course?.students);
 }
 
 /** Автор курса: поле называется по-разному в разных ответах бэкенда. */
@@ -117,7 +119,7 @@ export function getCourseCreatorId(
     course?.authorId ||
     course?.user_id ||
     course?.userId;
-  return creatorId ? String(creatorId) : undefined;
+  return creatorId ? toText(creatorId) : undefined;
 }
 
 /** Текст ошибки загрузки: сообщение исключения или запасной текст. */

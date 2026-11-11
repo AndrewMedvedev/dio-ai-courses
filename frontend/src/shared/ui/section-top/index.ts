@@ -1,1 +1,1 @@
-export { SectionTop } from "./SectionTop";
+export { SectionTop } from './SectionTop';

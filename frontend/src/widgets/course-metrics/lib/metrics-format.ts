@@ -28,12 +28,12 @@ export function formatDateTime(
   value: string | number | Date | null | undefined,
 ): string {
   const date = toDate(value);
-  if (!date) return "—";
-  return date.toLocaleString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
+  if (!date) return '—';
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -41,43 +41,43 @@ export function formatShortDate(
   value: string | number | Date | null | undefined,
 ): string {
   const date = toDate(value);
-  if (!date) return "—";
-  return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  if (!date) return '—';
+  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
 }
 
 // Значение yyyy-mm-dd для <input type="date"> по местному времени.
 export function toDateInputValue(date: Date): string {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
 export function getInitials(name: string | null | undefined): string {
   return (
-    String(name || "")
-      .split(" ")
+    String(name || '')
+      .split(' ')
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0])
-      .join("")
-      .toUpperCase() || "С"
+      .join('')
+      .toUpperCase() || 'С'
   );
 }
 
 // Цвет по шкале: зелёный — хорошо, жёлтый — средне, красный — мало.
 export function percentTone(percent: unknown): string {
   const value = Number(percent) || 0;
-  if (value < 30) return "is-danger";
-  if (value < 60) return "is-warning";
-  return "is-good";
+  if (value < 30) return 'is-danger';
+  if (value < 60) return 'is-warning';
+  return 'is-good';
 }
 
 export function activeTimeTone(seconds: unknown): string {
   const value = Number(seconds) || 0;
-  if (value < 60) return "is-danger";
-  if (value < 300) return "is-warning";
-  return "is-good";
+  if (value < 60) return 'is-danger';
+  if (value < 300) return 'is-warning';
+  return 'is-good';
 }
 
 export function pluralRu(

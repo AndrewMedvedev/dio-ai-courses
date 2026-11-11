@@ -1,3 +1,4 @@
+import { toText } from '@/shared/lib/text';
 interface Titled {
   title?: string;
 }
@@ -8,12 +9,12 @@ interface PrintableLesson extends Titled {
 }
 
 function escapeHtml(value: unknown): string {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return toText(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 /** Открывает конспект урока в новом окне и запускает печать (сохранение в PDF). */
@@ -26,15 +27,15 @@ export function printLessonSummary({
   block: Titled;
   lesson: PrintableLesson;
 }): void {
-  const printWindow = window.open("", "_blank");
+  const printWindow = window.open('', '_blank');
 
   if (!printWindow) {
-    window.alert("Разрешите всплывающие окна, чтобы сохранить конспект в PDF.");
+    window.alert('Разрешите всплывающие окна, чтобы сохранить конспект в PDF.');
     return;
   }
 
   const lessonContent =
-    lesson.markdown || lesson.content || "Материал урока пока пуст.";
+    lesson.markdown || lesson.content || 'Материал урока пока пуст.';
   const documentTitle = `${course.title} — ${lesson.title}`;
 
   printWindow.document.write(`<!doctype html>

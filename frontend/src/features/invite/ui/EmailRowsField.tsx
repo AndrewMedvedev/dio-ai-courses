@@ -1,7 +1,8 @@
+import { toText } from '@/shared/lib/text';
 // Поле «Email» с несколькими адресами и список добавленных адресов со статусами.
-import type { RefObject } from "react";
-import type { User } from "@/entities/user";
-import type { EmailRow, EmailRows } from "../model/use-email-rows";
+import type { RefObject } from 'react';
+import type { User } from '@/entities/user';
+import type { EmailRow, EmailRows } from '../model/use-email-rows';
 
 export interface EmailRowsFieldProps {
   id: string;
@@ -13,13 +14,13 @@ export interface EmailRowsFieldProps {
 }
 
 const fullNameOf = (user: User | null | undefined) =>
-  String(user?.full_name || user?.fullName || "");
+  toText(user?.full_name || user?.fullName || '');
 
 function userTitle(user: User | null): string {
-  if (!user) return "";
+  if (!user) return '';
   const name = fullNameOf(user);
-  const username = user.username ? `@${user.username}` : "";
-  return [name, username].filter(Boolean).join(" · ");
+  const username = user.username ? `@${user.username}` : '';
+  return [name, username].filter(Boolean).join(' · ');
 }
 
 export function EmailRowsField({
@@ -27,8 +28,8 @@ export function EmailRowsField({
   inputRef,
   emails,
   disabled = false,
-  newUserHint = "Нет в системе — получит ещё и приглашение на регистрацию",
-  foundUserHint = (user) => userTitle(user) || "Есть в системе",
+  newUserHint = 'Нет в системе — получит ещё и приглашение на регистрацию',
+  foundUserHint = (user) => userTitle(user) || 'Есть в системе',
 }: EmailRowsFieldProps) {
   const {
     draft,
@@ -41,13 +42,13 @@ export function EmailRowsField({
   } = emails;
 
   const rowText = (row: EmailRow) => {
-    if (row.status === "checking") return "Проверяем…";
-    if (row.status === "found") return foundUserHint(row.user);
-    if (row.status === "new") return newUserHint;
-    if (row.status === "unknown") {
-      return "Не удалось проверить — приглашение всё равно можно отправить";
+    if (row.status === 'checking') return 'Проверяем…';
+    if (row.status === 'found') return foundUserHint(row.user);
+    if (row.status === 'new') return newUserHint;
+    if (row.status === 'unknown') {
+      return 'Не удалось проверить — приглашение всё равно можно отправить';
     }
-    if (row.status === "sending") return "Отправляем…";
+    if (row.status === 'sending') return 'Отправляем…';
     return row.message;
   };
 
@@ -61,7 +62,7 @@ export function EmailRowsField({
           Email
         </label>
         <div
-          className={`course-invite-input tw:flex tw:items-center tw:gap-[8px] tw:p-[7px_7px_7px_20px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:[border-width:1px] tw:focus-within:border-[rgba(var(--accent-rgb),_0.85)] tw:[&.has-error]:border-[#c7524a] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease] tw:focus-within:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.18)] ${draftError ? "has-error" : ""}`}
+          className={`course-invite-input tw:flex tw:items-center tw:gap-[8px] tw:p-[7px_7px_7px_20px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:[border-width:1px] tw:focus-within:border-[rgba(var(--accent-rgb),_0.85)] tw:[&.has-error]:border-[#c7524a] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease] tw:focus-within:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.18)] ${draftError ? 'has-error' : ''}`}
         >
           <input
             className="tw:flex-[1] tw:min-w-[0] tw:text-(--text) tw:leading-[inherit] tw:text-[1.08rem] tw:[border:0] tw:[outline:0] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit]"
@@ -75,18 +76,18 @@ export function EmailRowsField({
             disabled={disabled}
             onChange={(event) => {
               setDraft(event.target.value);
-              if (draftError) setDraftError("");
+              if (draftError) setDraftError('');
             }}
             onKeyDown={(event) => {
               if (
-                event.key === "Enter" ||
-                event.key === "," ||
-                event.key === ";"
+                event.key === 'Enter' ||
+                event.key === ',' ||
+                event.key === ';'
               ) {
                 event.preventDefault();
                 addEmails(draft);
               } else if (
-                event.key === "Backspace" &&
+                event.key === 'Backspace' &&
                 !draft &&
                 rows.length &&
                 !disabled
@@ -96,7 +97,7 @@ export function EmailRowsField({
             }}
             onBlur={() => draft.trim() && addEmails(draft)}
             onPaste={(event) => {
-              const text = event.clipboardData.getData("text");
+              const text = event.clipboardData.getData('text');
               if (/[\s,;]/.test(text.trim())) {
                 event.preventDefault();
                 addEmails(`${draft} ${text}`);
@@ -116,11 +117,11 @@ export function EmailRowsField({
         </div>
         <small
           id={`${id}-hint`}
-          className={`tw:[&.course-invite-hint]:m-[0] tw:[&.course-invite-error]:m-[0] tw:[&.course-invite-hint]:text-[0.92rem] tw:[&.course-invite-error]:text-[0.92rem] tw:[&.course-invite-hint]:leading-[1.5] tw:[&.course-invite-error]:leading-[1.5] tw:[&.course-invite-hint]:text-(--muted) tw:[&.course-invite-error]:text-[#b8443c] tw:dark:[&.course-invite-error]:text-[#f0978f] ${draftError ? "course-invite-error" : "course-invite-hint"}`}
-          role={draftError ? "alert" : undefined}
+          className={`tw:[&.course-invite-hint]:m-[0] tw:[&.course-invite-error]:m-[0] tw:[&.course-invite-hint]:text-[0.92rem] tw:[&.course-invite-error]:text-[0.92rem] tw:[&.course-invite-hint]:leading-[1.5] tw:[&.course-invite-error]:leading-[1.5] tw:[&.course-invite-hint]:text-(--muted) tw:[&.course-invite-error]:text-[#b8443c] tw:dark:[&.course-invite-error]:text-[#f0978f] ${draftError ? 'course-invite-error' : 'course-invite-hint'}`}
+          role={draftError ? 'alert' : undefined}
         >
           {draftError ||
-            "Enter или запятая — добавить. Можно вставить сразу несколько адресов."}
+            'Enter или запятая — добавить. Можно вставить сразу несколько адресов.'}
         </small>
       </div>
 

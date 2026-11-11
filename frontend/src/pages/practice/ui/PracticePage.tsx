@@ -1,32 +1,33 @@
+import { toText } from '@/shared/lib/text';
 // Страница практического задания курса с навигацией по курсу
-import { useState } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useState } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   ContentPreviewModal,
   type ContentPreview,
-} from "@/shared/ui/content-preview";
+} from '@/shared/ui/content-preview';
 import {
   CourseNavigationTree,
   type BlockNode,
   type CourseNode,
   type PracticeNode,
-} from "@/entities/course";
+} from '@/entities/course';
 import {
   LessonPracticeAgent,
   LessonTestAgent,
-} from "@/features/lesson-assessment";
+} from '@/features/lesson-assessment';
 
-import { MermaidDiagram } from "@/shared/ui/mermaid-diagram";
-import { SectionTop } from "@/shared/ui/section-top";
-import { SyntaxHighlightedCode } from "@/shared/ui/syntax-highlighted-code";
-import { useGoBack } from "@/shared/lib/ui-layout";
+import { MermaidDiagram } from '@/shared/ui/mermaid-diagram';
+import { SectionTop } from '@/shared/ui/section-top';
+import { SyntaxHighlightedCode } from '@/shared/ui/syntax-highlighted-code';
+import { useGoBack } from '@/shared/lib/ui-layout';
 
 const allowedImageDataUrl =
   /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i;
 
 function safeMarkdownUrl(url: string): string {
-  const value = String(url || "").trim();
+  const value = String(url || '').trim();
   if (allowedImageDataUrl.test(value)) {
     return value;
   }
@@ -36,7 +37,7 @@ function safeMarkdownUrl(url: string): string {
   if (/^(\/|\.{1,2}\/|#)/.test(value)) {
     return value;
   }
-  return value.includes(":") ? "" : value;
+  return value.includes(':') ? '' : value;
 }
 
 type CompletedMap = Record<string, boolean | undefined>;
@@ -62,14 +63,13 @@ export function PracticePage({
   selectedPractice,
   completedLessons,
   completedPractices,
-  togglePracticeComplete,
   openBlock,
   openLesson,
   openPractice,
   isCourseEditMode,
 }: PracticePageProps) {
   const [preview, setPreview] = useState<ContentPreview | null>(null);
-  const [activeTab, setActiveTab] = useState("practice");
+  const [activeTab, setActiveTab] = useState('practice');
   const goBack = useGoBack({
     fallbackPath: isCourseEditMode
       ? `/course/${selectedCourse.id}/edit/block/${selectedBlock.id}`
@@ -78,16 +78,16 @@ export function PracticePage({
 
   const markdownComponents: Components = {
     code({ className, children, ...props }) {
-      const match = /language-(\w+)/.exec(className || "");
+      const match = /language-(\w+)/.exec(className || '');
       const language = match?.[1]?.toLowerCase();
-      const code = String(children).replace(/\n$/, "");
+      const code = toText(children).replace(/\n$/, '');
 
-      if (language === "mermaid") {
+      if (language === 'mermaid') {
         return (
           <button
             type="button"
             className="content-preview-trigger content-preview-diagram-trigger tw:block tw:w-[100%] tw:m-[12px_0] tw:p-[0] tw:text-left tw:[border:0] tw:[background:transparent] tw:[cursor:zoom-in] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.84)] tw:focus-visible:[outline-offset:3px]"
-            onClick={() => setPreview({ type: "diagram", chart: code })}
+            onClick={() => setPreview({ type: 'diagram', chart: code })}
             aria-label="Увеличить схему"
           >
             <MermaidDiagram chart={code} />
@@ -106,10 +106,10 @@ export function PracticePage({
         <button
           type="button"
           className="content-preview-trigger content-preview-image-trigger tw:block tw:w-[fit-content] tw:m-[12px_0] tw:p-[0] tw:text-left tw:max-w-[100%] tw:[border:0] tw:[background:transparent] tw:[cursor:zoom-in] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.84)] tw:focus-visible:[outline-offset:3px] tw:[&_img]:m-[0]"
-          onClick={() => setPreview({ type: "image", src: src ?? "", alt })}
-          aria-label={`Увеличить изображение${alt ? `: ${alt}` : ""}`}
+          onClick={() => setPreview({ type: 'image', src: src ?? '', alt })}
+          aria-label={`Увеличить изображение${alt ? `: ${alt}` : ''}`}
         >
-          <img src={src} alt={alt || ""} />
+          <img src={src} alt={alt || ''} />
         </button>
       );
     },
@@ -119,11 +119,11 @@ export function PracticePage({
           className="content-preview-table-trigger tw:m-[12px_0] tw:[cursor:zoom-in] tw:focus-visible:[outline:2px_solid_rgba(var(--accent-rgb),_0.84)] tw:focus-visible:[outline-offset:3px]"
           role="button"
           tabIndex={0}
-          onClick={() => setPreview({ type: "table", children })}
+          onClick={() => setPreview({ type: 'table', children })}
           onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
+            if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              setPreview({ type: "table", children });
+              setPreview({ type: 'table', children });
             }
           }}
           aria-label="Увеличить таблицу"
@@ -157,7 +157,7 @@ export function PracticePage({
           openBlock={openBlock}
           openLesson={openLesson}
           openPractice={openPractice}
-          mode={isCourseEditMode ? "theory" : "practice"}
+          mode={isCourseEditMode ? 'theory' : 'practice'}
         />
         <article className="glass-card practice-main-card tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:sticky tw:overflow-hidden tw:overflow-y-auto tw:isolate tw:top-[16px] tw:max-h-[calc(100vh_-_32px)] tw:p-[22px] tw:[border-width:0] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:none] tw:max-1100:static tw:max-1100:overflow-y-visible tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-1100:max-h-[none] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.55)_transparent] tw:max-760:p-[18px] tw:[.page.is-inner-page_&]:p-[28px] tw:max-1100:min-h-[auto] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
           {!isCourseEditMode && (
@@ -176,29 +176,29 @@ export function PracticePage({
               </button>
               <button
                 type="button"
-                className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "questions" ? "is-active" : ""}`}
-                aria-selected={activeTab === "questions"}
-                onClick={() => setActiveTab("questions")}
+                className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'questions' ? 'is-active' : ''}`}
+                aria-selected={activeTab === 'questions'}
+                onClick={() => setActiveTab('questions')}
               >
                 Проверочные вопросы
               </button>
               <button
                 type="button"
-                className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === "practice" ? "is-active" : ""}`}
-                aria-selected={activeTab === "practice"}
-                onClick={() => setActiveTab("practice")}
+                className={`tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'practice' ? 'is-active' : ''}`}
+                aria-selected={activeTab === 'practice'}
+                onClick={() => setActiveTab('practice')}
               >
                 Практика
               </button>
             </div>
           )}
-          {!isCourseEditMode && activeTab === "questions" ? (
+          {!isCourseEditMode && activeTab === 'questions' ? (
             <LessonTestAgent
               key={`${selectedBlock.id}:${selectedBlock.lessons[0]?.id}:test`}
               moduleId={selectedBlock.id}
               lessonId={selectedBlock.lessons[0]?.id}
             />
-          ) : !isCourseEditMode && activeTab === "practice" ? (
+          ) : !isCourseEditMode && activeTab === 'practice' ? (
             <LessonPracticeAgent
               key={`${selectedBlock.id}:${selectedBlock.lessons[0]?.id}:practice`}
               moduleId={selectedBlock.id}

@@ -1,17 +1,17 @@
 // Файлы для редактора: base64 для ИИ-редактора и id загруженного изображения.
-import { getMediaId } from "@/shared/lib/media";
-import type { RawApiRecord } from "@/shared/api";
+import { getMediaId } from '@/shared/lib/media';
+import type { RawApiRecord } from '@/shared/api';
 
 export function getUserId(
   user: { id?: string; user_id?: string; userId?: string } | null | undefined,
 ): string {
-  return user?.id || user?.user_id || user?.userId || "";
+  return user?.id || user?.user_id || user?.userId || '';
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
-  let binary = "";
+  let binary = '';
 
   for (let index = 0; index < bytes.length; index += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
@@ -31,7 +31,7 @@ export async function readImageUrlAsBase64(
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
-      "Не удалось прочитать текущее изображение блока для AI-редактора.",
+      'Не удалось прочитать текущее изображение блока для AI-редактора.',
     );
   }
   return arrayBufferToBase64(await response.arrayBuffer());

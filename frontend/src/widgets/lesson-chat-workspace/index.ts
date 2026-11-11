@@ -2,4 +2,4 @@ export {
   LessonChatWorkspace,
   type LessonChatProps,
   type LessonChatWorkspaceProps,
-} from "./ui/LessonChatWorkspace";
+} from './ui/LessonChatWorkspace';

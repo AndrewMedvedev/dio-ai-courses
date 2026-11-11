@@ -1,6 +1,7 @@
+import { toText } from '@/shared/lib/text';
 // Витрина готовых курсов, созданных пользователями AI Course Lab
-import { SectionTop } from "@/shared/ui/section-top";
-import { formatCourseLevel } from "@/entities/course";
+import { SectionTop } from '@/shared/ui/section-top';
+import { formatCourseLevel } from '@/entities/course';
 
 /** Курс в карточке каталога. */
 export interface CatalogCourse {
@@ -36,7 +37,7 @@ export function CoursesPage({
   canCreateCourse,
   canReadCourse,
   isLoading = false,
-  error = "",
+  error = '',
   page = 1,
   pageSize = 9,
   totalPages = 1,
@@ -110,7 +111,7 @@ export function CoursesPage({
                 tabIndex={0}
                 onClick={() => openCourse(course.id)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
+                  if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     openCourse(course.id);
                   }
@@ -131,12 +132,12 @@ export function CoursesPage({
                     aria-label="Теги курса"
                   >
                     {course.tags.slice(0, MAX_CARD_TAGS).map((tag) => (
-                      <span key={tag}>{tag}</span>
+                      <span key={toText(tag)}>{toText(tag)}</span>
                     ))}
                     {course.tags.length > MAX_CARD_TAGS && (
                       <span
                         className="is-more tw:[.course-meta-inline_&]:[background:transparent]"
-                        title={course.tags.slice(MAX_CARD_TAGS).join(", ")}
+                        title={course.tags.slice(MAX_CARD_TAGS).join(', ')}
                       >
                         +{course.tags.length - MAX_CARD_TAGS}
                       </span>
@@ -167,9 +168,9 @@ export function CoursesPage({
                   <button
                     key={pageNumber}
                     type="button"
-                    className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? "is-active" : ""}`}
+                    className={`courses-pagination-page tw:min-w-[38px] tw:h-[38px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[999px] tw:text-(--text) tw:cursor-pointer tw:leading-[inherit] tw:font-[800] tw:[border-width:1px] tw:hover:border-[rgba(var(--accent-rgb),_0.82)] tw:[&.is-active]:border-[rgba(var(--accent-rgb),_0.82)] tw:[background:rgba(var(--accent-rgb),_0.08)] tw:hover:text-(--heading) tw:[&.is-active]:text-(--heading) tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:text-[length:inherit] tw:[font-family:inherit] tw:hover:[background:rgba(var(--accent-rgb),_0.18)] tw:[&.is-active]:[background:rgba(var(--accent-rgb),_0.18)] ${pageNumber === page ? 'is-active' : ''}`}
                     onClick={() => onPageChange?.(pageNumber)}
-                    aria-current={pageNumber === page ? "page" : undefined}
+                    aria-current={pageNumber === page ? 'page' : undefined}
                   >
                     {pageNumber}
                   </button>

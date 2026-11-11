@@ -1,9 +1,9 @@
-import { useEffect, useState, type CSSProperties } from "react";
-import { prefersReducedMotion } from "../lib/helpers";
-import { Icon } from "./icons";
-import { getProgress } from "../model/selectors";
-import { useDndCourseStore } from "../model/store";
-import { useDndActions } from "./common";
+import { useEffect, useState, type CSSProperties } from 'react';
+import { prefersReducedMotion } from '../lib/helpers';
+import { Icon } from './icons';
+import { getProgress } from '../model/selectors';
+import { useDndCourseStore } from '../model/store';
+import { useDndActions } from './dnd-actions';
 
 export function Onboarding() {
   const dismissed = useDndCourseStore((state) => state.onboardingDismissed);
@@ -22,8 +22,8 @@ export function Onboarding() {
       <div>
         <strong>
           {hasMaterials
-            ? "Соберите первый урок"
-            : "Перетащите документы на холст, чтобы начать собирать курс."}
+            ? 'Соберите первый урок'
+            : 'Перетащите документы на холст, чтобы начать собирать курс.'}
         </strong>
         <ul>
           <li>Материалы → перетащите в зону «Новый урок» внизу холста.</li>
@@ -67,7 +67,7 @@ export function Celebration() {
   useEffect(() => {
     if (percent < 100 || celebrated) return undefined;
     markCelebrated();
-    toast("success", "Структура курса собрана — можно проверить и завершить.");
+    toast('success', 'Структура курса собрана — можно проверить и завершить.');
     if (prefersReducedMotion()) return undefined;
     setBurst(true);
     const timer = window.setTimeout(() => setBurst(false), 1600);
@@ -84,7 +84,7 @@ export function Celebration() {
         <i
           className="tw:absolute tw:w-[8px] tw:h-[12px] tw:rounded-[2px] tw:[background:var(--dnd-accent)] tw:animate-dnd-confetti tw:[--angle:calc(var(--i)_*_20deg)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-confetti_&:nth-child(3n_+_1)]:[background:var(--dnd-ok)] tw:[.page_.dnd-builder_.dnd-confetti_&:nth-child(3n)]:[background:var(--dnd-blue)]"
           key={index}
-          style={{ "--i": index } as CSSProperties}
+          style={{ '--i': index } as CSSProperties}
         />
       ))}
     </div>

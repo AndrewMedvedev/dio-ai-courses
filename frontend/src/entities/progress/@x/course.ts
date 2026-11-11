@@ -8,4 +8,4 @@ export {
   type LessonProgress,
   type ModuleProgressSummary,
   type ProgressStatus,
-} from "../model/progress-service";
+} from '../model/progress-service';

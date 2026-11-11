@@ -7,7 +7,7 @@ import {
   type DragEvent as ReactDragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
-} from "react";
+} from 'react';
 import {
   applyNodeChanges,
   Background,
@@ -23,23 +23,23 @@ import {
   type Node,
   type NodeChange,
   type OnSelectionChangeParams,
-} from "@xyflow/react";
-import "./xyflow.css";
-import { useShallow } from "zustand/react/shallow";
+} from '@xyflow/react';
+import './xyflow.css';
+import { useShallow } from 'zustand/react/shallow';
 import {
   COLUMN_GAP,
   DRAG_MIME,
   MODULE_LAYOUT,
   NODE_SIZE,
-} from "../config/constants";
-import { buildGraph, structureSignature, type NodeData } from "../lib/graph";
-import { parseNodeId } from "../lib/helpers";
-import { findFreeSlot, freeRects } from "../lib/layout";
-import { Icon } from "./icons";
-import { nodeTypes } from "./nodes";
-import { useDndCourseStore } from "../model/store";
-import { useDndActions } from "./common";
-import type { DropHint, Size, XY } from "../model/types";
+} from '../config/constants';
+import { buildGraph, structureSignature, type NodeData } from '../lib/graph';
+import { parseNodeId } from '../lib/helpers';
+import { findFreeSlot, freeRects } from '../lib/layout';
+import { Icon } from './icons';
+import { nodeTypes } from './node-types';
+import { useDndCourseStore } from '../model/store';
+import { useDndActions } from './dnd-actions';
+import type { DropHint, Size, XY } from '../model/types';
 
 type FlowNode = Node<NodeData>;
 
@@ -82,18 +82,18 @@ const TYPE_PRIORITY: Record<string, number> = {
 const ZERO: XY = { x: 0, y: 0 };
 
 const sizeOfType = (type: string | null): Size =>
-  (NODE_SIZE as Record<string, Size>)[type ?? ""] || NODE_SIZE.material;
+  (NODE_SIZE as Record<string, Size>)[type ?? ''] || NODE_SIZE.material;
 
-const entityIdOf = (id: string): string => parseNodeId(id).entityId ?? "";
+const entityIdOf = (id: string): string => parseNodeId(id).entityId ?? '';
 
 function classifyDrag(nodes: FlowNode[]): string {
   const types = new Set(nodes.map((node) => node.type));
-  if (types.size !== 1) return "mixed";
+  if (types.size !== 1) return 'mixed';
   const [type] = types;
-  if (type === "material") return "materials";
-  if (type === "lesson") return "lessons";
-  if (type === "module") return nodes.length === 1 ? "module" : "mixed";
-  return type ?? "";
+  if (type === 'material') return 'materials';
+  if (type === 'lesson') return 'lessons';
+  if (type === 'module') return nodes.length === 1 ? 'module' : 'mixed';
+  return type ?? '';
 }
 
 function isEditableTarget(target: EventTarget | null) {
@@ -152,17 +152,17 @@ function ZoomControls() {
       />
       <button
         type="button"
-        className={`dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${showUsed ? "is-on" : ""}`}
+        className={`dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&.is-on]:border-(--dnd-border) tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-on]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] ${showUsed ? 'is-on' : ''}`}
         onClick={toggleUsed}
         aria-pressed={showUsed}
         aria-label={
           showUsed
-            ? "Скрыть материалы, которые уже в уроках"
+            ? 'Скрыть материалы, которые уже в уроках'
             : `Показать материалы, которые уже в уроках (${usedCount})`
         }
         title={
           showUsed
-            ? "Скрыть материалы, которые уже в уроках"
+            ? 'Скрыть материалы, которые уже в уроках'
             : `Показать материалы, которые уже в уроках (${usedCount})`
         }
       >
@@ -182,7 +182,7 @@ function ZoomControls() {
         className="dnd-icon-btn tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[36px] tw:h-[36px] tw:flex-[none] tw:rounded-[9px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-text) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_color_0.15s] tw:disabled:opacity-[0.4] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)]"
         onClick={() =>
           fitView({
-            nodes: [{ id: "course" }],
+            nodes: [{ id: 'course' }],
             padding: 1.2,
             maxZoom: 1,
             duration: 260,
@@ -200,8 +200,8 @@ function ZoomControls() {
 function DropDock() {
   const dragKind = useDndCourseStore((state) => state.dragKind);
   const hint = useDndCourseStore((state) => state.dropHint);
-  if (dragKind !== "materials" && dragKind !== "lessons") return null;
-  const zone = dragKind === "materials" ? "new-lesson" : "new-module";
+  if (dragKind !== 'materials' && dragKind !== 'lessons') return null;
+  const zone = dragKind === 'materials' ? 'new-lesson' : 'new-module';
   const active = hint?.zone === zone;
   return (
     <div
@@ -210,17 +210,17 @@ function DropDock() {
     >
       <div
         data-dnd-zone={zone}
-        className={`dnd-dock-zone tw:[.page_.dnd-builder_&]:pointer-events-auto tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:gap-[12px] tw:[.page_.dnd-builder_&]:w-[min(360px,_calc(100vw_-_64px))] tw:[.page_.dnd-builder_&]:p-[16px_18px] tw:[.page_.dnd-builder_&]:rounded-[16px] tw:[.page_.dnd-builder_&]:border-dashed tw:[.page_.dnd-builder_&]:border-(--dnd-blue-ink) tw:[.page_.dnd-builder_&.is-drop-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&.is-drop-bad]:border-(--dnd-error) tw:[.page_.dnd-builder_&]:text-(--dnd-blue-ink) tw:[.page_.dnd-builder_&.is-drop-ok]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.is-drop-bad]:text-(--dnd-error) tw:[.page_.dnd-builder_&.is-drop-bad]:cursor-not-allowed tw:[.page_.dnd-builder_&]:[border-width:2px] tw:[.page_.dnd-builder_&]:[background:color-mix(in_srgb,_var(--dnd-panel)_92%,_transparent)] tw:[.page_.dnd-builder_&.is-drop-ok]:[background:color-mix(in_srgb,_var(--dnd-panel)_80%,_var(--dnd-ok)_10%)] tw:[.page_.dnd-builder_&]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&]:[transition:transform_0.15s,_background_0.15s,_border-color_0.15s] tw:[.page_.dnd-builder_&.is-drop-ok]:[transform:scale(1.04)] tw:[.page_.dnd-builder_&_strong]:block tw:[.page_.dnd-builder_&_strong]:text-[0.95rem] tw:[.page_.dnd-builder_&_small]:block tw:[.page_.dnd-builder_&_small]:text-[0.76rem] tw:[.page_.dnd-builder_&_small]:text-(--dnd-muted) ${active ? (hint.valid ? "is-drop-ok" : "is-drop-bad") : ""}`}
+        className={`dnd-dock-zone tw:[.page_.dnd-builder_&]:pointer-events-auto tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:gap-[12px] tw:[.page_.dnd-builder_&]:w-[min(360px,_calc(100vw_-_64px))] tw:[.page_.dnd-builder_&]:p-[16px_18px] tw:[.page_.dnd-builder_&]:rounded-[16px] tw:[.page_.dnd-builder_&]:border-dashed tw:[.page_.dnd-builder_&]:border-(--dnd-blue-ink) tw:[.page_.dnd-builder_&.is-drop-ok]:border-(--dnd-ok) tw:[.page_.dnd-builder_&.is-drop-bad]:border-(--dnd-error) tw:[.page_.dnd-builder_&]:text-(--dnd-blue-ink) tw:[.page_.dnd-builder_&.is-drop-ok]:text-(--dnd-ok) tw:[.page_.dnd-builder_&.is-drop-bad]:text-(--dnd-error) tw:[.page_.dnd-builder_&.is-drop-bad]:cursor-not-allowed tw:[.page_.dnd-builder_&]:[border-width:2px] tw:[.page_.dnd-builder_&]:[background:color-mix(in_srgb,_var(--dnd-panel)_92%,_transparent)] tw:[.page_.dnd-builder_&.is-drop-ok]:[background:color-mix(in_srgb,_var(--dnd-panel)_80%,_var(--dnd-ok)_10%)] tw:[.page_.dnd-builder_&]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&]:[transition:transform_0.15s,_background_0.15s,_border-color_0.15s] tw:[.page_.dnd-builder_&.is-drop-ok]:[transform:scale(1.04)] tw:[.page_.dnd-builder_&_strong]:block tw:[.page_.dnd-builder_&_strong]:text-[0.95rem] tw:[.page_.dnd-builder_&_small]:block tw:[.page_.dnd-builder_&_small]:text-[0.76rem] tw:[.page_.dnd-builder_&_small]:text-(--dnd-muted) ${active ? (hint.valid ? 'is-drop-ok' : 'is-drop-bad') : ''}`}
       >
-        <Icon name={zone === "new-lesson" ? "lesson" : "module"} size={20} />
+        <Icon name={zone === 'new-lesson' ? 'lesson' : 'module'} size={20} />
         <span>
           <strong>
-            {zone === "new-lesson" ? "Новый урок" : "Новый модуль"}
+            {zone === 'new-lesson' ? 'Новый урок' : 'Новый модуль'}
           </strong>
           <small>
-            {zone === "new-lesson"
-              ? "Отпустите материалы, чтобы собрать из них урок"
-              : "Отпустите урок, чтобы создать модуль"}
+            {zone === 'new-lesson'
+              ? 'Отпустите материалы, чтобы собрать из них урок'
+              : 'Отпустите урок, чтобы создать модуль'}
           </small>
         </span>
       </div>
@@ -292,7 +292,7 @@ function CanvasInner() {
           dragging: prev?.dragging,
           measured: prev?.measured,
           selected: selected.has(node.id),
-          className: bouncing.includes(node.id) ? "is-bouncing" : undefined,
+          className: bouncing.includes(node.id) ? 'is-bouncing' : undefined,
         };
       });
     });
@@ -305,22 +305,22 @@ function CanvasInner() {
     return graph.edges.map((edge) => ({
       ...edge,
       className: [
-        "dnd-edge",
+        'dnd-edge',
         `dnd-edge--${edge.kind}`,
-        flash[edge.id] ? "is-new" : "",
+        flash[edge.id] ? 'is-new' : '',
         related.has(edge.source) || related.has(edge.target)
-          ? "is-related"
-          : "",
+          ? 'is-related'
+          : '',
       ]
         .filter(Boolean)
-        .join(" "),
+        .join(' '),
       selectable: true,
       deletable: false,
       focusable: true,
       ariaLabel:
-        edge.kind === "material"
-          ? "Связь материал → урок"
-          : "Связь модуль → курс",
+        edge.kind === 'material'
+          ? 'Связь материал → урок'
+          : 'Связь модуль → курс',
     }));
   }, [graph.edges, flash, selectedIds, activeNodeId]);
 
@@ -329,7 +329,7 @@ function CanvasInner() {
     const timer = window.setTimeout(() => {
       const known = focusRequest.ids.filter((id) => rf.getNode(id));
       if (known.length) {
-        rf.fitView({
+        void rf.fitView({
           nodes: known.map((id) => ({ id })),
           padding: 0.25,
           maxZoom: 1,
@@ -343,7 +343,7 @@ function CanvasInner() {
   const onNodesChange = useCallback((changes: NodeChange<FlowNode>[]) => {
     setNodes((current) =>
       applyNodeChanges(
-        changes.filter((change) => change.type !== "remove"),
+        changes.filter((change) => change.type !== 'remove'),
         current,
       ),
     );
@@ -372,7 +372,7 @@ function CanvasInner() {
         if (
           exclude.has(node.id) ||
           (node.parentId && exclude.has(node.parentId)) ||
-          node.type === "upload"
+          node.type === 'upload'
         )
           return;
         const internal = rf.getInternalNode(node.id);
@@ -391,11 +391,11 @@ function CanvasInner() {
         )
           return;
         // best меняется внутри forEach, поэтому тип уточняем явно
-        const current = best as Best | null;
+        const current = best;
         if (
           !current ||
-          TYPE_PRIORITY[node.type ?? ""] >
-            TYPE_PRIORITY[current.node.type ?? ""]
+          TYPE_PRIORITY[node.type ?? ''] >
+            TYPE_PRIORITY[current.node.type ?? '']
         ) {
           best = { node, abs, width, height };
         }
@@ -412,21 +412,21 @@ function CanvasInner() {
       const target = hit?.node;
       const targetType = target?.type;
       // Используется только там, где под курсором есть узел.
-      const targetEntity = target ? entityIdOf(target.id) : "";
+      const targetEntity = target ? entityIdOf(target.id) : '';
       const point = hit?.point ?? ZERO;
       const abs = hit?.abs ?? ZERO;
 
-      if (kind === "materials") {
-        if (hit?.zone === "new-lesson") {
+      if (kind === 'materials') {
+        if (hit?.zone === 'new-lesson') {
           const check = state.validateMaterialsForLesson(entityIds);
           return {
-            zone: "new-lesson",
+            zone: 'new-lesson',
             valid: check.ok,
             reason: check.reason,
-            action: "new-lesson",
+            action: 'new-lesson',
           };
         }
-        if (targetType === "lesson") {
+        if (targetType === 'lesson') {
           const check = state.validateMaterialsForLesson(
             entityIds,
             targetEntity,
@@ -435,73 +435,73 @@ function CanvasInner() {
             targetId: target?.id,
             valid: check.ok,
             reason: check.reason,
-            action: "to-lesson",
+            action: 'to-lesson',
             lessonId: targetEntity,
           };
         }
-        if (targetType === "module")
+        if (targetType === 'module')
           return {
             targetId: target?.id,
             valid: false,
             reason:
-              "Материал нельзя добавить в модуль напрямую — сначала соберите из него урок.",
+              'Материал нельзя добавить в модуль напрямую — сначала соберите из него урок.',
           };
-        if (targetType === "course")
+        if (targetType === 'course')
           return {
             targetId: target?.id,
             valid: false,
-            reason: "Материал нельзя связать с курсом напрямую.",
+            reason: 'Материал нельзя связать с курсом напрямую.',
           };
-        return { action: "move" };
+        return { action: 'move' };
       }
 
-      if (kind === "lessons") {
+      if (kind === 'lessons') {
         const nested = entityIds.some((id) =>
           state.modules.some((module) => module.lessonIds.includes(id)),
         );
-        if (hit?.zone === "new-module")
-          return { zone: "new-module", valid: true, action: "new-module" };
+        if (hit?.zone === 'new-module')
+          return { zone: 'new-module', valid: true, action: 'new-module' };
         let moduleId: string | null = null;
         let index: number | null = null;
-        if (targetType === "module") {
+        if (targetType === 'module') {
           moduleId = targetEntity;
           const module = state.modules.find((item) => item.id === moduleId);
           index =
             point.y < abs.y + MODULE_LAYOUT.header
               ? 0
               : (module?.lessonIds.length ?? 0);
-        } else if (targetType === "lesson" && target?.parentId) {
+        } else if (targetType === 'lesson' && target?.parentId) {
           moduleId = parseNodeId(target.parentId).entityId;
           const module = state.modules.find((item) => item.id === moduleId);
           const base = module?.lessonIds.indexOf(targetEntity) ?? 0;
           index = point.y > abs.y + (hit?.height ?? 0) / 2 ? base + 1 : base;
-        } else if (targetType === "lesson") {
+        } else if (targetType === 'lesson') {
           // Урок положили на свободный урок — предлагаем собрать из них новый модуль.
           return {
             targetId: target?.id,
             valid: true,
-            action: "merge-module",
+            action: 'merge-module',
             lessonIds: [
               targetEntity,
               ...entityIds.filter((id) => id !== targetEntity),
             ],
             label:
               entityIds.length > 1
-                ? "Отпустите, чтобы создать модуль из этих уроков"
-                : "Отпустите, чтобы создать модуль из двух уроков",
+                ? 'Отпустите, чтобы создать модуль из этих уроков'
+                : 'Отпустите, чтобы создать модуль из двух уроков',
           };
-        } else if (targetType === "course") {
+        } else if (targetType === 'course') {
           return {
             targetId: target?.id,
             valid: false,
-            reason: "Сначала добавьте урок в модуль — модули связаны с курсом.",
+            reason: 'Сначала добавьте урок в модуль — модули связаны с курсом.',
           };
         }
         if (moduleId) {
           return {
-            targetId: targetType === "module" ? target?.id : target?.parentId,
+            targetId: targetType === 'module' ? target?.id : target?.parentId,
             valid: true,
-            action: "to-module",
+            action: 'to-module',
             moduleId,
             index,
           };
@@ -510,26 +510,26 @@ function CanvasInner() {
           return {
             valid: false,
             reason:
-              "Урок нельзя вынести из модуля: перенесите его в другой модуль.",
-            action: "revert",
+              'Урок нельзя вынести из модуля: перенесите его в другой модуль.',
+            action: 'revert',
           };
         }
-        return { action: "move" };
+        return { action: 'move' };
       }
 
-      if (kind === "module") {
+      if (kind === 'module') {
         const module = state.modules.find((item) => item.id === entityIds[0]);
-        if (!module) return { action: "revert" };
-        if (targetType === "lesson" && !target?.parentId)
+        if (!module) return { action: 'revert' };
+        if (targetType === 'lesson' && !target?.parentId)
           return {
             targetId: target?.id,
             valid: false,
-            reason: "Модуль нельзя добавить внутрь урока.",
+            reason: 'Модуль нельзя добавить внутрь урока.',
           };
-        return { action: "reorder-module" };
+        return { action: 'reorder-module' };
       }
 
-      return { action: "move" };
+      return { action: 'move' };
     },
     [],
   );
@@ -567,10 +567,10 @@ function CanvasInner() {
                 targetId: result.targetId || null,
                 zone: result.zone || null,
                 valid: Boolean(result.valid),
-                reason: result.reason || "",
-                label: result.label || "",
+                reason: result.reason || '',
+                label: result.label || '',
               }
-            : result.action === "revert"
+            : result.action === 'revert'
               ? {
                   targetId: null,
                   zone: null,
@@ -610,19 +610,19 @@ function CanvasInner() {
       const revert = () => setSyncTick((tick) => tick + 1);
 
       if (
-        result.action === "move" ||
-        (drag.kind === "mixed" && !result.targetId)
+        result.action === 'move' ||
+        (drag.kind === 'mixed' && !result.targetId)
       ) {
         const patch: Record<string, XY> = {};
         list.forEach((item) => {
-          if (item.parentId || item.type === "module") return;
+          if (item.parentId || item.type === 'module') return;
           patch[item.id] = {
             x: Math.round(item.position.x),
             y: Math.round(item.position.y),
           };
         });
         // На кнопку «Загрузить материалы» класть нельзя: карточка отскакивает в сторону.
-        const upload = rf.getInternalNode("upload");
+        const upload = rf.getInternalNode('upload');
         const uploadAbs = upload?.internals?.positionAbsolute;
         const bounced: string[] = [];
         if (uploadAbs) {
@@ -658,20 +658,20 @@ function CanvasInner() {
           setBouncing(bounced);
           window.setTimeout(() => setBouncing([]), 450);
           store.announce(
-            "Карточка отодвинута: на кнопку загрузки класть нельзя.",
+            'Карточка отодвинута: на кнопку загрузки класть нельзя.',
           );
         }
-        if (list.some((item) => item.parentId || item.type === "module"))
+        if (list.some((item) => item.parentId || item.type === 'module'))
           revert();
         return;
       }
 
       // Модуль остаётся там, куда его перетащили (уроки внутри едут вместе с ним).
       // Остальные модули фиксируем на их текущих местах, чтобы они не перестраивались.
-      if (drag.kind === "module" && result.action === "reorder-module") {
+      if (drag.kind === 'module' && result.action === 'reorder-module') {
         const patch: Record<string, XY> = {};
         rf.getNodes().forEach((item) => {
-          if (item.type !== "module") return;
+          if (item.type !== 'module') return;
           const position = item.id === node.id ? node.position : item.position;
           patch[item.id] = {
             x: Math.round(position.x),
@@ -684,37 +684,36 @@ function CanvasInner() {
       if (
         !result.valid &&
         result.reason &&
-        result.action !== "reorder-module"
+        result.action !== 'reorder-module'
       ) {
-        store.toast("warning", result.reason, { timeout: 3200 });
+        store.toast('warning', result.reason, { timeout: 3200 });
         return;
       }
 
-      if (result.action === "new-lesson") {
+      if (result.action === 'new-lesson') {
         const ordered = store.selectedIds
           .filter((id) => drag.ids.includes(id))
           .map((id) => entityIdOf(id));
         const ids =
           ordered.length === drag.entityIds.length ? ordered : drag.entityIds;
-        store.createLessonFromMaterials(ids);
-      } else if (result.action === "to-lesson") {
-        store.addMaterialsToLesson(result.lessonId ?? "", drag.entityIds);
-      } else if (result.action === "new-module") {
+        void store.createLessonFromMaterials(ids);
+      } else if (result.action === 'to-lesson') {
+        void store.addMaterialsToLesson(result.lessonId ?? '', drag.entityIds);
+      } else if (result.action === 'new-module') {
         store.openModuleDialog(drag.entityIds);
-      } else if (result.action === "merge-module") {
+      } else if (result.action === 'merge-module') {
         store.openModuleDialog(result.lessonIds ?? []);
-      } else if (result.action === "to-module") {
-        (async () => {
+      } else if (result.action === 'to-module') {
+        void (async () => {
           let index = result.index ?? null;
           for (const lessonId of drag.entityIds) {
-            // eslint-disable-next-line no-await-in-loop
             await useDndCourseStore
               .getState()
               .moveLessonToModule(lessonId, result.moduleId ?? null, index);
             if (index !== null) index += 1;
           }
         })();
-      } else if (result.action === "reorder-module") {
+      } else if (result.action === 'reorder-module') {
         const ordered = [...store.modules].sort((a, b) => a.order - b.order);
         const centerY = node.position.y + (node.height || 200) / 2;
         let target = 0;
@@ -725,7 +724,7 @@ function CanvasInner() {
           const height = internal?.measured?.height || 200;
           if (abs && centerY > abs.y + height / 2) target += 1;
         });
-        store.reorderModule(drag.entityIds[0], target);
+        void store.reorderModule(drag.entityIds[0], target);
       }
     },
     [evaluate, hitTest, rf],
@@ -737,26 +736,26 @@ function CanvasInner() {
     // Для узлов холста id сущности есть всегда.
     const source = {
       type: parsedSource.type,
-      entityId: parsedSource.entityId ?? "",
+      entityId: parsedSource.entityId ?? '',
     };
     const target = {
       type: parsedTarget.type,
-      entityId: parsedTarget.entityId ?? "",
+      entityId: parsedTarget.entityId ?? '',
     };
     const state = useDndCourseStore.getState();
-    if (source.type === "material" && target.type === "lesson") {
+    if (source.type === 'material' && target.type === 'lesson') {
       return state.validateMaterialsForLesson(
         [source.entityId],
         target.entityId,
       ).ok;
     }
-    if (source.type === "lesson" && target.type === "module") {
+    if (source.type === 'lesson' && target.type === 'module') {
       const module = state.modules.find((item) => item.id === target.entityId);
       return Boolean(module) && !module?.lessonIds.includes(source.entityId);
     }
     // Линия от урока к уроку: свободный урок — новый модуль из двух уроков,
     // урок в модуле — переносим исходный урок в этот модуль.
-    if (source.type === "lesson" && target.type === "lesson") {
+    if (source.type === 'lesson' && target.type === 'lesson') {
       if (source.entityId === target.entityId) return false;
       const targetModule = state.modules.find((item) =>
         item.lessonIds.includes(target.entityId),
@@ -771,23 +770,23 @@ function CanvasInner() {
     const parsedTarget = parseNodeId(connection.target);
     const source = {
       type: parsedSource.type,
-      entityId: parsedSource.entityId ?? "",
+      entityId: parsedSource.entityId ?? '',
     };
     const target = {
       type: parsedTarget.type,
-      entityId: parsedTarget.entityId ?? "",
+      entityId: parsedTarget.entityId ?? '',
     };
     const store = useDndCourseStore.getState();
-    if (source.type === "material" && target.type === "lesson") {
-      store.addMaterialsToLesson(target.entityId, [source.entityId]);
-    } else if (source.type === "lesson" && target.type === "module") {
-      store.moveLessonToModule(source.entityId, target.entityId);
-    } else if (source.type === "lesson" && target.type === "lesson") {
+    if (source.type === 'material' && target.type === 'lesson') {
+      void store.addMaterialsToLesson(target.entityId, [source.entityId]);
+    } else if (source.type === 'lesson' && target.type === 'module') {
+      void store.moveLessonToModule(source.entityId, target.entityId);
+    } else if (source.type === 'lesson' && target.type === 'lesson') {
       const targetModule = store.modules.find((item) =>
         item.lessonIds.includes(target.entityId),
       );
       if (targetModule) {
-        store.moveLessonToModule(
+        void store.moveLessonToModule(
           source.entityId,
           targetModule.id,
           targetModule.lessonIds.indexOf(target.entityId) + 1,
@@ -799,7 +798,7 @@ function CanvasInner() {
   }, []);
 
   const onNodeClick = useCallback((event: ReactMouseEvent, node: FlowNode) => {
-    if (node.type === "upload") return;
+    if (node.type === 'upload') return;
     if (event.shiftKey || event.metaKey || event.ctrlKey) return;
     useDndCourseStore.getState().openInspector(node.id);
   }, []);
@@ -807,16 +806,16 @@ function CanvasInner() {
   // ───── файлы и элементы палитры ─────
   const onDragOver = useCallback((event: ReactDragEvent<HTMLDivElement>) => {
     const types = [...(event.dataTransfer?.types || [])];
-    if (!types.includes("Files") && !types.includes(DRAG_MIME)) return;
+    if (!types.includes('Files') && !types.includes(DRAG_MIME)) return;
     event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-    if (types.includes("Files")) setFileOver(true);
+    event.dataTransfer.dropEffect = 'copy';
+    if (types.includes('Files')) setFileOver(true);
   }, []);
 
   const onDrop = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {
       const types = [...(event.dataTransfer?.types || [])];
-      if (!types.includes("Files") && !types.includes(DRAG_MIME)) return;
+      if (!types.includes('Files') && !types.includes(DRAG_MIME)) return;
       event.preventDefault();
       setFileOver(false);
       const store = useDndCourseStore.getState();
@@ -827,7 +826,7 @@ function CanvasInner() {
       if (event.dataTransfer.files?.length) {
         const hit = hitTest(event.clientX, event.clientY);
         const lessonId =
-          hit?.node?.type === "lesson"
+          hit?.node?.type === 'lesson'
             ? parseNodeId(hit.node.id).entityId
             : null;
         store.addFiles(event.dataTransfer.files, {
@@ -841,28 +840,28 @@ function CanvasInner() {
         });
         if (lessonId)
           store.toast(
-            "info",
-            "Материал добавится в урок, как только документ будет обработан.",
+            'info',
+            'Материал добавится в урок, как только документ будет обработан.',
           );
         return;
       }
       const item = event.dataTransfer.getData(DRAG_MIME);
-      if (item === "material")
+      if (item === 'material')
         pickFiles({
           position: {
             x: position.x - NODE_SIZE.material.width / 2,
             y: position.y - 30,
           },
         });
-      if (item === "lesson") {
+      if (item === 'lesson') {
         const selectedMaterials = store.selectedIds
-          .filter((id) => id.startsWith("material:"))
+          .filter((id) => id.startsWith('material:'))
           .map((id) => entityIdOf(id));
         if (selectedMaterials.length)
-          store.createLessonFromMaterials(selectedMaterials, { position });
+          void store.createLessonFromMaterials(selectedMaterials, { position });
         else store.openMaterialPicker();
       }
-      if (item === "module") store.openModuleDialog([], { pick: true });
+      if (item === 'module') store.openModuleDialog([], { pick: true });
     },
     [hitTest, pickFiles, rf],
   );
@@ -871,19 +870,19 @@ function CanvasInner() {
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       if (isEditableTarget(event.target)) return;
       const store = useDndCourseStore.getState();
-      if (event.key === "Delete" || event.key === "Backspace") {
-        const deletable = store.selectedIds.filter((id) => id !== "course");
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const deletable = store.selectedIds.filter((id) => id !== 'course');
         if (deletable.length === 1) {
           event.preventDefault();
           requestDelete(deletable[0]);
         } else if (deletable.length > 1) {
           event.preventDefault();
           store.toast(
-            "info",
-            "Удаляйте элементы по одному — так случайно ничего не пропадёт.",
+            'info',
+            'Удаляйте элементы по одному — так случайно ничего не пропадёт.',
           );
         }
-      } else if (event.key === "Escape") {
+      } else if (event.key === 'Escape') {
         store.setSelection([]);
       }
     },
@@ -893,7 +892,7 @@ function CanvasInner() {
   return (
     <div
       ref={wrapperRef}
-      className={String.raw`dnd-canvas tw:absolute tw:inset-[0] tw:[background:color-mix(in_srgb,_var(--dnd-canvas)_45%,_transparent)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-pattern-color:var(--dnd-dot)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-width:1.8] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-selected:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke-width:2] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-background-color:var(--dnd-node)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-border-color:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-background-color:var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-border:1px_dashed_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-background-color:var(--dnd-panel)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-background-color:rgba(120,_110,_95,_0.18)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-stroke-color:var(--dnd-border-strong)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-node-background-color:var(--dnd-border)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-node-boxshadow-selected:none] tw:[.page_.dnd-builder_&_.react-flow]:text-(--dnd-text) tw:[.page_.dnd-builder_&_.react-flow\_\_pane]:cursor-grab tw:[.page_.dnd-builder_&_.react-flow\_\_node]:cursor-pointer tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible]:[outline:none] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_pane.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[transform:rotate(-0.6deg)_scale(1.01)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline-offset:3px] tw:[.page_.dnd-builder_&.is-file-over_.react-flow]:[filter:saturate(0.9)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-color:transparent] ${fileOver ? "is-file-over" : ""}`}
+      className={String.raw`dnd-canvas tw:absolute tw:inset-[0] tw:[background:color-mix(in_srgb,_var(--dnd-canvas)_45%,_transparent)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-pattern-color:var(--dnd-dot)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-width:1.8] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-selected:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke-width:2] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-background-color:var(--dnd-node)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-border-color:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-background-color:var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-border:1px_dashed_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-background-color:var(--dnd-panel)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-background-color:rgba(120,_110,_95,_0.18)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-stroke-color:var(--dnd-border-strong)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-node-background-color:var(--dnd-border)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-node-boxshadow-selected:none] tw:[.page_.dnd-builder_&_.react-flow]:text-(--dnd-text) tw:[.page_.dnd-builder_&_.react-flow\_\_pane]:cursor-grab tw:[.page_.dnd-builder_&_.react-flow\_\_node]:cursor-pointer tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible]:[outline:none] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_pane.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[transform:rotate(-0.6deg)_scale(1.01)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline-offset:3px] tw:[.page_.dnd-builder_&.is-file-over_.react-flow]:[filter:saturate(0.9)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-color:transparent] ${fileOver ? 'is-file-over' : ''}`}
       onDragOver={onDragOver}
       onDragLeave={(event) => {
         if (
@@ -926,7 +925,7 @@ function CanvasInner() {
         zoomOnPinch
         zoomOnDoubleClick={false}
         selectionOnDrag={false}
-        multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+        multiSelectionKeyCode={['Shift', 'Meta', 'Control']}
         selectionKeyCode="Shift"
         deleteKeyCode={null}
         connectionRadius={36}

@@ -1,11 +1,11 @@
-import { memo } from "react";
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { useShallow } from "zustand/react/shallow";
+import { memo } from 'react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   DIFFICULTY_LABEL,
   MATERIAL_STATUS,
   MODULE_LAYOUT,
-} from "../config/constants";
+} from '../config/constants';
 import {
   countLabel,
   formatBytes,
@@ -16,32 +16,33 @@ import {
   MAX_CONTENT_BLOCKS,
   nodeId,
   WORDS,
-} from "../lib/helpers";
-import { Icon, Spinner } from "./icons";
-import { moduleHeight } from "../lib/layout";
+} from '../lib/helpers';
+import { Icon, Spinner } from './icons';
+import { moduleHeight } from '../lib/layout';
 import {
   getProgress,
   getStats,
   matchFilter,
   canFinish,
-} from "../model/selectors";
-import { useDndCourseStore } from "../model/store";
-import { ActionMenu, StatusPill, useDndActions, type MenuItem } from "./common";
-import type { NodeData } from "../lib/graph";
+} from '../model/selectors';
+import { useDndCourseStore } from '../model/store';
+import { ActionMenu, StatusPill, type MenuItem } from './common';
+import { useDndActions } from './dnd-actions';
+import type { NodeData } from '../lib/graph';
 import type {
   DndCourse,
   DndLesson,
   DndMaterial,
   DndModule,
   NodeType,
-} from "../model/types";
+} from '../model/types';
 
 type DndNodeProps = NodeProps<Node<NodeData>>;
 
 interface NodeChrome {
   dimmed: boolean;
   highlighted: boolean;
-  dropState: "ok" | "bad" | null;
+  dropState: 'ok' | 'bad' | null;
   active: boolean;
   pending: boolean;
 }
@@ -63,7 +64,7 @@ function useNodeChrome(
           Boolean(state.filter) &&
           !!entity &&
           matchFilter(state.filter, type, entity, state),
-        dropState: hint?.targetId === id ? (hint?.valid ? "ok" : "bad") : null,
+        dropState: hint?.targetId === id ? (hint?.valid ? 'ok' : 'bad') : null,
         active: state.activeNodeId === id && state.inspector.open,
         pending: Boolean(state.pending[id]),
       };
@@ -76,15 +77,15 @@ function chromeClass(
   selected: boolean | undefined,
 ) {
   return [
-    selected ? "is-selected" : "",
-    active ? "is-active" : "",
-    dimmed ? "is-dimmed" : "",
-    highlighted ? "is-highlighted" : "",
-    dropState ? `is-drop-${dropState}` : "",
-    pending ? "is-pending" : "",
+    selected ? 'is-selected' : '',
+    active ? 'is-active' : '',
+    dimmed ? 'is-dimmed' : '',
+    highlighted ? 'is-highlighted' : '',
+    dropState ? `is-drop-${dropState}` : '',
+    pending ? 'is-pending' : '',
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
 }
 
 function FillBar({ value, label }: { value: number; label: string }) {
@@ -121,7 +122,7 @@ function NodeButton({
   return (
     <button
       type="button"
-      className={`dnd-node-btn nodrag nopan tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[46px] tw:h-[46px] tw:rounded-[12px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-muted) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&[aria-expanded=true]]:border-(--dnd-border) tw:[background:transparent] tw:[&[aria-expanded=true]]:text-(--dnd-text) tw:[transition:background_0.15s,_color_0.15s,_border-color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&[aria-expanded=true]]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${tone ? `is-${tone}` : ""}`}
+      className={`dnd-node-btn nodrag nopan tw:text-[0.96rem] tw:leading-[1.45] tw:inline-grid tw:w-[46px] tw:h-[46px] tw:rounded-[12px] tw:border-solid tw:border-[transparent] tw:text-(--dnd-muted) tw:cursor-pointer tw:[place-items:center] tw:[border-width:1px] tw:[&[aria-expanded=true]]:border-(--dnd-border) tw:[background:transparent] tw:[&[aria-expanded=true]]:text-(--dnd-text) tw:[transition:background_0.15s,_color_0.15s,_border-color_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&[aria-expanded=true]]:[background:var(--dnd-panel-2)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${tone ? `is-${tone}` : ''}`}
       onClick={(event) => {
         event.stopPropagation();
         onClick?.();
@@ -146,7 +147,7 @@ export const CourseNode = memo(function CourseNode({
   const finishable = useDndCourseStore(canFinish);
   const openInspector = useDndCourseStore((state) => state.openInspector);
   const openFinish = useDndCourseStore((state) => state.openFinish);
-  const chrome = useNodeChrome(id, "course", course);
+  const chrome = useNodeChrome(id, 'course', course);
   if (!course) return null;
 
   return (
@@ -164,7 +165,7 @@ export const CourseNode = memo(function CourseNode({
         <Icon name="course" size={16} />
         Курс
         <span className="dnd-node-kicker-end tw:ml-[auto] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-          {DIFFICULTY_LABEL[course.difficulty] || "—"}
+          {DIFFICULTY_LABEL[course.difficulty] || '—'}
         </span>
       </div>
       <h3
@@ -174,7 +175,7 @@ export const CourseNode = memo(function CourseNode({
         {course.title}
       </h3>
       <p className="dnd-node-meta tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:flex tw:flex-wrap tw:gap-[4px_12px] tw:text-(--dnd-muted) tw:[&&&]:text-[1.1rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.1rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
-        {countLabel(stats.modules, WORDS.module)} ·{" "}
+        {countLabel(stats.modules, WORDS.module)} ·{' '}
         {countLabel(stats.lessons, WORDS.lesson)}
       </p>
       <div
@@ -192,12 +193,12 @@ export const CourseNode = memo(function CourseNode({
         </strong>
       </div>
       <p
-        className={`dnd-node-status tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:flex tw:items-center tw:gap-[6px] tw:text-(--dnd-muted) tw:[&&&]:text-[1.1rem] tw:[&.is-ok]:text-(--dnd-ok) tw:[&.is-ok]:font-[650] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.1rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${finishable ? "is-ok" : ""}`}
+        className={`dnd-node-status tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:flex tw:items-center tw:gap-[6px] tw:text-(--dnd-muted) tw:[&&&]:text-[1.1rem] tw:[&.is-ok]:text-(--dnd-ok) tw:[&.is-ok]:font-[650] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.1rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${finishable ? 'is-ok' : ''}`}
       >
-        <Icon name={finishable ? "check" : "info"} size={14} />
+        <Icon name={finishable ? 'check' : 'info'} size={14} />
         {finishable
-          ? "Структура готова к проверке"
-          : "Структура ещё собирается"}
+          ? 'Структура готова к проверке'
+          : 'Структура ещё собирается'}
       </p>
       <div className="dnd-node-actions tw:mt-[auto] tw:flex tw:items-center tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <button
@@ -205,7 +206,7 @@ export const CourseNode = memo(function CourseNode({
           className="dnd-btn dnd-btn--ghost dnd-btn--sm nodrag nopan tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:p-[0_16px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[&&&&]:text-[1.05rem] tw:[&&&&]:min-h-[46px] tw:[&&]:p-[0_16px] tw:[&&&]:p-[0_16px] tw:[&&&&]:p-[0_16px] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
           onClick={(event) => {
             event.stopPropagation();
-            openInspector("course", "main");
+            openInspector('course', 'main');
           }}
         >
           <Icon name="settings" size={15} />
@@ -234,7 +235,7 @@ export const UploadNode = memo(function UploadNode(_props: DndNodeProps) {
   return (
     <button
       type="button"
-      className={String.raw`dnd-node dnd-node--upload nodrag tw:relative tw:w-[100%] tw:h-[100%] tw:flex tw:flex-row tw:gap-[16px] tw:p-[20px_20px_16px] tw:border-dashed tw:border-(--dnd-border-strong) tw:rounded-(--dnd-radius) tw:text-(--dnd-text) tw:text-left tw:overflow-visible tw:items-center tw:cursor-pointer tw:[font:inherit] tw:[background:color-mix(in_srgb,_var(--dnd-node)_70%,_transparent)] tw:[border-width:1.5px] tw:hover:border-(--dnd-blue-ink) tw:[&.is-calling]:border-(--dnd-blue-ink) tw:[box-shadow:none] tw:hover:text-(--dnd-blue-ink) tw:[&.is-calling]:text-(--dnd-blue-ink) tw:animate-dnd-pop tw:[transition:border-color_0.15s,_box-shadow_0.15s,_opacity_0.2s,_transform_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-calling]:animate-dnd-call tw:[&::before]:absolute tw:[&::before]:left-[12px] tw:[&::before]:right-[12px] tw:[&::before]:top-[-1px] tw:[&::before]:h-[3px] tw:[&::before]:rounded-[0_0_4px_4px] tw:[&::before]:hidden tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:[font:inherit] tw:[.page_.dnd-builder_.dnd-canvas_.react-flow\_\_node:focus-visible_>_&]:focus-visible:[outline-offset:3px] tw:[&::before]:[content:''] tw:[&::before]:[background:var(--dnd-node-stripe,_transparent)] ${isEmpty ? "is-calling" : ""}`}
+      className={String.raw`dnd-node dnd-node--upload nodrag tw:relative tw:w-[100%] tw:h-[100%] tw:flex tw:flex-row tw:gap-[16px] tw:p-[20px_20px_16px] tw:border-dashed tw:border-(--dnd-border-strong) tw:rounded-(--dnd-radius) tw:text-(--dnd-text) tw:text-left tw:overflow-visible tw:items-center tw:cursor-pointer tw:[font:inherit] tw:[background:color-mix(in_srgb,_var(--dnd-node)_70%,_transparent)] tw:[border-width:1.5px] tw:hover:border-(--dnd-blue-ink) tw:[&.is-calling]:border-(--dnd-blue-ink) tw:[box-shadow:none] tw:hover:text-(--dnd-blue-ink) tw:[&.is-calling]:text-(--dnd-blue-ink) tw:animate-dnd-pop tw:[transition:border-color_0.15s,_box-shadow_0.15s,_opacity_0.2s,_transform_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-calling]:animate-dnd-call tw:[&::before]:absolute tw:[&::before]:left-[12px] tw:[&::before]:right-[12px] tw:[&::before]:top-[-1px] tw:[&::before]:h-[3px] tw:[&::before]:rounded-[0_0_4px_4px] tw:[&::before]:hidden tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:[font:inherit] tw:[.page_.dnd-builder_.dnd-canvas_.react-flow\_\_node:focus-visible_>_&]:focus-visible:[outline-offset:3px] tw:[&::before]:[content:''] tw:[&::before]:[background:var(--dnd-node-stripe,_transparent)] ${isEmpty ? 'is-calling' : ''}`}
       onClick={() => pickFiles()}
     >
       <Icon name="upload" size={22} />
@@ -262,17 +263,17 @@ export const MaterialNode = memo(function MaterialNode({
   const lessonTitle = useDndCourseStore((state) =>
     material?.lessonId
       ? state.lessons.find((lesson) => lesson.id === material.lessonId)
-          ?.title || "Урок"
+          ?.title || 'Урок'
       : null,
   );
   const selectedMaterialIds = useDndCourseStore(
     useShallow((state) =>
       state.selectedIds
-        .filter((item) => item.startsWith("material:"))
-        .map((item) => item.slice("material:".length)),
+        .filter((item) => item.startsWith('material:'))
+        .map((item) => item.slice('material:'.length)),
     ),
   );
-  const chrome = useNodeChrome(id, "material", material);
+  const chrome = useNodeChrome(id, 'material', material);
   const openInspector = useDndCourseStore((state) => state.openInspector);
   const createLesson = useDndCourseStore(
     (state) => state.createLessonFromMaterials,
@@ -282,9 +283,9 @@ export const MaterialNode = memo(function MaterialNode({
   const { pickFiles, requestDelete } = useDndActions();
   if (!material) return null;
 
-  const status = material.lessonId ? "used" : material.status;
+  const status = material.lessonId ? 'used' : material.status;
   const statusInfo = MATERIAL_STATUS[status];
-  const isReady = material.status === "ready" && !material.lessonId;
+  const isReady = material.status === 'ready' && !material.lessonId;
   const group =
     selected &&
     selectedMaterialIds.length > 1 &&
@@ -303,27 +304,29 @@ export const MaterialNode = memo(function MaterialNode({
       }));
     return [
       {
-        key: "new",
-        icon: "plus",
+        key: 'new',
+        icon: 'plus',
         label:
           group.length > 1
             ? `Новый урок из ${group.length} материалов`
-            : "Новый урок",
-        onSelect: () => createLesson(group),
+            : 'Новый урок',
+        onSelect: () => {
+          void createLesson(group);
+        },
       },
       ...(lessonOptions.length
         ? [
-            { key: "sep", type: "separator" as const },
+            { key: 'sep', type: 'separator' as const },
             {
-              key: "label",
-              type: "label" as const,
-              label: "Существующий урок",
+              key: 'label',
+              type: 'label' as const,
+              label: 'Существующий урок',
             },
           ]
         : []),
       ...lessonOptions.map((lesson) => ({
         key: lesson.id,
-        icon: "lesson",
+        icon: 'lesson',
         label: lesson.title,
         disabled: lesson.full,
         hint: lesson.full ? `Лимит ${MAX_CONTENT_BLOCKS} блоков` : undefined,
@@ -335,8 +338,8 @@ export const MaterialNode = memo(function MaterialNode({
   return (
     <div
       className={String.raw`dnd-node dnd-node--material tw:relative tw:w-[100%] tw:h-[100%] tw:flex tw:flex-col tw:gap-[10px] tw:p-[20px_20px_16px] tw:border-solid tw:border-(--dnd-border) tw:rounded-(--dnd-radius) tw:text-(--dnd-text) tw:text-left tw:overflow-visible tw:[background:var(--dnd-node)] tw:[border-width:1px] tw:[.page_.dnd-builder_&.is-active]:border-(--dnd-focus) tw:[&.is-error]:border-(--dnd-error) tw:[&.is-drop-ok]:border-(--dnd-ok) tw:[&.is-drop-bad]:border-(--dnd-error) tw:[.page_.dnd-builder_&.is-selected]:border-(--dnd-focus) tw:[box-shadow:var(--dnd-shadow)] tw:animate-dnd-pop tw:[transition:border-color_0.15s,_box-shadow_0.15s,_opacity_0.2s,_transform_0.15s] tw:[--dnd-node-stripe:var(--dnd-blue)] tw:[&.is-dimmed]:opacity-[0.32] tw:[&.is-pending]:opacity-[0.86] tw:[&.is-drop-bad]:cursor-not-allowed tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.is-used]:[background:var(--dnd-node-2)] tw:[.page_.dnd-builder_&.is-selected]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring),_var(--dnd-shadow)] tw:[&.is-highlighted]:[box-shadow:0_0_0_3px_var(--dnd-info-bg),_0_0_0_1px_var(--dnd-info),_var(--dnd-shadow)] tw:[&.is-drop-ok]:[box-shadow:0_0_0_4px_var(--dnd-ok-bg),_var(--dnd-shadow)] tw:[&.is-drop-bad]:[box-shadow:0_0_0_4px_var(--dnd-error-bg),_var(--dnd-shadow)] tw:[&.is-error]:[--dnd-node-stripe:var(--dnd-error)] tw:[&::before]:absolute tw:[&::before]:left-[12px] tw:[&::before]:right-[12px] tw:[&::before]:top-[-1px] tw:[&::before]:h-[3px] tw:[&::before]:rounded-[0_0_4px_4px] tw:[.page_.dnd-builder_.dnd-canvas_.react-flow\_\_node:focus-visible_>_&]:focus-visible:[outline-offset:3px] tw:[&::before]:[content:''] tw:[&::before]:[background:var(--dnd-node-stripe,_transparent)] is-${status} ${chromeClass(chrome, selected)}`}
-      aria-label={`Материал ${material.number}: ${material.fileName}. ${statusInfo?.label || ""}`}
-      aria-busy={material.status === "uploading"}
+      aria-label={`Материал ${material.number}: ${material.fileName}. ${statusInfo?.label || ''}`}
+      aria-busy={material.status === 'uploading'}
     >
       <Handle
         type="source"
@@ -350,19 +353,19 @@ export const MaterialNode = memo(function MaterialNode({
           #{material.number}
         </span>
         <span className="dnd-chip tw:inline-flex tw:items-center tw:p-[2px_9px] tw:rounded-[6px] tw:text-[0.92rem] tw:font-[700] tw:tracking-[0.04em] tw:text-(--dnd-muted) tw:[background:var(--dnd-panel-2)] tw:[border:1px_solid_var(--dnd-border)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-          {material.fileKind || "Файл"}
+          {material.fileKind || 'Файл'}
         </span>
         <span className="dnd-node-kicker-end tw:ml-[auto] tw:inline-flex tw:items-center tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <StatusPill
-            tone={statusInfo?.tone || "muted"}
-            busy={material.status === "uploading"}
+            tone={statusInfo?.tone || 'muted'}
+            busy={material.status === 'uploading'}
             icon={
-              status === "error"
-                ? "alert"
-                : status === "used"
-                  ? "link"
-                  : status === "ready"
-                    ? "check"
+              status === 'error'
+                ? 'alert'
+                : status === 'used'
+                  ? 'link'
+                  : status === 'ready'
+                    ? 'check'
                     : null
             }
           >
@@ -381,11 +384,11 @@ export const MaterialNode = memo(function MaterialNode({
       >
         {material.fileName}
       </h3>
-      {material.status === "error" ? (
+      {material.status === 'error' ? (
         <p className="dnd-node-error">
-          {material.error || "Не удалось обработать документ."}
+          {material.error || 'Не удалось обработать документ.'}
         </p>
-      ) : material.status === "uploading" ? (
+      ) : material.status === 'uploading' ? (
         <p className="dnd-node-excerpt tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&]:text-[1.1rem] tw:[.page_.dnd-builder_&]:leading-[1.38] tw:[.page_.dnd-builder_&]:text-(--dnd-muted) tw:[.page_.dnd-builder_&]:overflow-hidden tw:[.page_.dnd-builder_&]:wrap-anywhere tw:[.page_.dnd-builder_&]:[display:-webkit-box] tw:[.page_.dnd-builder_&]:[-webkit-line-clamp:2] tw:[.page_.dnd-builder_&]:[-webkit-box-orient:vertical]">
           Загружаем файл и превращаем его в текст…
         </p>
@@ -396,7 +399,7 @@ export const MaterialNode = memo(function MaterialNode({
               <Icon name="link" size={13} /> В уроке «{lessonTitle}»
             </>
           ) : (
-            markdownExcerpt(material.markdown, 110) || "Пустой документ"
+            markdownExcerpt(material.markdown, 110) || 'Пустой документ'
           )}
         </p>
       )}
@@ -408,16 +411,16 @@ export const MaterialNode = memo(function MaterialNode({
         <NodeButton
           icon="eye"
           label="Открыть материал"
-          onClick={() => openInspector(nodeId.material(material.id), "content")}
-          disabled={material.status === "uploading"}
+          onClick={() => openInspector(nodeId.material(material.id), 'content')}
+          disabled={material.status === 'uploading'}
         />
         <NodeButton
           icon="sparkles"
           label="ИИ-редактор материала"
-          onClick={() => openInspector(nodeId.material(material.id), "ai")}
-          disabled={material.status !== "ready"}
+          onClick={() => openInspector(nodeId.material(material.id), 'ai')}
+          disabled={material.status !== 'ready'}
         />
-        {material.status === "error" ? (
+        {material.status === 'error' ? (
           <NodeButton
             icon="retry"
             label="Повторить загрузку"
@@ -447,12 +450,12 @@ export const MaterialNode = memo(function MaterialNode({
           tone="danger"
           label={
             material.lessonId
-              ? "Материал уже в уроке — удалить нельзя"
-              : "Удалить материал"
+              ? 'Материал уже в уроке — удалить нельзя'
+              : 'Удалить материал'
           }
           onClick={() => requestDelete(nodeId.material(material.id))}
           disabled={
-            Boolean(material.lessonId) || material.status === "uploading"
+            Boolean(material.lessonId) || material.status === 'uploading'
           }
         />
       </div>
@@ -485,11 +488,11 @@ export const LessonNode = memo(function LessonNode({
   const selectedLessonIds = useDndCourseStore(
     useShallow((state) =>
       state.selectedIds
-        .filter((item) => item.startsWith("lesson:"))
-        .map((item) => item.slice("lesson:".length)),
+        .filter((item) => item.startsWith('lesson:'))
+        .map((item) => item.slice('lesson:'.length)),
     ),
   );
-  const chrome = useNodeChrome(id, "lesson", lesson);
+  const chrome = useNodeChrome(id, 'lesson', lesson);
   const openInspector = useDndCourseStore((state) => state.openInspector);
   const moveLessonBy = useDndCourseStore((state) => state.moveLessonBy);
   const moveToModule = useDndCourseStore((state) => state.moveLessonToModule);
@@ -515,30 +518,30 @@ export const LessonNode = memo(function LessonNode({
       .map((module) => ({ id: module.id, title: module.title }));
     return [
       {
-        key: "new",
-        icon: "plus",
+        key: 'new',
+        icon: 'plus',
         label:
           group.length > 1
             ? `Новый модуль из ${group.length} уроков`
-            : "Новый модуль…",
+            : 'Новый модуль…',
         onSelect: () => openModuleDialog(group),
       },
       ...(moduleOptions.length
         ? [
-            { key: "sep", type: "separator" as const },
+            { key: 'sep', type: 'separator' as const },
             {
-              key: "label",
-              type: "label" as const,
-              label: "Существующий модуль",
+              key: 'label',
+              type: 'label' as const,
+              label: 'Существующий модуль',
             },
           ]
         : []),
       ...moduleOptions.map((module) => ({
         key: module.id,
-        icon: "module",
+        icon: 'module',
         label: module.title,
         disabled: module.id === placement.moduleId,
-        hint: module.id === placement.moduleId ? "Урок уже здесь" : undefined,
+        hint: module.id === placement.moduleId ? 'Урок уже здесь' : undefined,
         onSelect: () => moveToModule(lesson.id, module.id),
       })),
     ];
@@ -546,8 +549,8 @@ export const LessonNode = memo(function LessonNode({
 
   return (
     <div
-      className={String.raw`dnd-node dnd-node--lesson tw:relative tw:w-[100%] tw:h-[100%] tw:flex tw:flex-col tw:gap-[10px] tw:p-[20px_20px_16px] tw:border-solid tw:border-(--dnd-border) tw:rounded-(--dnd-radius) tw:text-(--dnd-text) tw:text-left tw:overflow-visible tw:[background:var(--dnd-node)] tw:[border-width:1px] tw:[.page_.dnd-builder_&.is-active]:border-(--dnd-focus) tw:[&.is-drop-ok]:border-(--dnd-ok) tw:[&.is-drop-bad]:border-(--dnd-error) tw:[.page_.dnd-builder_&.is-selected]:border-(--dnd-focus) tw:[box-shadow:var(--dnd-shadow)] tw:animate-dnd-pop tw:[transition:border-color_0.15s,_box-shadow_0.15s,_opacity_0.2s,_transform_0.15s] tw:[--dnd-node-stripe:var(--dnd-accent)] tw:[&.is-dimmed]:opacity-[0.32] tw:[&.is-pending]:opacity-[0.86] tw:[&.is-drop-bad]:cursor-not-allowed tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.is-selected]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring),_var(--dnd-shadow)] tw:[&.is-highlighted]:[box-shadow:0_0_0_3px_var(--dnd-info-bg),_0_0_0_1px_var(--dnd-info),_var(--dnd-shadow)] tw:[&.is-drop-ok]:[box-shadow:0_0_0_4px_var(--dnd-ok-bg),_var(--dnd-shadow)] tw:[&.is-drop-bad]:[box-shadow:0_0_0_4px_var(--dnd-error-bg),_var(--dnd-shadow)] tw:[&::before]:absolute tw:[&::before]:left-[12px] tw:[&::before]:right-[12px] tw:[&::before]:top-[-1px] tw:[&::before]:h-[3px] tw:[&::before]:rounded-[0_0_4px_4px] tw:[.page_.dnd-builder_.dnd-canvas_.react-flow\_\_node:focus-visible_>_&]:focus-visible:[outline-offset:3px] tw:[&::before]:[content:''] tw:[&::before]:[background:var(--dnd-node-stripe,_transparent)] ${placement.moduleId ? "is-nested" : "is-free"} ${chromeClass(chrome, selected)}`}
-      aria-label={`Урок «${lesson.title}». ${placement.moduleTitle ? `Модуль «${placement.moduleTitle}», позиция ${placement.index + 1}` : "Без модуля"}. ${countLabel(blocks, WORDS.block)}.`}
+      className={String.raw`dnd-node dnd-node--lesson tw:relative tw:w-[100%] tw:h-[100%] tw:flex tw:flex-col tw:gap-[10px] tw:p-[20px_20px_16px] tw:border-solid tw:border-(--dnd-border) tw:rounded-(--dnd-radius) tw:text-(--dnd-text) tw:text-left tw:overflow-visible tw:[background:var(--dnd-node)] tw:[border-width:1px] tw:[.page_.dnd-builder_&.is-active]:border-(--dnd-focus) tw:[&.is-drop-ok]:border-(--dnd-ok) tw:[&.is-drop-bad]:border-(--dnd-error) tw:[.page_.dnd-builder_&.is-selected]:border-(--dnd-focus) tw:[box-shadow:var(--dnd-shadow)] tw:animate-dnd-pop tw:[transition:border-color_0.15s,_box-shadow_0.15s,_opacity_0.2s,_transform_0.15s] tw:[--dnd-node-stripe:var(--dnd-accent)] tw:[&.is-dimmed]:opacity-[0.32] tw:[&.is-pending]:opacity-[0.86] tw:[&.is-drop-bad]:cursor-not-allowed tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.is-selected]:[box-shadow:0_0_0_3px_var(--dnd-focus-ring),_var(--dnd-shadow)] tw:[&.is-highlighted]:[box-shadow:0_0_0_3px_var(--dnd-info-bg),_0_0_0_1px_var(--dnd-info),_var(--dnd-shadow)] tw:[&.is-drop-ok]:[box-shadow:0_0_0_4px_var(--dnd-ok-bg),_var(--dnd-shadow)] tw:[&.is-drop-bad]:[box-shadow:0_0_0_4px_var(--dnd-error-bg),_var(--dnd-shadow)] tw:[&::before]:absolute tw:[&::before]:left-[12px] tw:[&::before]:right-[12px] tw:[&::before]:top-[-1px] tw:[&::before]:h-[3px] tw:[&::before]:rounded-[0_0_4px_4px] tw:[.page_.dnd-builder_.dnd-canvas_.react-flow\_\_node:focus-visible_>_&]:focus-visible:[outline-offset:3px] tw:[&::before]:[content:''] tw:[&::before]:[background:var(--dnd-node-stripe,_transparent)] ${placement.moduleId ? 'is-nested' : 'is-free'} ${chromeClass(chrome, selected)}`}
+      aria-label={`Урок «${lesson.title}». ${placement.moduleTitle ? `Модуль «${placement.moduleTitle}», позиция ${placement.index + 1}` : 'Без модуля'}. ${countLabel(blocks, WORDS.block)}.`}
     >
       <Handle
         type="target"
@@ -583,7 +586,7 @@ export const LessonNode = memo(function LessonNode({
               </StatusPill>
             </span>
           )}
-          {contentStatus === "saving" ? (
+          {contentStatus === 'saving' ? (
             <Spinner size={12} label="Сохраняем контент" />
           ) : null}
         </span>
@@ -605,7 +608,7 @@ export const LessonNode = memo(function LessonNode({
           <Icon name="clock" size={13} />
           {lesson.estimatedTimeMinutes
             ? `${lesson.estimatedTimeMinutes} мин`
-            : "—"}
+            : '—'}
         </span>
         {(lesson.materialIds || []).length ? (
           <span
@@ -626,19 +629,19 @@ export const LessonNode = memo(function LessonNode({
         <NodeButton
           icon="edit"
           label="Редактировать контент урока (с ИИ)"
-          onClick={() => openInspector(id, "content")}
+          onClick={() => openInspector(id, 'content')}
         />
         <NodeButton
           icon="settings"
           label="Название, описание и цели урока"
-          onClick={() => openInspector(id, "main")}
+          onClick={() => openInspector(id, 'main')}
         />
         <NodeButton
           icon="eye"
           label={
             lesson.isLocal
-              ? "Урок ещё не на сервере — добавьте его в модуль, чтобы посмотреть"
-              : "Посмотреть урок как студент"
+              ? 'Урок ещё не на сервере — добавьте его в модуль, чтобы посмотреть'
+              : 'Посмотреть урок как студент'
           }
           onClick={() => previewLesson?.(lesson.id)}
           disabled={lesson.isLocal}
@@ -698,10 +701,10 @@ export const ModuleNode = memo(function ModuleNode({
       };
     }),
   );
-  const chrome = useNodeChrome(id, "module", module);
+  const chrome = useNodeChrome(id, 'module', module);
   const orderPending = useDndCourseStore((state) =>
     Boolean(
-      state.pending["order:modules"] || state.pending[`order:${data.entityId}`],
+      state.pending['order:modules'] || state.pending[`order:${data.entityId}`],
     ),
   );
   const openInspector = useDndCourseStore((state) => state.openInspector);
@@ -751,7 +754,7 @@ export const ModuleNode = memo(function ModuleNode({
             <NodeButton
               icon="edit"
               label="Редактировать модуль"
-              onClick={() => openInspector(id, "main")}
+              onClick={() => openInspector(id, 'main')}
             />
             <NodeButton
               icon="arrowUp"
@@ -776,19 +779,11 @@ export const ModuleNode = memo(function ModuleNode({
         </div>
       </header>
       <footer
-        className={`dnd-module-drop tw:absolute tw:left-[20px] tw:right-[20px] tw:bottom-[16px] tw:h-[50px] tw:flex tw:items-center tw:justify-center tw:gap-[6px] tw:rounded-[10px] tw:border-dashed tw:border-(--dnd-border) tw:text-(--dnd-muted) tw:text-[1.04rem] tw:font-[600] tw:[border-width:1.5px] tw:[.page_.dnd-builder_.dnd-node--module.is-drop-ok_&]:border-(--dnd-ok) tw:[.page_.dnd-builder_.dnd-node--module.is-drop-ok_&]:text-(--dnd-ok) tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-node--module.is-drop-ok_&]:[background:var(--dnd-ok-bg)] ${lessons ? "" : "is-empty"}`}
+        className={`dnd-module-drop tw:absolute tw:left-[20px] tw:right-[20px] tw:bottom-[16px] tw:h-[50px] tw:flex tw:items-center tw:justify-center tw:gap-[6px] tw:rounded-[10px] tw:border-dashed tw:border-(--dnd-border) tw:text-(--dnd-muted) tw:text-[1.04rem] tw:font-[600] tw:[border-width:1.5px] tw:[.page_.dnd-builder_.dnd-node--module.is-drop-ok_&]:border-(--dnd-ok) tw:[.page_.dnd-builder_.dnd-node--module.is-drop-ok_&]:text-(--dnd-ok) tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-node--module.is-drop-ok_&]:[background:var(--dnd-ok-bg)] ${lessons ? '' : 'is-empty'}`}
       >
         <Icon name="plus" size={14} />
-        {lessons ? "Перетащите сюда ещё урок" : "Перетащите урок в модуль"}
+        {lessons ? 'Перетащите сюда ещё урок' : 'Перетащите урок в модуль'}
       </footer>
     </div>
   );
 });
-
-export const nodeTypes = {
-  course: CourseNode,
-  upload: UploadNode,
-  material: MaterialNode,
-  lesson: LessonNode,
-  module: ModuleNode,
-};

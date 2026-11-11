@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CourseNavigationTree,
   ContentBlocks,
@@ -11,54 +11,54 @@ import {
   archiveCourse,
   publishCourse,
   setCourseInviteOnly,
-} from "@/entities/course";
-import { SectionTop } from "@/shared/ui/section-top";
-import { useSessionStore } from "@/entities/session";
-import { getApiErrorMessage } from "../lib/helpers";
-import { Icon, Spinner } from "./icons";
+} from '@/entities/course';
+import { SectionTop } from '@/shared/ui/section-top';
+import { useSessionStore } from '@/entities/session';
+import { getApiErrorMessage } from '../lib/helpers';
+import { Icon, Spinner } from './icons';
 import {
   fetchCourseStructure,
   fetchLessonBlocks,
   type CourseStructure,
-} from "../api/server-course";
-import type { RawApiRecord } from "@/shared/api";
-import { useDndCourseStore } from "../model/store";
-import { ActionMenu, ConfirmDialog, StatusPill, Toasts } from "./common";
-import { DndTooltipLayer } from "./Tooltip";
+} from '../api/server-course';
+import type { RawApiRecord } from '@/shared/api';
+import { useDndCourseStore } from '../model/store';
+import { ActionMenu, ConfirmDialog, StatusPill, Toasts } from './common';
+import { DndTooltipLayer } from './Tooltip';
 
 const STATUS: Record<string, { label: string; tone: string }> = {
-  draft: { label: "Черновик", tone: "muted" },
-  in_generation: { label: "Черновик", tone: "muted" },
-  published: { label: "Опубликован", tone: "ok" },
-  invite_only: { label: "Только по приглашению", tone: "used" },
-  archived: { label: "В архиве", tone: "error" },
+  draft: { label: 'Черновик', tone: 'muted' },
+  in_generation: { label: 'Черновик', tone: 'muted' },
+  published: { label: 'Опубликован', tone: 'ok' },
+  invite_only: { label: 'Только по приглашению', tone: 'used' },
+  archived: { label: 'В архиве', tone: 'error' },
 };
 
 export function CoursePreview({ courseId }: { courseId: string }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const requestedLessonId = searchParams.get("lesson");
+  const requestedLessonId = searchParams.get('lesson');
   const user = useSessionStore((state) => state.user);
   const hydrate = useDndCourseStore((state) => state.hydrate);
   const toast = useDndCourseStore((state) => state.toast);
   const openConfirm = useDndCourseStore((state) => state.openConfirm);
   const [data, setData] = useState<CourseStructure | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [status, setStatus] = useState<string | null>(null);
-  const [action, setAction] = useState("");
+  const [action, setAction] = useState('');
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [lessonBlocks, setLessonBlocks] = useState<
     Record<string, RawApiRecord[]>
   >({});
-  const [lessonError, setLessonError] = useState("");
+  const [lessonError, setLessonError] = useState('');
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
   const load = useCallback(async () => {
-    setError("");
+    setError('');
     setData(null);
     try {
       const result = await fetchCourseStructure(courseId);
@@ -73,19 +73,19 @@ export function CoursePreview({ courseId }: { courseId: string }) {
         (current) => current || (requested ? requestedLessonId : null),
       );
     } catch (loadError) {
-      setError(getApiErrorMessage(loadError, "Не удалось загрузить курс."));
+      setError(getApiErrorMessage(loadError, 'Не удалось загрузить курс.'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
     if (!activeLessonId || lessonBlocks[activeLessonId]) return;
     let cancelled = false;
-    setLessonError("");
+    setLessonError('');
     fetchLessonBlocks(activeLessonId)
       .then((blocks) => {
         if (!cancelled)
@@ -97,7 +97,7 @@ export function CoursePreview({ courseId }: { courseId: string }) {
       .catch((loadError) => {
         if (!cancelled)
           setLessonError(
-            getApiErrorMessage(loadError, "Не удалось загрузить урок."),
+            getApiErrorMessage(loadError, 'Не удалось загрузить урок.'),
           );
       });
     return () => {
@@ -157,86 +157,86 @@ export function CoursePreview({ courseId }: { courseId: string }) {
     if (action) return;
     const store = useDndCourseStore.getState();
     if (store.course?.id === courseId) {
-      navigate("/drag-and-drop-course");
+      void navigate('/drag-and-drop-course');
       return;
     }
-    setAction("builder");
+    setAction('builder');
     try {
       await store.loadFromServer(courseId);
-      navigate("/drag-and-drop-course");
+      void navigate('/drag-and-drop-course');
     } catch (loadError) {
       toast(
-        "error",
-        getApiErrorMessage(loadError, "Не удалось открыть курс на холсте."),
+        'error',
+        getApiErrorMessage(loadError, 'Не удалось открыть курс на холсте.'),
       );
-      setAction("");
+      setAction('');
     }
   };
 
-  const changeStatus = async (next: "publish" | "invite_only") => {
+  const changeStatus = async (next: 'publish' | 'invite_only') => {
     if (action) return;
     setAction(next);
     try {
       const result =
-        next === "publish"
+        next === 'publish'
           ? await publishCourse(courseId)
           : await setCourseInviteOnly(courseId);
       setStatus(
-        result?.status || (next === "publish" ? "published" : "invite_only"),
+        result?.status || (next === 'publish' ? 'published' : 'invite_only'),
       );
       toast(
-        "success",
-        next === "publish"
-          ? "Курс опубликован"
-          : "Курс доступен только по приглашению",
+        'success',
+        next === 'publish'
+          ? 'Курс опубликован'
+          : 'Курс доступен только по приглашению',
       );
     } catch (changeError) {
       toast(
-        "error",
-        getApiErrorMessage(changeError, "Не удалось изменить статус курса."),
+        'error',
+        getApiErrorMessage(changeError, 'Не удалось изменить статус курса.'),
       );
     } finally {
-      setAction("");
+      setAction('');
     }
   };
 
   const removeCourse = () =>
     openConfirm({
-      title: `Удалить курс «${data?.course?.title || ""}»?`,
-      message: "Курс уйдёт в архив и пропадёт из каталога.",
+      title: `Удалить курс «${data?.course?.title || ''}»?`,
+      message: 'Курс уйдёт в архив и пропадёт из каталога.',
       consequences: [
-        "Студенты больше не смогут его открыть.",
-        "Черновик конструктора для этого курса будет очищен.",
+        'Студенты больше не смогут его открыть.',
+        'Черновик конструктора для этого курса будет очищен.',
       ],
-      confirmLabel: "Удалить курс",
+      confirmLabel: 'Удалить курс',
       onConfirm: async () => {
         try {
           await archiveCourse(courseId);
         } catch (archiveError) {
           toast(
-            "error",
-            getApiErrorMessage(archiveError, "Не удалось удалить курс."),
+            'error',
+            getApiErrorMessage(archiveError, 'Не удалось удалить курс.'),
           );
           return false;
         }
         const store = useDndCourseStore.getState();
         if (store.course?.id === courseId) store.resetAll({ silent: true });
-        toast("success", "Курс удалён");
-        navigate("/drag-and-drop-course", { replace: true });
+        toast('success', 'Курс удалён');
+        void navigate('/drag-and-drop-course', { replace: true });
         return true;
       },
     });
 
   const startNew = () => {
     useDndCourseStore.getState().resetAll({ silent: true });
-    navigate("/drag-and-drop-course");
+    void navigate('/drag-and-drop-course');
   };
 
   const statusInfo = (status && STATUS[status]) || null;
   const course = data?.course;
-  const sectionLabel = active ? "Урок" : activeModule ? "Модуль" : "Курс";
+  const sectionLabel = active ? 'Урок' : activeModule ? 'Модуль' : 'Курс';
   const sectionTitle =
-    active?.title || activeModule?.title || course?.title || "";
+    active?.title || activeModule?.title || course?.title || '';
 
   return (
     <div className="dnd-preview-page tw:relative tw:z-[1]">
@@ -249,9 +249,9 @@ export function CoursePreview({ courseId }: { courseId: string }) {
             type="button"
             className="dnd-btn dnd-btn--ghost tw:text-[0.875rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[38px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
             onClick={backToBuilder}
-            disabled={action === "builder"}
+            disabled={action === 'builder'}
           >
-            {action === "builder" ? (
+            {action === 'builder' ? (
               <Spinner size={14} />
             ) : (
               <Icon name="arrowLeft" size={16} />
@@ -265,43 +265,43 @@ export function CoursePreview({ courseId }: { courseId: string }) {
             {statusInfo ? (
               <StatusPill
                 tone={statusInfo.tone}
-                icon={status === "published" ? "check" : null}
+                icon={status === 'published' ? 'check' : null}
               >
                 {statusInfo.label}
               </StatusPill>
             ) : null}
           </div>
           <div className="dnd-preview-actions tw:flex tw:items-center tw:flex-wrap tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-            {status !== "published" && status !== "archived" ? (
+            {status !== 'published' && status !== 'archived' ? (
               <button
                 type="button"
                 className="dnd-btn dnd-btn--accent tw:text-[0.875rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[38px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-accent) tw:text-[#241c24] tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:var(--dnd-accent)] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-accent-ink) tw:[&:hover:not(:disabled)]:[&&]:border-(--dnd-accent-ink) tw:[&:hover:not(:disabled)]:[&&&]:border-(--dnd-accent-ink) tw:[&:hover:not(:disabled)]:[&&&&]:border-(--dnd-accent-ink) tw:[&:active:not(:disabled)]:[transform:translateY(1px)] tw:[&:hover:not(:disabled)]:[box-shadow:0_6px_18px_rgba(203,_170,_203,_0.45)]"
-                onClick={() => changeStatus("publish")}
+                onClick={() => changeStatus('publish')}
                 disabled={Boolean(action) || !data}
               >
-                {action === "publish" ? (
+                {action === 'publish' ? (
                   <Spinner size={14} />
                 ) : (
                   <Icon name="flag" size={16} />
                 )}
-                {action === "publish" ? "Публикуем…" : "Опубликовать"}
+                {action === 'publish' ? 'Публикуем…' : 'Опубликовать'}
               </button>
             ) : null}
-            {status !== "invite_only" && status !== "archived" ? (
+            {status !== 'invite_only' && status !== 'archived' ? (
               <button
                 type="button"
                 className="dnd-btn dnd-btn--ghost tw:text-[0.875rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[38px] tw:p-[0_16px] tw:rounded-[10px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.875rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
-                onClick={() => changeStatus("invite_only")}
+                onClick={() => changeStatus('invite_only')}
                 disabled={Boolean(action) || !data}
               >
-                {action === "invite_only" ? (
+                {action === 'invite_only' ? (
                   <Spinner size={14} />
                 ) : (
                   <Icon name="link" size={16} />
                 )}
-                {action === "invite_only"
-                  ? "Сохраняем…"
-                  : "Только по приглашению"}
+                {action === 'invite_only'
+                  ? 'Сохраняем…'
+                  : 'Только по приглашению'}
               </button>
             ) : null}
             <ActionMenu
@@ -310,25 +310,27 @@ export function CoursePreview({ courseId }: { courseId: string }) {
               align="end"
               items={[
                 {
-                  key: "student",
-                  icon: "eye",
-                  label: "Открыть как студент",
-                  onSelect: () => navigate(`/course/${courseId}`),
+                  key: 'student',
+                  icon: 'eye',
+                  label: 'Открыть как студент',
+                  onSelect: () => {
+                    void navigate(`/course/${courseId}`);
+                  },
                 },
                 {
-                  key: "new",
-                  icon: "plus",
-                  label: "Создать новый курс",
+                  key: 'new',
+                  icon: 'plus',
+                  label: 'Создать новый курс',
                   onSelect: startNew,
                 },
-                { key: "sep", type: "separator" },
+                { key: 'sep', type: 'separator' },
                 {
-                  key: "delete",
-                  icon: "trash",
-                  label: "Удалить курс",
+                  key: 'delete',
+                  icon: 'trash',
+                  label: 'Удалить курс',
                   danger: true,
                   onSelect: removeCourse,
-                  disabled: status === "archived",
+                  disabled: status === 'archived',
                 },
               ]}
             />
@@ -373,7 +375,7 @@ export function CoursePreview({ courseId }: { courseId: string }) {
               <CourseNavigationTree
                 selectedCourse={treeCourse}
                 selectedBlock={activeModule || treeCourse.blocks[0]}
-                selectedLessonId={activeLessonId || ""}
+                selectedLessonId={activeLessonId || ''}
                 selectedPracticeId=""
                 completedLessons={{}}
                 completedPractices={{}}
@@ -400,8 +402,8 @@ export function CoursePreview({ courseId }: { courseId: string }) {
                       active ? () => setActiveLessonId(null) : openOverview
                     }
                   >
-                    <Icon name="arrowLeft" size={15} />{" "}
-                    {active ? "К модулю" : "О курсе"}
+                    <Icon name="arrowLeft" size={15} />{' '}
+                    {active ? 'К модулю' : 'О курсе'}
                   </button>
                 ) : null}
                 {active ? (

@@ -1,20 +1,20 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-const UI_LAYOUT_STORAGE_KEY = "app-ui-layout-storage";
+const UI_LAYOUT_STORAGE_KEY = 'app-ui-layout-storage';
 const UI_LAYOUT_STORAGE_VERSION = 2;
 const MAX_SCROLL_POSITIONS = 50;
 const MAX_ACTIVE_LESSON_TABS = 50;
 const MAX_ROUTE_HISTORY = 40;
-const DEFAULT_LESSON_TAB = "theory";
+const DEFAULT_LESSON_TAB = 'theory';
 const SUPPORTED_LESSON_TABS = new Set<string>([
-  "theory",
-  "questions",
-  "practice",
+  'theory',
+  'questions',
+  'practice',
 ]);
 
-export type LessonTab = "theory" | "questions" | "practice";
-export type NavigationAction = "PUSH" | "POP" | "REPLACE";
+export type LessonTab = 'theory' | 'questions' | 'practice';
+export type NavigationAction = 'PUSH' | 'POP' | 'REPLACE';
 
 type ScrollPositions = Record<string, number>;
 type ActiveLessonTabs = Record<string, LessonTab>;
@@ -43,11 +43,11 @@ export interface UiLayoutState {
 type PersistedUiLayout = Partial<
   Pick<
     UiLayoutState,
-    | "activeProfileTab"
-    | "coursesPage"
-    | "scrollPositions"
-    | "activeLessonTabs"
-    | "routeHistory"
+    | 'activeProfileTab'
+    | 'coursesPage'
+    | 'scrollPositions'
+    | 'activeLessonTabs'
+    | 'routeHistory'
   >
 >;
 
@@ -59,7 +59,7 @@ const trimScrollPositions = (
 ): ScrollPositions => {
   const entries = Object.entries(positions).filter(
     ([routeKey, scrollY]) =>
-      typeof routeKey === "string" &&
+      typeof routeKey === 'string' &&
       routeKey.length > 0 &&
       Number.isFinite(scrollY),
   );
@@ -68,7 +68,7 @@ const trimScrollPositions = (
 };
 
 const normalizeLessonTab = (tab: unknown): LessonTab =>
-  typeof tab === "string" && SUPPORTED_LESSON_TABS.has(tab)
+  typeof tab === 'string' && SUPPORTED_LESSON_TABS.has(tab)
     ? (tab as LessonTab)
     : DEFAULT_LESSON_TAB;
 
@@ -78,7 +78,7 @@ const trimActiveLessonTabs = (
   const entries = Object.entries(tabs)
     .filter(
       ([contextKey, tab]) =>
-        typeof contextKey === "string" &&
+        typeof contextKey === 'string' &&
         contextKey.length > 0 &&
         SUPPORTED_LESSON_TABS.has(tab),
     )
@@ -88,14 +88,14 @@ const trimActiveLessonTabs = (
 };
 
 const normalizeRoute = (route: unknown): string => {
-  const value = typeof route === "string" ? route.trim() : "";
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "";
+  const value = typeof route === 'string' ? route.trim() : '';
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '';
   return value;
 };
 
 const shouldSkipRouteHistory = (route: string) => {
   const pathname = normalizeRoute(route).split(/[?#]/, 1)[0];
-  return pathname === "/login" || pathname === "/register";
+  return pathname === '/login' || pathname === '/register';
 };
 
 const trimRouteHistory = (history: string[] = []) =>
@@ -104,7 +104,7 @@ const trimRouteHistory = (history: string[] = []) =>
 export const useUiLayoutStore = create<UiLayoutState>()(
   persist<UiLayoutState, [], [], PersistedUiLayout>(
     (set, get) => ({
-      activeProfileTab: "overview",
+      activeProfileTab: 'overview',
       coursesPage: 1,
       scrollPositions: {},
       activeLessonTabs: {},
@@ -113,7 +113,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       setActiveProfileTab: (activeProfileTab) => {
-        if (typeof activeProfileTab !== "string" || !activeProfileTab.trim()) {
+        if (typeof activeProfileTab !== 'string' || !activeProfileTab.trim()) {
           return;
         }
         set({ activeProfileTab });
@@ -122,7 +122,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
         set({ coursesPage: Math.max(1, Math.round(Number(coursesPage) || 1)) }),
       getScrollPosition: (routeKey) => get().scrollPositions[routeKey],
       saveScrollPosition: (routeKey, scrollY) => {
-        if (typeof routeKey !== "string" || !routeKey) return;
+        if (typeof routeKey !== 'string' || !routeKey) return;
 
         set((state) => ({
           scrollPositions: trimScrollPositions({
@@ -135,7 +135,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
       getLessonActiveTab: (contextKey) =>
         normalizeLessonTab(get().activeLessonTabs[contextKey]),
       setLessonActiveTab: (contextKey, tab) => {
-        if (typeof contextKey !== "string" || !contextKey) return;
+        if (typeof contextKey !== 'string' || !contextKey) return;
 
         set((state) => ({
           activeLessonTabs: trimActiveLessonTabs({
@@ -145,7 +145,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
         }));
       },
       clearLessonActiveTabs: () => set({ activeLessonTabs: {} }),
-      recordRoute: (route, action = "PUSH") => {
+      recordRoute: (route, action = 'PUSH') => {
         const nextRoute = normalizeRoute(route);
         if (!nextRoute || shouldSkipRouteHistory(nextRoute)) return;
 
@@ -157,7 +157,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
             return { routeHistory };
           }
 
-          if (action === "POP") {
+          if (action === 'POP') {
             const existingRouteIndex = routeHistory.lastIndexOf(nextRoute);
             if (existingRouteIndex >= 0) {
               return {
@@ -166,7 +166,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
             }
           }
 
-          if (action === "REPLACE" && routeHistory.length > 0) {
+          if (action === 'REPLACE' && routeHistory.length > 0) {
             return {
               routeHistory: [...routeHistory.slice(0, -1), nextRoute],
             };
@@ -177,9 +177,9 @@ export const useUiLayoutStore = create<UiLayoutState>()(
           };
         });
       },
-      getPreviousRoute: (currentRoute, fallbackRoute = "/") => {
+      getPreviousRoute: (currentRoute, fallbackRoute = '/') => {
         const normalizedCurrentRoute = normalizeRoute(currentRoute);
-        const normalizedFallbackRoute = normalizeRoute(fallbackRoute) || "/";
+        const normalizedFallbackRoute = normalizeRoute(fallbackRoute) || '/';
         const routeHistory = trimRouteHistory(get().routeHistory).filter(
           (route) =>
             route !== normalizedCurrentRoute && !shouldSkipRouteHistory(route),
@@ -187,8 +187,8 @@ export const useUiLayoutStore = create<UiLayoutState>()(
 
         return routeHistory[routeHistory.length - 1] || normalizedFallbackRoute;
       },
-      resetRouteHistory: (route = "/") => {
-        const normalizedRoute = normalizeRoute(route) || "/";
+      resetRouteHistory: (route = '/') => {
+        const normalizedRoute = normalizeRoute(route) || '/';
         set({
           routeHistory: shouldSkipRouteHistory(normalizedRoute)
             ? []
@@ -211,10 +211,10 @@ export const useUiLayoutStore = create<UiLayoutState>()(
         const persistedState = rawState as PersistedUiLayout | undefined;
         return {
           activeProfileTab:
-            typeof persistedState?.activeProfileTab === "string" &&
+            typeof persistedState?.activeProfileTab === 'string' &&
             persistedState.activeProfileTab.trim()
               ? persistedState.activeProfileTab
-              : "overview",
+              : 'overview',
           coursesPage: Math.max(
             1,
             Math.round(Number(persistedState?.coursesPage) || 1),

@@ -4,4 +4,4 @@ export {
   getMediaId,
   getMediaUrl,
   type MediaFolder,
-} from "./media";
+} from './media';

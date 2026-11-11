@@ -6,13 +6,13 @@ export function getLocalStorage({
   requireWriteAccess = false,
 }: GetLocalStorageOptions = {}): Storage | null {
   try {
-    if (typeof window === "undefined" || !window.localStorage) {
+    if (typeof window === 'undefined' || !window.localStorage) {
       return null;
     }
 
     if (requireWriteAccess) {
-      const testKey = "__local_storage_access_test__";
-      window.localStorage.setItem(testKey, "1");
+      const testKey = '__local_storage_access_test__';
+      window.localStorage.setItem(testKey, '1');
       window.localStorage.removeItem(testKey);
     }
 
