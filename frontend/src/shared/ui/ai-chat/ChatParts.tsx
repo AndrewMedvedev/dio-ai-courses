@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { ChatMarkdown } from "./ChatMarkdown";
+import { chatScrollbarClass } from "./scrollbar";
 import { IconCheck, IconCopy, IconSparkle } from "./icons";
 
 /* Сброс стилей браузера для кнопок: Tailwind подключён без preflight. */
@@ -131,7 +132,7 @@ export const ChatThread = forwardRef<ChatThreadHandle, ChatThreadProps>(
     return (
       <div
         ref={elementRef}
-        className={`ai-chat-thread tw:flex-1 tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-[16px] tw:py-[16px] tw:flex tw:flex-col tw:gap-[14px] ${centered ? "tw:justify-center" : ""} ${className}`}
+        className={`ai-chat-thread ${chatScrollbarClass} tw:flex-1 tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-[16px] tw:py-[16px] tw:flex tw:flex-col tw:gap-[14px] ${centered ? "tw:justify-center" : ""} ${className}`}
         aria-live="polite"
         aria-busy={busy}
         aria-label={label}

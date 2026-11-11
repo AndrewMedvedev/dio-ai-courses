@@ -1,5 +1,6 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { chatScrollbarClass } from "./scrollbar";
 import { SyntaxHighlightedCode } from "@/shared/ui/syntax-highlighted-code";
 
 /** Разрешаем только http(s), mailto, tel и относительные ссылки. */
@@ -69,7 +70,7 @@ export function ChatMarkdown({
   className?: string;
 }) {
   return (
-    <div className={`${chatMarkdownClass} ${className}`}>
+    <div className={`${chatMarkdownClass} ${chatScrollbarClass} ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}
