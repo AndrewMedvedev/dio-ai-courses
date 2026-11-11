@@ -23,7 +23,11 @@ async def get_table_of_contents(runtime: Runtime[Context, RuntimeContext]) -> st
 
 @tool(
     name="get_titles",
-    description="Достает все заголовки документа по id оглавления",
+    description=(
+        "Возвращает непосредственные дочерние разделы узла документа. "
+        "В toc_id передай id оглавления или раздела. "
+        "Для вложенных уровней повтори вызов с id полученного раздела."
+    ),
 )
 async def get_titles(
     runtime: Runtime[Context, RuntimeContext],
@@ -40,7 +44,10 @@ async def get_titles(
 
 @tool(
     name="get_content",
-    description="Достает текст документа по id заголовка",
+    description=(
+        "Возвращает весь текст выбранного узла документа по id оглавления или раздела. "
+        "Текст вложенных разделов получай отдельно через get_titles и get_content."
+    ),
 )
 async def get_content(runtime: Runtime[Context, RuntimeContext], heading_id: UUID) -> str:
     answer = await SqlDocumentRepository(session=runtime.state.db_session).get_text(  # pyright: ignore[reportOptionalMemberAccess]
