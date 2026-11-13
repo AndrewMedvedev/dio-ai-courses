@@ -40,7 +40,7 @@ export function StartScreen() {
 
   return (
     <section
-      className="dnd-start tw:grid tw:grid-cols-[minmax(0,_1fr)_minmax(0,_520px)] tw:gap-[clamp(20px,_4vw,_56px)] tw:p-[clamp(18px,_3vw,_40px)] tw:rounded-[22px] tw:max-1024:grid-cols-[1fr] tw:[align-items:start] tw:[border:1px_solid_var(--dnd-border)] tw:[background:radial-gradient(90%_120%_at_0%_0%,_var(--dnd-accent-soft),_transparent_55%),_var(--dnd-panel)] tw:[box-shadow:var(--dnd-shadow)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+      className="dnd-start tw:grid tw:[&>*]:min-w-0 tw:grid-cols-2 tw:gap-[24px] tw:rounded-[22px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--panel-bg) tw:p-[32px] tw:items-start tw:max-1024:grid-cols-[minmax(0,1fr)] tw:max-760:p-[20px]"
       aria-labelledby={`${id}-title`}
     >
       <div className="dnd-start-intro tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
@@ -48,7 +48,7 @@ export function StartScreen() {
           Drag &amp; Drop курс
         </span>
         <h1
-          className="tw:tracking-[-0.025em] tw:m-[0_0_12px] tw:text-(--dnd-heading) tw:[&&&]:text-[clamp(1.6rem,_3vw,_2.4rem)] tw:[&&&]:leading-[1.15] tw:[font-family:'Unbounded',_sans-serif] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[clamp(1.6rem,_3vw,_2.4rem)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.15] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:[font-family:'Unbounded',_sans-serif]"
+          className="tw:mt-[24px] tw:mb-[20px] tw:text-[28px]! tw:leading-[1.35] tw:[font-family:Unbounded,sans-serif]!"
           id={`${id}-title`}
         >
           Создайте основу курса
@@ -72,9 +72,9 @@ export function StartScreen() {
           </div>
         ) : null}
         <p className="tw:tracking-[0.012em] tw:m-[0_0_22px] tw:max-w-[54ch] tw:text-(--dnd-muted) tw:[&&&]:text-[0.98rem] tw:[&&&]:leading-[1.6] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.6] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
-          Сначала сохраним карточку курса — без неё сервер не примет материалы.
-          Затем откроется холст: загружайте документы, перетаскивайте их в
-          уроки, а уроки — в модули.
+          Сначала задайте название, описание и сложность курса. Затем откроется
+          холст: загружайте документы, перетаскивайте их в уроки, а уроки — в
+          модули.
         </p>
         <ol className="dnd-start-steps tw:m-[0] tw:p-[0] tw:grid tw:gap-[10px] tw:[list-style:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           {STEPS.map((step, index) => (
@@ -82,12 +82,9 @@ export function StartScreen() {
               key={step.title}
               className={`tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:flex tw:items-center tw:gap-[12px] tw:p-[10px_12px] tw:rounded-[14px] tw:border-solid tw:border-[transparent] tw:[border-width:1px] tw:[.page_.dnd-builder_.dnd-start-steps_&.is-current]:border-(--dnd-border) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-start-steps_&.is-current]:[background:var(--dnd-node)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${index === 0 ? 'is-current' : ''}`}
             >
-              <span className="dnd-start-step-icon tw:grid tw:w-[38px] tw:h-[38px] tw:flex-[none] tw:rounded-[11px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-muted) tw:[place-items:center] tw:[background:var(--dnd-panel-2)] tw:[border-width:1px] tw:[.page_.dnd-builder_.dnd-start-steps_li.is-current_&]:border-(--dnd-accent) tw:[.page_.dnd-builder_.dnd-start-steps_li.is-current_&]:text-[#241c24] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-start-steps_li.is-current_&]:[background:var(--dnd-accent)]">
-                <Icon name={step.icon} size={18} />
-              </span>
               <span className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                 <strong className="tw:block tw:text-[0.9rem] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-                  {step.title}
+                  {index + 1}. {step.title}
                 </strong>
                 <small className="tw:text-[0.8rem] tw:block tw:text-(--dnd-muted) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
                   {step.text}
@@ -99,7 +96,7 @@ export function StartScreen() {
       </div>
 
       <form
-        className="dnd-start-form tw:grid tw:gap-[16px] tw:p-[clamp(16px,_2.4vw,_26px)] tw:rounded-[18px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:[box-shadow:var(--dnd-shadow)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+        className="dnd-start-form tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:[&_input]:min-w-0! tw:[&_textarea]:min-w-0! tw:[&_select]:min-w-0! tw:[&_.dnd-btn]:whitespace-normal! tw:[&_.dnd-btn]:h-auto! tw:[&_.dnd-btn]:min-h-[48px] tw:grid tw:gap-[16px] tw:p-[clamp(16px,_2.4vw,_26px)] tw:rounded-[18px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:[box-shadow:var(--dnd-shadow)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
         noValidate
         aria-describedby={error ? errorId : undefined}
         onSubmit={(event) => {
@@ -168,7 +165,7 @@ export function StartScreen() {
             disabled={busy}
           />
         </div>
-        <div className="dnd-start-grid tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:max-767:grid-cols-[1fr] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <div className="dnd-start-grid tw:grid tw:grid-cols-1 tw:gap-[14px] tw:max-767:grid-cols-[1fr] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <div className="dnd-field tw:grid tw:gap-[6px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&.has-error_input]:border-(--dnd-error) tw:[.page_.dnd-builder_&.has-error_textarea]:border-(--dnd-error)">
             <label
               className="tw:text-[0.8rem] tw:font-[700] tw:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.8rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"

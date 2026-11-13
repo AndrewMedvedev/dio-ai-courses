@@ -95,7 +95,10 @@ export function TopBar({
       key: 'help',
       icon: 'help',
       label: 'Показать обучение',
-      onSelect: restartOnboarding,
+      onSelect: () => {
+        restartOnboarding();
+        void navigate('/drag-and-drop-course?help=dnd');
+      },
     },
     { key: 'sep', type: 'separator' as const },
     {
@@ -224,6 +227,7 @@ export function TopBar({
             <button
               type="button"
               aria-pressed={effectiveMode === 'canvas'}
+              data-help="canvas-mode"
               className={effectiveMode === 'canvas' ? 'is-on' : ''}
               onClick={() => setViewMode('canvas')}
             >
@@ -315,7 +319,9 @@ export function TopBar({
         <ActionMenu
           label="Дополнительные действия"
           items={menuItems}
-          buttonClassName="dnd-icon-btn"
+          buttonClassName={
+            isMobile ? 'dnd-icon-btn dnd-mobile-menu-trigger' : 'dnd-icon-btn'
+          }
           align="end"
         />
       </div>

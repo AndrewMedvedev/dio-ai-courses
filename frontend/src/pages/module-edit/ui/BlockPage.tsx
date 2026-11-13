@@ -266,7 +266,7 @@ export function BlockPage({
         &lt;
       </button>
       {/* Та же сетка, что в режиме обучения: дерево курса слева, модуль справа. */}
-      <div className="course-edit-grid tw:grid-cols-[300px_minmax(0,_1fr)_68px] tw:gap-[18px] tw:mt-[16px] tw:grid tw:between-1101-1300:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[align-items:start] tw:[&_>_*]:min-w-[0]">
+      <div className="course-edit-grid tw:grid-cols-[300px_minmax(0,_1fr)] tw:gap-[18px] tw:mt-[16px] tw:grid tw:between-1101-1300:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[align-items:start] tw:[&_>_*]:min-w-[0]">
         <CourseNavigationTree
           selectedCourse={selectedCourse}
           selectedBlock={selectedBlock}

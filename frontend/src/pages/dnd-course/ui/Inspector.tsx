@@ -182,7 +182,7 @@ function SaveBar({
     Boolean(state.pending[statusKey]),
   );
   return (
-    <div className="dnd-savebar tw:grid tw:gap-[8px] tw:sticky tw:bottom-[-24px] tw:m-[0_-14px_-24px] tw:p-[12px_14px_16px] tw:[background:linear-gradient(180deg,_transparent,_var(--dnd-panel)_22%)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+    <div className="dnd-savebar tw:grid tw:w-full tw:min-w-0 tw:gap-[8px] tw:mt-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
       {error ? (
         <p
           className="dnd-field-error tw:[.page_.dnd-builder_&]:m-[0] tw:[.page_.dnd-builder_&]:text-(--dnd-error) tw:[.page_.dnd-builder_&]:text-[0.78rem] tw:[.page_.dnd-builder_&]:font-[650]"
@@ -191,7 +191,7 @@ function SaveBar({
           {error}
         </p>
       ) : null}
-      <div className="dnd-savebar-row tw:flex tw:items-center tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+      <div className="dnd-savebar-row tw:[&_.dnd-node-actions-gap]:hidden tw:[&_.dnd-btn--solid]:min-h-[44px]! tw:[&_.dnd-btn--solid]:w-full! tw:[&_.dnd-btn--solid]:min-w-0! tw:[&_.dnd-btn--solid]:rounded-full! tw:grid tw:grid-cols-[minmax(0,1fr)] tw:items-stretch tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <SaveIndicator status={status} error={error} />
         <span className="dnd-node-actions-gap tw:flex-[1] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]" />
         {dirty ? (
@@ -673,7 +673,7 @@ function LessonInspector({ lesson, tab }: { lesson: DndLesson; tab: string }) {
   if (tab === 'content') {
     return (
       <div className="dnd-stack tw:grid tw:gap-[14px] tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-        <div className="dnd-savebar-row tw:flex tw:items-center tw:gap-[8px] tw:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <div className="dnd-savebar-row tw:[&_.dnd-node-actions-gap]:hidden tw:[&_.dnd-btn--solid]:min-h-[44px]! tw:[&_.dnd-btn--solid]:w-full! tw:[&_.dnd-btn--solid]:min-w-0! tw:[&_.dnd-btn--solid]:rounded-full! tw:grid tw:grid-cols-[minmax(0,1fr)] tw:items-stretch tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <SaveIndicator
             status={contentStatus || 'saved'}
             error={contentError}
@@ -1247,7 +1247,7 @@ export function Inspector({
 
   return (
     <aside
-      className={`dnd-inspector tw:flex tw:flex-col tw:min-h-[0] tw:min-w-[0] tw:[background:var(--dnd-panel)] tw:[border-left:1px_solid_var(--dnd-border)] tw:[&.dnd-inspector--side]:relative tw:[&.dnd-inspector--drawer]:absolute tw:[&.dnd-inspector--sheet]:fixed tw:[&.dnd-inspector--drawer]:z-[30] tw:[&.dnd-inspector--sheet]:z-[900] tw:[&.dnd-inspector--drawer]:top-[0] tw:[&.dnd-inspector--drawer]:right-[0] tw:[&.dnd-inspector--drawer]:bottom-[0] tw:[&.dnd-inspector--sheet]:top-[8dvh] tw:[&.dnd-inspector--sheet]:right-[0] tw:[&.dnd-inspector--sheet]:bottom-[0] tw:[&.dnd-inspector--sheet]:left-[0] tw:[&.dnd-inspector--drawer]:w-[min(440px,_92%)] tw:[&.dnd-inspector--sheet]:rounded-[18px_18px_0_0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-inspector--sheet]:[border-left:0] tw:[&.dnd-inspector--drawer]:animate-dnd-slide-right tw:[&.dnd-inspector--sheet]:animate-dnd-sheet tw:[&.dnd-inspector--drawer]:[box-shadow:var(--dnd-shadow-lg)] tw:[&.dnd-inspector--sheet]:[box-shadow:var(--dnd-shadow-lg)] tw:[&.dnd-inspector--sheet]:[border-top:1px_solid_var(--dnd-border)] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:absolute tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:z-[40] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:inset-[0] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:w-[auto] tw:[&:has(.lesson-editor-block-row.has-ai)]:[--dnd-ai-w:clamp(320px,_30vw,_460px)] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:[border-left:0] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:animate-dnd-ai-focus-in tw:motion-reduce:[&:has(.lesson-editor-block-row.has-ai)]:animate-none tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:[box-shadow:none] tw:min-1000:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:pl-(--dnd-ai-w) dnd-inspector--${variant}`}
+      className={`dnd-inspector tw:flex tw:flex-col tw:min-h-[0] tw:min-w-[0] tw:[background:var(--dnd-panel)] tw:[border-left:1px_solid_var(--dnd-border)] tw:[&.dnd-inspector--side]:relative tw:[&.dnd-inspector--drawer]:absolute tw:[&.dnd-inspector--sheet]:fixed tw:[&.dnd-inspector--drawer]:z-[30] tw:[&.dnd-inspector--sheet]:z-[900] tw:[&.dnd-inspector--drawer]:top-[0] tw:[&.dnd-inspector--drawer]:right-[0] tw:[&.dnd-inspector--drawer]:bottom-[0] tw:[&.dnd-inspector--sheet]:top-[8dvh] tw:[&.dnd-inspector--sheet]:right-[0] tw:[&.dnd-inspector--sheet]:bottom-[0] tw:[&.dnd-inspector--sheet]:left-[76px] tw:[&.dnd-inspector--drawer]:w-[min(440px,_92%)] tw:[&.dnd-inspector--sheet]:rounded-[18px_18px_0_0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-inspector--sheet]:[border-left:0] tw:[&.dnd-inspector--drawer]:animate-dnd-slide-right tw:[&.dnd-inspector--sheet]:animate-dnd-sheet tw:[&.dnd-inspector--drawer]:[box-shadow:var(--dnd-shadow-lg)] tw:[&.dnd-inspector--sheet]:[box-shadow:var(--dnd-shadow-lg)] tw:[&.dnd-inspector--sheet]:[border-top:1px_solid_var(--dnd-border)] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:absolute tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:z-[40] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:inset-[0] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:w-[auto] tw:[&:has(.lesson-editor-block-row.has-ai)]:[--dnd-ai-w:clamp(320px,_30vw,_460px)] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:[border-left:0] tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:animate-dnd-ai-focus-in tw:motion-reduce:[&:has(.lesson-editor-block-row.has-ai)]:animate-none tw:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:[box-shadow:none] tw:min-1000:[&:not(.dnd-inspector--sheet):has(.lesson-editor-block-row.has-ai)]:pl-(--dnd-ai-w) dnd-inspector--${variant}`}
       aria-label={`Инспектор: ${meta.label.toLowerCase()} «${title}»`}
     >
       {variant === 'side' ? resizeHandle : null}
@@ -1257,7 +1257,7 @@ export function Inspector({
           {meta.label}
         </div>
         <h2
-          className="tw:tracking-[-0.016em] tw:col-[1] tw:m-[2px_0_0] tw:font-[750] tw:text-(--dnd-heading) tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:[&&&]:text-[1.05rem] tw:[&&&]:leading-[1.3] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus:[outline:none] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[1.05rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.3] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:focus:focus-visible:[&&&]:[outline:none]"
+          className="tw:col-[1] tw:mt-[12px] tw:mb-0 tw:min-w-0 tw:text-[22px] tw:font-bold tw:leading-[1.4] tw:text-(--dnd-heading) tw:[font-family:Unbounded,sans-serif] tw:[overflow-wrap:break-word] tw:[&&&&]:text-[22px] tw:[&&&&]:[font-family:Unbounded,sans-serif]"
           tabIndex={-1}
           ref={headingRef}
           title={title}
@@ -1275,7 +1275,7 @@ export function Inspector({
         </button>
       </header>
       <div
-        className="dnd-tabs tw:flex tw:gap-[2px] tw:p-[0_10px] tw:overflow-x-auto tw:[border-bottom:1px_solid_var(--dnd-border)] tw:[scrollbar-width:none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+        className="dnd-tabs tw:flex tw:shrink-0 tw:gap-[12px] tw:px-[18px] tw:pb-[10px] tw:overflow-x-auto"
         role="tablist"
         aria-label="Разделы инспектора"
       >
@@ -1288,7 +1288,7 @@ export function Inspector({
             aria-selected={tab === item.id}
             aria-controls="dnd-tabpanel"
             tabIndex={tab === item.id ? 0 : -1}
-            className={`tw:text-[0.84rem] tw:leading-[1.45] tw:relative tw:flex-[none] tw:min-h-[40px] tw:p-[0_10px] tw:text-(--dnd-muted) tw:font-[650] tw:cursor-pointer tw:[border:0] tw:[background:transparent] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:text-(--dnd-text) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.84rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:absolute tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:left-[8px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:right-[8px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:bottom-[-1px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:h-[2px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:rounded-[2px] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:[content:''] tw:[.page_.dnd-builder_.dnd-tabs_&.is-on]:[&::after]:[background:var(--dnd-accent-ink)] ${tab === item.id ? 'is-on' : ''}`}
+            className={`dnd-tab tw:flex-1 tw:rounded-full tw:border tw:border-solid tw:border-(--dnd-border) tw:px-[18px] tw:py-[12px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--dnd-text) tw:cursor-pointer ${item.id === tab ? 'is-active tw:bg-(--dnd-node)' : 'tw:bg-transparent'}`}
             onClick={() => setTab(item.id)}
             onKeyDown={(event) => {
               const index = tabs.findIndex((t) => t.id === tab);
@@ -1344,6 +1344,15 @@ export function Inspector({
           <CourseInspector course={entity as DndCourse} tab={tab} />
         ) : null}
       </div>
+      <footer className="dnd-inspector-footer tw:shrink-0 tw:border-0 tw:border-t tw:border-solid tw:border-(--dnd-border) tw:p-[12px_14px_16px]">
+        <button
+          type="button"
+          onClick={closeInspector}
+          className="dnd-btn dnd-btn--ghost tw:w-full tw:min-w-0 tw:min-h-[44px]! tw:rounded-full! tw:px-[24px] tw:text-[14px]!"
+        >
+          Закрыть инспектор
+        </button>
+      </footer>
     </aside>
   );
 }

@@ -3,6 +3,7 @@ import { Icon } from './icons';
 import { useDndCourseStore } from '../model/store';
 import { StatusPill } from './common';
 import { useDndActions } from './dnd-actions';
+import { useNavigate } from 'react-router-dom';
 
 const ADD_ITEMS = [
   {
@@ -26,6 +27,7 @@ const ADD_ITEMS = [
 ];
 
 export function Palette({ variant = 'side' }) {
+  const navigate = useNavigate();
   const restartOnboarding = useDndCourseStore(
     (state) => state.restartOnboarding,
   );
@@ -55,7 +57,7 @@ export function Palette({ variant = 'side' }) {
 
   return (
     <nav
-      className={`dnd-palette tw:flex tw:flex-col tw:gap-[18px] tw:p-[16px] tw:overflow-y-auto tw:min-h-[0] tw:[background:var(--dnd-panel)] tw:[border-right:1px_solid_var(--dnd-border)] tw:[&.dnd-palette--sheet]:absolute tw:[&.dnd-palette--sheet]:z-[30] tw:[&.dnd-palette--sheet]:top-[0] tw:[&.dnd-palette--sheet]:bottom-[0] tw:[&.dnd-palette--sheet]:left-[0] tw:[&.dnd-palette--sheet]:w-[min(320px,_88%)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-palette--sheet]:animate-dnd-slide-left tw:[&.dnd-palette--sheet]:[box-shadow:var(--dnd-shadow-lg)] dnd-palette--${variant}`}
+      className={`dnd-palette tw:[.dnd-builder.is-mobile_&.dnd-palette--sheet]:fixed tw:[.dnd-builder.is-mobile_&.dnd-palette--sheet]:z-[900] tw:[.dnd-builder.is-mobile_&.dnd-palette--sheet]:top-[8dvh] tw:[.dnd-builder.is-mobile_&.dnd-palette--sheet]:left-[76px] tw:[.dnd-builder.is-mobile_&.dnd-palette--sheet]:w-[min(320px,calc(100vw_-_92px))] tw:flex tw:flex-col tw:gap-[18px] tw:p-[16px] tw:overflow-y-auto tw:min-h-[0] tw:[background:var(--dnd-panel)] tw:[border-right:1px_solid_var(--dnd-border)] tw:[&.dnd-palette--sheet]:absolute tw:[&.dnd-palette--sheet]:z-[30] tw:[&.dnd-palette--sheet]:top-[0] tw:[&.dnd-palette--sheet]:bottom-[0] tw:[&.dnd-palette--sheet]:left-[0] tw:[&.dnd-palette--sheet]:w-[min(320px,_88%)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&.dnd-palette--sheet]:animate-dnd-slide-left tw:[&.dnd-palette--sheet]:[box-shadow:var(--dnd-shadow-lg)] dnd-palette--${variant}`}
       aria-label="Палитра элементов"
     >
       <div className="dnd-palette-head tw:flex tw:items-center tw:justify-between tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
@@ -87,7 +89,7 @@ export function Palette({ variant = 'side' }) {
           <button
             key={item.id}
             type="button"
-            className="dnd-palette-item tw:text-[0.96rem] tw:leading-[1.45] tw:grid tw:grid-cols-[36px_minmax(0,_1fr)_16px] tw:items-center tw:gap-[10px] tw:p-[10px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:text-left tw:cursor-grab tw:[border-width:1px] tw:hover:border-(--dnd-border-strong) tw:[background:var(--dnd-node)] tw:active:cursor-grabbing tw:[transition:border-color_0.15s,_box-shadow_0.15s,_transform_0.15s] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:hover:[box-shadow:var(--dnd-shadow)] tw:hover:[transform:translateY(-1px)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
+            className="dnd-palette-item tw:grid tw:min-h-[96px] tw:w-full tw:min-w-0 tw:grid-cols-[36px_minmax(0,1fr)_16px] tw:items-center tw:gap-[12px] tw:rounded-[18px] tw:border tw:border-solid tw:border-(--dnd-border) tw:bg-(--dnd-node) tw:p-[14px] tw:text-left tw:text-(--dnd-text) tw:cursor-grab tw:active:cursor-grabbing tw:hover:border-(--dnd-border-strong) tw:focus-visible:outline-2 tw:focus-visible:outline-(--dnd-focus)"
             draggable
             onDragStart={(event) => {
               event.dataTransfer.setData(DRAG_MIME, item.id);
@@ -223,7 +225,10 @@ export function Palette({ variant = 'side' }) {
         <button
           type="button"
           className="dnd-btn dnd-btn--ghost dnd-btn--sm tw:text-[0.82rem] tw:leading-[1.45] tw:inline-flex tw:items-center tw:justify-center tw:gap-[8px] tw:min-h-[32px] tw:p-[0_12px] tw:rounded-[9px] tw:border-solid tw:border-(--dnd-border) tw:text-(--dnd-text) tw:font-[650] tw:cursor-pointer tw:whitespace-nowrap tw:w-[100%] tw:[border-width:1px] tw:[background:transparent] tw:disabled:cursor-not-allowed tw:[transition:background_0.15s,_border-color_0.15s,_transform_0.15s,_box-shadow_0.15s] tw:disabled:opacity-[0.55] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:not(summary)]:mt-[8px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.82rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] tw:[&:hover:not(:disabled)]:border-(--dnd-border-strong) tw:[&:hover:not(:disabled)]:[background:var(--dnd-panel-2)] tw:[&:active:not(:disabled)]:[transform:translateY(1px)]"
-          onClick={restartOnboarding}
+          onClick={() => {
+            restartOnboarding();
+            void navigate('/drag-and-drop-course?help=dnd');
+          }}
         >
           <Icon name="restart" size={15} /> Показать обучение снова
         </button>

@@ -30,3 +30,5 @@ export {
   IconRetry,
   IconSparkle,
 } from './icons';
+
+export { useChatDockSpace } from './use-chat-dock-space';

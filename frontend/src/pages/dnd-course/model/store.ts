@@ -504,7 +504,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           activeNodeId: null,
           inspector: { open: false, tab: null },
           selectedIds: [],
-          focusRequest: { ids: ['course', 'upload'], at: Date.now() },
+          focusRequest: { ids: ['course'], at: Date.now() },
         });
         announce('Курс создан. Открыт конструктор.');
       } catch (error) {
@@ -596,7 +596,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
               x: position.x,
               y: position.y + index * (NODE_SIZE.material.height + COLUMN_GAP),
             }
-          : { x: COLUMN_X.material, y: NODE_SIZE.upload.height + COLUMN_GAP };
+          : { x: COLUMN_X.material, y: 0 };
         const slot = position
           ? desired
           : findFreeSlot(desired, NODE_SIZE.material, rects);

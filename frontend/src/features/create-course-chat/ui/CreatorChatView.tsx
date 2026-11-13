@@ -739,201 +739,217 @@ export function CreatorChatView() {
 
   return (
     <section className="creator-chat-shell tw:mt-[10px] tw:grid tw:gap-[16px]">
-      <article className="glass-card creator-chat-main tw:relative tw:flex tw:flex-col tw:h-[clamp(560px,_calc(100vh_-_230px),_840px)] tw:rounded-[22px] tw:overflow-hidden tw:[border:1px_solid_var(--glass-border)] tw:dark:[border-color:rgba(var(--accent-rgb),_0.5)] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))]">
-        <header className="creator-chat-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:shrink-0 tw:min-h-[56px] tw:py-[10px] tw:pr-[12px] tw:pl-[18px] tw:[border-bottom:1px_solid_var(--line)]">
-          <div className="tw:flex tw:items-center tw:gap-[8px] tw:min-w-0">
-            <span className="tw:shrink-0 tw:rounded-[7px] tw:px-[7px] tw:py-[3px] tw:text-[11px] tw:font-semibold tw:leading-[1.3] tw:bg-[#ecdfe8] tw:text-[#5e4d5e] tw:dark:bg-[#4a424a] tw:dark:text-[#ead9ea]">
-              Новый курс
-            </span>
-            <span className="creator-chat-status tw:text-[13px] tw:font-medium tw:text-(--muted) tw:truncate">
+      <div className="tw:min-w-0">
+        <article className="glass-card creator-chat-main tw:relative tw:flex tw:flex-col tw:h-[calc(100dvh_-_140px)] tw:min-h-[320px] tw:max-760:h-[calc(100dvh_-_124px)] tw:max-760:min-h-[280px] tw:rounded-[22px] tw:overflow-hidden tw:[border:1px_solid_var(--glass-border)] tw:dark:[border-color:rgba(var(--accent-rgb),_0.5)] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))]">
+          <header className="creator-chat-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:shrink-0 tw:min-h-[56px] tw:py-[10px] tw:pr-[12px] tw:pl-[18px] tw:[border-bottom:1px_solid_var(--line)]">
+            <h2 className="tw:m-0 tw:text-[18px] tw:[font-family:Unbounded,sans-serif]">
+              Чат-конструктор
+            </h2>
+            <span
+              role="status"
+              className="tw:ml-auto tw:text-[12px] tw:text-(--muted)"
+            >
               {statusLabel}
             </span>
-          </div>
-          <ChatIconButton
-            label={isGenerationComplete ? 'Новый чат' : 'Очистить чат'}
-            onClick={() =>
-              isGenerationComplete
-                ? startNewChat()
-                : messages.length > 0
-                  ? setIsClearConfirmOpen(true)
-                  : clearChat()
+            <ChatIconButton
+              label={isGenerationComplete ? 'Новый чат' : 'Очистить чат'}
+              onClick={() =>
+                isGenerationComplete
+                  ? startNewChat()
+                  : messages.length > 0
+                    ? setIsClearConfirmOpen(true)
+                    : clearChat()
+              }
+              disabled={isGenerating}
+            >
+              <IconNewChat />
+            </ChatIconButton>
+          </header>
+          <ChatThread
+            busy={isThinking || isGenerating}
+            scrollKey={`${messages.length}:${isThinking}:${isGenerating}:${isGenerationComplete}:${awaitingLaunchConfirmation}`}
+            centered={
+              messages.length === 0 && !isThinking && !hasGenerationStarted
             }
-            disabled={isGenerating}
+            label="Переписка с ИИ-конструктором"
           >
-            <IconNewChat />
-          </ChatIconButton>
-        </header>
-        <ChatThread
-          busy={isThinking || isGenerating}
-          scrollKey={`${messages.length}:${isThinking}:${isGenerating}:${isGenerationComplete}:${awaitingLaunchConfirmation}`}
-          centered={
-            messages.length === 0 && !isThinking && !hasGenerationStarted
-          }
-          label="Переписка с ИИ-конструктором"
-        >
-          <div className="tw:w-full tw:max-w-[860px] tw:mx-auto tw:flex tw:flex-col tw:gap-[14px]">
-            {isAgentMockEnabled() ? (
-              <ChatNotice tone="info" className="agent-mock-badge">
-                Демо-режим: ответы ИИ имитируются, модель не вызывается. Курс
-                создаётся настоящими запросами к backend.
-              </ChatNotice>
-            ) : null}
-            {messages.length === 0 && !isThinking && !hasGenerationStarted ? (
-              <ChatEmpty
-                title="Какой курс создадим?"
-                text="Опишите тему и аудиторию или прикрепите материалы. ИИ задаст пару вопросов, покажет описание курса, и только после подтверждения начнётся генерация."
-              />
-            ) : null}
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                text={message.text}
-                className="creator-chat-msg"
-              />
-            ))}
-            {isThinking ? (
-              <ChatTyping label="Думаю над следующим уточнением…" />
-            ) : null}
-            {conversation?.error ? (
-              <ChatNotice tone="error">{conversation.error}</ChatNotice>
-            ) : null}
-            {awaitingLaunchConfirmation ? (
-              <ChatCard
-                className="creator-chat-launch"
-                title="Проверьте перед запуском"
-                actions={
-                  <ChatButton
-                    variant="primary"
-                    onClick={() => setConfirmLaunchText(CONFIRM_LAUNCH_MESSAGE)}
-                  >
-                    Проверить и запустить
-                  </ChatButton>
-                }
-              >
-                <span className="tw:text-(--muted)">
-                  ИИ подготовил структуру курса. Проверьте описание и цели
-                  обучения — после запуска генерацию нельзя отменить.
-                </span>
-              </ChatCard>
-            ) : null}
-            {hasGenerationStarted && !isGenerationComplete ? (
-              <ChatCard
-                className="creator-chat-progress"
-                role="status"
-                title="ИИ собирает структуру программы"
-              >
-                <div className="tw:flex tw:items-baseline tw:justify-between tw:gap-[12px]">
-                  <span className="tw:text-(--muted)">{generationStatus}</span>
-                  <strong className="tw:text-[15px] tw:text-(--heading)">
-                    {completionPercent}%
-                  </strong>
-                </div>
-                <ChatProgress
-                  value={completionPercent}
-                  label="Готовность курса"
+            <div className="tw:w-full tw:mx-auto tw:flex tw:flex-col tw:gap-[18px]">
+              {isAgentMockEnabled() ? (
+                <ChatNotice tone="info" className="agent-mock-badge">
+                  Демо-режим: ответы ИИ имитируются, модель не вызывается. Курс
+                  создаётся настоящими запросами к backend.
+                </ChatNotice>
+              ) : null}
+              {messages.length === 0 && !isThinking && !hasGenerationStarted ? (
+                <ChatEmpty
+                  title="Какой курс создадим?"
+                  text="Опишите тему и аудиторию или прикрепите материалы. ИИ задаст пару вопросов, покажет описание курса, и только после подтверждения начнётся генерация."
                 />
-                <span className="tw:text-[12.5px] tw:text-(--muted)">
-                  Можно оставить страницу — генерация продолжится.
-                </span>
-              </ChatCard>
-            ) : null}
-            {isGenerationComplete ? (
-              <ChatCard
-                className="creator-chat-done"
-                role="status"
-                title="Курс готов"
-                actions={
-                  <>
+              ) : null}
+              {messages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  role={message.role}
+                  text={message.text}
+                  className="creator-chat-msg"
+                  size="md"
+                />
+              ))}
+              {isThinking ? (
+                <ChatTyping label="Думаю над следующим уточнением…" />
+              ) : null}
+              {conversation?.error ? (
+                <ChatNotice tone="error">{conversation.error}</ChatNotice>
+              ) : null}
+              {awaitingLaunchConfirmation ? (
+                <ChatCard
+                  className="creator-chat-launch"
+                  title="Проверьте перед запуском"
+                  actions={
                     <ChatButton
                       variant="primary"
                       onClick={() =>
-                        navigate(`/course/${generatedCourseId}/edit`)
+                        setConfirmLaunchText(CONFIRM_LAUNCH_MESSAGE)
                       }
                     >
-                      Открыть курс
+                      Проверить и запустить
                     </ChatButton>
-                    <ChatButton onClick={startNewChat}>Новый чат</ChatButton>
-                  </>
+                  }
+                >
+                  <span className="tw:text-(--muted)">
+                    ИИ подготовил структуру курса. Проверьте описание и цели
+                    обучения — после запуска генерацию нельзя отменить.
+                  </span>
+                </ChatCard>
+              ) : null}
+              {hasGenerationStarted && !isGenerationComplete ? (
+                <ChatCard
+                  className="creator-chat-progress"
+                  role="status"
+                  title="ИИ собирает структуру программы"
+                >
+                  <div className="tw:flex tw:items-baseline tw:justify-between tw:gap-[12px]">
+                    <span className="tw:text-(--muted)">
+                      {generationStatus}
+                    </span>
+                    <strong className="tw:text-[15px] tw:text-(--heading)">
+                      {completionPercent}%
+                    </strong>
+                  </div>
+                  <ChatProgress
+                    value={completionPercent}
+                    label="Готовность курса"
+                  />
+                  <span className="tw:text-[12.5px] tw:text-(--muted)">
+                    Можно оставить страницу — генерация продолжится.
+                  </span>
+                </ChatCard>
+              ) : null}
+              {isGenerationComplete ? (
+                <ChatCard
+                  className="creator-chat-done"
+                  role="status"
+                  title="Курс готов"
+                  actions={
+                    <>
+                      <ChatButton
+                        variant="primary"
+                        onClick={() =>
+                          navigate(`/course/${generatedCourseId}/edit`)
+                        }
+                      >
+                        Открыть курс
+                      </ChatButton>
+                      <ChatButton onClick={startNewChat}>Новый чат</ChatButton>
+                    </>
+                  }
+                >
+                  <span className="tw:text-(--muted)">
+                    Курс сохранён черновиком. Откройте его, чтобы проверить и
+                    отредактировать, или начните новый диалог.
+                  </span>
+                </ChatCard>
+              ) : null}
+              <div
+                data-help-slot="creator"
+                className="tw:w-full tw:min-w-0 tw:max-w-[760px] tw:self-start tw:empty:hidden"
+              />
+            </div>
+          </ChatThread>
+          {!isGenerating && !isGenerationComplete ? (
+            <div className="tw:w-full tw:px-[18px] tw:pb-[16px]">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="tw:hidden"
+                multiple
+                accept=".pdf,.docx,.pptx,.xlsx,.md,.html,.txt,.json"
+                onChange={pickFiles}
+                disabled={isGenerating || isUploadingFiles}
+              />
+              {fileUploadError ? (
+                <ChatNotice
+                  tone="error"
+                  className="tw:mx-[16px] tw:mb-[4px]"
+                  actions={
+                    uploadedFiles.length > 0 ? (
+                      <ChatButton
+                        size="sm"
+                        onClick={() => submitMessage()}
+                        disabled={
+                          isUploadingFiles || isThinking || isGenerating
+                        }
+                      >
+                        {isUploadingFiles ? 'Загружаю…' : 'Повторить загрузку'}
+                      </ChatButton>
+                    ) : null
+                  }
+                >
+                  {fileUploadError}
+                </ChatNotice>
+              ) : null}
+              <ChatComposer
+                className="creator-chat-composer tw:[&_.ai-chat-input]:text-[16px]"
+                showSendLabel
+                sendLabel="Отправить"
+                value={inputValue}
+                onChange={(value) => {
+                  setInputValue(value);
+                  if (fileUploadError && uploadedFiles.length === 0) {
+                    setFileUploadError('');
+                  }
+                }}
+                onSubmit={() => submitMessage()}
+                canSubmit={canSend}
+                busy={isThinking || isUploadingFiles}
+                disabled={isGenerating}
+                placeholder={
+                  currentQuestion?.placeholder ||
+                  'Опишите курс: тема, для кого, сколько времени'
                 }
-              >
-                <span className="tw:text-(--muted)">
-                  Курс сохранён черновиком. Откройте его, чтобы проверить и
-                  отредактировать, или начните новый диалог.
-                </span>
-              </ChatCard>
-            ) : null}
-          </div>
-        </ChatThread>
-        {!isGenerating && !isGenerationComplete ? (
-          <div className="tw:w-full tw:max-w-[892px] tw:mx-auto">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="tw:hidden"
-              multiple
-              accept=".pdf,.docx,.pptx,.xlsx,.md,.html,.txt,.json"
-              onChange={pickFiles}
-              disabled={isGenerating || isUploadingFiles}
-            />
-            {fileUploadError ? (
-              <ChatNotice
-                tone="error"
-                className="tw:mx-[16px] tw:mb-[4px]"
-                actions={
-                  uploadedFiles.length > 0 ? (
-                    <ChatButton
-                      size="sm"
-                      onClick={() => submitMessage()}
-                      disabled={isUploadingFiles || isThinking || isGenerating}
-                    >
-                      {isUploadingFiles ? 'Загружаю…' : 'Повторить загрузку'}
-                    </ChatButton>
-                  ) : null
+                onAttach={() => fileInputRef.current?.click()}
+                attachLabel="Прикрепить файлы"
+                attachDisabled={isUploadingFiles}
+                files={uploadedFiles.map((file) => ({
+                  id: file.id,
+                  name: file.name,
+                  meta: `${file.sizeKb} КБ`,
+                }))}
+                onRemoveFile={
+                  isUploadingFiles
+                    ? undefined
+                    : (id) =>
+                        setUploadedFiles((files) =>
+                          files.filter((file) => file.id !== id),
+                        )
                 }
-              >
-                {fileUploadError}
-              </ChatNotice>
-            ) : null}
-            <ChatComposer
-              className="creator-chat-composer"
-              value={inputValue}
-              onChange={(value) => {
-                setInputValue(value);
-                if (fileUploadError && uploadedFiles.length === 0) {
-                  setFileUploadError('');
-                }
-              }}
-              onSubmit={() => submitMessage()}
-              canSubmit={canSend}
-              busy={isThinking || isUploadingFiles}
-              disabled={isGenerating}
-              placeholder={
-                currentQuestion?.placeholder ||
-                'Опишите курс: тема, для кого, сколько времени'
-              }
-              onAttach={() => fileInputRef.current?.click()}
-              attachLabel="Прикрепить файлы"
-              attachDisabled={isUploadingFiles}
-              files={uploadedFiles.map((file) => ({
-                id: file.id,
-                name: file.name,
-                meta: `${file.sizeKb} КБ`,
-              }))}
-              onRemoveFile={
-                isUploadingFiles
-                  ? undefined
-                  : (id) =>
-                      setUploadedFiles((files) =>
-                        files.filter((file) => file.id !== id),
-                      )
-              }
-              hint="PDF, DOCX, PPTX, XLSX, MD, HTML, TXT или JSON · Enter — отправить, Shift + Enter — новая строка"
-              ariaLabel="Сообщение для ИИ"
-            />
-          </div>
-        ) : null}
-      </article>
+                hint="PDF, DOCX, PPTX, XLSX, MD, HTML, TXT или JSON · Enter — отправить, Shift + Enter — новая строка"
+                ariaLabel="Сообщение для ИИ"
+              />
+            </div>
+          ) : null}
+        </article>
+      </div>
       <ConfirmDialog
         open={confirmLaunchText !== null}
         size="lg"

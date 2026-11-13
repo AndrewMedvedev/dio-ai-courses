@@ -10,8 +10,12 @@ export interface LessonBasicInfoData {
 
 export function LessonBasicInfo({
   lesson,
+  compact = false,
+  level,
 }: {
   lesson: LessonBasicInfoData | null | undefined;
+  compact?: boolean;
+  level?: string;
 }) {
   if (!lesson) {
     return (
@@ -28,6 +32,22 @@ export function LessonBasicInfo({
     : Array.isArray(lesson.learning_objectives)
       ? lesson.learning_objectives
       : [];
+
+  if (compact) {
+    return (
+      <header className="lesson-basic-info tw:mb-[24px] tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:pb-[24px]">
+        <h1 className="tw:min-w-0 tw:max-w-full tw:[overflow-wrap:anywhere] tw:[text-wrap:pretty] tw:text-[28px] tw:leading-[1.35] tw:[font-family:Unbounded,sans-serif] tw:max-760:text-[22px]">
+          {lesson.title}
+        </h1>
+        <p className="tw:mt-[14px] tw:mb-0 tw:text-[12px] tw:text-(--muted)">
+          {lesson.estimated_time_minutes
+            ? `${lesson.estimated_time_minutes} минут чтения`
+            : 'Теория урока'}
+          {level ? ` · ${level} уровень` : ''}
+        </p>
+      </header>
+    );
+  }
 
   return (
     <article className="course-viewer-card lesson-basic-info tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[14px] tw:p-[24px] tw:w-[100%] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:[box-shadow:none] tw:[-webkit-backdrop-filter:none] tw:[backdrop-filter:none] tw:dark:text-[#f4ead8] tw:dark:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)] tw:[&_h1]:m-[0] tw:dark:[.page_.generated-course-learning-grid_&_h3]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_&_li]:text-[#e9decb]">

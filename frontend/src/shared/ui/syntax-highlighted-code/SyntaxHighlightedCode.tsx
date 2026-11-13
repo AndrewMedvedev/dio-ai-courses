@@ -1,8 +1,14 @@
 import { toText } from '@/shared/lib/text';
-import { type ComponentPropsWithoutRef } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentPropsWithoutRef,
+} from 'react';
 import { getCodeLanguage, highlight } from './highlight-code';
 
 export interface SyntaxHighlightedCodeProps extends ComponentPropsWithoutRef<'code'> {
+  copyable?: boolean;
   /** Узел AST от react-markdown — не пробрасываем в DOM. */
   node?: unknown;
 }
@@ -11,15 +17,65 @@ export function SyntaxHighlightedCode({
   className = '',
   children,
   node: _node,
+  copyable = false,
   ...props
 }: SyntaxHighlightedCodeProps) {
   const language = getCodeLanguage(className);
   const source = toText(children).replace(/\n$/, '');
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
+    'idle',
+  );
+  const resetTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+
+  async function copySource() {
+    try {
+      await navigator.clipboard.writeText(source);
+      setCopyState('copied');
+    } catch {
+      setCopyState('error');
+    }
+    clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => setCopyState('idle'), 2500);
+  }
 
   if (!language) {
     return (
       <code className={className} {...props}>
         {children}
+      </code>
+    );
+  }
+
+  if (copyable) {
+    return (
+      <code
+        className={`syntax-highlighted-code tw:block tw:min-w-0 tw:text-[14px]! tw:leading-[1.75] tw:text-(--text) tw:[font-family:'JetBrains_Mono',monospace] ${className}`}
+        data-language={language}
+        {...props}
+      >
+        <span className="tw:mb-[16px] tw:flex tw:items-center tw:justify-between tw:gap-[24px] tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:pb-[16px] tw:[font-family:Manrope,sans-serif]">
+          <span className="tw:text-[10px] tw:font-bold tw:uppercase tw:text-(--eyebrow)">
+            {language}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              void copySource();
+            }}
+            className="tw:border-0 tw:bg-transparent tw:p-[4px] tw:text-[11px] tw:text-(--muted) tw:cursor-pointer"
+            aria-label="Копировать код"
+          >
+            <span aria-live="polite">
+              {copyState === 'copied'
+                ? 'Скопировано'
+                : copyState === 'error'
+                  ? 'Не удалось скопировать'
+                  : 'Копировать'}
+            </span>
+          </button>
+        </span>
+        {highlight(source, language)}
       </code>
     );
   }

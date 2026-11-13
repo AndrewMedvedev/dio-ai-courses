@@ -3,6 +3,7 @@ import { AppModal, type AppModalSize } from '@/shared/ui/app-modal';
 import { getErrorMessage } from '@/shared/lib/errors';
 
 export interface ConfirmDialogProps {
+  className?: string;
   open: boolean;
   title: ReactNode;
   description?: ReactNode;
@@ -35,6 +36,7 @@ export function ConfirmDialog({
   onCancel,
   children,
   size = 'sm',
+  className = '',
 }: ConfirmDialogProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -73,7 +75,7 @@ export function ConfirmDialog({
       onClose={close}
       busy={busy}
       size={size}
-      className={danger ? 'is-danger' : ''}
+      className={`${danger ? 'is-danger' : ''} ${className}`.trim()}
       footer={
         <>
           <button
