@@ -2,6 +2,7 @@ import { toText } from '@/shared/lib/text';
 import { useMemo, useState, type ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { CodeEditor } from '@/shared/ui/code-editor';
 import {
   checkLessonPractice,
   checkLessonTest,
@@ -114,6 +115,23 @@ export interface LessonAssessmentProps {
   moduleId?: string;
   lessonId?: string;
   onChecked?: (result: AssessmentResult) => void;
+  onBackToTheory?: () => void;
+}
+
+const assessmentButton =
+  'tw:inline-flex tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-solid tw:border-transparent tw:bg-(--contrast) tw:px-[28px] tw:py-[12px] tw:text-[14px] tw:font-semibold tw:leading-[1.5] tw:text-(--text-solid) tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-50';
+
+function BackToTheory({ onBack }: { onBack?: () => void }) {
+  if (!onBack) return null;
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="tw:inline-flex tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[28px] tw:py-[12px] tw:text-[14px] tw:font-semibold tw:leading-[1.5] tw:text-(--text) tw:cursor-pointer"
+    >
+      К теории
+    </button>
+  );
 }
 
 /** Проверочные вопросы урока: генерация агентом, ответы и проверка. */
@@ -121,10 +139,12 @@ export function LessonTestAgent({
   moduleId,
   lessonId,
   onChecked,
+  onBackToTheory,
 }: LessonAssessmentProps) {
   const [test, setTest] = useState<LessonTest | null>(null);
   const [practiceId, setPracticeId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<TestAnswers>({});
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState('');
@@ -136,6 +156,7 @@ export function LessonTestAgent({
     setError('');
     setResult(null);
     setAnswers({});
+    setQuestionIndex(0);
     setPracticeId(null);
     setTest(null);
 
@@ -196,14 +217,11 @@ export function LessonTestAgent({
     return (
       <section className="lesson-agent-panel lesson-agent-start tw:grid tw:gap-[18px] tw:min-h-[260px] tw:p-[clamp(18px,_2.5vw,_28px)] tw:rounded-[18px] tw:[align-content:start] tw:[justify-items:start] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.18)] tw:[background:rgba(255,_255,_255,_0.18)] tw:[&_.btn]:rounded-[999px] tw:[&_.btn]:p-[11px_18px] tw:[&_.btn]:min-w-[170px] tw:[&_.btn]:flex-[0_0_auto] tw:[&_.btn]:whitespace-normal tw:[&_.btn]:w-[auto] tw:[&_.btn]:h-[auto] tw:[&_.btn]:min-h-[44px]">
         <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:max-w-[680px]">
-          <p className="course-category tw:m-[0] tw:text-[0.88rem] tw:uppercase tw:tracking-[0.09em] tw:text-(--info-text) tw:font-[700] tw:leading-[1.72]">
-            Проверочные вопросы
-          </p>
           <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
-            Проверка знаний
+            Проверочные вопросы
           </h2>
           <span className="tw:text-(--muted) tw:text-[0.86rem]">
-            Когда будете готовы, запустите генерацию тестовых вопросов.
+            Подготовьте вопросы, чтобы закрепить материал урока.
           </span>
         </div>
         {error && (
@@ -211,15 +229,16 @@ export function LessonTestAgent({
             {error}
           </p>
         )}
-        <div className="lesson-agent-actions tw:flex tw:justify-start tw:gap-[10px] tw:items-center tw:w-[auto]">
+        <div className="lesson-agent-actions tw:mt-[24px] tw:flex tw:flex-wrap tw:items-center tw:justify-start tw:gap-[12px]">
           <button
             type="button"
-            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[11px_18px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:flex-[0_0_auto] tw:w-[auto] tw:h-[auto] tw:min-w-[170px] tw:min-h-[44px] tw:whitespace-normal tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+            className={assessmentButton}
             onClick={startTest}
             disabled={isLoading || !moduleId || !lessonId}
           >
-            {isLoading ? 'Готовим вопросы...' : 'Пройти тест'}
+            {isLoading ? 'Готовим вопросы...' : 'Подготовить вопросы'}
           </button>
+          <BackToTheory onBack={onBackToTheory} />
         </div>
       </section>
     );
@@ -228,11 +247,8 @@ export function LessonTestAgent({
   return (
     <section className="lesson-agent-panel tw:grid tw:gap-[18px]">
       <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:[.lesson-agent-start_&]:max-w-[680px]">
-        <p className="course-category tw:m-[0] tw:text-[0.88rem] tw:uppercase tw:tracking-[0.09em] tw:text-(--info-text) tw:font-[700] tw:leading-[1.72]">
-          Проверочные вопросы
-        </p>
         <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
-          {test?.title || 'Проверка знаний'}
+          Проверочные вопросы
         </h2>
         {test?.estimated_time_minutes && (
           <span>Ориентировочное время: {test.estimated_time_minutes} мин.</span>
@@ -246,15 +262,16 @@ export function LessonTestAgent({
       )}
 
       <div className="lesson-agent-question-list tw:grid tw:gap-[14px]">
+        <span className="tw:justify-self-start tw:rounded-full tw:border tw:border-solid tw:border-(--navigation-active-border) tw:bg-(--navigation-active) tw:px-[12px] tw:py-[5px] tw:text-[12px] tw:text-(--eyebrow)">
+          Вопрос {questionIndex + 1} из {questions.length}
+        </span>
         {questions.map((question, index) => (
           <article
-            className="lesson-agent-question tw:rounded-[16px] tw:p-[16px] tw:grid tw:gap-[14px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(255,_255,_255,_0.34)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[background:rgba(255,_255,_255,_0.06)]"
+            style={{ display: questionIndex === index ? 'grid' : 'none' }}
+            className="lesson-agent-question tw:min-w-0 tw:gap-[20px]"
             key={`${question.text}-${index}`}
           >
-            <div className="lesson-agent-question-title tw:grid tw:grid-cols-[34px_minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:start]">
-              <span className="tw:w-[30px] tw:h-[30px] tw:rounded-[50%] tw:grid tw:text-(--ink-accent) tw:font-[900] tw:[place-items:center] tw:[background:rgba(var(--accent-rgb),_0.14)]">
-                {index + 1}
-              </span>
+            <div className="lesson-agent-question-title tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[10px] tw:[align-items:start]">
               <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">
                 {question.text}
               </h3>
@@ -270,7 +287,7 @@ export function LessonTestAgent({
                 {(Array.isArray(question.options) ? question.options : []).map(
                   (option, optionIndex) => (
                     <label
-                      className="tw:flex tw:gap-[10px] tw:items-start tw:cursor-pointer tw:text-(--text)"
+                      className={`tw:flex tw:min-h-[54px] tw:items-center tw:gap-[12px] tw:rounded-[14px] tw:border tw:border-solid tw:px-[16px] tw:py-[14px] tw:text-(--text) tw:cursor-pointer ${String(answers[index] ?? '') === String(optionIndex) ? 'tw:border-(--navigation-active-border) tw:bg-(--navigation-active)' : 'tw:border-(--line) tw:bg-(--surface)'}`}
                       key={`${option}-${optionIndex}`}
                     >
                       <input
@@ -303,6 +320,7 @@ export function LessonTestAgent({
                   </details>
                 )}
                 <textarea
+                  aria-label={`Ответ на вопрос ${index + 1}`}
                   value={answers[index] || ''}
                   disabled={isSubmitted || isChecking}
                   onChange={(event) =>
@@ -319,21 +337,47 @@ export function LessonTestAgent({
         ))}
       </div>
 
-      <div className="lesson-agent-actions tw:flex tw:justify-end tw:gap-[10px] tw:[.lesson-agent-start_&]:justify-start tw:[.lesson-agent-start_&]:items-center tw:[.lesson-agent-start_&]:w-[auto]">
-        <button
-          type="button"
-          className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-          onClick={submitTest}
-          disabled={!practiceId || !canSubmit || isChecking || isSubmitted}
-        >
-          {isChecking
-            ? 'Проверяем...'
-            : isSubmitted
-              ? isPassed
-                ? 'Тест сдан'
-                : 'Тест не сдан'
-              : 'Завершить тест'}
-        </button>
+      <div className="lesson-agent-actions tw:mt-[24px] tw:flex tw:flex-wrap tw:items-center tw:justify-start tw:gap-[12px]">
+        {questionIndex > 0 && (
+          <button
+            type="button"
+            className="tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[24px] tw:py-[12px] tw:text-(--text) tw:cursor-pointer"
+            disabled={isChecking}
+            onClick={() => setQuestionIndex((value) => value - 1)}
+          >
+            Предыдущий вопрос
+          </button>
+        )}
+        {questionIndex < questions.length - 1 ? (
+          <button
+            type="button"
+            className={assessmentButton}
+            disabled={
+              answers[questionIndex] === undefined ||
+              !String(answers[questionIndex]).trim() ||
+              isChecking
+            }
+            onClick={() => setQuestionIndex((value) => value + 1)}
+          >
+            Следующий вопрос
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={assessmentButton}
+            onClick={submitTest}
+            disabled={!practiceId || !canSubmit || isChecking || isSubmitted}
+          >
+            {isChecking
+              ? 'Проверяем...'
+              : isSubmitted
+                ? isPassed
+                  ? 'Тест сдан'
+                  : 'Тест не сдан'
+                : 'Проверить ответы'}
+          </button>
+        )}
+        <BackToTheory onBack={onBackToTheory} />
       </div>
 
       <ResultCard result={result} />
@@ -346,8 +390,11 @@ export function LessonPracticeAgent({
   moduleId,
   lessonId,
   onChecked,
+  onBackToTheory,
 }: LessonAssessmentProps) {
   const [assignment, setAssignment] = useState<PracticeAssignment | null>(null);
+  const [solution, setSolution] = useState('');
+  const [entryMode, setEntryMode] = useState<'text' | 'file' | null>(null);
   const [practiceId, setPracticeId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
@@ -365,6 +412,8 @@ export function LessonPracticeAgent({
     setFileError('');
     setPracticeId(null);
     setAssignment(null);
+    setSolution('');
+    setEntryMode(null);
 
     try {
       const response = await generateLessonPractice(moduleId, lessonId);
@@ -395,12 +444,43 @@ export function LessonPracticeAgent({
   const accept = acceptsAnyFile
     ? undefined
     : allowedExtensions.map(normalizeExtension).join(',');
+  const textExtensions = [
+    '.py',
+    '.txt',
+    '.md',
+    '.ts',
+    '.js',
+    '.json',
+    '.html',
+    '.css',
+    '.sql',
+  ];
+  const textExtension = acceptsAnyFile
+    ? '.txt'
+    : allowedExtensions
+        .map(normalizeExtension)
+        .find((extension) => textExtensions.includes(extension));
+  const textMode = Boolean(textExtension) && entryMode !== 'file';
+  const solutionLanguage =
+    textExtension === '.py' ? 'PYTHON' : textExtension?.slice(1) || 'TEXT';
+  const updateSolution = (value: string) => {
+    setSolution(value);
+    setFileError('');
+    setFile(
+      value.trim()
+        ? new File([value], `solution${textExtension || '.txt'}`, {
+            type: 'text/plain',
+          })
+        : null,
+    );
+  };
 
   const pickFile = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] || null;
     setFile(null);
     setFileError('');
     if (!nextFile) return;
+    setEntryMode('file');
 
     if (!acceptsAnyFile) {
       const fileName = (nextFile.name || '').toLowerCase();
@@ -439,14 +519,11 @@ export function LessonPracticeAgent({
     return (
       <section className="lesson-agent-panel lesson-agent-start tw:grid tw:gap-[18px] tw:min-h-[260px] tw:p-[clamp(18px,_2.5vw,_28px)] tw:rounded-[18px] tw:[align-content:start] tw:[justify-items:start] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.18)] tw:[background:rgba(255,_255,_255,_0.18)] tw:[&_.btn]:rounded-[999px] tw:[&_.btn]:p-[11px_18px] tw:[&_.btn]:min-w-[170px] tw:[&_.btn]:flex-[0_0_auto] tw:[&_.btn]:whitespace-normal tw:[&_.btn]:w-[auto] tw:[&_.btn]:h-[auto] tw:[&_.btn]:min-h-[44px]">
         <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:max-w-[680px]">
-          <p className="course-category tw:m-[0] tw:text-[0.88rem] tw:uppercase tw:tracking-[0.09em] tw:text-(--info-text) tw:font-[700] tw:leading-[1.72]">
-            Практика
-          </p>
           <h2 className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em] tw:[font-family:'Unbounded',_sans-serif]">
-            Практическое задание
+            Практика
           </h2>
           <span className="tw:text-(--muted) tw:text-[0.86rem]">
-            Когда будете готовы, запустите подготовку практического задания.
+            Подготовьте задание и приложите файл с вашим решением для проверки.
           </span>
         </div>
         {error && (
@@ -454,17 +531,16 @@ export function LessonPracticeAgent({
             {error}
           </p>
         )}
-        <div className="lesson-agent-actions tw:flex tw:justify-start tw:gap-[10px] tw:items-center tw:w-[auto]">
+        <div className="lesson-agent-actions tw:mt-[24px] tw:flex tw:flex-wrap tw:items-center tw:justify-start tw:gap-[12px]">
           <button
             type="button"
-            className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[11px_18px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:flex-[0_0_auto] tw:w-[auto] tw:h-[auto] tw:min-w-[170px] tw:min-h-[44px] tw:whitespace-normal tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+            className={assessmentButton}
             onClick={startPractice}
             disabled={isLoading || !moduleId || !lessonId}
           >
-            {isLoading
-              ? 'Готовим задание...'
-              : 'Выполнить практическое задание'}
+            {isLoading ? 'Готовим задание...' : 'Подготовить задание'}
           </button>
+          <BackToTheory onBack={onBackToTheory} />
         </div>
       </section>
     );
@@ -473,10 +549,10 @@ export function LessonPracticeAgent({
   return (
     <section className="lesson-agent-panel tw:grid tw:gap-[18px]">
       <div className="lesson-agent-head tw:grid tw:gap-[6px] tw:[.lesson-agent-start_&]:max-w-[680px]">
-        <p className="course-category tw:m-[0] tw:text-[0.8rem] tw:uppercase tw:tracking-[0.08em] tw:text-(--accent) tw:font-[700]">
-          Практика
-        </p>
-        <h2>{assignment?.title || 'Практическое задание'}</h2>
+        <h2 className="tw:mb-[24px] tw:text-[24px]">Практика</h2>
+        <h3 className="tw:text-[20px]">
+          {assignment?.title || 'Практическое задание'}
+        </h3>
       </div>
 
       {error && (
@@ -486,7 +562,7 @@ export function LessonPracticeAgent({
       )}
 
       {assignment?.description && (
-        <div className="lesson-markdown lesson-agent-description tw:mt-[12px] tw:p-[14px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.3)] tw:rounded-[14px] tw:leading-[1.65] tw:whitespace-normal tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:overflow-x-clip tw:overflow-y-visible tw:[border-width:1px] tw:[background:rgba(255,_255,_255,_0.2)] tw:dark:[.page_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.045)] tw:dark:[.page_&]:[box-shadow:none] tw:[.lesson-editor-block-select_&_>_:first-child]:mt-[0] tw:[.lesson-editor-block-select_&_>_:last-child]:mb-[0] tw:[&_>_:first-child]:mt-[0] tw:[&_>_:last-child]:mb-[0] tw:[&_p]:max-w-[100%] tw:[&_p]:text-(--muted) tw:[&_p]:leading-[1.5] tw:[&_p]:wrap-anywhere tw:dark:[.page_&_p]:text-[#e9decb] tw:[.page.is-inner-page_&_p]:text-(--text) tw:[.page.is-inner-page_&_p]:text-[clamp(1rem,_1.15vw,_1.08rem)] tw:[.page.is-inner-page_&_p]:leading-[1.82] tw:[.page.is-inner-page_&_p]:tracking-[0.014em] tw:[.page.is-inner-page_&_p]:m-[0_0_18px] tw:[.generated-course-learning-grid_&_pre]:[border:1px_solid_rgba(255,_255,_255,_0.14)] tw:[.generated-course-learning-grid_&_pre]:[background:#0b1020] tw:[.generated-course-learning-grid_&_pre]:text-[#f8fafc] tw:dark:[.page_.generated-course-learning-grid_&&&_pre]:border-[rgba(247,_220,_168,_0.28)] tw:dark:[.page_.generated-course-learning-grid_&&&_pre]:[background:#050816] tw:dark:[.page_.generated-course-learning-grid_&&&_pre]:text-[#f8fafc] tw:[&_pre]:m-[10px_0] tw:[&_pre]:p-[12px] tw:[&_pre]:rounded-[12px] tw:[&_pre]:[background:rgba(0,_0,_0,_0.08)] tw:[&_pre]:overflow-x-auto tw:dark:[.page_&_pre]:[background:rgba(10,_10,_10,_0.72)] tw:dark:[.page_&_pre]:[border:1px_solid_rgba(var(--accent-rgb),_0.32)] tw:dark:[.page_&_pre]:text-[#f2e7d4] tw:[.page.is-inner-page_&_pre]:w-[100%] tw:[.page.is-inner-page_&_pre]:max-w-[100%] tw:[.page.is-inner-page_&_pre]:m-[24px_0] tw:[.page.is-inner-page_&_pre]:p-[20px] tw:[.page.is-inner-page_&_pre]:[border:1px_solid_rgba(91,_111,_138,_0.44)] tw:[.page.is-inner-page_&_pre]:rounded-[14px] tw:[.page.is-inner-page_&_pre]:[background:#202631] tw:[.page.is-inner-page_&_pre]:text-[#d8dee9] tw:[.page.is-inner-page_&_pre]:[box-shadow:0_14px_32px_rgba(31,_38,_49,_0.16),_inset_0_1px_0_rgba(255,_255,_255,_0.05)] tw:[.page.is-inner-page_&_pre]:overflow-x-auto tw:[.page.is-inner-page_&_pre]:overflow-y-hidden tw:[.page.is-inner-page_&_pre]:[overscroll-behavior-inline:contain] tw:[.page.is-inner-page_&_pre]:[tab-size:4] tw:[&_h2]:m-[0_0_10px] tw:[&_h2]:[font-family:'Unbounded',_sans-serif] tw:[&_h2]:text-[0.98rem] tw:[&_h2]:text-(--heading) tw:[.page.is-inner-page_&_h2]:[font-family:'Unbounded',_sans-serif] tw:[.page.is-inner-page_&_h2]:m-[34px_0_16px] tw:[.page.is-inner-page_&_h2]:text-(--heading) tw:[.page.is-inner-page_&_h2]:text-[clamp(1.3rem,_2vw,_1.65rem)] tw:[.page.is-inner-page_&_h2]:leading-[1.38] tw:[.page.is-inner-page_&_ul]:m-[14px_0_22px] tw:[.page.is-inner-page_&_ul]:pl-[28px] tw:[&_li]:max-w-[100%] tw:[&_li]:text-(--muted) tw:[&_li]:leading-[1.5] tw:[&_li]:wrap-anywhere tw:dark:[.page_&_li]:text-[#e9decb] tw:[.page.is-inner-page_&_li]:text-(--text) tw:[.page.is-inner-page_&_li]:text-[clamp(1rem,_1.15vw,_1.08rem)] tw:[.page.is-inner-page_&_li]:leading-[1.82] tw:[.page.is-inner-page_&_li]:tracking-[0.014em] tw:[.page.is-inner-page_&_li]:pl-[5px] tw:[.page.is-inner-page_&_li::marker]:text-(--info-text) tw:[.page.is-inner-page_&_li::marker]:font-[800] tw:[&_p]:mt-[0] tw:[&_p]:mb-[0.85em] tw:[&_ul]:mt-[0] tw:[&_ul]:mb-[0.85em] tw:[&_ol]:mt-[0] tw:[&_ol]:mb-[0.85em] tw:[&_p:last-child]:mb-[0] tw:[&_ul:last-child]:mb-[0] tw:[&_ol:last-child]:mb-[0] tw:[&_h3]:m-[0_0_10px] tw:[&_h3]:[font-family:'Unbounded',_sans-serif] tw:[&_h3]:text-[0.98rem] tw:[&_h3]:text-(--heading) tw:[&_:not(pre)_>_code]:rounded-[7px] tw:[&_:not(pre)_>_code]:[background:rgba(var(--accent-rgb),_0.14)] tw:[&_:not(pre)_>_code]:p-[2px_5px] tw:[&_:not(pre)_>_code]:text-(--ink-accent) tw:[&_:not(pre)_>_code]:whitespace-normal tw:[&_:not(pre)_>_code]:wrap-anywhere tw:dark:[.page_&_td]:text-[#e9decb] tw:dark:[.page_&_:not(pre)_>_code]:[background:rgba(255,_255,_255,_0.09)] tw:dark:[.page_&_:not(pre)_>_code]:text-[#f7dca8] tw:[&_table]:w-[100%] tw:[&_table]:[border-collapse:collapse] tw:[&_table]:m-[12px_0] tw:[&_th]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_th]:p-[8px_10px] tw:[&_th]:text-left tw:[&_th]:text-[0.86rem] tw:[&_th]:text-(--text) tw:[&_td]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_td]:p-[8px_10px] tw:[&_td]:text-left tw:[&_td]:text-[0.86rem] tw:[&_td]:text-(--text) tw:[&_th]:[background:rgba(var(--accent-rgb),_0.12)] tw:dark:[.page_&_table]:[background:rgba(12,_12,_12,_0.42)] tw:dark:[.page_&_th]:border-[rgba(var(--accent-rgb),_0.5)] tw:dark:[.page_&_td]:border-[rgba(var(--accent-rgb),_0.5)] tw:dark:[.page_&_th]:[background:rgba(var(--accent-rgb),_0.22)] tw:dark:[.page_&_th]:text-[#fff2df] tw:[&_a]:text-(--ink-accent) tw:[&_a]:font-[700] tw:[&_img]:block tw:[&_img]:max-w-[100%] tw:[&_img]:h-[auto] tw:[&_img]:m-[12px_0] tw:[&_img]:[border:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:[&_img]:rounded-[12px] tw:[&_img]:[background:rgba(255,_255,_255,_0.34)] tw:[.content-preview-image-trigger_&_img]:m-[0] tw:dark:[.page_&_img]:border-[rgba(var(--accent-rgb),_0.46)] tw:dark:[.page_&_img]:[background:rgba(255,_255,_255,_0.08)] tw:[.page.is-inner-page_&_h3]:[font-family:'Unbounded',_sans-serif] tw:[.page.is-inner-page_&_h4]:[font-family:'Unbounded',_sans-serif] tw:[.page.is-inner-page_&_h3]:m-[28px_0_13px] tw:[.page.is-inner-page_&_h3]:text-(--ink-accent) tw:[.page.is-inner-page_&_h3]:text-[clamp(1.08rem,_1.5vw,_1.28rem)] tw:[.page.is-inner-page_&_h3]:leading-[1.45] tw:[.page.is-inner-page_&_h4]:m-[24px_0_11px] tw:[.page.is-inner-page_&_h4]:text-(--info-text) tw:[.page.is-inner-page_&_h4]:text-[1.04rem] tw:[.page.is-inner-page_&_h4]:leading-[1.48] tw:[.page.is-inner-page_&_ol]:m-[14px_0_22px] tw:[.page.is-inner-page_&_ol]:pl-[28px] tw:[.page.is-inner-page_&_li_+_li]:mt-[8px] tw:[.page.is-inner-page_&_em]:text-(--info-text) tw:[.page.is-inner-page_&_a]:text-[#456fa8] tw:[.page.is-inner-page_&_a]:[text-decoration-thickness:1.5px] tw:[.page.is-inner-page_&_a]:[text-underline-offset:3px] tw:[.page.is-inner-page_&_blockquote]:m-[22px_0] tw:[.page.is-inner-page_&_blockquote]:[border-left:4px_solid_#c98245] tw:[.page.is-inner-page_&_blockquote]:rounded-[0_12px_12px_0] tw:[.page.is-inner-page_&_blockquote]:[background:rgba(201,_130,_69,_0.11)] tw:[.page.is-inner-page_&_blockquote]:p-[14px_18px] tw:[.page.is-inner-page_&_blockquote_p]:m-[0] tw:[.page.is-inner-page_&_blockquote_p]:text-[#79502f] tw:[.page.is-inner-page_&_blockquote_strong]:text-[#9a5f2d] tw:[.page.is-inner-page_&_hr]:h-[1px] tw:[.page.is-inner-page_&_hr]:m-[30px_0] tw:[.page.is-inner-page_&_hr]:[border:0] tw:[.page.is-inner-page_&_hr]:[background:linear-gradient(_90deg,_transparent,_rgba(var(--accent-rgb),_0.7),_transparent_)] tw:[.page.is-inner-page_&_table]:w-[100%] tw:[.page.is-inner-page_&_table]:max-w-[100%] tw:[.page.is-inner-page_&_table]:m-[22px_0] tw:[.page.is-inner-page_&_table]:[border-collapse:separate] tw:[.page.is-inner-page_&_table]:[border-spacing:0] tw:[.page.is-inner-page_&_table]:[table-layout:fixed] tw:[.page.is-inner-page_&_th]:p-[12px_14px] tw:[.page.is-inner-page_&_th]:text-[0.96rem] tw:[.page.is-inner-page_&_th]:leading-[1.58] tw:[.page.is-inner-page_&_th]:wrap-anywhere tw:[.page.is-inner-page_&_th]:[word-break:normal] tw:[.page.is-inner-page_&_td]:p-[12px_14px] tw:[.page.is-inner-page_&_td]:text-[0.96rem] tw:[.page.is-inner-page_&_td]:leading-[1.58] tw:[.page.is-inner-page_&_td]:wrap-anywhere tw:[.page.is-inner-page_&_td]:[word-break:normal] tw:[.page.is-inner-page_&_th]:text-(--ink-accent) tw:[.page.is-inner-page_&_th]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page.is-inner-page_&_h3]:text-[#e5c07b] tw:dark:[.page.is-inner-page_&_h4]:text-[#8fc7ff] tw:dark:[.page.is-inner-page_&_em]:text-[#8fc7ff] tw:dark:[.page.is-inner-page_&_a]:text-[#8fc7ff] tw:dark:[.page.is-inner-page_&_blockquote_p]:text-[#e5c5a7] tw:dark:[.page.is-inner-page_&_blockquote]:[border-left-color:#d0935f] tw:dark:[.page.is-inner-page_&_blockquote]:[background:rgba(208,_147,_95,_0.12)] tw:dark:[.page.is-inner-page_&_blockquote_strong]:text-[#e0a66c] tw:dark:[.page.is-inner-page_&&&_pre]:border-[rgba(143,_155,_170,_0.3)] tw:dark:[.page.is-inner-page_&&&_pre]:[background:#171c24]">
+        <div className="lesson-markdown lesson-agent-description tw:mt-[16px] tw:leading-[1.7] tw:text-(--text) tw:wrap-anywhere tw:[&_p]:my-[14px] tw:[&_pre]:overflow-x-auto tw:[&_pre]:rounded-[14px] tw:[&_pre]:bg-(--code-bg) tw:[&_pre]:p-[18px] tw:[&_table]:w-full">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {normalizeAssignmentText(assignment.description)}
           </ReactMarkdown>
@@ -526,26 +602,72 @@ export function LessonPracticeAgent({
         </div>
       )}
 
-      <label className="lesson-agent-file-picker tw:rounded-[16px] tw:p-[14px] tw:grid tw:gap-[8px] tw:text-(--text) tw:[border:1px_solid_rgba(var(--accent-rgb),_0.22)] tw:[background:rgba(255,_255,_255,_0.34)] tw:[box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.46)] tw:dark:[.page_&]:[background:rgba(255,_255,_255,_0.06)] tw:[&_>_span]:text-(--heading) tw:[&_>_span]:font-[800] tw:[&_input]:text-(--text)">
-        <span>Файл решения</span>
-        <input
-          type="file"
-          accept={accept}
-          disabled={isChecking || Boolean(result)}
-          onChange={pickFile}
-        />
-        {file && <strong>{file.name}</strong>}
-      </label>
+      <div className="tw:grid tw:gap-[14px]">
+        {textExtension && (
+          <div className="tw:flex tw:flex-wrap tw:gap-[12px]">
+            <button
+              type="button"
+              disabled={isChecking || Boolean(result)}
+              onClick={() => {
+                setEntryMode('text');
+                updateSolution(solution);
+              }}
+              aria-pressed={textMode}
+              className="tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[18px] tw:py-[10px] tw:text-(--text) tw:cursor-pointer"
+            >
+              Написать решение
+            </button>
+            <button
+              type="button"
+              disabled={isChecking || Boolean(result)}
+              onClick={() => {
+                setEntryMode('file');
+                setFile(null);
+                setFileError('');
+              }}
+              aria-pressed={!textMode}
+              className="tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[18px] tw:py-[10px] tw:text-(--text) tw:cursor-pointer"
+            >
+              Загрузить файл
+            </button>
+          </div>
+        )}
+        {textMode ? (
+          <>
+            <span className="tw:text-[13px] tw:text-(--muted)">
+              Ваше решение
+            </span>
+            <CodeEditor
+              value={solution}
+              onChange={updateSolution}
+              language={solutionLanguage}
+              label="Решение практического задания"
+              disabled={isChecking || Boolean(result)}
+            />
+          </>
+        ) : (
+          <label className="tw:grid tw:gap-[12px] tw:text-[14px]">
+            <span>Файл решения</span>
+            <input
+              type="file"
+              accept={accept}
+              disabled={isChecking || Boolean(result)}
+              onChange={pickFile}
+            />
+            {file && <strong>{file.name}</strong>}
+          </label>
+        )}
+      </div>
       {fileError && (
         <p className="lesson-ai-error" role="alert">
           {fileError}
         </p>
       )}
 
-      <div className="lesson-agent-actions tw:flex tw:justify-end tw:gap-[10px] tw:[.lesson-agent-start_&]:justify-start tw:[.lesson-agent-start_&]:items-center tw:[.lesson-agent-start_&]:w-[auto]">
+      <div className="lesson-agent-actions tw:mt-[24px] tw:flex tw:flex-wrap tw:items-center tw:justify-start tw:gap-[12px]">
         <button
           type="button"
-          className="btn btn-solid tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+          className={assessmentButton}
           onClick={submitPractice}
           disabled={
             !practiceId ||
@@ -559,8 +681,9 @@ export function LessonPracticeAgent({
             ? 'Отправляем...'
             : result
               ? 'Отправлено'
-              : 'Отправить на проверку'}
+              : 'Проверить решение'}
         </button>
+        <BackToTheory onBack={onBackToTheory} />
       </div>
 
       <ResultCard

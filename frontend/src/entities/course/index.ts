@@ -128,6 +128,7 @@ export {
   CourseNavigationTree,
   type CourseNavigationTreeProps,
 } from './ui/CourseNavigationTree';
+export { CollapsedCourseContents } from './ui/CollapsedCourseContents';
 export {
   LessonBasicInfo,
   type LessonBasicInfoData,

@@ -177,6 +177,7 @@ export interface ChatMessageProps {
   /** Под пузырём: кнопки действий. У ассистента по умолчанию — «Скопировать». */
   actions?: ReactNode;
   copyable?: boolean;
+  size?: 'sm' | 'md';
   className?: string;
 }
 
@@ -187,6 +188,7 @@ export function ChatMessage({
   children,
   actions,
   copyable = role === 'assistant',
+  size = 'sm',
   className = '',
 }: ChatMessageProps) {
   const isUser = role === 'user';
@@ -197,7 +199,9 @@ export function ChatMessage({
         {text}
       </span>
     ) : (
-      <ChatMarkdown>{text}</ChatMarkdown>
+      <ChatMarkdown className={size === 'md' ? 'tw:text-[16px]!' : ''}>
+        {text}
+      </ChatMarkdown>
     ));
   const footer =
     actions ??
@@ -207,7 +211,7 @@ export function ChatMessage({
       className={`ai-chat-message ${isUser ? 'is-user tw:self-end tw:items-end' : 'is-assistant tw:self-start tw:items-start'} tw:flex tw:flex-col tw:gap-[4px] tw:max-w-[88%] tw:min-w-0 ${className}`}
     >
       <div
-        className={`ai-chat-bubble tw:min-w-0 tw:max-w-full tw:text-[14px] tw:leading-[1.55] ${
+        className={`ai-chat-bubble tw:min-w-0 tw:max-w-full ${size === 'md' ? 'tw:text-[16px] tw:leading-[1.7]' : 'tw:text-[14px] tw:leading-[1.55]'} ${
           isUser
             ? 'tw:bg-(--cta) tw:text-[#2b2b2b] tw:rounded-[18px] tw:rounded-br-[6px] tw:px-[14px] tw:py-[9px]'
             : 'tw:bg-[rgba(255,255,255,0.86)] tw:dark:bg-[#3b3b3b] tw:text-(--text) tw:[border:1px_solid_var(--line)] tw:rounded-[18px] tw:rounded-bl-[6px] tw:px-[14px] tw:py-[11px]'

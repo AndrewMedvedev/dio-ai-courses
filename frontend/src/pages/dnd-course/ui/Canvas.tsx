@@ -10,8 +10,6 @@ import {
 } from 'react';
 import {
   applyNodeChanges,
-  Background,
-  BackgroundVariant,
   MiniMap,
   Panel,
   ReactFlow,
@@ -892,7 +890,7 @@ function CanvasInner() {
   return (
     <div
       ref={wrapperRef}
-      className={String.raw`dnd-canvas tw:absolute tw:inset-[0] tw:[background:color-mix(in_srgb,_var(--dnd-canvas)_45%,_transparent)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-pattern-color:var(--dnd-dot)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-width:1.8] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-selected:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke-width:2] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-background-color:var(--dnd-node)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-border-color:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-background-color:var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-border:1px_dashed_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-background-color:var(--dnd-panel)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-background-color:rgba(120,_110,_95,_0.18)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-stroke-color:var(--dnd-border-strong)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-node-background-color:var(--dnd-border)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-node-boxshadow-selected:none] tw:[.page_.dnd-builder_&_.react-flow]:text-(--dnd-text) tw:[.page_.dnd-builder_&_.react-flow\_\_pane]:cursor-grab tw:[.page_.dnd-builder_&_.react-flow\_\_node]:cursor-pointer tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible]:[outline:none] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_pane.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[transform:rotate(-0.6deg)_scale(1.01)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline-offset:3px] tw:[.page_.dnd-builder_&.is-file-over_.react-flow]:[filter:saturate(0.9)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-color:transparent] ${fileOver ? 'is-file-over' : ''}`}
+      className={String.raw`dnd-canvas tw:absolute tw:inset-[0] tw:bg-transparent tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-pattern-color:var(--dnd-dot)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-width:1.8] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-edge-stroke-selected:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke:var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-connectionline-stroke-width:2] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-background-color:var(--dnd-node)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-handle-border-color:var(--dnd-edge)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-background-color:var(--dnd-focus-ring)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-selection-border:1px_dashed_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-background-color:var(--dnd-panel)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-background-color:rgba(120,_110,_95,_0.18)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-mask-stroke-color:var(--dnd-border-strong)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-minimap-node-background-color:var(--dnd-border)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-node-boxshadow-selected:none] tw:[.page_.dnd-builder_&_.react-flow]:text-(--dnd-text) tw:[.page_.dnd-builder_&_.react-flow\_\_pane]:cursor-grab tw:[.page_.dnd-builder_&_.react-flow\_\_node]:cursor-pointer tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible]:[outline:none] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_pane.dragging]:cursor-grabbing tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&_.react-flow\_\_node.dragging_.dnd-node]:[transform:rotate(-0.6deg)_scale(1.01)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline:2px_solid_var(--dnd-focus)] tw:[.page_.dnd-builder_&_.react-flow\_\_node:focus-visible_>_.dnd-node]:[outline-offset:3px] tw:[.page_.dnd-builder_&.is-file-over_.react-flow]:[filter:saturate(0.9)] tw:[.page_.dnd-builder_&_.react-flow]:[--xy-background-color:transparent] ${fileOver ? 'is-file-over' : ''}`}
       onDragOver={onDragOver}
       onDragLeave={(event) => {
         if (
@@ -934,13 +932,6 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
         aria-label="Холст конструктора курса"
       >
-        <Background
-          id="dnd-bg-dots"
-          variant={BackgroundVariant.Dots}
-          gap={22}
-          size={1.3}
-          className="dnd-bg dnd-bg--dots tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
-        />
         <ZoomControls />
         <MiniMap
           className="dnd-minimap tw:rounded-[12px] tw:overflow-hidden tw:[border:1px_solid_var(--dnd-border)] tw:[box-shadow:var(--dnd-shadow)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"

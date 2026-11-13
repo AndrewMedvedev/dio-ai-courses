@@ -117,6 +117,7 @@ export async function apiFetch(
     try {
       access = await refreshAccessToken();
     } catch {
+      options.signal?.throwIfAborted();
       handleUnauthorized();
       return new Response(null, { status: 401 });
     }
@@ -138,6 +139,7 @@ export async function apiFetch(
         });
       }
     } catch {
+      options.signal?.throwIfAborted();
       handleUnauthorized();
       return response;
     }

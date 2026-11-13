@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useChatDockSpace } from '@/shared/ui/ai-chat';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BrowserRouter,
   Navigate,
@@ -8,12 +9,16 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { Header } from '@/widgets/header';
-import { Footer } from '@/widgets/footer';
+import { TooltipLayer } from '@/shared/ui/tooltip-layer';
+import { FeedbackDialog } from '@/features/send-feedback';
+import { ContextualHelp } from '@/features/contextual-help';
 import { Breadcrumbs } from '@/widgets/breadcrumbs';
 import { Toaster, notify } from '@/shared/ui/toast';
 import { ProtectedRoute } from '@/app/router';
 import { HomePage } from '@/pages/home';
 import { CoursesPage } from '@/pages/catalog';
+import { MyCoursesPage } from '@/pages/my-courses';
+import { QuickStartPage } from '@/pages/quick-start';
 import { CoursePage } from '@/pages/course-edit';
 import {
   InvitationAcceptPage,
@@ -119,8 +124,23 @@ function getCourseRouteTarget(pathname: string): { type: string; id: string } {
 }
 
 function AppContent() {
+  const { workspaceRef, reservedWidth } = useChatDockSpace();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const openFeedback = useCallback(() => setFeedbackOpen(true), []);
+  const closeFeedback = useCallback(() => setFeedbackOpen(false), []);
   const navigate = useNavigate();
+  const [navigationCollapsed, setNavigationCollapsed] = useState(
+    () => window.location.pathname === '/',
+  );
+  const [lastViewedCourse, setLastViewedCourse] = useState<{
+    id: string;
+    title?: string;
+  }>();
   const location = useLocation();
+  const isLanding = location.pathname === '/';
+  useEffect(() => {
+    if (isLanding) setNavigationCollapsed(true);
+  }, [isLanding]);
   const setPermissionsFromIdentity = usePermissionStore(
     (state) => state.setPermissionsFromIdentity,
   );
@@ -131,7 +151,6 @@ function AppContent() {
     accessToken,
     arePermissionsLoaded,
     canCreateCourse,
-    canReadCourse,
     canOpenCourse,
     canBrowseCourses,
     canViewCourseInfo,
@@ -143,10 +162,8 @@ function AppContent() {
     canUpdateOrganization,
     canDeleteOrganization,
     canInviteToOrganization,
-    canManageOrganizations,
     canCreateModel,
     canDeleteModel,
-    canManageModels,
   } = useAppPermissions();
   const loadIdentity = useSessionStore((state) => state.loadIdentity);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
@@ -166,7 +183,7 @@ function AppContent() {
   const [editableCourses, setEditableCourses] = useState<CourseNode[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState('');
-  const [coursesPageSize] = useState(9);
+  const [coursesPageSize] = useState(6);
   const [coursesTotalPages, setCoursesTotalPages] = useState(1);
   const [coursesTotal, setCoursesTotal] = useState(0);
   const coursesPageRequestRef = useRef(0);
@@ -317,6 +334,19 @@ function AppContent() {
   }, [canViewCourseInfo, editableCourses, selectedCourseId]);
 
   const selectedCourse = getSelectedCourse(editableCourses, selectedCourseId);
+  useEffect(() => {
+    if (
+      !selectedCourse.id ||
+      !location.pathname.startsWith(`/course/${selectedCourse.id}`)
+    )
+      return;
+    setLastViewedCourse((previous) =>
+      previous?.id === selectedCourse.id &&
+      previous.title === selectedCourse.title
+        ? previous
+        : { id: selectedCourse.id, title: selectedCourse.title },
+    );
+  }, [location.pathname, selectedCourse.id, selectedCourse.title]);
   const selectedBlock = getSelectedBlock(selectedCourse, selectedBlockId);
   const selectedLesson = getSelectedLesson(selectedBlock, selectedLessonId);
   const selectedPractice = getSelectedPractice(
@@ -1496,14 +1526,16 @@ function AppContent() {
 
   return (
     <div
-      className={`page tw:relative tw:isolate tw:min-h-[100vh] tw:[--progress-done:#2f7d4f] tw:[--progress-done-bg:rgba(47,_125,_79,_0.14)] tw:[--progress-active:#a86a00] tw:[--progress-active-bg:rgba(212,_150,_30,_0.18)] tw:[--progress-idle:rgba(114,_121,_156,_0.38)] tw:[--progress-idle-bg:rgba(114,_121,_156,_0.1)] tw:[--progress-track:rgba(var(--accent-rgb),_0.2)] tw:[background:linear-gradient(180deg,_var(--bg)_0%,_var(--bg-dark)_100%)] tw:dark:[&[data-theme=dark]]:[--progress-done:#7fd19b] tw:dark:[&[data-theme=dark]]:[--progress-done-bg:rgba(127,_209,_155,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-active:#f0c060] tw:dark:[&[data-theme=dark]]:[--progress-active-bg:rgba(240,_192,_96,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-idle:rgba(255,_255,_255,_0.26)] tw:dark:[&[data-theme=dark]]:[--progress-idle-bg:rgba(255,_255,_255,_0.06)] tw:dark:[&[data-theme=dark]]:[--progress-track:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--bg:#2b2b2b] tw:dark:[&[data-theme=dark]]:[--bg-dark:#1f1f1f] tw:dark:[&[data-theme=dark]]:[--surface:#333333] tw:dark:[&[data-theme=dark]]:[--line:#4f4f4f] tw:dark:[&[data-theme=dark]]:[--line-strong:#626262] tw:dark:[&[data-theme=dark]]:[--text:#e9decb] tw:dark:[&[data-theme=dark]]:[--muted:#c4b9a7] tw:dark:[&[data-theme=dark]]:[--accent:#b4a48f] tw:dark:[&[data-theme=dark]]:[--accent-soft:#7f7f7f] tw:dark:[&[data-theme=dark]]:[--eyebrow:#a0c4ff] tw:dark:[&[data-theme=dark]]:[--contrast:#cbaacb] tw:dark:[&[data-theme=dark]]:[--cta:var(--contrast)] tw:dark:[&[data-theme=dark]]:[--accent-rgb:180,_164,_143] tw:dark:[&[data-theme=dark]]:[--accent-soft-rgb:120,_120,_120] tw:dark:[&[data-theme=dark]]:[--success-rgb:203,_170,_203] tw:dark:[&[data-theme=dark]]:[--ink-accent:#dfd2bf] tw:dark:[&[data-theme=dark]]:[--ink-muted-strong:#dccfba] tw:dark:[&[data-theme=dark]]:[--ink-info:#c8bcaa] tw:dark:[&[data-theme=dark]]:[--info-text:#b7ab99] tw:dark:[&[data-theme=dark]]:[--success-text:#ead9ea] tw:dark:[&[data-theme=dark]]:[--footer-text:#baae9c] tw:dark:[&[data-theme=dark]]:[--text-solid:#1f1d1a] tw:dark:[&[data-theme=dark]]:[--heading:#f2e7d4] tw:dark:[&[data-theme=dark]]:[--grid-overlay:linear-gradient(_180deg,_rgba(10,_10,_10,_0.7),_rgba(0,_0,_0,_0.34)_)] tw:dark:[&[data-theme=dark]]:[--grid-line-rgb:226,_211,_186] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-y:0.32] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-x:0.28] tw:dark:[&[data-theme=dark]]:[--glass-highlight:rgba(255,_255,_255,_0.03)] tw:dark:[&[data-theme=dark]]:[--glass-glow:rgba(233,_222,_203,_0.14)] tw:dark:[&[data-theme=dark]]:[--glass-top-shine:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--glass-border:rgba(233,_222,_203,_0.24)] tw:dark:[&[data-theme=dark]]:[--glass-shadow:0_10px_24px_rgba(0,_0,_0,_0.34)] tw:dark:[&[data-theme=dark]]:[--glass-inset:inset_0_1px_0_rgba(255,_255,_255,_0.09),_inset_0_-1px_0_rgba(255,_255,_255,_0.05)] tw:[&.is-home-page_.glass-card]:[background:transparent] tw:[&.is-home-page_.glass-card]:[backdrop-filter:none] tw:[&.is-home-page_.glass-card]:[-webkit-backdrop-filter:none] tw:[&.is-home-page_.glass-card::after]:[content:''] tw:[&.is-home-page_.glass-card::after]:absolute tw:[&.is-home-page_.glass-card::after]:inset-[0] tw:[&.is-home-page_.glass-card::after]:z-[-1] tw:[&.is-home-page_.glass-card::after]:rounded-[inherit] tw:[&.is-home-page_.glass-card::after]:[backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[filter:url(#glass-distortion)] tw:[&.is-home-page_.glass-card::after]:[-webkit-filter:url('#glass-distortion')] tw:[&.is-home-page_.glass-card::after]:pointer-events-none tw:[&.is-inner-page_.course-category]:text-[0.88rem] tw:[&.is-inner-page_.course-category]:tracking-[0.09em] tw:[&.is-inner-page_.course-category]:text-(--info-text) tw:[&.is-inner-page_.lesson-markdown]:mt-[18px] tw:[&.is-inner-page_.lesson-markdown]:p-[clamp(20px,_2.6vw,_32px)] tw:[&.is-inner-page_.lesson-markdown]:border-[rgba(var(--accent-rgb),_0.38)] tw:[&.is-inner-page_.lesson-markdown]:rounded-[18px] tw:[&.is-inner-page_.lesson-markdown]:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.35),_rgba(255,_255,_255,_0.12))] tw:dark:[&.is-inner-page_.lesson-markdown]:[background:linear-gradient(145deg,_rgba(255,_255,_255,_0.07),_rgba(255,_255,_255,_0.025))] tw:[&.is-inner-page_main_p]:text-[1rem] tw:[&.is-inner-page_main_p]:leading-[1.72] tw:[&.is-inner-page_main_p]:tracking-[0.012em] tw:[&.is-inner-page_main_li]:text-[1rem] tw:[&.is-inner-page_main_li]:leading-[1.72] tw:[&.is-inner-page_main_li]:tracking-[0.012em] tw:[&.is-inner-page_main_h2]:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:[&.is-inner-page_main_h2]:leading-[1.28] tw:[&.is-inner-page_main_h2]:tracking-[-0.016em] tw:[&.is-inner-page_main_h1]:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:[&.is-inner-page_main_h1]:leading-[1.18] tw:[&.is-inner-page_main_h1]:tracking-[-0.025em] ${location.pathname === '/' ? 'is-home-page' : 'is-inner-page'}`}
+      className={`page ${navigationCollapsed ? 'tw:pl-[76px] tw:max-980:pl-[76px]' : 'tw:pl-[272px] tw:max-980:pl-[76px]'} tw:relative tw:isolate tw:min-h-[100vh] tw:[--progress-done:#2f7d4f] tw:[--progress-done-bg:rgba(47,_125,_79,_0.14)] tw:[--progress-active:#a86a00] tw:[--progress-active-bg:rgba(212,_150,_30,_0.18)] tw:[--progress-idle:rgba(114,_121,_156,_0.38)] tw:[--progress-idle-bg:rgba(114,_121,_156,_0.1)] tw:[--progress-track:rgba(var(--accent-rgb),_0.2)] tw:[background:linear-gradient(180deg,_var(--bg)_0%,_var(--bg-dark)_100%)] tw:dark:[&[data-theme=dark]]:[--progress-done:#7fd19b] tw:dark:[&[data-theme=dark]]:[--progress-done-bg:rgba(127,_209,_155,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-active:#f0c060] tw:dark:[&[data-theme=dark]]:[--progress-active-bg:rgba(240,_192,_96,_0.16)] tw:dark:[&[data-theme=dark]]:[--progress-idle:rgba(255,_255,_255,_0.26)] tw:dark:[&[data-theme=dark]]:[--progress-idle-bg:rgba(255,_255,_255,_0.06)] tw:dark:[&[data-theme=dark]]:[--progress-track:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--bg:#2b2b2b] tw:dark:[&[data-theme=dark]]:[--bg-dark:#1f1f1f] tw:dark:[&[data-theme=dark]]:[--surface:#333333] tw:dark:[&[data-theme=dark]]:[--line:#4f4f4f] tw:dark:[&[data-theme=dark]]:[--line-strong:#626262] tw:dark:[&[data-theme=dark]]:[--text:#e9decb] tw:dark:[&[data-theme=dark]]:[--muted:#c4b9a7] tw:dark:[&[data-theme=dark]]:[--accent:#b4a48f] tw:dark:[&[data-theme=dark]]:[--accent-soft:#7f7f7f] tw:dark:[&[data-theme=dark]]:[--eyebrow:#a0c4ff] tw:dark:[&[data-theme=dark]]:[--contrast:#cbaacb] tw:dark:[&[data-theme=dark]]:[--cta:var(--contrast)] tw:dark:[&[data-theme=dark]]:[--accent-rgb:180,_164,_143] tw:dark:[&[data-theme=dark]]:[--accent-soft-rgb:120,_120,_120] tw:dark:[&[data-theme=dark]]:[--success-rgb:203,_170,_203] tw:dark:[&[data-theme=dark]]:[--ink-accent:#dfd2bf] tw:dark:[&[data-theme=dark]]:[--ink-muted-strong:#dccfba] tw:dark:[&[data-theme=dark]]:[--ink-info:#c8bcaa] tw:dark:[&[data-theme=dark]]:[--info-text:#b7ab99] tw:dark:[&[data-theme=dark]]:[--success-text:#ead9ea] tw:dark:[&[data-theme=dark]]:[--footer-text:#baae9c] tw:dark:[&[data-theme=dark]]:[--text-solid:#1f1d1a] tw:dark:[&[data-theme=dark]]:[--heading:#f2e7d4] tw:dark:[&[data-theme=dark]]:[--grid-overlay:linear-gradient(_180deg,_rgba(10,_10,_10,_0.7),_rgba(0,_0,_0,_0.34)_)] tw:dark:[&[data-theme=dark]]:[--grid-line-rgb:226,_211,_186] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-y:0.32] tw:dark:[&[data-theme=dark]]:[--grid-line-alpha-x:0.28] tw:dark:[&[data-theme=dark]]:[--glass-highlight:rgba(255,_255,_255,_0.03)] tw:dark:[&[data-theme=dark]]:[--glass-glow:rgba(233,_222,_203,_0.14)] tw:dark:[&[data-theme=dark]]:[--glass-top-shine:rgba(255,_255,_255,_0.12)] tw:dark:[&[data-theme=dark]]:[--glass-border:rgba(233,_222,_203,_0.24)] tw:dark:[&[data-theme=dark]]:[--glass-shadow:0_10px_24px_rgba(0,_0,_0,_0.34)] tw:dark:[&[data-theme=dark]]:[--glass-inset:inset_0_1px_0_rgba(255,_255,_255,_0.09),_inset_0_-1px_0_rgba(255,_255,_255,_0.05)] tw:[&.is-home-page_.glass-card]:[background:transparent] tw:[&.is-home-page_.glass-card]:[backdrop-filter:none] tw:[&.is-home-page_.glass-card]:[-webkit-backdrop-filter:none] tw:[&.is-home-page_.glass-card::after]:[content:''] tw:[&.is-home-page_.glass-card::after]:absolute tw:[&.is-home-page_.glass-card::after]:inset-[0] tw:[&.is-home-page_.glass-card::after]:z-[-1] tw:[&.is-home-page_.glass-card::after]:rounded-[inherit] tw:[&.is-home-page_.glass-card::after]:[backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&.is-home-page_.glass-card::after]:[filter:url(#glass-distortion)] tw:[&.is-home-page_.glass-card::after]:[-webkit-filter:url('#glass-distortion')] tw:[&.is-home-page_.glass-card::after]:pointer-events-none tw:[&.is-inner-page_.course-category]:text-[0.88rem] tw:[&.is-inner-page_.course-category]:tracking-[0.09em] tw:[&.is-inner-page_.course-category]:text-(--info-text) ${location.pathname === '/' ? 'is-home-page' : 'is-inner-page'}`}
       data-theme={appliedTheme}
     >
       <div
-        className="aim-grid tw:fixed tw:inset-[0] tw:pointer-events-none tw:overflow-hidden tw:z-[0] tw:[background:var(--grid-overlay)]"
+        className={`aim-grid tw:fixed tw:inset-[0] tw:pointer-events-none tw:overflow-hidden tw:z-[0] ${isLanding ? 'tw:[background:var(--grid-overlay)]' : 'tw:bg-(--canvas-bg)'}`}
         aria-hidden="true"
       >
-        <div className="aim-grid-plane tw:absolute tw:inset-[0] tw:opacity-[0.8] tw:[background-image:linear-gradient(_rgba(var(--grid-line-rgb),_var(--grid-line-alpha-y))_1px,_transparent_1px_),_linear-gradient(_90deg,_rgba(var(--grid-line-rgb),_var(--grid-line-alpha-x))_1px,_transparent_1px_)] tw:[background-size:56px_56px]" />
+        <div
+          className={`aim-grid-plane tw:absolute tw:inset-[0] ${isLanding ? 'tw:opacity-[0.8]' : 'tw:opacity-[0.5]'} tw:[background-image:linear-gradient(_rgba(var(--grid-line-rgb),_var(--grid-line-alpha-y))_1px,_transparent_1px_),_linear-gradient(_90deg,_rgba(var(--grid-line-rgb),_var(--grid-line-alpha-x))_1px,_transparent_1px_)] tw:[background-size:56px_56px]`}
+        />
       </div>
       <svg
         className="liquid-filter-defs tw:absolute tw:w-[0] tw:h-[0] tw:overflow-hidden"
@@ -1540,15 +1572,34 @@ function AppContent() {
       </svg>
 
       <Header
+        onLogoClick={() => setNavigationCollapsed(true)}
+        onFeedback={openFeedback}
+        collapsed={navigationCollapsed}
+        onToggleNavigation={() => setNavigationCollapsed((value) => !value)}
+        currentCourse={
+          location.pathname.startsWith('/course/')
+            ? selectedCourse
+            : lastViewedCourse
+        }
         theme={appliedTheme}
         canCreateCourse={canCreateCourse}
         canReadCourse={canBrowseCourses}
-        canManageOrganizations={canManageOrganizations}
-        canManageModels={canManageModels}
         toggleTheme={toggleTheme}
       />
 
-      <main className="tw:[.page.is-inner-page_&]:text-[1.04rem] tw:[.page.is-inner-page_&]:tracking-[0.008em]">
+      <main
+        ref={workspaceRef}
+        style={
+          isLanding
+            ? undefined
+            : { paddingRight: `calc(${reservedWidth}px + 16px)` }
+        }
+        className={
+          isLanding
+            ? undefined
+            : 'tw:relative tw:z-[1] tw:[body.is-dnd-fullscreen_&]:z-[100] tw:min-w-0 tw:[--glass-shadow:none] tw:[--glass-inset:none] tw:[--glass-highlight:transparent] tw:[--glass-blur:0px] tw:[--glass-tint:var(--panel-bg)] tw:p-[24px_16px_16px] tw:max-760:p-[16px] tw:[&_.container]:w-full tw:[&_.container]:max-w-full tw:[&_.container]:mx-0'
+        }
+      >
         {!arePermissionsLoaded ? (
           <section className="container section tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
             <article className="glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.page.is-home-page_&]:[background:transparent] tw:[.page.is-home-page_&]:[backdrop-filter:none] tw:[.page.is-home-page_&]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.page.is-home-page_&]:[&::after]:absolute tw:[.page.is-home-page_&]:[&::after]:inset-[0] tw:[.page.is-home-page_&]:[&::after]:z-[-1] tw:[.page.is-home-page_&]:[&::after]:rounded-[inherit] tw:[.page.is-home-page_&]:[&::after]:pointer-events-none tw:[.page.is-home-page_&]:[&::after]:[content:''] tw:[.page.is-home-page_&]:[&::after]:[backdrop-filter:blur(2px)] tw:[.page.is-home-page_&]:[&::after]:[-webkit-backdrop-filter:blur(2px)] tw:[.page.is-home-page_&]:[&::after]:[filter:url(#glass-distortion)] tw:[.page.is-home-page_&]:[&::after]:[-webkit-filter:url('#glass-distortion')] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
@@ -1559,12 +1610,15 @@ function AppContent() {
           </section>
         ) : (
           <>
-            <Breadcrumbs
-              selectedCourse={selectedCourse}
-              selectedBlock={selectedBlock}
-              selectedLesson={selectedLesson}
-              selectedPractice={selectedPractice}
-            />
+            {(!location.pathname.startsWith('/course/') ||
+              location.pathname.split('/')[3] === 'edit') && (
+              <Breadcrumbs
+                selectedCourse={selectedCourse}
+                selectedBlock={selectedBlock}
+                selectedLesson={selectedLesson}
+                selectedPractice={selectedPractice}
+              />
+            )}
             <Routes>
               <Route
                 path="/"
@@ -1798,7 +1852,20 @@ function AppContent() {
                   element={<Navigate to="/drag-and-drop-course" replace />}
                 />
               </Route>
+              <Route path="/quick-start" element={<QuickStartPage />} />
+              <Route path="/quick-start/training" element={<CreatorPage />} />
               <Route element={<ProtectedRoute />}>
+                <Route
+                  path="/my-courses"
+                  element={
+                    <MyCoursesPage
+                      openCourse={openCourse}
+                      openCreator={openCreator}
+                      canCreateCourse={canCreateCourse}
+                      canReadCourse={canBrowseCourses}
+                    />
+                  }
+                />
                 <Route
                   path="/profile"
                   element={
@@ -1832,7 +1899,8 @@ function AppContent() {
           </>
         )}
       </main>
-      <Footer canCreateCourse={canCreateCourse} canReadCourse={canReadCourse} />
+
+      {feedbackOpen && <FeedbackDialog onClose={closeFeedback} />}
       {isCourseEditMode && canUpdateCourse && selectedCourse?.id ? (
         <EditorSaveBar
           courseId={selectedCourse.id}
@@ -1840,6 +1908,8 @@ function AppContent() {
           onDiscard={discardPendingEdits}
         />
       ) : null}
+      <TooltipLayer scope=".main-navigation, .course-nav-tree" />
+      <ContextualHelp />
       <Toaster />
     </div>
   );

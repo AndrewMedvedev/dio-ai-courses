@@ -44,6 +44,7 @@ export interface ChatComposerProps {
   textareaRef?: MutableRefObject<HTMLTextAreaElement | null>;
   ariaLabel?: string;
   sendLabel?: string;
+  showSendLabel?: boolean;
   id?: string;
   className?: string;
 }
@@ -70,6 +71,7 @@ export function ChatComposer({
   textareaRef,
   ariaLabel = 'Сообщение',
   sendLabel = 'Отправить сообщение',
+  showSendLabel = false,
   id,
   className = '',
 }: ChatComposerProps) {
@@ -165,7 +167,7 @@ export function ChatComposer({
           {busy && onStop ? (
             <button
               type="button"
-              className="ai-chat-send is-stop tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b]"
+              className={`${showSendLabel ? 'tw:w-auto! tw:px-[28px]! tw:h-[44px]! tw:gap-[8px]' : ''} ai-chat-send is-stop tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b]`}
               onClick={onStop}
               aria-label="Остановить ответ"
               title="Остановить"
@@ -175,13 +177,13 @@ export function ChatComposer({
           ) : (
             <button
               type="button"
-              className="ai-chat-send tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b] tw:transition-opacity tw:disabled:opacity-45 tw:disabled:cursor-not-allowed tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]"
+              className={`${showSendLabel ? 'tw:w-auto! tw:px-[28px]! tw:h-[44px]! tw:gap-[8px]' : ''} ai-chat-send tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b] tw:transition-opacity tw:disabled:opacity-45 tw:disabled:cursor-not-allowed tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]`}
               onClick={onSubmit}
               disabled={sendDisabled}
               aria-label={busy ? 'ИИ готовит ответ' : sendLabel}
               title="Отправить"
             >
-              <IconArrowUp size={17} />
+              {showSendLabel ? sendLabel : <IconArrowUp size={17} />}
             </button>
           )}
         </div>

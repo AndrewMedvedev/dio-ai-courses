@@ -1,0 +1,2 @@
+export const themedScrollbarClass =
+  'tw:[scrollbar-width:thin] tw:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] tw:[&::-webkit-scrollbar]:w-[7px] tw:[&::-webkit-scrollbar]:h-[7px] tw:[&::-webkit-scrollbar-track]:bg-(--scrollbar-track) tw:[&::-webkit-scrollbar-thumb]:rounded-full tw:[&::-webkit-scrollbar-thumb]:bg-(--scrollbar-thumb) tw:[&::-webkit-scrollbar-corner]:bg-transparent';

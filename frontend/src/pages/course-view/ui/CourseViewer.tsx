@@ -1,3 +1,5 @@
+import { Breadcrumbs } from '@/widgets/breadcrumbs';
+import { CollapsedCourseContents } from '@/entities/course';
 import { toText } from '@/shared/lib/text';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -8,6 +10,7 @@ import {
 import { LessonChatWorkspace } from '@/widgets/lesson-chat-workspace';
 import {
   CourseNavigationTree,
+  formatCourseLevel,
   getCachedCourseBasicInfo as getCourseBasicInfo,
   getCourseLearningStructure,
   getLessonById,
@@ -55,7 +58,6 @@ import {
   toModuleBasicInfoFromLearningBlock,
 } from '../lib/course-view';
 import { CourseProgressBar } from './CourseProgressBar';
-import { LessonPartMark } from './LessonPartMark';
 
 export interface CourseViewerProps {
   /** Курс из локального черновика (не UUID), открытый без запроса к бэкенду. */
@@ -91,6 +93,7 @@ export function CourseViewer({
   const canUpdateCourse = usePermissionStore((state) =>
     state.hasPermission(COURSE_PERMISSIONS.UPDATE),
   );
+  const [contentsCollapsed, setContentsCollapsed] = useState(false);
   const [course, setCourse] = useState<LearningCourse | null>(null);
   const loadedCourseIdRef = useRef<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(
@@ -216,9 +219,6 @@ export function CourseViewer({
     completeTheory,
     refreshLesson,
   } = useCourseProgress(course?.id, { enabled: isProgressTracked });
-  const selectedLessonProgress = selectedLesson
-    ? lessonProgressById[selectedLesson.id]
-    : null;
   const moduleProgressById = useMemo(() => {
     if (!isProgressTracked || !course) {
       return null;
@@ -603,204 +603,229 @@ export function CourseViewer({
 
   if (isMetricsMode && !canUpdateCourse) {
     return (
-      <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Метрики курса" title="Доступ ограничен" />
-        <article className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
-          Для просмотра метрик нужны права управления курсом.
-        </article>
-      </section>
+      <>
+        <Breadcrumbs
+          selectedCourse={course}
+          selectedBlock={selectedBlock}
+          selectedLesson={selectedLesson}
+        />
+        <section className="container section course-viewer course-enrollment-view tw:relative tw:z-[1] tw:flex tw:w-full tw:min-w-0 tw:flex-col tw:gap-[24px] tw:rounded-[24px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[28px] tw:max-760:p-[20px]">
+          <SectionTop label="Метрики курса" title="Доступ ограничен" />
+          <article className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
+            Для просмотра метрик нужны права управления курсом.
+          </article>
+        </section>
+      </>
     );
   }
 
   if (!isMetricsMode && !canReadCourseContent) {
     return (
-      <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Курс" title={course?.title || 'Просмотр курса'} />
-        {error && (
-          <article
-            className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
-            role="alert"
-          >
-            {error}
+      <>
+        <Breadcrumbs
+          selectedCourse={course}
+          selectedBlock={selectedBlock}
+          selectedLesson={selectedLesson}
+        />
+        <section className="container section course-viewer course-enrollment-view tw:relative tw:z-[1] tw:flex tw:w-full tw:min-w-0 tw:flex-col tw:gap-[24px] tw:rounded-[24px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[28px] tw:max-760:p-[20px]">
+          {error && (
+            <article
+              className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
+              role="alert"
+            >
+              {error}
+            </article>
+          )}
+          <CourseBasicInfo course={course} />
+          <article className="glass-card locked-course-card generated-course-enroll-card tw:border-(--glass-border) tw:items-center tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[16px] tw:overflow-hidden tw:p-[18px_22px] tw:border-solid tw:rounded-[22px] tw:relative tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-bg)] tw:max-980:items-stretch tw:max-980:grid-cols-[1fr] tw:max-980:flex-col tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_.btn]:max-w-[100%] tw:[&_.btn]:min-w-[0] tw:[&_.btn]:flex-[0_1_auto] tw:[&_.btn]:whitespace-normal tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
+            <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
+              <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
+                Прохождение курса недоступно
+              </h2>
+              <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                {isAuthenticated
+                  ? 'Вы можете смотреть информацию о курсе, но для открытия модулей, уроков, теории, практики и ИИ-ментора нужны дополнительные права.'
+                  : 'Вы можете смотреть информацию о курсе без авторизации. Войдите, чтобы получить доступ к прохождению курса.'}
+              </p>
+            </div>
+            {(!isAuthenticated || canUpdateCourse) && (
+              <div className="generated-course-actions tw:flex tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-w-[100%] tw:min-w-[0] tw:max-980:justify-start">
+                {!isAuthenticated && (
+                  <button
+                    type="button"
+                    className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+                    onClick={() =>
+                      navigate(
+                        `/login?redirect=${encodeURIComponent(`/course/${course.id}`)}`,
+                      )
+                    }
+                  >
+                    Войти
+                  </button>
+                )}
+                {canUpdateCourse && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+                      onClick={openCourseEditor}
+                    >
+                      Редактировать курс
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+                      onClick={openCourseMetrics}
+                    >
+                      Посмотреть метрики
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </article>
-        )}
-        <CourseBasicInfo course={course} />
-        <article className="glass-card locked-course-card generated-course-enroll-card tw:border-(--glass-border) tw:items-center tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[16px] tw:overflow-hidden tw:p-[18px_22px] tw:border-solid tw:rounded-[22px] tw:relative tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-bg)] tw:max-980:items-stretch tw:max-980:grid-cols-[1fr] tw:max-980:flex-col tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_.btn]:max-w-[100%] tw:[&_.btn]:min-w-[0] tw:[&_.btn]:flex-[0_1_auto] tw:[&_.btn]:whitespace-normal tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
-          <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
-            <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
-              Прохождение курса недоступно
-            </h2>
-            <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-              {isAuthenticated
-                ? 'Вы можете смотреть информацию о курсе, но для открытия модулей, уроков, теории, практики и ИИ-ментора нужны дополнительные права.'
-                : 'Вы можете смотреть информацию о курсе без авторизации. Войдите, чтобы получить доступ к прохождению курса.'}
-            </p>
-          </div>
-          {(!isAuthenticated || canUpdateCourse) && (
-            <div className="generated-course-actions tw:flex tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-w-[100%] tw:min-w-[0] tw:max-980:justify-start">
-              {!isAuthenticated && (
-                <button
-                  type="button"
-                  className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-                  onClick={() =>
-                    navigate(
-                      `/login?redirect=${encodeURIComponent(`/course/${course.id}`)}`,
-                    )
-                  }
-                >
-                  Войти
-                </button>
-              )}
+        </section>
+      </>
+    );
+  }
+
+  if (!isMetricsMode && !isEnrolled && !canViewWithoutEnrollment) {
+    return (
+      <>
+        <Breadcrumbs
+          selectedCourse={course}
+          selectedBlock={selectedBlock}
+          selectedLesson={selectedLesson}
+        />
+        <section className="container section course-viewer course-enrollment-view tw:relative tw:z-[1] tw:flex tw:w-full tw:min-w-0 tw:flex-col tw:gap-[24px] tw:rounded-[24px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[28px] tw:max-760:p-[20px]">
+          {error && (
+            <article
+              className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
+              role="alert"
+            >
+              {error}
+            </article>
+          )}
+          <CourseBasicInfo course={course} />
+          <article className="glass-card locked-course-card generated-course-enroll-card tw:border-(--glass-border) tw:items-center tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[16px] tw:overflow-hidden tw:p-[18px_22px] tw:border-solid tw:rounded-[22px] tw:relative tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-bg)] tw:max-980:items-stretch tw:max-980:grid-cols-[1fr] tw:max-980:flex-col tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_.btn]:max-w-[100%] tw:[&_.btn]:min-w-[0] tw:[&_.btn]:flex-[0_1_auto] tw:[&_.btn]:whitespace-normal tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
+            <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
+              <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
+                Содержимое курса закрыто
+              </h2>
+              <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                Запишитесь на курс, чтобы открыть модули, уроки, теорию,
+                практику и ИИ-ментора.
+              </p>
+            </div>
+            <div className="generated-course-actions generated-course-edit-actions tw:flex tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-w-[100%] tw:min-w-[0] tw:self-center tw:max-980:justify-start tw:[&_.btn]:min-w-[190px]">
+              <button
+                type="button"
+                className="btn btn-solid tw:min-w-[0] tw:flex-[0_1_auto] tw:max-w-[100%] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[&&]:min-w-[0] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+                onClick={enrollToCourse}
+                disabled={isCourseSigning}
+              >
+                {isCourseSigning ? 'Записываем...' : 'Записаться на курс'}
+              </button>
               {canUpdateCourse && (
                 <>
                   <button
                     type="button"
-                    className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+                    className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-edit-actions_&]:min-w-[190px] tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
                     onClick={openCourseEditor}
                   >
                     Редактировать курс
                   </button>
                   <button
                     type="button"
-                    className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+                    className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-edit-actions_&]:min-w-[190px] tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                     onClick={openCourseMetrics}
                   >
                     Посмотреть метрики
                   </button>
                 </>
               )}
+              {inviteControls}
             </div>
-          )}
-        </article>
-      </section>
-    );
-  }
-
-  if (!isMetricsMode && !isEnrolled && !canViewWithoutEnrollment) {
-    return (
-      <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Курс" title={course?.title || 'Просмотр курса'} />
-        {error && (
-          <article
-            className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
-            role="alert"
-          >
-            {error}
-          </article>
-        )}
-        <CourseBasicInfo course={course} />
-        <article className="glass-card locked-course-card generated-course-enroll-card tw:border-(--glass-border) tw:items-center tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[16px] tw:overflow-hidden tw:p-[18px_22px] tw:border-solid tw:rounded-[22px] tw:relative tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-bg)] tw:max-980:items-stretch tw:max-980:grid-cols-[1fr] tw:max-980:flex-col tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_.btn]:max-w-[100%] tw:[&_.btn]:min-w-[0] tw:[&_.btn]:flex-[0_1_auto] tw:[&_.btn]:whitespace-normal tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
-          <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
-            <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
-              Содержимое курса закрыто
-            </h2>
-            <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-              Запишитесь на курс, чтобы открыть модули, уроки, теорию, практику
-              и ИИ-ментора.
-            </p>
-          </div>
-          <div className="generated-course-actions generated-course-edit-actions tw:flex tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-w-[100%] tw:min-w-[0] tw:self-center tw:max-980:justify-start tw:[&_.btn]:min-w-[190px]">
-            <button
-              type="button"
-              className="btn btn-solid tw:min-w-[0] tw:flex-[0_1_auto] tw:max-w-[100%] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[&&]:min-w-[0] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-              onClick={enrollToCourse}
-              disabled={isCourseSigning}
-            >
-              {isCourseSigning ? 'Записываем...' : 'Записаться на курс'}
-            </button>
-            {canUpdateCourse && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-outline tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-edit-actions_&]:min-w-[190px] tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-                  onClick={openCourseEditor}
-                >
-                  Редактировать курс
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-solid tw:p-[12px_20px] tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:[.generated-course-enroll-card_&]:whitespace-normal tw:[.generated-course-edit-actions_&]:min-w-[190px] tw:[.generated-course-enroll-card_&]:min-w-[0] tw:[.generated-course-enroll-card_&]:flex-[0_1_auto] tw:[.generated-course-enroll-card_&]:max-w-[100%] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-                  onClick={openCourseMetrics}
-                >
-                  Посмотреть метрики
-                </button>
-              </>
+            {enrollmentError && (
+              <p className="lesson-ai-error" role="alert">
+                {enrollmentError}
+              </p>
             )}
-            {inviteControls}
-          </div>
-          {enrollmentError && (
-            <p className="lesson-ai-error" role="alert">
-              {enrollmentError}
-            </p>
-          )}
-        </article>
-      </section>
+          </article>
+        </section>
+      </>
     );
   }
 
   if (!isMetricsMode && !isLearningStarted) {
     return (
-      <section className="container section course-viewer course-enrollment-view tw:flex tw:flex-col tw:gap-[24px] tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:no-backdrop-filter:[--glass-bg-strong:var(--glass-fallback-bg)] tw:transparency-reduce:[--glass-bg-strong:var(--glass-fallback-bg)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:max-760:[--glass-blur:12px] tw:no-backdrop-filter:[--glass-backdrop:none] tw:transparency-reduce:[--glass-backdrop:none] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:dark:no-backdrop-filter:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:transparency-reduce:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:[&_.glass-card]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-        <SectionTop label="Курс" title={course?.title || 'Просмотр курса'} />
-        {error && (
-          <article
-            className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
-            role="alert"
-          >
-            {error}
-          </article>
-        )}
-        <CourseBasicInfo course={course} />
-        <article className="glass-card generated-course-enroll-card tw:items-center tw:grid tw:grid-cols-[minmax(0,_1fr)_auto] tw:gap-[16px] tw:overflow-hidden tw:p-[18px_22px] tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:isolate tw:max-980:items-stretch tw:max-980:grid-cols-[1fr] tw:max-980:flex-col tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-bg)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_.btn]:max-w-[100%] tw:[&_.btn]:min-w-[0] tw:[&_.btn]:flex-[0_1_auto] tw:[&_.btn]:whitespace-normal tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
-          <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
-            <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
-              {canViewWithoutEnrollment
-                ? 'Курс доступен для просмотра'
-                : 'Курс доступен для прохождения'}
-            </h2>
-            <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
-              {canViewWithoutEnrollment
-                ? 'Нажмите кнопку, чтобы открыть структуру курса для чтения.'
-                : 'Нажмите кнопку, чтобы открыть структуру курса и начать обучение.'}
-            </p>
-            {isProgressTracked && progressSummary.total > 0 && (
-              <CourseProgressBar summary={progressSummary} />
-            )}
-          </div>
-          <div className="generated-course-actions tw:flex tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-w-[100%] tw:min-w-[0] tw:max-980:justify-start">
-            <button
-              type="button"
-              className="btn btn-solid tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-              onClick={startLearning}
+      <>
+        <Breadcrumbs
+          selectedCourse={course}
+          selectedBlock={selectedBlock}
+          selectedLesson={selectedLesson}
+        />
+        <section className="container section course-viewer course-enrollment-view tw:relative tw:z-[1] tw:flex tw:w-full tw:min-w-0 tw:flex-col tw:gap-[24px] tw:rounded-[24px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[28px] tw:max-760:p-[20px]">
+          {error && (
+            <article
+              className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.course-viewer_&]:[background:var(--glass-bg)] tw:[.course-viewer_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.course-viewer_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:no-backdrop-filter:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-viewer_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.course-viewer_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
+              role="alert"
             >
-              {canViewWithoutEnrollment
-                ? 'Посмотреть теорию'
-                : isProgressTracked && progressSummary.started > 0
-                  ? 'Продолжить обучение'
-                  : 'Перейти к обучению'}
-            </button>
-            {canUpdateCourse && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-outline tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
-                  onClick={openCourseEditor}
-                >
-                  Редактировать курс
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-solid tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
-                  onClick={openCourseMetrics}
-                >
-                  Посмотреть метрики
-                </button>
-              </>
-            )}
-            {inviteControls}
-          </div>
-        </article>
-      </section>
+              {error}
+            </article>
+          )}
+          <CourseBasicInfo course={course} />
+          <article className="generated-course-enroll-card tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-[20px] tw:border-0 tw:border-t tw:border-solid tw:border-(--line) tw:pt-[24px]">
+            <div className="tw:[&:not(.generated-course-actions)]:min-w-[0]">
+              <h2 className="tw:max-w-[100%] tw:wrap-anywhere tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]">
+                {canViewWithoutEnrollment
+                  ? 'Курс доступен для просмотра'
+                  : 'Курс доступен для прохождения'}
+              </h2>
+              <p className="tw:mt-[8px] tw:m-[0] tw:max-w-[100%] tw:wrap-anywhere tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
+                {canViewWithoutEnrollment
+                  ? 'Нажмите кнопку, чтобы открыть структуру курса для чтения.'
+                  : 'Нажмите кнопку, чтобы открыть структуру курса и начать обучение.'}
+              </p>
+              {isProgressTracked && progressSummary.total > 0 && (
+                <CourseProgressBar summary={progressSummary} />
+              )}
+            </div>
+            <div className="generated-course-actions tw:flex tw:flex-wrap tw:gap-[10px] tw:justify-end tw:max-w-[100%] tw:min-w-[0] tw:max-980:justify-start">
+              <button
+                type="button"
+                className="btn btn-solid tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+                onClick={startLearning}
+              >
+                {canViewWithoutEnrollment
+                  ? 'Посмотреть теорию'
+                  : isProgressTracked && progressSummary.started > 0
+                    ? 'Продолжить обучение'
+                    : 'Перейти к обучению'}
+              </button>
+              {canUpdateCourse && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-outline tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.78)] tw:font-[700] tw:tracking-[0.01em] tw:text-(--ink-accent) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:rgba(var(--accent-rgb),_0.14)] tw:[backdrop-filter:blur(24px)_saturate(145%)] tw:[-webkit-backdrop-filter:blur(24px)_saturate(145%)] tw:[box-shadow:var(--glass-inset),_0_8px_18px_rgba(79,_67,_48,_0.06)] tw:hover:[transform:translateY(-1px)]"
+                    onClick={openCourseEditor}
+                  >
+                    Редактировать курс
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-solid tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
+                    onClick={openCourseMetrics}
+                  >
+                    Посмотреть метрики
+                  </button>
+                </>
+              )}
+              {inviteControls}
+            </div>
+          </article>
+        </section>
+      </>
     );
   }
 
@@ -816,11 +841,19 @@ export function CourseViewer({
     : selectedLesson?.title || selectedBlock?.title || course.title;
   const isLessonChatEnabled =
     !isMetricsMode && canReadCourseContent && Boolean(selectedLesson);
-  const isChatAvailable = isLessonChatEnabled && activeTab === 'theory';
+  const isChatAvailable = isLessonChatEnabled;
+  const showContents = Boolean(selectedLesson);
 
   return (
-    <section className="container section lesson-view generated-course-learning-view tw:w-[min(1720px,_98vw)] tw:relative tw:z-[1] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:[--muted:#4f493f] tw:[--eyebrow:#3d4a61] tw:[--ink-accent:#564556] tw:[--info-text:#3d4a61] tw:[--glass-bg:rgba(250,_247,_241,_0.74)] tw:[--glass-bg-strong:rgba(252,_250,_246,_0.92)] tw:[--glass-blur:18px] tw:[--glass-backdrop:blur(var(--glass-blur))_saturate(140%)] tw:[--glass-fallback-bg:rgba(243,_239,_231,_0.94)] tw:dark:[--muted:#c4b9a7] tw:dark:[--eyebrow:#a0c4ff] tw:dark:[--ink-accent:#dfd2bf] tw:dark:[--info-text:#b7ab99] tw:dark:[--glass-bg:rgba(34,_34,_34,_0.74)] tw:dark:[--glass-bg-strong:rgba(44,_44,_44,_0.92)] tw:dark:[--glass-fallback-bg:rgba(31,_31,_31,_0.96)] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:no-backdrop-filter:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[&_.glass-card]:[background:var(--glass-fallback-bg)] tw:[&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&_.glass-card::after]:[content:none]">
-      <SectionTop label={sectionLabel} title={sectionTitle} />
+    <section className="container section lesson-view generated-course-learning-view tw:relative tw:z-[1] tw:w-full">
+      <Breadcrumbs
+        selectedCourse={course}
+        selectedBlock={selectedBlock}
+        selectedLesson={selectedLesson}
+      />
+      {isMetricsMode && (
+        <SectionTop label={sectionLabel} title={sectionTitle} />
+      )}
       {error && (
         <article
           className="glass-card course-viewer-error tw:border-(--glass-border) tw:border-solid tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[border-width:1px] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:dark:[*_&]:[background:rgba(89,_56,_16,_0.36)] tw:[.lesson-view_&:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:no-backdrop-filter:[.lesson-view_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.lesson-view_&]:[background:var(--glass-fallback-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[.lesson-view_&:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[.lesson-view_&:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.lesson-view_&]:[&::after]:[content:none] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
@@ -830,7 +863,7 @@ export function CourseViewer({
         </article>
       )}
       <LessonChatWorkspace
-        className="generated-course-learning-grid"
+        className={`generated-course-learning-grid ${!showContents ? 'is-overview-layout' : contentsCollapsed ? 'is-contents-collapsed' : ''}`}
         chatEnabled={isLessonChatEnabled}
         chatAvailable={isChatAvailable}
         chatKey={selectedLesson?.id || 'no-lesson'}
@@ -841,8 +874,13 @@ export function CourseViewer({
           contentBlocks,
         }}
       >
-        {course.blocks.length > 0 ? (
+        {!showContents ? null : contentsCollapsed ? (
+          <CollapsedCourseContents
+            onExpand={() => setContentsCollapsed(false)}
+          />
+        ) : course.blocks.length > 0 ? (
           <CourseNavigationTree
+            onCollapse={() => setContentsCollapsed(true)}
             selectedCourse={course}
             selectedBlock={
               isMetricsMode && !selectedLesson
@@ -879,7 +917,7 @@ export function CourseViewer({
 
         <article
           ref={theoryContainerRef}
-          className="glass-card lesson-main-card generated-course-main-card tw:w-[100%] tw:min-w-[0] tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:static tw:overflow-visible tw:isolation-auto tw:p-[6px] tw:top-[16px] tw:max-h-[none] tw:col-[auto] tw:[border-width:0] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:none] tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:[overscroll-behavior-y:contain] tw:[scrollbar-width:thin] tw:[scrollbar-color:rgba(var(--accent-rgb),_0.55)_transparent] tw:max-1100:min-h-[auto] tw:no-backdrop-filter:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[background:var(--glass-fallback-bg)] tw:[&:not(.lesson-main-card)]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[&:not(.lesson-main-card)]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[&:not(.lesson-main-card)]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:sticky tw:[&::before]:top-[-6px] tw:[&::before]:inset-[auto] tw:[&::before]:z-[20] tw:[&::before]:rounded-[20px_20px_0_0] tw:[&::before]:block tw:[&::before]:w-[calc(100%_+_12px)] tw:[&::before]:h-[52px] tw:[&::before]:ml-[-6px] tw:[&::before]:mb-[-52px] tw:[&::before]:pointer-events-none tw:[&::before]:opacity-[0] tw:[&::before]:[content:''] tw:[&::before]:[background:linear-gradient(_180deg,_rgba(245,_241,_232,_0.98)_0%,_rgba(245,_241,_232,_0.98)_30%,_rgba(245,_241,_232,_0.84)_58%,_rgba(245,_241,_232,_0)_100%_)] tw:[&::before]:[box-shadow:none] tw:[&::before]:[backdrop-filter:blur(12px)] tw:[&::before]:[-webkit-backdrop-filter:blur(12px)] tw:[&.is-scrolled]:[&::before]:opacity-[1] tw:[&::before]:[transform:translateY(-8px)] tw:[&::before]:[transition:opacity_160ms_ease,_transform_160ms_ease] tw:[&::after]:[content:none] tw:dark:[&::before]:[background:linear-gradient(_180deg,_rgba(31,_31,_31,_0.98)_0%,_rgba(31,_31,_31,_0.98)_30%,_rgba(31,_31,_31,_0.86)_58%,_rgba(31,_31,_31,_0)_100%_)] tw:[&.is-scrolled]:[&::before]:[transform:translateY(0)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
+          className="glass-card lesson-main-card generated-course-main-card tw:min-w-0 tw:w-full"
           onScroll={(event) => {
             event.currentTarget.classList.toggle(
               'is-scrolled',
@@ -887,7 +925,7 @@ export function CourseViewer({
             );
           }}
         >
-          <div className="lesson-scroll-frame generated-course-scroll-frame tw:grid tw:gap-[16px] tw:w-[100%] tw:min-w-[0] tw:max-w-[100%] tw:min-h-[0] tw:relative tw:isolate tw:overflow-hidden tw:p-[clamp(28px,_3vw,_42px)] tw:border-solid tw:border-(--glass-border) tw:rounded-[24px] tw:[align-content:start] tw:[background:var(--glass-bg-strong)] tw:[border-width:1px] tw:dark:border-[rgba(233,_222,_203,_0.24)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[-webkit-backdrop-filter:none] tw:[backdrop-filter:none] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:pointer-events-none tw:[&::after]:[content:none] tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&_.glass-card]:[background:var(--glass-bg-strong)] tw:[&_.glass-card]:[backdrop-filter:none] tw:[&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
+          <div className="lesson-scroll-frame generated-course-scroll-frame tw:[&_.lesson-agent-start]:[background:transparent]! tw:[&_.lesson-agent-start]:border-0! tw:[&_.lesson-agent-start]:p-0! tw:[&_.lesson-agent-head_h2]:text-[22px]! tw:min-w-0 tw:rounded-[24px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[28px] tw:max-760:p-[20px] tw:[&_h2]:[font-family:Unbounded,sans-serif] tw:[&_h3]:[font-family:Unbounded,sans-serif] tw:[&_.content-block-card]:border-0! tw:[&_.content-block-card]:bg-transparent! tw:[&_.content-block-card]:p-0! tw:[&_.content-block-card_>_.course-viewer-eyebrow]:hidden tw:[&_.content-block-markdown]:bg-transparent! tw:[&_.content-block-markdown]:p-0! tw:[&_.content-block-markdown]:mt-0! tw:[&_.content-block-markdown_h3]:text-(--heading)! tw:[&_.course-category]:hidden">
             {isMetricsMode ? (
               selectedLesson ? (
                 <LessonMetricsDashboard
@@ -923,68 +961,20 @@ export function CourseViewer({
               </>
             ) : (
               <>
-                <div
-                  className="lesson-mode-switch tw:mb-[0] tw:inline-flex tw:items-center tw:gap-[4px] tw:p-[4px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.34)] tw:rounded-[10px] tw:[justify-self:start] tw:[border-width:1px] tw:dark:border-[rgba(var(--accent-rgb),_0.42)] tw:[background:var(--glass-bg-strong)]"
-                  role="tablist"
-                  aria-label="Тип материала"
-                >
-                  <button
-                    type="button"
-                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:dark:text-[#cfc2ad] tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'theory' ? 'is-active' : ''}`}
-                    aria-selected={activeTab === 'theory'}
-                    onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, 'theory')
-                    }
-                  >
-                    Теория
-                    {isProgressTracked && (
-                      <LessonPartMark
-                        done={Boolean(
-                          selectedLessonProgress?.theoryCompletedAt,
-                        )}
-                      />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:dark:text-[#cfc2ad] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'questions' ? 'is-active' : ''}`}
-                    aria-selected={activeTab === 'questions'}
-                    onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, 'questions')
-                    }
-                  >
-                    Проверочные вопросы
-                    {isProgressTracked && (
-                      <LessonPartMark
-                        done={Boolean(selectedLessonProgress?.testCompletedAt)}
-                      />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={`tw:min-w-[106px] tw:min-h-[34px] tw:rounded-[7px] tw:text-(--muted) tw:cursor-pointer tw:leading-[1.45] tw:text-[0.96rem] tw:font-[800] tw:[border:0] tw:[background:transparent] tw:dark:text-[#cfc2ad] tw:[.lesson-mode-switch_&.is-active]:text-(--heading) tw:disabled:cursor-not-allowed tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:disabled:opacity-[0.5] tw:[.lesson-mode-switch_&.is-active]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[.page_.lesson-mode-switch_&.is-active]:text-[#ffffff] tw:dark:[.lesson-mode-switch_&.is-active]:text-[#cfc2ad] tw:dark:[.page_.lesson-mode-switch_&.is-active]:[background:rgba(255,_255,_255,_0.09)] tw:[&:hover:not(:disabled)]:text-(--heading) tw:dark:[.page_.lesson-mode-switch_&.is-active]:[.lesson-mode-switch_&.is-active]:[&&]:text-[#ffffff] tw:[&:hover:not(:disabled)]:[background:rgba(var(--accent-rgb),_0.16)] tw:dark:[&:hover:not(:disabled)]:text-[#ffffff] tw:dark:[&:hover:not(:disabled)]:[background:rgba(255,_255,_255,_0.09)] ${activeTab === 'practice' ? 'is-active' : ''}`}
-                    aria-selected={activeTab === 'practice'}
-                    onClick={() =>
-                      setLessonActiveTab(selectedLesson.id, 'practice')
-                    }
-                  >
-                    Практика
-                    {isProgressTracked && (
-                      <LessonPartMark
-                        done={Boolean(
-                          selectedLessonProgress?.practiceCompletedAt,
-                        )}
-                      />
-                    )}
-                  </button>
-                </div>
-
+                <LessonBasicInfo
+                  lesson={lessonBasicInfo}
+                  compact
+                  level={formatCourseLevel(course.difficulty || course.level)}
+                />
                 {activeTab === 'questions' ? (
                   <LessonTestAgent
                     key={`${selectedBlock.id}:${selectedLesson.id}:test`}
                     moduleId={selectedBlock.id}
                     lessonId={selectedLesson.id}
                     onChecked={handleAssessmentChecked('testCompletedAt')}
+                    onBackToTheory={() =>
+                      setLessonActiveTab(selectedLesson.id, 'theory')
+                    }
                   />
                 ) : activeTab === 'practice' ? (
                   <LessonPracticeAgent
@@ -992,25 +982,39 @@ export function CourseViewer({
                     moduleId={selectedBlock.id}
                     lessonId={selectedLesson.id}
                     onChecked={handleAssessmentChecked('practiceCompletedAt')}
+                    onBackToTheory={() =>
+                      setLessonActiveTab(selectedLesson.id, 'theory')
+                    }
                   />
                 ) : (
                   <div className="lesson-theory-content">
-                    <p className="course-category tw:m-[0] tw:text-[0.88rem] tw:uppercase tw:tracking-[0.09em] tw:text-(--info-text) tw:font-[700] tw:leading-[1.72]">
-                      {course.title}
-                    </p>
-                    <LessonBasicInfo lesson={lessonBasicInfo} />
+                    {lessonBasicInfo?.description && (
+                      <p className="tw:mb-[28px] tw:leading-[1.8]">
+                        {lessonBasicInfo.description}
+                      </p>
+                    )}
                     {isLoadingLesson ? (
                       <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
                         Загружаем теорию урока...
                       </p>
                     ) : (
                       <ContentBlocks
+                        presentation="document"
                         ref={theoryContentRef}
                         blocks={contentBlocks}
                         lessonId={selectedLesson.id}
                         ownerUserId={courseCreatorId || currentUserId}
                       />
                     )}
+                    <button
+                      type="button"
+                      className="tw:mt-[28px] tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:border-transparent! tw:bg-(--contrast) tw:px-[28px] tw:py-[12px] tw:text-[14px] tw:font-semibold tw:text-(--text-solid) tw:cursor-pointer"
+                      onClick={() =>
+                        setLessonActiveTab(selectedLesson.id, 'questions')
+                      }
+                    >
+                      Перейти к вопросам
+                    </button>
                   </div>
                 )}
               </>

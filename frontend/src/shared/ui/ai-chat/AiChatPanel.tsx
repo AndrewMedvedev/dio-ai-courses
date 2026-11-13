@@ -1,3 +1,4 @@
+import { CHAT_DOCK_EVENT } from './use-chat-dock-space';
 import {
   useCallback,
   useEffect,
@@ -17,7 +18,7 @@ import { IconClose, IconCollapse, IconExpand } from './icons';
  * Панель ИИ-чата у правого края экрана — как панель DIOS AI:
  * ширину тянут за левый край (360 px … вся ширина окна, запоминается),
  * «Развернуть» — всё окно, Esc сворачивает или закрывает.
- * Панель располагается поверх страницы и не меняет ширину её содержимого.
+ * Общая раскладка страницы резервирует место для всех панелей.
  * На узком экране (≤ 1024 px) панель занимает всю ширину.
  */
 const WIDTH_KEY = 'ai-chat-panel-width';
@@ -104,6 +105,28 @@ export function AiChatPanel({
   const docked = open && isWide && !expanded;
   const currentWidth =
     typeof window === 'undefined' ? width : clampWidth(width);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(CHAT_DOCK_EVENT, {
+        detail: {
+          id: panelId,
+          width: docked ? currentWidth + HANDLE_WIDTH + 16 : 0,
+        },
+      }),
+    );
+  }, [currentWidth, docked, panelId]);
+
+  useEffect(
+    () => () => {
+      window.dispatchEvent(
+        new CustomEvent(CHAT_DOCK_EVENT, {
+          detail: { id: panelId, width: 0 },
+        }),
+      );
+    },
+    [panelId],
+  );
 
   useEffect(() => {
     const media = window.matchMedia(WIDE_QUERY);
@@ -329,6 +352,6 @@ export function AiChatPanel({
         </section>
       </div>
     </>,
-    document.body,
+    document.querySelector('.page') || document.body,
   );
 }
