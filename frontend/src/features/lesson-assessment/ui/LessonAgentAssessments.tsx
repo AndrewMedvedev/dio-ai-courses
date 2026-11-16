@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeEditor } from '@/shared/ui/code-editor';
 import { useStoredFiles } from '@/shared/lib/storage';
+import { getLessonById } from '@/entities/course';
 import { useAssessmentState } from '../model/assessment-state';
 import {
   checkLessonPractice,
@@ -196,6 +197,8 @@ export function LessonTestAgent({
     };
 
     try {
+      if (!lessonId) throw new Error('Урок не указан.');
+      await getLessonById(lessonId, true);
       const response = await checkLessonTest(practiceId, payload);
       setField('result', response);
       onChecked?.(response);
@@ -522,6 +525,8 @@ export function LessonPracticeAgent({
   const submitPractice = async () => {
     if (!file || !practiceId || fileError || result || !start('check')) return;
     try {
+      if (!lessonId) throw new Error('Урок не указан.');
+      await getLessonById(lessonId, true);
       const response = await checkLessonPractice(practiceId, assignment, file);
       setField('result', response);
       onChecked?.(response);
