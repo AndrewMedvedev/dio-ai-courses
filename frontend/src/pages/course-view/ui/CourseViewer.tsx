@@ -37,6 +37,7 @@ import {
 } from '@/entities/session';
 import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 import { useLocalState } from '@/shared/lib/storage';
+import { useRefreshOnReturn } from '@/shared/lib/use-refresh-on-return';
 import { usePersistenceScope } from '@/entities/session';
 import { useTheorySessionTracker } from '@/features/track-theory-time';
 import { useCourseProgress } from '@/features/course-progress';
@@ -102,6 +103,7 @@ export function CourseViewer({
   );
   const [course, setCourse] = useState<LearningCourse | null>(null);
   const loadedCourseIdRef = useRef<string | null>(null);
+  const loadedRouteRef = useRef('');
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(
     blockId ?? null,
   );
@@ -121,6 +123,7 @@ export function CourseViewer({
   const [isLoadingLesson, setIsLoadingLesson] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const effectiveCourseId = courseId || '';
+  const refreshRevision = useRefreshOnReturn(isUuid(effectiveCourseId));
   const isMetricsMode = mode === 'metrics';
   const signCourse = useStudentStore((state) => state.signCourse);
   const loadMyCourses = useStudentStore((state) => state.loadMyCourses);
@@ -311,15 +314,15 @@ export function CourseViewer({
           isUuid(effectiveCourseId) && Boolean(blockId || lessonId);
         let basicCourse =
           isMetricsMode || isDeepLink
-            ? await getCourseLearningStructure(effectiveCourseId)
+            ? await getCourseLearningStructure(effectiveCourseId, true)
             : !isUuid(effectiveCourseId) &&
                 localCourse?.id === effectiveCourseId
               ? // Локальный черновик курса устроен так же, как курс с бэкенда.
                 (localCourse as LearningCourse)
-              : await getCourseBasicInfo(effectiveCourseId);
+              : await getCourseBasicInfo(effectiveCourseId, true);
 
         if (!isMetricsMode && isDeepLink && lessonId && isUuid(lessonId)) {
-          await getLessonById(lessonId).catch(() => null);
+          await getLessonById(lessonId, true);
           basicCourse = await getCourseBasicInfo(effectiveCourseId);
         }
 
@@ -341,12 +344,16 @@ export function CourseViewer({
         loadedCourseIdRef.current = effectiveCourseId;
         setCourse(basicCourse);
         setIsEnrolled(enrolled);
-        setSelectedModuleId(blockId ?? null);
-        setSelectedLessonId(lessonId ?? null);
-        setIsLearningStarted(
-          isMetricsMode ||
-            (Boolean(blockId || lessonId) && canReadCourseContent),
-        );
+        const route = `${effectiveCourseId}:${blockId || ''}:${lessonId || ''}`;
+        if (!isSameCourse || loadedRouteRef.current !== route) {
+          setSelectedModuleId(blockId ?? null);
+          setSelectedLessonId(lessonId ?? null);
+          setIsLearningStarted(
+            isMetricsMode ||
+              (Boolean(blockId || lessonId) && canReadCourseContent),
+          );
+        }
+        loadedRouteRef.current = route;
       } catch (loadError) {
         if (isMounted) {
           setError(errorText(loadError, 'Не удалось загрузить курс'));
@@ -371,6 +378,7 @@ export function CourseViewer({
     lessonId,
     loadMyCourses,
     localCourse,
+    refreshRevision,
   ]);
 
   useEffect(() => {
@@ -391,6 +399,7 @@ export function CourseViewer({
       try {
         const lessonBlocks = await getLessonContentBlocks(
           contentLessonIdToLoad,
+          true,
         );
 
         if (isMounted) {
@@ -413,7 +422,12 @@ export function CourseViewer({
     return () => {
       isMounted = false;
     };
-  }, [canReadCourseContent, isMetricsMode, selectedLesson?.id]);
+  }, [
+    canReadCourseContent,
+    isMetricsMode,
+    selectedLesson?.id,
+    refreshRevision,
+  ]);
 
   const openCourseOverview = () => {
     if (!canNavigateCourseContent || !course) {
@@ -492,7 +506,7 @@ export function CourseViewer({
         (lesson) => lesson.id === nextLessonId,
       );
       const nextLesson = isUuid(nextLessonId)
-        ? await getLessonById(nextLessonId)
+        ? await getLessonById(nextLessonId, true)
         : fallbackLesson;
       if (!nextLesson) {
         throw new Error('Урок не найден');

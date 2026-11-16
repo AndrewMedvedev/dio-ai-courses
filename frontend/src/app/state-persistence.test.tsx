@@ -10,6 +10,12 @@ import {
 import { indexedDB } from 'fake-indexeddb';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  getCourseLearningStructure,
+  getLessonById,
+  getLessonContentBlocks,
+} from '@/entities/course';
+import { useRefreshOnReturn } from '@/shared/lib/use-refresh-on-return';
 import { CreatorChatView } from '@/features/create-course-chat';
 import { CourseCatalog } from '@/widgets/course-catalog';
 import { CourseNavigationTree } from '@/entities/course';
@@ -109,6 +115,11 @@ beforeEach(() => {
     }),
   );
   responder = (url) => {
+    if (url.includes('/lessons/'))
+      return Response.json({
+        id: url.split('/').pop(),
+        title: 'Current lesson',
+      });
     if (url.includes('/agent/check/'))
       return Response.json({ score: 95, ai_feedback: 'Решение верное' });
     if (url.includes('/agent/practices/'))
@@ -138,12 +149,12 @@ async function render(element: ReactElement) {
   return renderer;
 }
 const click = async (button: ReactTestInstance) => {
-  // IndexedDB на первом открытии может готовиться дольше одного tick.
-  const deadline = Date.now() + 1000;
-  while (button.props.disabled === true && Date.now() < deadline) {
-    await act(async () => {
-      await tick();
-    });
+  for (
+    let attempt = 0;
+    button.props.disabled === true && attempt < 30;
+    attempt += 1
+  ) {
+    await act(tick);
   }
   assert.equal(button.props.disabled === true, false);
   await act(async () => {
@@ -194,12 +205,12 @@ void test('practice: draft, result and AI feedback survive remount and storage h
   );
   assert.match(JSON.stringify(page.toJSON()), /Решение верное/);
   assert.equal(page.root.findByType('textarea').props.value, 'print(42)');
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   assert.equal(button(page, 'Отправлено').props.disabled, true);
   await click(button(page, 'Новое задание'));
   assert.equal(page.root.findByType('textarea').props.value, '');
   assert.doesNotMatch(JSON.stringify(page.toJSON()), /Решение верное/);
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 4);
   await unmount(page);
 });
 
@@ -222,7 +233,7 @@ void test('test: selected answers and checked result restore from localStorage',
     <LessonTestAgent moduleId="module" lessonId="test-restored" />,
   );
   assert.equal(button(page, 'Тест сдан').props.disabled, true);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   await unmount(page);
 });
 
@@ -493,6 +504,8 @@ void test('uploaded solution restores with its filename and is checked without r
     },
   ]);
   responder = async (url, options) => {
+    if (url.includes('/lessons/'))
+      return Response.json({ id: 'file-restored', title: 'Current lesson' });
     assert.match(url, /agent\/check\/practices\/file-id/);
     const form = options?.body as FormData;
     const file = form.get('file') as File;
@@ -506,7 +519,7 @@ void test('uploaded solution restores with its filename and is checked without r
   assert.match(JSON.stringify(page.toJSON()), /saved.py/);
   await click(button(page, 'Проверить решение'));
   assert.match(JSON.stringify(page.toJSON()), /File checked/);
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   await unmount(page);
 });
 
@@ -854,5 +867,155 @@ void test('AI editor saves a late proposal after leaving the page and keeps it a
     useSessionStore.setState({ user: { id: 'another-editor-user' } });
   });
   assert.doesNotMatch(JSON.stringify(page.toJSON()), /Late saved proposal/);
+  await unmount(page);
+});
+
+void test('forced refresh bypasses course, module, lesson and theory caches', async () => {
+  const courseId = '40000000-0000-4000-8000-000000000001';
+  const moduleId = '40000000-0000-4000-8000-000000000002';
+  const lessonId = '40000000-0000-4000-8000-000000000003';
+  let version = 'Old';
+  const requestModes: (RequestCache | undefined)[] = [];
+  responder = (url, options) => {
+    requestModes.push(options?.cache);
+    if (url.endsWith(`/courses/${courseId}`))
+      return Response.json({
+        id: courseId,
+        title: `${version} course`,
+        modules: [{ id: moduleId }],
+      });
+    if (url.endsWith(`/modules/${moduleId}`))
+      return Response.json({
+        id: moduleId,
+        title: `${version} module`,
+        lessons: [{ id: lessonId, title: `${version} lesson` }],
+      });
+    if (url.endsWith(`/lessons/${lessonId}/theory`))
+      return Response.json([
+        { content_type: 'text', md_content: `${version} theory` },
+      ]);
+    if (url.endsWith(`/lessons/${lessonId}`))
+      return Response.json({ id: lessonId, title: `${version} lesson` });
+    assert.fail(`Unexpected request: ${url}`);
+  };
+  await getCourseLearningStructure(courseId, true);
+  await getLessonById(lessonId, true);
+  await getLessonContentBlocks(lessonId, true);
+  const count = calls.length;
+  version = 'New';
+  assert.equal(
+    (await getCourseLearningStructure(courseId)).title,
+    'Old course',
+  );
+  assert.equal((await getLessonById(lessonId)).title, 'Old lesson');
+  assert.equal(
+    (await getLessonContentBlocks(lessonId))[0].md_content,
+    'Old theory',
+  );
+  assert.equal(calls.length, count);
+  const current = await getCourseLearningStructure(courseId, true);
+  assert.equal(current.title, 'New course');
+  assert.equal(current.blocks[0].title, 'New module');
+  assert.equal((await getLessonById(lessonId, true)).title, 'New lesson');
+  assert.equal(
+    (await getLessonContentBlocks(lessonId, true))[0].md_content,
+    'New theory',
+  );
+  assert.ok(requestModes.every((mode) => mode === 'no-store'));
+  assert.equal(
+    calls.some((url) => url.includes('/agent/')),
+    false,
+  );
+});
+
+void test('return refresh responds to visible focus, visibility and online, and cleans up listeners', async () => {
+  const originalDocument = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'document',
+  );
+  const originalNow = Date.now;
+  let time = 1000;
+  Date.now = () => time;
+  const doc = Object.assign(new EventTarget(), { visibilityState: 'visible' });
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: doc,
+  });
+  function Revision() {
+    return <span>{useRefreshOnReturn()}</span>;
+  }
+  let page: ReactTestRenderer | undefined;
+  try {
+    page = await render(<Revision />);
+    assert.deepEqual(page.toJSON() && page.root.findByType('span').children, [
+      '0',
+    ]);
+    act(() => {
+      events.dispatchEvent(new Event('focus'));
+      doc.dispatchEvent(new Event('visibilitychange'));
+    });
+    assert.deepEqual(page.root.findByType('span').children, ['1']);
+    time += 500;
+    doc.visibilityState = 'hidden';
+    act(() => {
+      doc.dispatchEvent(new Event('visibilitychange'));
+      events.dispatchEvent(new Event('focus'));
+    });
+    assert.deepEqual(page.root.findByType('span').children, ['1']);
+    doc.visibilityState = 'visible';
+    act(() => {
+      doc.dispatchEvent(new Event('visibilitychange'));
+    });
+    assert.deepEqual(page.root.findByType('span').children, ['2']);
+    act(() => {
+      events.dispatchEvent(new Event('online'));
+    });
+    assert.deepEqual(page.root.findByType('span').children, ['3']);
+  } finally {
+    if (page) await unmount(page);
+    Date.now = originalNow;
+    if (originalDocument)
+      Object.defineProperty(globalThis, 'document', originalDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  }
+});
+
+void test('lesson preflight blocks a paid check on 404 and retains the typed solution', async () => {
+  const element = (
+    <LessonPracticeAgent moduleId="module" lessonId="preflight" />
+  );
+  let page = await render(element);
+  await click(button(page, 'Подготовить задание'));
+  act(() => {
+    (
+      page.root.findByType('textarea').props.onChange as (
+        event: unknown,
+      ) => void
+    )({ target: { value: 'Keep my solution' } });
+  });
+  responder = (url) => {
+    assert.match(url, /\/lessons\/preflight$/);
+    return Response.json({ detail: 'Lesson removed' }, { status: 404 });
+  };
+  await click(button(page, 'Проверить решение'));
+  assert.equal(
+    calls.some((url) => url.includes('/agent/check/')),
+    false,
+  );
+  assert.equal(
+    page.root.findByType('textarea').props.value,
+    'Keep my solution',
+  );
+  assert.match(JSON.stringify(page.toJSON()), /Урок или модуль не найден/);
+  await unmount(page);
+  page = await render(element);
+  assert.equal(
+    page.root.findByType('textarea').props.value,
+    'Keep my solution',
+  );
+  assert.equal(
+    calls.filter((url) => url.includes('/agent/practices/')).length,
+    1,
+  );
   await unmount(page);
 });
