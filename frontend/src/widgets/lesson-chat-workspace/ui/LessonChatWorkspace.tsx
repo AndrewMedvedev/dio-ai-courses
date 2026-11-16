@@ -1,15 +1,10 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
 import {
   LessonAiChat,
   type LessonAiChatProps,
 } from '@/features/lesson-mentor-chat';
+import { usePersistenceScope } from '@/entities/session';
+import { useLocalState } from '@/shared/lib/storage';
 
 /** Свойства чата, которые задаёт страница; остальное управляется раскладкой. */
 export type LessonChatProps = Omit<
@@ -35,22 +30,16 @@ export function LessonChatWorkspace({
   chatKey,
   chatProps,
 }: LessonChatWorkspaceProps) {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
+  const scope = usePersistenceScope();
+  const key = `lesson-chat-layout:${scope}:${chatKey || chatProps.lessonId || chatProps.courseId}`;
+  const [isChatOpen, setIsChatOpen] = useLocalState(`${key}:open`, false);
+  const [hasUnreadResponse, setHasUnreadResponse] = useLocalState(
+    `${key}:unread`,
+    false,
+  );
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const focusFrameRef = useRef<number | null>(null);
   const chatPanelId = useId();
-
-  useEffect(() => {
-    setIsChatOpen(false);
-    setHasUnreadResponse(false);
-  }, [chatKey]);
-
-  useEffect(() => {
-    if (!chatAvailable) {
-      setIsChatOpen(false);
-    }
-  }, [chatAvailable]);
 
   useEffect(
     () => () => {
@@ -64,16 +53,16 @@ export function LessonChatWorkspace({
   const openChat = useCallback(() => {
     setHasUnreadResponse(false);
     setIsChatOpen(true);
-  }, []);
+  }, [setHasUnreadResponse, setIsChatOpen]);
   const markResponseAsUnread = useCallback(() => {
     setHasUnreadResponse(true);
-  }, []);
+  }, [setHasUnreadResponse]);
   const closeChat = useCallback(() => {
     setIsChatOpen(false);
     focusFrameRef.current = requestAnimationFrame(() =>
       openButtonRef.current?.focus(),
     );
-  }, []);
+  }, [setIsChatOpen]);
 
   return (
     <div
@@ -123,7 +112,7 @@ export function LessonChatWorkspace({
             key={chatKey}
             {...chatProps}
             panelId={chatPanelId}
-            isOpen={isChatOpen}
+            isOpen={Boolean(chatAvailable && isChatOpen)}
             onClose={closeChat}
             onAssistantResponse={markResponseAsUnread}
           />

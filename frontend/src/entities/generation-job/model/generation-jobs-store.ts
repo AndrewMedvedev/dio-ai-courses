@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { getLocalStorage } from '@/shared/lib/storage';
+import { localStateStorage } from '@/shared/lib/storage';
+import { getPersistenceScope } from '@/entities/session/@x/generation-job';
 
 /**
  * Запущенные генерации модулей и уроков из редактора курса.
@@ -50,17 +51,11 @@ interface GenerationJobsState {
   getJob: (key: string) => GenerationJob | null;
 }
 
-const MEMORY_STORAGE = {
-  getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {},
-};
-
 export const generationJobKey = (
   kind: GenerationJobKind,
   courseId: string,
   contextId = '',
-) => [kind, courseId, contextId].join(':');
+) => [getPersistenceScope(), kind, courseId, contextId].join(':');
 
 export const useGenerationJobsStore = create<GenerationJobsState>()(
   persist<GenerationJobsState, [], [], Pick<GenerationJobsState, 'jobs'>>(
@@ -110,7 +105,7 @@ export const useGenerationJobsStore = create<GenerationJobsState>()(
     {
       name: 'ai-course-generation-jobs-v1',
       version: 1,
-      storage: createJSONStorage(() => getLocalStorage() || MEMORY_STORAGE),
+      storage: createJSONStorage(() => localStateStorage),
       partialize: (state) => ({ jobs: state.jobs }),
     },
   ),

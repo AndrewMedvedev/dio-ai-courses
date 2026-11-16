@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSessionStore } from '@/entities/session';
+import { useSessionStore, usePersistenceScope } from '@/entities/session';
+import { useLocalState } from '@/shared/lib/storage';
 import { ApiError, requestJson } from '@/shared/api';
 import { AppModal } from '@/shared/ui/app-modal';
 import starEmpty from '../assets/star-empty.svg';
@@ -31,9 +32,10 @@ export function FeedbackDialog({ onClose }: FeedbackDialogProps) {
   const formId = useId();
   const navigate = useNavigate();
   const accessToken = useSessionStore((state) => state.accessToken);
-  const [rating, setRating] = useState(0);
+  const scope = usePersistenceScope();
+  const [rating, setRating] = useLocalState(`feedback:${scope}:rating`, 0);
   const [previewRating, setPreviewRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useLocalState(`feedback:${scope}:comment`, '');
   const [errors, setErrors] = useState<{ rating?: string; comment?: string }>(
     {},
   );
@@ -138,6 +140,8 @@ export function FeedbackDialog({ onClose }: FeedbackDialogProps) {
         ),
       ]);
       setSent(true);
+      setRating(0);
+      setComment('');
     } catch (error) {
       const apiError = error instanceof ApiError ? error : null;
       const status = apiError?.status;

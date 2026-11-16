@@ -1,6 +1,7 @@
 import { CodeEditor } from '@/shared/ui/code-editor';
 import { TrainingMentor } from './TrainingMentor';
-import { useEffect, useState } from 'react';
+import { useLocalState } from '@/shared/lib/storage';
+import { usePersistenceScope } from '@/entities/session';
 import {
   ContentBlocks,
   CollapsedCourseContents,
@@ -75,31 +76,51 @@ export function TrainingLesson({
   onBack: () => void;
   onFinish: () => void;
 }) {
-  const [selected, setSelected] = useState('training-lesson-2');
-  const [collapsed, setCollapsed] = useState(false);
-  const [choice, setChoice] = useState<number | null>(null);
-  const [checked, setChecked] = useState(false);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [testPassed, setTestPassed] = useState(false);
-  const question = questions[questionIndex];
-  const [code, setCode] = useState(example);
-  const [practiceResult, setPracticeResult] = useState('');
-  const activeTab = useUiLayoutStore((state) =>
-    state.getLessonActiveTab(selected),
+  const scope = usePersistenceScope();
+  const key = `training-lesson:${scope}`;
+  const [selected, setSelected] = useLocalState(
+    `${key}:selected`,
+    'training-lesson-2',
   );
-  const setTab = useUiLayoutStore((state) => state.setLessonActiveTab);
-  useEffect(() => {
-    setTab('training-lesson-2', 'theory');
-  }, [setTab]);
+  const [collapsed, setCollapsed] = useLocalState(`${key}:collapsed`, false);
+  const lessonKey = `${key}:${selected}`;
+  const [choice, setChoice] = useLocalState<number | null>(
+    `${lessonKey}:choice`,
+    null,
+  );
+  const [checked, setChecked] = useLocalState(`${lessonKey}:checked`, false);
+  const [questionIndex, setQuestionIndex] = useLocalState(
+    `${lessonKey}:question`,
+    0,
+  );
+  const [testPassed, setTestPassed] = useLocalState(
+    `${lessonKey}:test-passed`,
+    false,
+  );
+  const question = questions[questionIndex];
+  const [code, setCode] = useLocalState(`${lessonKey}:code`, example);
+  const [practiceResult, setPracticeResult] = useLocalState(
+    `${lessonKey}:result`,
+    '',
+  );
+  const activeTab = useUiLayoutStore((state) =>
+    state.getLessonActiveTab(`${scope}:${selected}`),
+  );
+  const setStoredTab = useUiLayoutStore((state) => state.setLessonActiveTab);
+  const setTab = (id: string, tab: 'theory' | 'questions' | 'practice') =>
+    setStoredTab(`${scope}:${id}`, tab);
   const block =
     blocks.find((item) =>
       item.lessons.some((lesson) => lesson.id === selected),
     ) || blocks[0];
   const lesson =
     block.lessons.find((item) => item.id === selected) || block.lessons[0];
-  const [completed, setCompleted] = useState<Record<string, boolean>>({
-    'training-lesson-1': true,
-  });
+  const [completed, setCompleted] = useLocalState<Record<string, boolean>>(
+    `${key}:completed`,
+    {
+      'training-lesson-1': true,
+    },
+  );
   const progress = {
     'training-lesson-1': {
       id: 'training-progress-1',
@@ -122,11 +143,6 @@ export function TrainingLesson({
   function openLesson(id: string) {
     setSelected(id);
     setTab(id, 'theory');
-    setChoice(null);
-    setChecked(false);
-    setQuestionIndex(0);
-    setTestPassed(false);
-    setPracticeResult('');
   }
 
   return (

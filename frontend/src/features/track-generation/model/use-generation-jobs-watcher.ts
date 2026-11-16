@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { usePersistenceScope } from '@/entities/session';
 import {
   forgetCourseCache,
   getCourseBasicInfo,
@@ -140,8 +141,11 @@ export function useGenerationJobsWatcher({
 }: GenerationJobsWatcherOptions): void {
   const callbacksRef = useRef({ onModule, onLesson, onDone });
   callbacksRef.current = { onModule, onLesson, onDone };
+  const scope = usePersistenceScope();
   const hasRunningJobs = useGenerationJobsStore((state) =>
-    Object.values(state.jobs).some((job) => job.status === 'running'),
+    Object.values(state.jobs).some(
+      (job) => job.status === 'running' && job.key.startsWith(`${scope}:`),
+    ),
   );
 
   useEffect(() => {
@@ -154,7 +158,7 @@ export function useGenerationJobsWatcher({
       inFlight = true;
       const store = useGenerationJobsStore.getState();
       const running = Object.values(store.jobs).filter(
-        (job) => job.status === 'running',
+        (job) => job.status === 'running' && job.key.startsWith(`${scope}:`),
       );
       for (const job of running) {
         if (cancelled) break;
@@ -191,10 +195,12 @@ export function useGenerationJobsWatcher({
     };
 
     void tick();
-    const timer = window.setInterval(tick, POLL_INTERVAL_MS);
+    const timer = window.setInterval(() => {
+      void tick();
+    }, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [enabled, hasRunningJobs]);
+  }, [enabled, hasRunningJobs, scope]);
 }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useSessionStore } from '@/entities/session';
+import { useSessionStore, usePersistenceScope } from '@/entities/session';
+import { useLocalState } from '@/shared/lib/storage';
 import {
   ChatButton,
   ChatComposer,
@@ -26,27 +27,40 @@ const examples = [
   'Без дополнительных материалов',
 ];
 
-/** Изолированное знакомство: ответы и пробный курс живут только на этой странице. */
+/** Изолированное знакомство: ответы и пробный курс сохраняются только в браузере. */
 export function CreatorTrainingView() {
   const [search] = useSearchParams();
   const owner = useSessionStore((state) => String(state.user?.id || ''));
   const saveCourse = useTrainingStore((state) => state.save);
   const completeCourse = useTrainingStore((state) => state.complete);
-  const [finished, setFinished] = useState(false);
+  const scope = usePersistenceScope();
+  const draftKey = `training-creator:${scope}`;
+  const [finished, setFinished] = useLocalState(`${draftKey}:finished`, false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [courseReady, setCourseReady] = useState(false);
+  const [courseReady, setCourseReady] = useLocalState(
+    `${draftKey}:ready`,
+    false,
+  );
   const fileRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<
+  const [files, setFiles] = useLocalState<
     { id: string; name: string; meta: string }[]
-  >([]);
+  >(`${draftKey}:files`, []);
   const [fileError, setFileError] = useState('');
   const [clearOpen, setClearOpen] = useState(false);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const [input, setInput] = useState('');
-  const [lessonOpen, setLessonOpen] = useState(search.get('lesson') === '1');
-  const [messages, setMessages] = useState<
+  const [answers, setAnswers] = useLocalState<string[]>(
+    `${draftKey}:answers`,
+    [],
+  );
+  const [input, setInput] = useLocalState(`${draftKey}:input`, '');
+  const [lessonOpen, setLessonOpen] = useLocalState(
+    `${draftKey}:lesson`,
+    search.get('lesson') === '1',
+  );
+  const [messages, setMessages] = useLocalState<
     { role: 'user' | 'assistant'; text: string }[]
-  >([{ role: 'assistant', text: intakeQuestions[0].prompt }]);
+  >(`${draftKey}:messages`, [
+    { role: 'assistant', text: intakeQuestions[0].prompt },
+  ]);
   const question = intakeQuestions[answers.length];
   const complete = answers.length === intakeQuestions.length;
 

@@ -5,6 +5,12 @@ import {
   useAgentStore,
 } from '@/entities/agent-chat';
 import { uploadDocument } from '@/features/upload-document';
+import { getPersistenceScope } from '@/entities/session';
+import {
+  readStoredFiles,
+  writeStoredFiles,
+  reportStorageError,
+} from '@/shared/lib/storage';
 import {
   assignLessonToModule,
   createCourse as createCourseApi,
@@ -70,8 +76,44 @@ import type {
   XY,
 } from './types';
 
-// File нельзя положить в localStorage — держим их в памяти до перезагрузки.
 const fileRegistry = new Map<string, File>();
+interface StoredDndFile {
+  id: string;
+  data: Blob;
+  name: string;
+  lastModified: number;
+}
+let activeScope: string | null = null;
+let hydrating = false;
+let savedFiles: [string, File][] = [];
+let savedFilesScope: string | null = null;
+function saveFiles() {
+  if (activeScope === null) return;
+  const files = [...fileRegistry];
+  if (
+    savedFilesScope === activeScope &&
+    files.length === savedFiles.length &&
+    files.every(
+      ([id, file], index) =>
+        savedFiles[index][0] === id && savedFiles[index][1] === file,
+    )
+  )
+    return;
+  savedFiles = files;
+  savedFilesScope = activeScope;
+  void writeStoredFiles(
+    `dnd-files:${activeScope}`,
+    files.map(([id, file]) => ({
+      id,
+      data: file,
+      name: file.name,
+      lastModified: file.lastModified,
+    })),
+  ).catch(() => {
+    savedFilesScope = null;
+    reportStorageError();
+  });
+}
 const contentTimers = new Map<string, number>();
 const contentSaves = new Map<
   string,
@@ -358,10 +400,38 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     ...TRANSIENT,
 
     hydrate: () => {
-      if (get().hydrated) return;
-      const { draft, migrated } = loadDraft();
-      set({ ...draft, hydrated: true });
-      void get().verifyCourse();
+      const scope = getPersistenceScope();
+      if ((get().hydrated || hydrating) && activeScope === scope) return;
+      if (get().hydrated && activeScope !== null) get().persistNow();
+      window.clearTimeout(persistTimer);
+      contentTimers.forEach((timer) => window.clearTimeout(timer));
+      contentTimers.clear();
+      activeScope = scope;
+      hydrating = true;
+      fileRegistry.clear();
+      const { draft, migrated } = loadDraft(scope);
+      set({ ...draft, ...TRANSIENT });
+      void readStoredFiles<StoredDndFile>(`dnd-files:${scope}`)
+        .then((files) => {
+          if (activeScope !== scope) return;
+          for (const { id, data, name, lastModified } of files) {
+            if (
+              data instanceof Blob &&
+              draft.materials.some((material) => material.id === id)
+            )
+              fileRegistry.set(
+                id,
+                new File([data], name, { type: data.type, lastModified }),
+              );
+          }
+        })
+        .catch(reportStorageError)
+        .finally(() => {
+          if (activeScope !== scope) return;
+          hydrating = false;
+          set({ hydrated: true });
+          void get().verifyCourse();
+        });
       if (migrated) {
         toast(
           'info',
@@ -376,6 +446,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
             Object.keys(EMPTY_DRAFT) as (keyof typeof EMPTY_DRAFT)[]
           ).some((key) => state[key] !== previous[key]);
           if (!changed) return;
+          saveFiles();
           window.clearTimeout(persistTimer);
           persistTimer = window.setTimeout(() => get().persistNow(), 450);
         });
@@ -392,8 +463,12 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         !state.materials.length &&
         !state.courseForm.title &&
         !state.courseForm.description;
-      if (isEmpty) clearDraft({ includeLegacy: false });
-      else saveDraft(pickDraft(state));
+      if (isEmpty)
+        clearDraft({
+          includeLegacy: false,
+          scope: activeScope ?? getPersistenceScope(),
+        });
+      else saveDraft(pickDraft(state), activeScope ?? getPersistenceScope());
     },
 
     dismissToast: (id) =>
@@ -716,6 +791,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
           return true;
         }
         fileRegistry.set(id, replacementFile);
+        saveFiles();
         patchMaterial(id, {
           fileName: replacementFile.name,
           fileKind: getFileKind(replacementFile.name),
@@ -734,6 +810,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       const material = get().materials.find((item) => item.id === id);
       if (!material || material.lessonId) return;
       fileRegistry.delete(id);
+      saveFiles();
       const key = nodeId.material(id);
       set((state) => {
         const positions = { ...state.positions };
@@ -1919,6 +1996,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
         ),
       );
       fileRegistry.clear();
+      saveFiles();
       set({
         ...EMPTY_DRAFT,
         ...TRANSIENT,
@@ -1938,6 +2016,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
 
     resetAll: ({ silent = false } = {}) => {
       fileRegistry.clear();
+      saveFiles();
       contentTimers.forEach((timer) => window.clearTimeout(timer));
       contentTimers.clear();
       set({ ...EMPTY_DRAFT, ...TRANSIENT, hydrated: true });

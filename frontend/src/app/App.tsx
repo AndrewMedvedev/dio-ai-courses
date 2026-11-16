@@ -1,5 +1,7 @@
 import { useChatDockSpace } from '@/shared/ui/ai-chat';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePersistenceScope } from '@/entities/session';
+import { useLocalState, hasLocalStorageError } from '@/shared/lib/storage';
 import {
   BrowserRouter,
   Navigate,
@@ -124,23 +126,36 @@ function getCourseRouteTarget(pathname: string): { type: string; id: string } {
 }
 
 function AppContent() {
+  const scope = usePersistenceScope();
   const { workspaceRef, reservedWidth } = useChatDockSpace();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const openFeedback = useCallback(() => setFeedbackOpen(true), []);
   const closeFeedback = useCallback(() => setFeedbackOpen(false), []);
   const navigate = useNavigate();
-  const [navigationCollapsed, setNavigationCollapsed] = useState(
+  const [navigationCollapsed, setNavigationCollapsed] = useLocalState(
+    `navigation-collapsed:${scope}`,
     () => window.location.pathname === '/',
   );
-  const [lastViewedCourse, setLastViewedCourse] = useState<{
+  const [lastViewedCourse, setLastViewedCourse] = useLocalState<{
     id: string;
     title?: string;
-  }>();
+  } | null>(`last-viewed-course:${scope}`, null);
+  useEffect(() => {
+    const onStorageError = () =>
+      notify(
+        'Не удалось сохранить данные в браузере. До закрытия страницы они доступны, но после обновления могут потеряться.',
+        { tone: 'error', duration: 10_000 },
+      );
+    window.addEventListener('local-state-save-error', onStorageError);
+    if (hasLocalStorageError()) onStorageError();
+    return () =>
+      window.removeEventListener('local-state-save-error', onStorageError);
+  }, []);
   const location = useLocation();
   const isLanding = location.pathname === '/';
   useEffect(() => {
     if (isLanding) setNavigationCollapsed(true);
-  }, [isLanding]);
+  }, [isLanding, setNavigationCollapsed]);
   const setPermissionsFromIdentity = usePermissionStore(
     (state) => state.setPermissionsFromIdentity,
   );
@@ -180,7 +195,29 @@ function AppContent() {
   const appliedTheme = themeHasHydrated
     ? resolvedTheme
     : document.documentElement.dataset.theme || resolvedTheme;
-  const [editableCourses, setEditableCourses] = useState<CourseNode[]>([]);
+  const [serverCourses, setEditableCourses] = useState<CourseNode[]>([]);
+  const edits = useEditorDraftStore((state) => state.edits);
+  const editableCourses = useMemo(
+    () =>
+      serverCourses.map((course) =>
+        Object.values(edits)
+          .filter(
+            (edit) =>
+              edit.courseId === course.id && edit.key.startsWith(`${scope}:`),
+          )
+          .reduce(
+            (current, edit) =>
+              applyEntityFields(
+                current,
+                edit.kind,
+                edit.entityId,
+                edit.changes,
+              ),
+            course,
+          ),
+      ),
+    [serverCourses, edits, scope],
+  );
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState('');
   const [coursesPageSize] = useState(6);
@@ -346,7 +383,12 @@ function AppContent() {
         ? previous
         : { id: selectedCourse.id, title: selectedCourse.title },
     );
-  }, [location.pathname, selectedCourse.id, selectedCourse.title]);
+  }, [
+    location.pathname,
+    selectedCourse.id,
+    selectedCourse.title,
+    setLastViewedCourse,
+  ]);
   const selectedBlock = getSelectedBlock(selectedCourse, selectedBlockId);
   const selectedLesson = getSelectedLesson(selectedBlock, selectedLessonId);
   const selectedPractice = getSelectedPractice(
@@ -1235,6 +1277,31 @@ function AppContent() {
             forgetLessonTheory(edit.entityId);
           }
         }
+        setEditableCourses((previous) =>
+          previous.map((course) =>
+            course.id === edit.courseId
+              ? applyEntityFields(
+                  course,
+                  edit.kind,
+                  edit.entityId,
+                  edit.changes,
+                )
+              : course,
+          ),
+        );
+        // После восстановления черновика исходное дерево ещё содержит серверную версию.
+        setEditableCourses((previous) =>
+          previous.map((course) =>
+            course.id === edit.courseId
+              ? applyEntityFields(
+                  course,
+                  edit.kind,
+                  edit.entityId,
+                  edit.changes,
+                )
+              : course,
+          ),
+        );
         drafts.removeEdit(edit.key);
       } catch (error) {
         hasFailures = true;
@@ -1579,7 +1646,7 @@ function AppContent() {
         currentCourse={
           location.pathname.startsWith('/course/')
             ? selectedCourse
-            : lastViewedCourse
+            : lastViewedCourse || undefined
         }
         theme={appliedTheme}
         canCreateCourse={canCreateCourse}
@@ -1916,9 +1983,10 @@ function AppContent() {
 }
 
 export function App() {
+  const scope = usePersistenceScope();
   return (
     <BrowserRouter>
-      <AppContent />
+      <AppContent key={scope} />
     </BrowserRouter>
   );
 }

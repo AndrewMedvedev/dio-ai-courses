@@ -36,6 +36,8 @@ import {
   useSessionStore,
 } from '@/entities/session';
 import { useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { useLocalState } from '@/shared/lib/storage';
+import { usePersistenceScope } from '@/entities/session';
 import { useTheorySessionTracker } from '@/features/track-theory-time';
 import { useCourseProgress } from '@/features/course-progress';
 import { getModuleProgressSummary } from '@/entities/progress';
@@ -93,7 +95,11 @@ export function CourseViewer({
   const canUpdateCourse = usePermissionStore((state) =>
     state.hasPermission(COURSE_PERMISSIONS.UPDATE),
   );
-  const [contentsCollapsed, setContentsCollapsed] = useState(false);
+  const scope = usePersistenceScope();
+  const [contentsCollapsed, setContentsCollapsed] = useLocalState(
+    `course-tree:${scope}:${courseId}`,
+    false,
+  );
   const [course, setCourse] = useState<LearningCourse | null>(null);
   const loadedCourseIdRef = useRef<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(

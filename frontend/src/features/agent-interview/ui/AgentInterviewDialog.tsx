@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePersistenceScope } from '@/entities/session';
+import { useLocalState } from '@/shared/lib/storage';
 import { AppModal } from '@/shared/ui/app-modal';
 import {
   AiChatPanel,
@@ -69,10 +71,8 @@ export function AgentInterviewDialog({
   variant = 'modal',
 }: AgentInterviewDialogProps) {
   const texts = TEXTS[kind] || TEXTS.module;
-  const conversationKey = useMemo(
-    () => conversationKeyFor(kind, courseId, moduleId),
-    [courseId, kind, moduleId],
-  );
+  const scope = usePersistenceScope();
+  const conversationKey = conversationKeyFor(kind, courseId, moduleId);
   const jobKey = jobKeyFor(kind, courseId, moduleId);
 
   const conversation = useAgentStore(
@@ -90,8 +90,14 @@ export function AgentInterviewDialog({
   const startJob = useGenerationJobsStore((state) => state.startJob);
   const removeJob = useGenerationJobsStore((state) => state.removeJob);
 
-  const [input, setInput] = useState('');
-  const [lastSent, setLastSent] = useState('');
+  const [input, setInput] = useLocalState(
+    `interview-input:${scope}:${conversationKey}`,
+    '',
+  );
+  const [lastSent, setLastSent] = useLocalState(
+    `interview-last-sent:${scope}:${conversationKey}`,
+    '',
+  );
   const [confirmText, setConfirmText] = useState<string | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -153,7 +159,7 @@ export function AgentInterviewDialog({
         });
       }
     } catch {
-      // Ошибка показывается из agentStore; текст можно отправить повторно.
+      setInput((current) => current || content);
     }
   };
 

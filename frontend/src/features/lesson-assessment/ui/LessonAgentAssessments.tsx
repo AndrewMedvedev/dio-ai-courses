@@ -3,6 +3,8 @@ import { useMemo, useState, type ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeEditor } from '@/shared/ui/code-editor';
+import { useStoredFiles } from '@/shared/lib/storage';
+import { useAssessmentState } from '../model/assessment-state';
 import {
   checkLessonPractice,
   checkLessonTest,
@@ -141,29 +143,26 @@ export function LessonTestAgent({
   onChecked,
   onBackToTheory,
 }: LessonAssessmentProps) {
-  const [test, setTest] = useState<LessonTest | null>(null);
-  const [practiceId, setPracticeId] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<TestAnswers>({});
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<AssessmentResult | null>(null);
+  const { state, setField, start, finish, isLoading, isChecking, error } =
+    useAssessmentState('test', moduleId, lessonId);
+  const { test, practiceId, answers, questionIndex, result } = state;
+  const setError = (value: string) => setField('error', value);
+  const setAnswers = (
+    value: TestAnswers | ((previous: TestAnswers) => TestAnswers),
+  ) => setField('answers', value);
+  const setQuestionIndex = (value: number | ((previous: number) => number)) =>
+    setField('questionIndex', value);
 
   const startTest = async () => {
-    if (!moduleId || !lessonId || isLoading) return;
-    setIsLoading(true);
-    setError('');
-    setResult(null);
-    setAnswers({});
-    setQuestionIndex(0);
-    setPracticeId(null);
-    setTest(null);
+    if (!moduleId || !lessonId || !start('generate')) return;
 
     try {
       const response = await generateLessonTest(moduleId, lessonId);
-      setTest(response.practice as LessonTest);
-      setPracticeId(response.practiceId);
+      setField('test', response.practice as LessonTest);
+      setField('practiceId', response.practiceId);
+      setField('result', null);
+      setAnswers({});
+      setQuestionIndex(0);
       if (!response.practiceId) {
         setError(
           'Backend не вернул идентификатор практики для проверки теста.',
@@ -174,7 +173,7 @@ export function LessonTestAgent({
         getErrorMessage(error, 'Не удалось подготовить проверочные вопросы.'),
       );
     } finally {
-      setIsLoading(false);
+      finish();
     }
   };
 
@@ -189,9 +188,8 @@ export function LessonTestAgent({
     });
 
   const submitTest = async () => {
-    if (!test || !practiceId || !canSubmit || isChecking || isSubmitted) return;
-    setIsChecking(true);
-    setError('');
+    if (!test || !practiceId || !canSubmit || isSubmitted || !start('check'))
+      return;
     const payload = {
       practice: test,
       answers: createAnswersPayload(questions, answers, test?.test_type),
@@ -199,7 +197,7 @@ export function LessonTestAgent({
 
     try {
       const response = await checkLessonTest(practiceId, payload);
-      setResult(response);
+      setField('result', response);
       onChecked?.(response);
     } catch (error) {
       setError(
@@ -209,7 +207,7 @@ export function LessonTestAgent({
         ),
       );
     } finally {
-      setIsChecking(false);
+      finish();
     }
   };
 
@@ -377,6 +375,16 @@ export function LessonTestAgent({
                 : 'Проверить ответы'}
           </button>
         )}
+        {result && (
+          <button
+            type="button"
+            className={assessmentButton}
+            onClick={startTest}
+            disabled={isLoading || isChecking}
+          >
+            {isLoading ? 'Готовим вопросы...' : 'Новое задание'}
+          </button>
+        )}
         <BackToTheory onBack={onBackToTheory} />
       </div>
 
@@ -392,33 +400,37 @@ export function LessonPracticeAgent({
   onChecked,
   onBackToTheory,
 }: LessonAssessmentProps) {
-  const [assignment, setAssignment] = useState<PracticeAssignment | null>(null);
-  const [solution, setSolution] = useState('');
-  const [entryMode, setEntryMode] = useState<'text' | 'file' | null>(null);
-  const [practiceId, setPracticeId] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const { state, setField, key, start, finish, isLoading, isChecking, error } =
+    useAssessmentState('practice', moduleId, lessonId);
+  const { assignment, solution, entryMode, practiceId, result } = state;
+  const [files, setFiles, filesReady] = useStoredFiles<{
+    data: Blob;
+    name: string;
+    lastModified: number;
+  }>(key);
+  const setFile = (value: File | null) =>
+    setFiles(
+      value
+        ? [{ data: value, name: value.name, lastModified: value.lastModified }]
+        : [],
+    );
+  const setEntryMode = (value: 'text' | 'file' | null) =>
+    setField('entryMode', value);
+  const setError = (value: string) => setField('error', value);
   const [fileError, setFileError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<AssessmentResult | null>(null);
 
   const startPractice = async () => {
-    if (!moduleId || !lessonId || isLoading) return;
-    setIsLoading(true);
-    setError('');
-    setResult(null);
-    setFile(null);
-    setFileError('');
-    setPracticeId(null);
-    setAssignment(null);
-    setSolution('');
-    setEntryMode(null);
+    if (!moduleId || !lessonId || !filesReady || !start('generate')) return;
 
     try {
       const response = await generateLessonPractice(moduleId, lessonId);
-      setAssignment(response.practice as PracticeAssignment);
-      setPracticeId(response.practiceId);
+      setField('assignment', response.practice as PracticeAssignment);
+      setField('practiceId', response.practiceId);
+      setField('result', null);
+      setField('solution', '');
+      setEntryMode(null);
+      setFile(null);
+      setFileError('');
       if (!response.practiceId) {
         setError(
           'Backend не вернул идентификатор практики для проверки задания.',
@@ -429,7 +441,7 @@ export function LessonPracticeAgent({
         getErrorMessage(error, 'Не удалось подготовить практическое задание.'),
       );
     } finally {
-      setIsLoading(false);
+      finish();
     }
   };
 
@@ -461,25 +473,34 @@ export function LessonPracticeAgent({
         .map(normalizeExtension)
         .find((extension) => textExtensions.includes(extension));
   const textMode = Boolean(textExtension) && entryMode !== 'file';
+  const file = useMemo(
+    () =>
+      textMode
+        ? solution.trim()
+          ? new File([solution], `solution${textExtension || '.txt'}`, {
+              type: 'text/plain',
+            })
+          : null
+        : files[0]
+          ? new File([files[0].data], files[0].name, {
+              type: files[0].data.type,
+              lastModified: files[0].lastModified,
+            })
+          : null,
+    [textMode, solution, textExtension, files],
+  );
   const solutionLanguage =
     textExtension === '.py' ? 'PYTHON' : textExtension?.slice(1) || 'TEXT';
   const updateSolution = (value: string) => {
-    setSolution(value);
+    setField('solution', value);
     setFileError('');
-    setFile(
-      value.trim()
-        ? new File([value], `solution${textExtension || '.txt'}`, {
-            type: 'text/plain',
-          })
-        : null,
-    );
   };
 
   const pickFile = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] || null;
+    if (!nextFile) return;
     setFile(null);
     setFileError('');
-    if (!nextFile) return;
     setEntryMode('file');
 
     if (!acceptsAnyFile) {
@@ -499,19 +520,17 @@ export function LessonPracticeAgent({
   };
 
   const submitPractice = async () => {
-    if (!file || !practiceId || fileError || isChecking || result) return;
-    setIsChecking(true);
-    setError('');
+    if (!file || !practiceId || fileError || result || !start('check')) return;
     try {
       const response = await checkLessonPractice(practiceId, assignment, file);
-      setResult(response);
+      setField('result', response);
       onChecked?.(response);
     } catch (error) {
       setError(
         getErrorMessage(error, 'Не удалось проверить практическое задание.'),
       );
     } finally {
-      setIsChecking(false);
+      finish();
     }
   };
 
@@ -536,7 +555,7 @@ export function LessonPracticeAgent({
             type="button"
             className={assessmentButton}
             onClick={startPractice}
-            disabled={isLoading || !moduleId || !lessonId}
+            disabled={isLoading || !filesReady || !moduleId || !lessonId}
           >
             {isLoading ? 'Готовим задание...' : 'Подготовить задание'}
           </button>
@@ -683,6 +702,16 @@ export function LessonPracticeAgent({
               ? 'Отправлено'
               : 'Проверить решение'}
         </button>
+        {result && (
+          <button
+            type="button"
+            className={assessmentButton}
+            onClick={startPractice}
+            disabled={isLoading || isChecking || !filesReady}
+          >
+            {isLoading ? 'Готовим задание...' : 'Новое задание'}
+          </button>
+        )}
         <BackToTheory onBack={onBackToTheory} />
       </div>
 
