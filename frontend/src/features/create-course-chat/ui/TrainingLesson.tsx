@@ -172,6 +172,7 @@ export function TrainingLesson({
             type="button"
             onClick={onFinish}
             data-training-finish
+            data-help-exit
             className="tw:border-0 tw:bg-transparent tw:text-(--text) tw:cursor-pointer"
           >
             Завершить знакомство
@@ -185,6 +186,7 @@ export function TrainingLesson({
           <CollapsedCourseContents onExpand={() => setCollapsed(false)} />
         ) : (
           <CourseNavigationTree
+            lessonTabScope={scope}
             selectedCourse={course}
             selectedBlock={block}
             selectedLessonId={selected}

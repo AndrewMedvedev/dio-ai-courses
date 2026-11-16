@@ -9,6 +9,8 @@ export interface HelpStep {
   anchor?: string;
   placement?: 'below-end' | 'right-start';
   optional?: boolean;
+  /** Только эти элементы доступны для действий пользователя во время шага. */
+  interactive?: string;
 }
 export interface HelpGuide {
   label: string;
@@ -28,17 +30,20 @@ export const helpGuides = {
         revealAlways: true,
         anchor: '.main-navigation [data-help="toggle-navigation"]',
         placement: 'right-start',
+        interactive: '.main-navigation [data-help="toggle-navigation"]',
       },
       {
         title: 'Выберите удобную тему',
         text: 'Эта кнопка переключает светлую и тёмную тему. Попробуйте обе и оставьте удобную — выбор сохранится в этом браузере.',
         target: '.header [data-help="toggle-theme"]',
+        interactive: '.header [data-help="toggle-theme"]',
         placement: 'below-end',
       },
       {
         title: 'Оставьте обратную связь',
         text: 'Через «Обратную связь» можно оценить платформу, сообщить о проблеме или предложить улучшение. Кнопка доступна из любого раздела.',
         target: '.header [data-help="feedback"]',
+        interactive: '.header [data-help="feedback"], .feedback-modal',
         placement: 'below-end',
       },
       {
@@ -95,16 +100,21 @@ export const helpGuides = {
         title: 'ИИ-ментор всегда рядом',
         text: 'Если что-то непонятно, нажмите «Спросить ИИ». Ментор поможет объяснить сложное проще, привести пример или разобраться с практикой. Можно читать урок и общаться с помощником одновременно.',
         target: '.training-lesson [data-help="lesson-mentor"]',
+        interactive:
+          '.training-lesson [data-help="lesson-mentor"], .ai-chat-panel .ai-chat-composer, .ai-chat-close',
       },
       {
         title: 'Проверьте понимание',
         text: 'Выберите вариант и нажмите «Проверить ответ». Кнопка «К теории» возвращает к материалу. «Далее» в подсказке откроет практику.',
         target: '.training-lesson-content',
+        interactive: '.training-lesson-content',
       },
       {
         title: 'Попробуйте практику',
         text: 'В учебном примере решение можно менять прямо в поле. Проверьте его кнопкой под кодом или нажмите «Далее», чтобы проверить готовый пример.',
         target: '.training-lesson textarea',
+        interactive:
+          '.training-lesson textarea, .training-lesson [data-training-check]',
       },
       {
         title: 'Знакомство завершено',
@@ -210,6 +220,7 @@ export const helpGuides = {
         title: 'Содержание курса',
         text: 'Выберите курс, откройте модуль и урок. Внутри урока появится дерево: здесь модули, текущий урок, следующие уроки и ваш прогресс.',
         target: '.course-nav-tree',
+        reveal: '.course-contents-toggle',
         waitForTarget: true,
       },
       {
@@ -248,14 +259,15 @@ export const helpGuides = {
     steps: [
       {
         title: 'Подготовьте курс',
-        text: 'Укажите название, описание и сложность. После перехода на холст обучение продолжится рядом с палитрой.',
+        text: 'Здесь задаются название, описание и сложность курса. Нажмите «Дальше» — мы откроем учебный холст. Заполнять форму и создавать курс для знакомства не нужно.',
         target: '.dnd-start-form, .dnd-topbar',
         waitForTarget: true,
       },
       {
         title: 'Загрузите материалы',
-        text: 'Перейдите на холст кнопкой в форме. Загрузите документы через палитру или перетащите их на холст.',
+        text: 'Это учебный холст с примерами. В рабочем конструкторе документы можно загрузить через палитру или перетащить на холст. Ваш черновик останется без изменений.',
         target: '.dnd-palette',
+        action: '[data-help-dnd-start]',
         reveal: [
           '.dnd-topbar [data-help="canvas-mode"][aria-pressed="false"]',
           '.dnd-topbar-palette[aria-pressed="false"]',
@@ -307,6 +319,7 @@ export const helpGuides = {
         title: 'Редактирование профиля',
         text: 'Откройте редактирование кнопкой в карточке. «Сохранить» применяет данные, «Отмена» возвращает просмотр. Подсказка не меняет ваши данные.',
         target: '.profile-edit-card form',
+        interactive: '.profile-edit-card form',
         action: '.profile-edit-card [data-help="profile-edit"]',
         anchor: '.profile-sidebar',
         waitForTarget: true,

@@ -12,6 +12,8 @@ import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { CreatorChatView } from '@/features/create-course-chat';
 import { CourseCatalog } from '@/widgets/course-catalog';
+import { CourseNavigationTree } from '@/entities/course';
+import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 import {
   LessonContentEditor,
   type LessonContentChange,
@@ -135,6 +137,13 @@ async function render(element: ReactElement) {
   return renderer;
 }
 const click = async (button: ReactTestInstance) => {
+  // IndexedDB на первом открытии может готовиться дольше одного tick.
+  const deadline = Date.now() + 1000;
+  while (button.props.disabled === true && Date.now() < deadline) {
+    await act(async () => {
+      await tick();
+    });
+  }
   assert.equal(button.props.disabled === true, false);
   await act(async () => {
     await (button.props.onClick as () => Promise<void>)();
@@ -564,6 +573,49 @@ void test('catalog restores filters from the URL without changing API calls', as
   assert.equal(selects[0].props.value, 'beginner');
   assert.equal(selects[1].props.value, 'python');
   assert.equal(calls.length, 0);
+  await unmount(page);
+});
+
+void test('training tree shares scoped lesson tabs and keeps other accounts separate', async () => {
+  const lessonId = 'local-training-lesson';
+  const tree = (scope: string) => (
+    <CourseNavigationTree
+      lessonTabScope={scope}
+      selectedCourse={{
+        title: 'Training',
+        blocks: [{ id: 'module', lessons: [{ id: lessonId }], practice: [] }],
+      }}
+      selectedBlock={{ id: 'module' }}
+      selectedLessonId={lessonId}
+      completedLessons={{}}
+      completedPractices={{}}
+      openBlock={() => {}}
+      openLesson={() => {}}
+      openPractice={() => {}}
+    />
+  );
+  let page = await render(tree('account-a'));
+  await click(page.root.findByProps({ 'aria-label': 'Проверочные вопросы' }));
+  assert.equal(
+    useUiLayoutStore.getState().getLessonActiveTab(`account-a:${lessonId}`),
+    'questions',
+  );
+  assert.equal(
+    useUiLayoutStore.getState().getLessonActiveTab(`account-b:${lessonId}`),
+    'theory',
+  );
+  assert.equal(
+    useUiLayoutStore.getState().getLessonActiveTab(lessonId),
+    'theory',
+  );
+  await unmount(page);
+  page = await render(tree('account-a'));
+  assert.equal(
+    page.root.findByProps({ 'aria-label': 'Проверочные вопросы' }).props[
+      'aria-pressed'
+    ],
+    true,
+  );
   await unmount(page);
 });
 

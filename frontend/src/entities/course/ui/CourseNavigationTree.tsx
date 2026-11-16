@@ -31,6 +31,8 @@ export interface CourseNavigationTreeProps {
   openPractice: (practiceId: string) => void;
   mode?: string;
   onCollapse?: () => void;
+  /** Пространство ключей вкладок для учебных уроков с локальными ID. */
+  lessonTabScope?: string;
   /** Прогресс ученика с backend: { [lessonId]: LessonProgress | null }. */
   lessonProgressById?: Record<string, LessonProgress | null> | null;
   progressSummary?: {
@@ -108,6 +110,7 @@ export function CourseNavigationTree({
   openPractice,
   mode = 'theory',
   onCollapse,
+  lessonTabScope,
   lessonProgressById = null,
   progressSummary = null,
   summaryItem = null,
@@ -116,8 +119,10 @@ export function CourseNavigationTree({
   const treeId = useId();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const setLessonTab = useUiLayoutStore((state) => state.setLessonActiveTab);
+  const lessonTabKey = (id: string) =>
+    lessonTabScope ? `${lessonTabScope}:${id}` : id;
   const activeTab = useUiLayoutStore((state) =>
-    state.getLessonActiveTab(selectedLessonId || ''),
+    state.getLessonActiveTab(lessonTabKey(selectedLessonId || '')),
   );
   const isPractice = mode === 'practice';
   const isMetrics = mode === 'metrics';
@@ -370,7 +375,10 @@ export function CourseNavigationTree({
                                     aria-pressed={activeTab === part.id}
                                     data-tip={`${part.label}: ${PROGRESS_STATUS_LABELS[partStatus]}`}
                                     onClick={() =>
-                                      setLessonTab(item.id, part.id)
+                                      setLessonTab(
+                                        lessonTabKey(item.id),
+                                        part.id,
+                                      )
                                     }
                                     className={`${button} course-nav-lesson-part tw:flex tw:min-h-[54px] tw:items-center tw:gap-[10px] tw:text-[14px]! ${activeTab === part.id ? active : ''}`}
                                   >

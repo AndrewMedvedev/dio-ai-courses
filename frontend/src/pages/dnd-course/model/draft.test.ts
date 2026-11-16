@@ -4,8 +4,14 @@ import { test } from 'node:test';
 import { indexedDB } from 'fake-indexeddb';
 import { getPersistenceScope, useSessionStore } from '@/entities/session';
 import { writeStoredFiles } from '@/shared/lib/storage';
-import { loadDraft, saveDraft, clearDraft, EMPTY_DRAFT } from './draft';
-import { useDndCourseStore, hasFile } from './store';
+import {
+  loadDraft,
+  saveDraft,
+  clearDraft,
+  pickDraft,
+  EMPTY_DRAFT,
+} from './draft';
+import { beginDndTutorial, useDndCourseStore, hasFile } from './store';
 import { DRAFT_KEY } from '../config/constants';
 
 const values = new Map<string, string>();
@@ -112,4 +118,51 @@ void test('D&D file registry restores from IndexedDB when switching back to an a
   useDndCourseStore.getState().hydrate();
   await tick();
   assert.equal(hasFile('material-a'), true);
+});
+
+void test('D&D tutorial restores the draft and never persists its example course', async () => {
+  useSessionStore.setState({
+    user: { id: 'tutorial-owner' },
+    organizationId: 'org',
+  });
+  const scope = getPersistenceScope();
+  saveDraft(
+    {
+      ...EMPTY_DRAFT,
+      courseForm: { ...EMPTY_DRAFT.courseForm, title: 'Keep my draft' },
+    },
+    scope,
+  );
+  useDndCourseStore.getState().hydrate();
+  await tick();
+  const snapshot = useDndCourseStore.getState();
+  snapshot.persistNow();
+  const saved = values.get(`${DRAFT_KEY}:${scope}`);
+  const finish = beginDndTutorial();
+  try {
+    assert.equal(useDndCourseStore.getState().course?.id, 'tutorial-course');
+    useDndCourseStore.getState().openInspector('course', 'main');
+    useDndCourseStore.getState().persistNow();
+    assert.equal(values.get(`${DRAFT_KEY}:${scope}`), saved);
+  } finally {
+    finish();
+  }
+  assert.deepEqual(
+    pickDraft(useDndCourseStore.getState()),
+    pickDraft(snapshot),
+  );
+  assert.equal(values.get(`${DRAFT_KEY}:${scope}`), saved);
+});
+
+void test('D&D tutorial cannot restore another account draft after a scope change', async () => {
+  useSessionStore.setState({ user: { id: 'tutorial-account-a' } });
+  useDndCourseStore.getState().hydrate();
+  await tick();
+  const finish = beginDndTutorial();
+  useSessionStore.setState({ user: { id: 'tutorial-account-b' } });
+  useDndCourseStore.getState().hydrate();
+  await tick();
+  finish();
+  assert.equal(useDndCourseStore.getState().course, null);
+  assert.equal(useDndCourseStore.getState().courseForm.title, '');
 });

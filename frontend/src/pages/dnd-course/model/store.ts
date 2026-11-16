@@ -122,6 +122,7 @@ const contentSaves = new Map<
 let toastSeq = 0;
 let persistTimer: number | undefined;
 let persistenceStarted = false;
+let tutorialActive = false;
 
 const TRANSIENT: DndTransient = {
   hydrated: false,
@@ -441,7 +442,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
       if (!persistenceStarted) {
         persistenceStarted = true;
         useDndCourseStore.subscribe((state, previous) => {
-          if (!state.hydrated) return;
+          if (!state.hydrated || tutorialActive) return;
           const changed = (
             Object.keys(EMPTY_DRAFT) as (keyof typeof EMPTY_DRAFT)[]
           ).some((key) => state[key] !== previous[key]);
@@ -457,7 +458,7 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     persistNow: () => {
       window.clearTimeout(persistTimer);
       const state = get();
-      if (!state.hydrated) return;
+      if (!state.hydrated || tutorialActive) return;
       const isEmpty =
         !state.course &&
         !state.materials.length &&
@@ -2029,3 +2030,68 @@ export const useDndCourseStore = create<DndState>()((set, get) => {
     },
   };
 });
+
+/** Временный холст обучения: исходный черновик не сохраняется и не меняется. */
+export function beginDndTutorial() {
+  const snapshot = useDndCourseStore.getState();
+  const scope = activeScope;
+  window.clearTimeout(persistTimer);
+  snapshot.persistNow();
+  tutorialActive = true;
+  useDndCourseStore.setState({
+    ...EMPTY_DRAFT,
+    ...TRANSIENT,
+    hydrated: true,
+    onboardingDismissed: true,
+    viewMode: 'canvas',
+    course: {
+      id: 'tutorial-course',
+      title: 'Учебный курс',
+      description: 'Пример структуры курса. Обучение не сохраняет изменения.',
+      difficulty: 'beginner',
+      tags: [],
+    },
+    materials: [
+      {
+        id: 'tutorial-material',
+        fileName: 'Введение.pdf',
+        size: 1024,
+        number: 1,
+        status: 'ready',
+        markdown: 'Материалы первого урока',
+        proposal: null,
+        error: '',
+        lessonId: null,
+      },
+    ],
+    lessons: [
+      {
+        id: 'tutorial-lesson',
+        title: 'Первый урок',
+        description: 'Знакомство с темой',
+        order: 1,
+        learningObjectives: [],
+        estimatedTimeMinutes: 10,
+        contentBlocks: [],
+        materialIds: [],
+        moduleId: 'tutorial-module',
+        isLocal: true,
+      },
+    ],
+    modules: [
+      {
+        id: 'tutorial-module',
+        title: 'Первый модуль',
+        description: 'Начало курса',
+        order: 1,
+        learningObjectives: [],
+        lessonIds: ['tutorial-lesson'],
+      },
+    ],
+  });
+  return () => {
+    window.clearTimeout(persistTimer);
+    if (activeScope === scope) useDndCourseStore.setState(snapshot, true);
+    tutorialActive = false;
+  };
+}

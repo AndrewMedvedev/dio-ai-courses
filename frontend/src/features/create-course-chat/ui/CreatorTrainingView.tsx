@@ -140,7 +140,7 @@ export function CreatorTrainingView() {
             ? 'Знакомство завершено'
             : `Знакомство · шаг ${answers.length + 1} из ${intakeQuestions.length}`}
         </span>
-        <Link to="/quick-start" className="tw:text-(--text)">
+        <Link to="/quick-start" data-help-exit className="tw:text-(--text)">
           Завершить знакомство
         </Link>
       </div>
@@ -246,7 +246,10 @@ export function CreatorTrainingView() {
             </div>
           </ChatThread>
           {!complete && question && (
-            <div className="tw:shrink-0 tw:px-[20px] tw:pb-[18px]">
+            <div
+              data-training-input
+              className="tw:shrink-0 tw:px-[20px] tw:pb-[18px]"
+            >
               <div className="tw:mb-[12px] tw:flex tw:flex-wrap tw:gap-[8px]">
                 <ChatButton
                   data-training-next

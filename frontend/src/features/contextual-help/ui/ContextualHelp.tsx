@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useSessionStore } from '@/entities/session';
 import { getLocalStorage } from '@/shared/lib/storage';
+import { getHelpPanelArea } from '../lib/panel-area';
 import {
   guideForPath,
   helpGuides,
@@ -101,6 +102,108 @@ export function ContextualHelp() {
     dismissedPathRef.current = location.pathname;
     setTour(null);
   }, [tour, location.pathname]);
+
+  useEffect(() => {
+    if (tour?.id !== 'dnd') return;
+    return () =>
+      document.querySelector<HTMLElement>('[data-help-dnd-end]')?.click();
+  }, [tour?.id]);
+
+  // Действия шага запускаются кнопкой «Дальше», остальные элементы недоступны.
+  useEffect(() => {
+    if (!step) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const allowed = (element: EventTarget | null) =>
+      element instanceof Element &&
+      Boolean(
+        panelRef.current?.contains(element) ||
+        element.closest('[data-help-exit]') ||
+        (step.interactive && element.closest(step.interactive)) ||
+        (tour?.id === 'creatorTraining' &&
+          element.closest(
+            '.creator-training [data-training-input], .creator-training [data-training-next], .app-modal',
+          )),
+      );
+    const block = (event: Event) => {
+      if (
+        event.isTrusted &&
+        event.type === 'click' &&
+        event.target instanceof Element &&
+        event.target.closest('[data-help-exit]')
+      ) {
+        close();
+        return;
+      }
+      if (!event.isTrusted || allowed(event.target)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (
+          allowed(event.target) &&
+          event.target instanceof Element &&
+          event.target.closest('.app-modal')
+        )
+          return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        close();
+        return;
+      }
+      if (event.key === 'Tab') {
+        const buttons = Array.from(
+          document.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]',
+          ),
+        ).filter(
+          (element) => allowed(element) && element.getClientRects().length,
+        );
+        if (!buttons.length) return;
+        const index = buttons.indexOf(
+          document.activeElement as HTMLButtonElement,
+        );
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        buttons[
+          (index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length
+        ]?.focus({ preventScroll: true });
+        return;
+      }
+      block(event);
+    };
+    const focus = (event: FocusEvent) => {
+      if (!allowed(event.target))
+        nextRef.current?.focus({ preventScroll: true });
+    };
+    const events = [
+      'pointerdown',
+      'mousedown',
+      'click',
+      'dblclick',
+      'contextmenu',
+      'touchstart',
+      'wheel',
+      'keyup',
+      'dragstart',
+      'drop',
+      'paste',
+    ];
+    events.forEach((name) =>
+      window.addEventListener(name, block, { capture: true, passive: false }),
+    );
+    window.addEventListener('keydown', keyboard, true);
+    window.addEventListener('focusin', focus, true);
+    if (!allowed(document.activeElement))
+      nextRef.current?.focus({ preventScroll: true });
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, block, true));
+      window.removeEventListener('keydown', keyboard, true);
+      window.removeEventListener('focusin', focus, true);
+      if (previousFocus?.isConnected)
+        previousFocus.focus({ preventScroll: true });
+    };
+  }, [step, tour?.id, close]);
 
   useEffect(() => {
     if (!owner) {
@@ -291,9 +394,14 @@ export function ContextualHelp() {
           : visibleRect,
       );
       if (inlineHost) return;
-      const width = Math.max(
-        1,
-        Math.min(preferredWidth, viewportWidth - margin * 2),
+      const navigation = document
+        .querySelector('.main-navigation')
+        ?.getBoundingClientRect();
+      const { left: panelLeft, width } = getHelpPanelArea(
+        viewportLeft,
+        viewportWidth,
+        navigation?.width ? navigation.right : undefined,
+        preferredWidth,
       );
       const maxHeight = Math.max(1, viewportHeight - margin * 2);
       const height = Math.min(
@@ -332,7 +440,7 @@ export function ContextualHelp() {
       }
       let preferred = positions.find(
         (position) =>
-          position.left >= viewportLeft + margin &&
+          position.left >= panelLeft &&
           position.left + width <= right - margin &&
           position.top >= viewportTop + margin &&
           position.top + height <= bottom - margin,
@@ -354,7 +462,7 @@ export function ContextualHelp() {
           { left: right - width - margin, top: bottom - height - margin },
         ].map((position) => ({
           left: Math.max(
-            viewportLeft + margin,
+            panelLeft,
             Math.min(position.left, right - width - margin),
           ),
           top: Math.max(
@@ -386,14 +494,23 @@ export function ContextualHelp() {
                 bottom: visibleRect.top + visibleRect.height,
               })
             : 0);
-        preferred = candidates.reduce(
+        const besideTarget = visibleRect
+          ? candidates.filter(
+              (position) =>
+                overlap(position, {
+                  ...visibleRect,
+                  right: visibleRect.left + visibleRect.width,
+                  bottom: visibleRect.top + visibleRect.height,
+                }) === 0,
+            )
+          : [];
+        preferred = (besideTarget.length ? besideTarget : candidates).reduce(
           (best, candidate) =>
             score(candidate) < score(best) ? candidate : best,
-          preferred,
         );
       }
       const left = Math.max(
-        viewportLeft + margin,
+        panelLeft,
         Math.min(preferred.left, right - width - margin),
       );
       const top = Math.max(
@@ -470,7 +587,7 @@ export function ContextualHelp() {
       {target && (
         <div
           aria-hidden="true"
-          className="tw:pointer-events-none tw:fixed tw:z-[110] tw:rounded-[16px] tw:border-2 tw:border-solid tw:border-(--eyebrow)"
+          className="tw:pointer-events-none tw:fixed tw:z-[1300] tw:rounded-[16px] tw:border-2 tw:border-solid tw:border-(--eyebrow)"
           style={target}
         />
       )}
@@ -480,7 +597,7 @@ export function ContextualHelp() {
           role="region"
           aria-label={`Обучение: ${guide.label}`}
           aria-live="polite"
-          className={`contextual-help ${inlineHost ? 'tw:relative tw:w-full' : 'tw:fixed'} tw:z-[120] tw:box-border tw:overflow-y-auto tw:overscroll-contain tw:rounded-[22px] tw:border tw:border-solid tw:border-(--eyebrow) tw:bg-(--panel-bg) ${inChat ? 'tw:p-[16px] tw:shadow-none tw:[&_h2]:text-[17px]! tw:[&_h2]:mt-[10px]! tw:[&_h2]:mb-[8px]!' : 'tw:p-[24px] tw:shadow-xl'} tw:text-(--text)}`}
+          className={`contextual-help ${inlineHost ? 'tw:relative tw:w-full' : 'tw:fixed'} tw:z-[1310] tw:box-border tw:overflow-y-auto tw:overscroll-contain tw:rounded-[22px] tw:border tw:border-solid tw:border-(--eyebrow) tw:bg-(--panel-bg) ${inChat ? 'tw:p-[16px] tw:shadow-none tw:[&_h2]:text-[17px]! tw:[&_h2]:mt-[10px]! tw:[&_h2]:mb-[8px]!' : 'tw:p-[24px] tw:shadow-xl'} tw:text-(--text)}`}
           style={inlineHost ? undefined : panelPosition}
         >
           <div className="tw:flex tw:items-center tw:justify-between tw:gap-[12px]">
