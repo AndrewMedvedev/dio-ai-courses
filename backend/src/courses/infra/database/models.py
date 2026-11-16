@@ -5,6 +5,7 @@ from typing import Any
 from datetime import datetime
 from uuid import UUID
 
+from pydantic import JsonValue
 from sqlalchemy import (
     TEXT,
     CheckConstraint,
@@ -22,6 +23,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.courses.domain.assessment.enums import (
+    AssignmentCreationPolicy,
+    AssignmentEvaluationPolicy,
+    AssignmentSource,
+    AssignmentStatus,
+    AssignmentType,
+    AttemptStatus,
+    CourseCompletionPolicy,
+    CourseVisibility,
+    EvaluationResult,
+    EvaluationStatus,
+    ExaminerType,
+    NavigationPolicy,
     PracticeStatus,
 )
 from src.courses.domain.catalog.enums import (
@@ -315,6 +328,117 @@ class DocumentOrm(Base):
         #         проверки на уровне приложения (см. pipeline ниже).
         CheckConstraint("id != parent_node_id", name="ck_no_self_parent"),
     )
+
+
+class CourseSettingsOrm(Base):
+    __tablename__ = "course_settings"
+
+    id: Mapped[UUID] = mapped_column(
+        "course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True
+    )
+    visibility: Mapped[CourseVisibility] = mapped_column(Enum(CourseVisibility))
+    navigation_policy: Mapped[NavigationPolicy] = mapped_column(Enum(NavigationPolicy))
+    completion_policy: Mapped[CourseCompletionPolicy] = mapped_column(Enum(CourseCompletionPolicy))
+    mentor_enabled: Mapped[bool]
+
+
+class AssignmentSettingsOrm(Base):
+    __tablename__ = "assignment_settings"
+
+    id: Mapped[UUID] = mapped_column(
+        "course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True
+    )
+    creation_policy: Mapped[AssignmentCreationPolicy] = mapped_column(
+        Enum(AssignmentCreationPolicy)
+    )
+    evaluation_policy: Mapped[AssignmentEvaluationPolicy] = mapped_column(
+        Enum(AssignmentEvaluationPolicy)
+    )
+    auto_generate_missing: Mapped[bool]
+    practice_enabled: Mapped[bool]
+    tests_enabled: Mapped[bool]
+
+
+class AssignmentOrm(Base):
+    __tablename__ = "assignments"
+
+    type: Mapped[AssignmentType] = mapped_column(Enum(AssignmentType))
+    source: Mapped[AssignmentSource] = mapped_column(Enum(AssignmentSource))
+    status: Mapped[AssignmentStatus] = mapped_column(Enum(AssignmentStatus))
+    unit_type: Mapped[str]
+    # Полиморфная ссылка на курс, модуль или урок: один FK на три таблицы невозможен.
+    unit_id: Mapped[UUID]
+    current_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "assignment_versions.id",
+            name="fk_assignment_current_version",
+            use_alter=True,
+            ondelete="SET NULL",
+        )
+    )
+
+    current_version: Mapped[AssignmentVersionOrm | None] = relationship(
+        foreign_keys=[current_version_id], post_update=True
+    )
+    versions: Mapped[list[AssignmentVersionOrm]] = relationship(
+        back_populates="assignment", foreign_keys="AssignmentVersionOrm.assignment_id"
+    )
+    attempts: Mapped[list[AssignmentAttemptOrm]] = relationship(back_populates="assignment")
+
+
+class AssignmentVersionOrm(Base):
+    __tablename__ = "assignment_versions"
+
+    assignment_id: Mapped[UUID] = mapped_column(ForeignKey("assignments.id"))
+    version: Mapped[int]
+    title: Mapped[str]
+    description: Mapped[str] = mapped_column(TEXT)
+    content: Mapped[dict[str, JsonValue]] = mapped_column(JSONB)
+    rules: Mapped[dict[str, JsonValue]] = mapped_column(JSONB)
+
+    assignment: Mapped[AssignmentOrm] = relationship(
+        back_populates="versions", foreign_keys=[assignment_id]
+    )
+    attempts: Mapped[list[AssignmentAttemptOrm]] = relationship(
+        back_populates="assignment_version"
+    )
+
+    __table_args__ = (UniqueConstraint("assignment_id", "version", name="uq_assignment_version"),)
+
+
+class AssignmentAttemptOrm(Base):
+    __tablename__ = "assignment_attempts"
+
+    assignment_id: Mapped[UUID] = mapped_column(ForeignKey("assignments.id"))
+    assignment_version_id: Mapped[UUID] = mapped_column(ForeignKey("assignment_versions.id"))
+    student_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    attempt_number: Mapped[int]
+    status: Mapped[AttemptStatus] = mapped_column(Enum(AttemptStatus))
+    answers: Mapped[JsonValue] = mapped_column(JSONB, default=dict)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    assignment: Mapped[AssignmentOrm] = relationship(back_populates="attempts")
+    assignment_version: Mapped[AssignmentVersionOrm] = relationship(back_populates="attempts")
+    evaluations: Mapped[list[AssignmentEvaluationOrm]] = relationship(back_populates="attempt")
+
+
+class AssignmentEvaluationOrm(Base):
+    __tablename__ = "assignment_evaluations"
+
+    attempt_id: Mapped[UUID] = mapped_column(ForeignKey("assignment_attempts.id"))
+    examiner_type: Mapped[ExaminerType] = mapped_column(Enum(ExaminerType))
+    examiner_id: Mapped[UUID | None]
+    status: Mapped[EvaluationStatus] = mapped_column(
+        Enum(EvaluationStatus), default=EvaluationStatus.PENDING
+    )
+    result: Mapped[EvaluationResult | None] = mapped_column(Enum(EvaluationResult))
+    score: Mapped[float | None] = mapped_column(Float)
+    feedback: Mapped[str | None] = mapped_column(TEXT)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    attempt: Mapped[AssignmentAttemptOrm] = relationship(back_populates="evaluations")
 
 
 class PracticeOrm(Base):

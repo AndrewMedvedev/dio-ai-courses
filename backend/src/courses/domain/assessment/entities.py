@@ -1,10 +1,91 @@
 from typing import Any
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import UUID
 
-from src.courses.domain.assessment.enums import PracticeStatus
+from pydantic import JsonValue
+
 from src.shared.domain.entities import Entity
+
+from .enums import (
+    AssignmentCreationPolicy,
+    AssignmentEvaluationPolicy,
+    AssignmentSource,
+    AssignmentStatus,
+    AssignmentType,
+    AttemptStatus,
+    CourseCompletionPolicy,
+    CourseVisibility,
+    EvaluationResult,
+    EvaluationStatus,
+    ExaminerType,
+    NavigationPolicy,
+    PracticeStatus,
+)
+from .vo import AssignmentContent, AssignmentRules
+
+
+@dataclass(kw_only=True, slots=True)
+class CourseSettings(Entity):
+    visibility: CourseVisibility
+    navigation_policy: NavigationPolicy
+    completion_policy: CourseCompletionPolicy
+    mentor_enabled: bool
+
+
+@dataclass(kw_only=True, slots=True)
+class AssignmentSettings(Entity):
+    creation_policy: AssignmentCreationPolicy
+    evaluation_policy: AssignmentEvaluationPolicy
+    auto_generate_missing: bool
+    practice_enabled: bool
+    tests_enabled: bool
+
+
+@dataclass(kw_only=True, slots=True)
+class Assignment(Entity):
+    type: AssignmentType
+    source: AssignmentSource
+    status: AssignmentStatus
+    unit_type: str
+    unit_id: UUID
+    current_version_id: UUID | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class AssignmentVersion(Entity):
+    assignment_id: UUID
+    version: int
+    title: str
+    description: str
+    content: AssignmentContent
+    rules: AssignmentRules
+
+
+@dataclass(kw_only=True, slots=True)
+class AssignmentAttempt(Entity):
+    assignment_id: UUID
+    assignment_version_id: UUID
+    student_id: UUID
+    attempt_number: int
+    status: AttemptStatus
+    started_at: datetime
+    answers: JsonValue = field(default_factory=dict)
+    submitted_at: datetime | None = None
+    expires_at: datetime | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class AssignmentEvaluation(Entity):
+    attempt_id: UUID
+    examiner_type: ExaminerType
+    examiner_id: UUID | None = None
+    status: EvaluationStatus = EvaluationStatus.PENDING
+    result: EvaluationResult | None = None
+    score: float | None = None
+    feedback: str | None = None
+    completed_at: datetime | None = None
 
 
 @dataclass(kw_only=True, slots=True)
