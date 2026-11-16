@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { formatCourseLevel } from '@/entities/course';
 import { toText } from '@/shared/lib/text';
+import { Select } from '@/shared/ui/select';
 
 export interface CatalogCourse {
   id: string;
@@ -137,32 +138,29 @@ export function CourseCatalog({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <select
-              aria-label="Уровень курса"
+            <Select
+              label="Уровень курса"
               className={filterClass}
               value={level}
-              onChange={(event) => setLevel(event.target.value)}
-            >
-              <option value="">Уровень: все</option>
-              {levels.map((value) => (
-                <option key={value} value={value}>
-                  {formatCourseLevel(value)}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Тема курса"
+              onChange={setLevel}
+              options={[
+                { value: '', label: 'Уровень: все' },
+                ...levels.map((value) => ({
+                  value,
+                  label: formatCourseLevel(value),
+                })),
+              ]}
+            />
+            <Select
+              label="Тема курса"
               className={filterClass}
               value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-            >
-              <option value="">Тема: все</option>
-              {topics.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
+              onChange={setTopic}
+              options={[
+                { value: '', label: 'Тема: все' },
+                ...topics.map((value) => ({ value, label: value })),
+              ]}
+            />
           </div>
           {totalPages > 1 && (
             <p className="tw:mt-[8px] tw:mb-0 tw:text-[12px] tw:text-(--muted)">

@@ -14,6 +14,7 @@ import { CreatorChatView } from '@/features/create-course-chat';
 import { CourseCatalog } from '@/widgets/course-catalog';
 import { CourseNavigationTree } from '@/entities/course';
 import { useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { Select } from '@/shared/ui/select';
 import {
   LessonContentEditor,
   type LessonContentChange,
@@ -569,9 +570,14 @@ void test('catalog restores filters from the URL without changing API calls', as
   );
   const input = page.root.findAllByType('input')[0];
   assert.equal(input.props.value, 'Python');
-  const selects = page.root.findAllByType('select');
+  const selects = page.root.findAllByType(Select);
   assert.equal(selects[0].props.value, 'beginner');
   assert.equal(selects[1].props.value, 'python');
+  act(() => {
+    (selects[0].props.onChange as (value: string) => void)('advanced');
+  });
+  assert.equal(page.root.findAllByType(Select)[0].props.value, 'advanced');
+  assert.equal(page.root.findAllByType(Select)[1].props.value, 'python');
   assert.equal(calls.length, 0);
   await unmount(page);
 });
