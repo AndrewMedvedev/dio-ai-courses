@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -7,6 +14,8 @@ import {
   useAgentStore,
 } from '@/entities/agent-chat';
 import { useSessionStore } from '@/entities/session';
+import { useStoredFiles } from '@/shared/lib/storage';
+import { useAiEditorDraft } from '../model/ai-editor-draft';
 import { convertDocumentToMarkdown } from '@/shared/api';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import {
@@ -56,23 +65,17 @@ import { markdownComponents } from './markdown-components';
 const IMAGE_MAX_SIZE_BYTES = 15 * 1024 * 1024;
 const MAX_AI_REFERENCE_IMAGES = 2;
 
-interface AiReferenceImage {
+interface StoredReferenceImage {
   id: string;
-  file: File;
+  data: Blob;
   name: string;
-  previewUrl: string;
+  lastModified: number;
 }
 
 interface ImageUploadPreview {
   blockId: string;
   previewUrl: string;
   name: string;
-}
-
-interface Proposal {
-  blockId: string;
-  block: EditorBlockFields;
-  content: string;
 }
 
 /** Поля блока, которые редактируются текстом. */
@@ -131,15 +134,40 @@ export function LessonContentEditor({
       lesson.markdown || lesson.content || '',
     ),
   );
-  const [activeBlockId, setActiveBlockId] = useState('');
+  const {
+    key: draftKey,
+    activeBlockId,
+    setActiveBlockId,
+    conversationId,
+    isAiOpen,
+    setIsAiOpen,
+    aiInput,
+    setAiInput,
+    proposal,
+    setProposal,
+    hasStaleProposal,
+    staleProposalContent,
+  } = useAiEditorDraft(courseId, lesson.id, blocks);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [aiInput, setAiInput] = useState('');
-  const [aiReferenceImages, setAiReferenceImages] = useState<
-    AiReferenceImage[]
-  >([]);
+  const [
+    storedReferenceImages,
+    setStoredReferenceImages,
+    referenceImagesReady,
+  ] = useStoredFiles<StoredReferenceImage>(`${draftKey}:references`);
+  const aiReferenceImages = useMemo(
+    () =>
+      storedReferenceImages.map((image) => ({
+        id: image.id,
+        name: image.name,
+        file: new File([image.data], image.name, {
+          type: image.data.type,
+          lastModified: image.lastModified,
+        }),
+        previewUrl: URL.createObjectURL(image.data),
+      })),
+    [storedReferenceImages],
+  );
   const [aiReferenceError, setAiReferenceError] = useState('');
-  const [proposal, setProposal] = useState<Proposal | null>(null);
   const [proposalError, setProposalError] = useState('');
   const [blockLimitError, setBlockLimitError] = useState('');
   const [blockToDelete, setBlockToDelete] = useState<EditorBlockWithId | null>(
@@ -149,7 +177,7 @@ export function LessonContentEditor({
   const aiConversationKey = createAgentConversationKey(
     'editor',
     courseId,
-    `${lesson.id}:${activeBlockId}`,
+    `${lesson.id}:${conversationId}`,
   );
   const aiConversation = useAgentStore(
     (state) => state.conversations[aiConversationKey],
@@ -169,7 +197,6 @@ export function LessonContentEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiImageInputRef = useRef<HTMLInputElement>(null);
   const blockRefs = useRef(new Map<string, HTMLDivElement>());
-  const aiReferenceImagesRef = useRef<AiReferenceImage[]>([]);
   const imageUploadPreviewRef = useRef<ImageUploadPreview | null>(null);
 
   useEffect(() => {
@@ -178,14 +205,7 @@ export function LessonContentEditor({
       lesson.markdown || lesson.content || '',
     );
     setBlocks(nextBlocks);
-    setActiveBlockId('');
     setInsertIndex(null);
-    setIsAiOpen(false);
-    setAiInput('');
-    setAiReferenceImages((current) => {
-      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-      return [];
-    });
     setAiReferenceError('');
     setImageUploadPreview((current) => {
       if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
@@ -193,21 +213,20 @@ export function LessonContentEditor({
     });
     setImageUploadError('');
     setUploadingImageBlockId('');
-    setProposal(null);
     setProposalError('');
     setBlockLimitError('');
-    // Черновик сбрасывается только при смене урока; обновления props не должны стирать несохранённые правки.
+    // При смене урока сбрасываем только временные ошибки и предпросмотр загрузки.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson.id]);
 
   useEffect(
-    () => () => cancelAgentRequest(aiConversationKey),
-    [aiConversationKey, cancelAgentRequest],
+    () => () => {
+      aiReferenceImages.forEach((image) =>
+        URL.revokeObjectURL(image.previewUrl),
+      );
+    },
+    [aiReferenceImages],
   );
-
-  useEffect(() => {
-    aiReferenceImagesRef.current = aiReferenceImages;
-  }, [aiReferenceImages]);
 
   useEffect(() => {
     imageUploadPreviewRef.current = imageUploadPreview;
@@ -215,9 +234,6 @@ export function LessonContentEditor({
 
   useEffect(
     () => () => {
-      aiReferenceImagesRef.current.forEach((image) =>
-        URL.revokeObjectURL(image.previewUrl),
-      );
       const preview = imageUploadPreviewRef.current;
       if (preview?.previewUrl) URL.revokeObjectURL(preview.previewUrl);
     },
@@ -257,6 +273,7 @@ export function LessonContentEditor({
         normalizedBlocks.some((block) => block.id === nextActiveId)
         ? nextActiveId
         : '',
+      normalizedBlocks,
     );
     onChange({
       contentBlocks: normalizedBlocks.map(stripUiFields),
@@ -465,7 +482,7 @@ export function LessonContentEditor({
     const prompt = aiInput.trim();
     const activeBlock = blocks.find((block) => block.id === activeBlockId);
     const isImageBlock = activeBlock?.content_type === 'image';
-    if (!prompt || isAiSending) {
+    if (!prompt || isAiSending || !referenceImagesReady) {
       return;
     }
     if (!activeBlock || activeBlock.content_type === 'video') {
@@ -545,10 +562,7 @@ export function LessonContentEditor({
           return;
         }
         updateBlock(activeBlock.id, { image_id: imageId, ai_generated: true });
-        setAiReferenceImages((current) => {
-          current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-          return [];
-        });
+        setStoredReferenceImages([]);
         return;
       }
       setProposal({
@@ -557,6 +571,7 @@ export function LessonContentEditor({
         content: blockToMarkdown(proposedBlock),
       });
     } catch (rawError) {
+      setAiInput((current) => current || prompt);
       const error = rawError as { status?: number; message?: string } | null;
       if (!error?.status) {
         setProposalError(error?.message || 'Не удалось отправить запрос ИИ.');
@@ -566,10 +581,11 @@ export function LessonContentEditor({
   };
 
   const addAiReferenceFiles = (files: FileList | File[] | null) => {
+    if (!referenceImagesReady) return;
     const selectedFiles = Array.from(files || []);
     if (selectedFiles.length === 0) return;
 
-    const nextImages: AiReferenceImage[] = [];
+    const nextImages: StoredReferenceImage[] = [];
     const errors: string[] = [];
     let slotsLeft = MAX_AI_REFERENCE_IMAGES - aiReferenceImages.length;
 
@@ -592,16 +608,16 @@ export function LessonContentEditor({
       }
       nextImages.push({
         id: `ai-ref-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        file,
+        data: file,
         name: file.name,
-        previewUrl: URL.createObjectURL(file),
+        lastModified: file.lastModified,
       });
       slotsLeft -= 1;
     });
 
     setAiReferenceError([...new Set(errors)].join(' '));
     if (nextImages.length > 0) {
-      setAiReferenceImages((current) => [...current, ...nextImages]);
+      setStoredReferenceImages((current) => [...current, ...nextImages]);
     }
   };
 
@@ -611,14 +627,8 @@ export function LessonContentEditor({
   };
 
   const removeAiReferenceImage = (imageId: string) => {
-    setAiReferenceImages((current) =>
-      current.filter((image) => {
-        if (image.id === imageId) {
-          URL.revokeObjectURL(image.previewUrl);
-          return false;
-        }
-        return true;
-      }),
+    setStoredReferenceImages((current) =>
+      current.filter((image) => image.id !== imageId),
     );
     setAiReferenceError('');
   };
@@ -650,14 +660,12 @@ export function LessonContentEditor({
   };
 
   const selectBlock = (blockId: string) => {
+    if (blockId === activeBlockId) return;
     setActiveBlockId(blockId);
     setInsertIndex(null);
     setIsAiOpen(false);
     setAiInput('');
-    setAiReferenceImages((current) => {
-      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-      return [];
-    });
+    setStoredReferenceImages([]);
     setAiReferenceError('');
     setProposal(null);
     scrollToBlock(blockId);
@@ -1114,6 +1122,8 @@ export function LessonContentEditor({
           value={aiInput}
           onChange={setAiInput}
           onSubmit={askAi}
+          disabled={!referenceImagesReady}
+          attachDisabled={!referenceImagesReady || isAiSending}
           busy={isAiSending}
           onStop={() => cancelAgentRequest(aiConversationKey)}
           textareaRef={aiTextareaRef}
@@ -1186,6 +1196,23 @@ export function LessonContentEditor({
         />
       </div>
 
+      {hasStaleProposal && (
+        <div className="lesson-ai-error" role="alert">
+          <p>
+            Блок изменился. Сохранённая правка ИИ не применена к другой версии
+            содержимого.
+          </p>
+          <details>
+            <summary>Посмотреть сохранённую правку</summary>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {staleProposalContent}
+            </ReactMarkdown>
+          </details>
+          <button type="button" className="btn" onClick={rejectProposal}>
+            Удалить сохранённую правку
+          </button>
+        </div>
+      )}
       {blockLimitError && (
         <p className="lesson-editor-limit-error tw:m-[0] tw:p-[9px_11px] tw:rounded-[10px] tw:text-[var(--danger-text,_#a94f60)] tw:text-[0.82rem] tw:leading-[1.4] tw:[border:1px_solid_rgba(var(--danger-rgb,_190,_80,_100),_0.32)] tw:[background:rgba(var(--danger-rgb,_190,_80,_100),_0.07)]">
           {blockLimitError}

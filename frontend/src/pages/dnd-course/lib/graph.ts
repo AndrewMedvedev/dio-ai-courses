@@ -129,18 +129,6 @@ export function buildGraph(state: GraphState): {
     zIndex: 2,
   });
 
-  nodes.push({
-    id: 'upload',
-    type: 'upload',
-    position: free.upload,
-    data: stableData('upload', 'upload'),
-    selectable: false,
-    connectable: false,
-    draggable: false,
-    width: NODE_SIZE.upload.width,
-    height: NODE_SIZE.upload.height,
-  });
-
   state.lessons
     .filter((lesson) => !assigned.has(lesson.id))
     .forEach((lesson) => {

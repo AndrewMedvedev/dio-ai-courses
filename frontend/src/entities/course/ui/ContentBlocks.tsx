@@ -24,6 +24,7 @@ interface BlockProps {
 }
 
 export interface ContentBlocksProps {
+  presentation?: 'cards' | 'document';
   blocks: BlockData[] | null | undefined;
   /** Владелец картинок курса: из его папки в хранилище берутся изображения. */
   ownerUserId?: string | null;
@@ -73,7 +74,7 @@ const createMarkdownComponents = (
     }
 
     return (
-      <SyntaxHighlightedCode className={className} {...props}>
+      <SyntaxHighlightedCode copyable className={className} {...props}>
         {children}
       </SyntaxHighlightedCode>
     );
@@ -575,7 +576,10 @@ function renderContentBlock(
 
 /** Теория урока: контент-блоки всех типов (текст, код, Mermaid, квиз…). */
 export const ContentBlocks = forwardRef<HTMLElement, ContentBlocksProps>(
-  function ContentBlocks({ blocks, ownerUserId, lessonId }, ref) {
+  function ContentBlocks(
+    { blocks, ownerUserId, lessonId, presentation = 'cards' },
+    ref,
+  ) {
     const [preview, setPreview] = useState<ContentPreview | null>(null);
 
     if (!Array.isArray(blocks) || blocks.length === 0) {
@@ -594,15 +598,13 @@ export const ContentBlocks = forwardRef<HTMLElement, ContentBlocksProps>(
 
     return (
       <section
-        className="course-viewer-card theory-section tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:p-[0] tw:grid tw:gap-[16px] tw:w-[100%] tw:[border-width:0] tw:[background:transparent] tw:[box-shadow:none] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:none] tw:[&_h1]:m-[0]"
-        aria-labelledby="theory-title"
+        className={`${presentation === 'document' ? 'is-document tw:[&_.content-block-card]:border-0! tw:[&_.content-block-card]:[background:transparent]! tw:[&_.content-block-card]:p-0! tw:[&_.content-block-card]:shadow-none! tw:[&_.content-block-card_>_.course-viewer-eyebrow]:hidden! tw:[&_.lesson-markdown]:[background:transparent]! tw:[&_.lesson-markdown]:p-0! tw:[&_.lesson-markdown]:mt-0! tw:[&_.lesson-markdown]:shadow-none! tw:[&_.lesson-markdown_h2]:text-[24px]! tw:[&_.lesson-markdown_h2]:text-(--heading)! tw:[&_.lesson-markdown_h3]:text-[24px]! tw:[&_.lesson-markdown_h3]:text-(--heading)! tw:[&_.lesson-markdown_pre]:bg-(--code-bg)! tw:[&_.lesson-markdown_pre]:p-[20px]! tw:[&_.lesson-markdown_pre]:rounded-[16px]! tw:[&_.lesson-markdown_pre]:border-(--line)!' : ''} course-viewer-card theory-section tw:border-none tw:border-[currentcolor] tw:rounded-[0] tw:p-[0] tw:grid tw:gap-[16px] tw:w-[100%] tw:[border-width:0] tw:[background:transparent] tw:[box-shadow:none] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:none] tw:[&_h1]:m-[0]`}
+        aria-labelledby={
+          presentation === 'document' ? undefined : 'theory-title'
+        }
+        aria-label={presentation === 'document' ? 'Теория урока' : undefined}
       >
-        <h2
-          className="tw:text-[clamp(1.42rem,_2.4vw,_2rem)] tw:leading-[1.28] tw:tracking-[-0.016em]"
-          id="theory-title"
-        >
-          Теория урока
-        </h2>
+        {presentation !== 'document' && <h2 id="theory-title">Теория урока</h2>}
         <div
           ref={ref as Ref<HTMLDivElement>}
           className="content-blocks-list tw:grid tw:gap-[16px] tw:w-[100%] tw:min-w-[0] tw:max-w-[100%]"

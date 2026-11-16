@@ -17,16 +17,16 @@ export function HomePage({
 }: HomePageProps) {
   return (
     <>
-      <section className="container hero tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[8px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
+      <section className="container hero tw:relative tw:z-[1] tw:w-[min(1760px,_calc(100%_-_32px))] tw:max-w-[100%] tw:mt-[24px] tw:max-760:mt-[16px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
         <div className="hero-grid tw:grid tw:grid-cols-[1.08fr_0.92fr] tw:gap-[24px] tw:max-1100:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:max-760:grid-cols-[1fr]">
           <div className="hero-left glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:p-[30px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:max-760:p-[18px] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::after]:absolute tw:[&::after]:inset-[0] tw:[&::after]:z-[-1] tw:[&::after]:rounded-[inherit] tw:[&::after]:pointer-events-none tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:''] tw:[&::after]:[backdrop-filter:blur(2px)] tw:[&::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&::after]:[filter:url(#glass-distortion)] tw:[&::after]:[-webkit-filter:url('#glass-distortion')] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
             <p className="kicker tw:m-[0] tw:text-[0.78rem] tw:tracking-[0.1em] tw:uppercase tw:text-(--eyebrow) tw:font-[700]">
               ВАША ЦЕЛЬ — ВАШ ПЕРСОНАЛЬНЫЙ КУРС
             </p>
-            <h1 className="tw:mt-[14px] tw:text-[clamp(1.9rem,_4.4vw,_3rem)] tw:leading-[1.15] tw:max-w-[17ch] tw:[font-family:'Unbounded',_sans-serif]">
+            <h1 className="tw:mt-[14px] tw:text-[clamp(1.9rem,_4.4vw,_3rem)] tw:leading-[1.15] tw:max-w-[26ch] tw:[font-family:'Unbounded',_sans-serif]">
               Освойте нужный навык быстрее с курсом, созданным ИИ для вас
             </h1>
-            <p className="lead tw:mt-[16px] tw:text-(--muted) tw:max-w-[57ch]">
+            <p className="lead tw:mt-[16px] tw:text-(--muted) tw:max-w-[68ch]">
               Опишите, чему хотите научиться, — AI Course Lab за несколько минут
               соберёт понятную программу с теорией, практикой, ИИ-помощником и
               контролем прогресса.
@@ -85,7 +85,7 @@ export function HomePage({
         </div>
       </section>
 
-      <section className="container section home-usp tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:grid tw:grid-cols-[minmax(0,_0.9fr)_minmax(0,_1.1fr)] tw:gap-[28px] tw:items-center tw:max-1100:grid-cols-[1fr] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
+      <section className="container section home-usp tw:relative tw:z-[1] tw:w-[min(1760px,_calc(100%_-_32px))] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:grid tw:grid-cols-[minmax(0,_0.9fr)_minmax(0,_1.1fr)] tw:gap-[28px] tw:items-center tw:max-1100:grid-cols-[1fr] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
         <div className="home-usp-copy">
           <p className="kicker tw:m-[0] tw:text-[0.78rem] tw:tracking-[0.1em] tw:uppercase tw:text-(--eyebrow) tw:font-[700] tw:[.home-usp-copy_>_&:last-child]:m-[14px_0_0] tw:[.home-usp-copy_>_&:last-child]:text-(--muted) tw:[.home-usp-copy_>_&:last-child]:max-w-[60ch] tw:[.home-usp-copy_>_&:last-child]:leading-[1.7]">
             НЕ ИЩИТЕ ПОДХОДЯЩИЙ КУРС — СОЗДАЙТЕ СВОЙ
@@ -128,7 +128,7 @@ export function HomePage({
       </section>
 
       <section
-        className="container section tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
+        className="container section tw:relative tw:z-[1] tw:w-[min(1760px,_calc(100%_-_32px))] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
         id="about"
       >
         <SectionTop label="01" title="Что вы получаете в AI Course Lab" />
@@ -145,7 +145,7 @@ export function HomePage({
       </section>
 
       <section
-        className="container section tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
+        className="container section tw:relative tw:z-[1] tw:w-[min(1760px,_calc(100%_-_32px))] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
         id="tracks"
       >
         <SectionTop label="02" title="Каталог ИИ-курсов" />
@@ -175,7 +175,7 @@ export function HomePage({
       </section>
 
       <section
-        className="container section tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
+        className="container section tw:relative tw:z-[1] tw:w-[min(1760px,_calc(100%_-_32px))] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]"
         id="flow"
       >
         <SectionTop label="03" title="Как генерируется ваш ИИ-курс" />
@@ -199,7 +199,7 @@ export function HomePage({
 
       {canCreateCourse && (
         <section
-          className="container cta glass-card tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[68px] tw:m-[0_auto] tw:mb-[46px] tw:border-solid tw:border-[rgba(var(--accent-soft-rgb),_0.5)] tw:rounded-[24px] tw:overflow-hidden tw:isolate tw:p-[30px_28px] tw:flex tw:justify-between tw:items-center tw:gap-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:max-760:items-start tw:max-760:flex-col tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::after]:absolute tw:[&::after]:inset-[0] tw:[&::after]:z-[-1] tw:[&::after]:rounded-[inherit] tw:[&::after]:pointer-events-none tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:''] tw:[&::after]:[backdrop-filter:blur(2px)] tw:[&::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&::after]:[filter:url(#glass-distortion)] tw:[&::after]:[-webkit-filter:url('#glass-distortion')] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
+          className="container cta glass-card tw:relative tw:z-[1] tw:w-[min(1760px,_calc(100%_-_32px))] tw:max-w-[100%] tw:mt-[68px] tw:m-[0_auto] tw:mb-[46px] tw:border-solid tw:border-[rgba(var(--accent-soft-rgb),_0.5)] tw:rounded-[24px] tw:overflow-hidden tw:isolate tw:p-[30px_28px] tw:flex tw:justify-between tw:items-center tw:gap-[16px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:transparent] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:none] tw:[-webkit-backdrop-filter:none] tw:max-760:items-start tw:max-760:flex-col tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::after]:absolute tw:[&::after]:inset-[0] tw:[&::after]:z-[-1] tw:[&::after]:rounded-[inherit] tw:[&::after]:pointer-events-none tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[&::after]:[content:''] tw:[&::after]:[backdrop-filter:blur(2px)] tw:[&::after]:[-webkit-backdrop-filter:blur(2px)] tw:[&::after]:[filter:url(#glass-distortion)] tw:[&::after]:[-webkit-filter:url('#glass-distortion')] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
           id="cta"
         >
           <div>

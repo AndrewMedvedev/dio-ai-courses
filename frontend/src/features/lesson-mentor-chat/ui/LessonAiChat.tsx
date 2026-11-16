@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { usePersistenceScope } from '@/entities/session';
+import { useLocalState } from '@/shared/lib/storage';
 import {
   createAgentConversationKey,
   useAgentStore,
@@ -48,13 +50,17 @@ export function LessonAiChat({
   onClose,
   onAssistantResponse,
 }: LessonAiChatProps) {
-  const [inputValue, setInputValue] = useState('');
+  const scope = usePersistenceScope();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const latestAssistantMessageRef = useRef<string | null>(null);
   const didObserveMessagesRef = useRef(false);
   const conversationKey = useMemo(
-    () => createAgentConversationKey('mentor', courseId, lessonId),
-    [courseId, lessonId],
+    () => createAgentConversationKey('mentor', courseId, lessonId, scope),
+    [courseId, lessonId, scope],
+  );
+  const [inputValue, setInputValue] = useLocalState(
+    `mentor-input:${conversationKey}`,
+    '',
   );
   const conversation = useAgentStore(
     (state) => state.conversations[conversationKey],
@@ -76,8 +82,7 @@ export function LessonAiChat({
       agent: 'mentor',
       courseId,
     });
-    return () => cancelRequest(conversationKey);
-  }, [cancelRequest, conversationKey, courseId, initializeConversation]);
+  }, [conversationKey, courseId, initializeConversation]);
 
   // Ответ пришёл, пока чат закрыт, — кнопка открытия подсвечивается.
   useEffect(() => {
@@ -115,7 +120,7 @@ export function LessonAiChat({
         contentBlocks,
       });
     } catch {
-      // Публичная ошибка уже сохранена в store; технические детали не логируем.
+      setInputValue((current) => current || prompt);
     }
   };
 

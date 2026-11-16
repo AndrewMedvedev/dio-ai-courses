@@ -9,16 +9,16 @@ export function Onboarding() {
   const dismissed = useDndCourseStore((state) => state.onboardingDismissed);
   const hasMaterials = useDndCourseStore((state) => state.materials.length > 0);
   const dismiss = useDndCourseStore((state) => state.dismissOnboarding);
+  const openMaterialPicker = useDndCourseStore(
+    (state) => state.openMaterialPicker,
+  );
   const { pickFiles } = useDndActions();
   if (dismissed) return null;
   return (
     <aside
-      className="dnd-onboarding tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder_&]:top-[14px] tw:[.page_.dnd-builder_&]:left-[14px] tw:[.page_.dnd-builder_&]:z-[6] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[12px] tw:[.page_.dnd-builder_&]:max-w-[min(380px,_calc(100%_-_28px))] tw:[.page_.dnd-builder_&]:p-[14px] tw:[.page_.dnd-builder_&]:rounded-[14px] tw:max-767:[.page_.dnd-builder_&]:top-[8px] tw:max-767:[.page_.dnd-builder_&]:left-[8px] tw:max-767:[.page_.dnd-builder_&]:max-w-[none] tw:[.page_.dnd-builder_&]:[background:var(--dnd-panel)] tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--dnd-border)] tw:[.page_.dnd-builder_&]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&]:animate-dnd-pop tw:max-767:[.page_.dnd-builder_&]:right-[8px] tw:[.page_.dnd-builder_&_strong]:block tw:[.page_.dnd-builder_&_strong]:text-[0.88rem] tw:[.page_.dnd-builder_&_strong]:leading-[1.35] tw:[.page_.dnd-builder_&_ul]:m-[8px_0_10px] tw:[.page_.dnd-builder_&_ul]:pl-[18px] tw:[.page_.dnd-builder_&_ul]:grid tw:[.page_.dnd-builder_&_ul]:gap-[3px] tw:[.page_.dnd-builder_&_li]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_li]:text-[0.78rem]"
+      className="dnd-onboarding tw:[.page_.dnd-builder_&]:absolute tw:[.page_.dnd-builder_&]:top-[14px] tw:[.page_.dnd-builder_&]:left-[14px] tw:[.page_.dnd-builder_&]:z-[6] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[12px] tw:[.page_.dnd-builder_&]:max-w-[min(432px,_calc(100%_-_28px))] tw:[.page_.dnd-builder_&]:p-[20px] tw:[.page_.dnd-builder_&]:rounded-[14px] tw:max-767:[.page_.dnd-builder_&]:top-[8px] tw:max-767:[.page_.dnd-builder_&]:left-[8px] tw:max-767:[.page_.dnd-builder_&]:max-w-[none] tw:[.page_.dnd-builder_&]:[background:var(--dnd-panel)] tw:[.page_.dnd-builder_&]:[border:1px_solid_var(--eyebrow)] tw:[.page_.dnd-builder_&]:[box-shadow:var(--dnd-shadow-lg)] tw:[.page_.dnd-builder_&]:animate-dnd-pop tw:max-767:[.page_.dnd-builder_&]:right-[8px] tw:[.page_.dnd-builder_&_strong]:block tw:[.page_.dnd-builder_&_strong]:text-[16px] tw:[.page_.dnd-builder_&_strong]:leading-[1.35] tw:[.page_.dnd-builder_&_ul]:m-[8px_0_10px] tw:[.page_.dnd-builder_&_ul]:pl-[18px] tw:[.page_.dnd-builder_&_ul]:grid tw:[.page_.dnd-builder_&_ul]:gap-[6px] tw:[.page_.dnd-builder_&_li]:text-(--dnd-muted) tw:[.page_.dnd-builder_&_li]:text-[14px]"
       aria-label="Подсказка по началу работы"
     >
-      <div className="dnd-onboarding-icon tw:[.page_.dnd-builder_&]:flex-[none] tw:[.page_.dnd-builder_&]:grid tw:[.page_.dnd-builder_&]:w-[38px] tw:[.page_.dnd-builder_&]:h-[38px] tw:[.page_.dnd-builder_&]:rounded-[10px] tw:[.page_.dnd-builder_&]:text-(--dnd-info) tw:[.page_.dnd-builder_&]:[place-items:center] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)]">
-        <Icon name="upload" size={20} />
-      </div>
       <div>
         <strong>
           {hasMaterials
@@ -27,13 +27,10 @@ export function Onboarding() {
         </strong>
         <ul>
           <li>Материалы → перетащите в зону «Новый урок» внизу холста.</li>
-          <li>
-            Уроки → перетащите на модуль, в «Новый модуль» или на другой урок —
-            получится новый модуль.
-          </li>
+          <li>Уроки → перетащите на модуль или в «Новый модуль».</li>
           <li>Клик по карточке открывает инспектор справа.</li>
         </ul>
-        <div className="dnd-onboarding-actions tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap">
+        <div className="dnd-onboarding-actions tw:[.page_.dnd-builder_&_.dnd-btn]:min-h-[44px] tw:[.page_.dnd-builder_&_.dnd-btn]:rounded-full tw:[.page_.dnd-builder_&_.dnd-btn]:px-[24px] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:flex-wrap">
           {!hasMaterials ? (
             <button
               type="button"
@@ -42,7 +39,15 @@ export function Onboarding() {
             >
               <Icon name="upload" size={15} /> Выбрать файлы
             </button>
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              className="dnd-btn dnd-btn--solid dnd-btn--sm"
+              onClick={() => openMaterialPicker()}
+            >
+              <Icon name="lesson" size={15} /> Создать урок
+            </button>
+          )}
           <button
             type="button"
             className="dnd-btn dnd-btn--ghost dnd-btn--sm"
@@ -65,7 +70,8 @@ export function Celebration() {
   const [burst, setBurst] = useState(false);
 
   useEffect(() => {
-    if (percent < 100 || celebrated) return undefined;
+    if (percent < 100 || celebrated || useDndCourseStore.getState().celebrated)
+      return undefined;
     markCelebrated();
     toast('success', 'Структура курса собрана — можно проверить и завершить.');
     if (prefersReducedMotion()) return undefined;

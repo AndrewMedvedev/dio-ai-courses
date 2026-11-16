@@ -97,37 +97,45 @@ export function forgetLessonTheory(lessonId?: string | null): void {
 
 export async function getCachedCourseBasicInfo(
   courseId?: string | null,
+  refresh = false,
 ): Promise<LearningCourse> {
   if (!courseId) {
     return getCachedCourse();
   }
-  if (courseCache.has(courseId)) {
+  if (!refresh && courseCache.has(courseId)) {
     return courseCache.get(courseId) as LearningCourse;
   }
-  return rememberCourse(await fetchCourseBasicInfo(courseId));
+  return rememberCourse(
+    await fetchCourseBasicInfo(courseId, refresh ? { cache: 'no-store' } : {}),
+  );
 }
 
 export async function getCourseLearningStructure(
   courseId?: string | null,
+  refresh = false,
 ): Promise<LearningCourse> {
-  const course = await getCachedCourseBasicInfo(courseId);
+  let course = await getCachedCourseBasicInfo(courseId, refresh);
   for (const moduleRef of course.blocks || []) {
-    if (!moduleCache.has(moduleRef.id)) {
-      const module = await getModuleById(moduleRef.id);
-      rememberCourse(
-        replaceModule(courseCache.get(course.id) || course, module),
-      );
+    if (refresh || !moduleCache.has(moduleRef.id)) {
+      const module = await getModuleById(moduleRef.id, refresh);
+      course = replaceModule(course, module);
     }
   }
-  return courseCache.get(course.id) || course;
+  return rememberCourse(course);
 }
 
-export async function getModuleById(moduleId: string): Promise<LearningBlock> {
-  if (moduleCache.has(moduleId)) {
+export async function getModuleById(
+  moduleId: string,
+  refresh = false,
+): Promise<LearningBlock> {
+  if (!refresh && moduleCache.has(moduleId)) {
     return moduleCache.get(moduleId) as LearningBlock;
   }
 
-  const module = await getModuleBasicInfo(moduleId);
+  const module = await getModuleBasicInfo(
+    moduleId,
+    refresh ? { cache: 'no-store' } : {},
+  );
   moduleCache.set(moduleId, module);
   for (const [courseId, course] of courseCache.entries()) {
     if ((course.blocks || []).some((block) => block.id === moduleId)) {
@@ -137,12 +145,18 @@ export async function getModuleById(moduleId: string): Promise<LearningBlock> {
   return module;
 }
 
-export async function getLessonById(lessonId: string): Promise<LearningLesson> {
-  if (lessonCache.has(lessonId)) {
+export async function getLessonById(
+  lessonId: string,
+  refresh = false,
+): Promise<LearningLesson> {
+  if (!refresh && lessonCache.has(lessonId)) {
     return lessonCache.get(lessonId) as LearningLesson;
   }
 
-  const lesson = await getLessonBasicInfo(lessonId);
+  const lesson = await getLessonBasicInfo(
+    lessonId,
+    refresh ? { cache: 'no-store' } : {},
+  );
   lessonCache.set(lessonId, lesson);
   for (const [courseId, course] of courseCache.entries()) {
     courseCache.set(courseId, replaceLessonInCourse(course, lesson));
@@ -152,16 +166,20 @@ export async function getLessonById(lessonId: string): Promise<LearningLesson> {
 
 export async function getLessonContentBlocks(
   lessonId?: string | null,
+  refresh = false,
 ): Promise<ContentBlock[]> {
   if (!lessonId) {
     return [];
   }
 
-  if (lessonTheoryCache.has(lessonId)) {
+  if (!refresh && lessonTheoryCache.has(lessonId)) {
     return lessonTheoryCache.get(lessonId) as ContentBlock[];
   }
 
-  const contentBlocks = await getLessonTheory(lessonId);
+  const contentBlocks = await getLessonTheory(
+    lessonId,
+    refresh ? { cache: 'no-store' } : {},
+  );
   lessonTheoryCache.set(lessonId, contentBlocks);
 
   const lesson = lessonCache.get(lessonId);

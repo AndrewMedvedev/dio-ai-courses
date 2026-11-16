@@ -2,9 +2,7 @@ import { toText } from '@/shared/lib/text';
 import { asRecord } from '@/shared/api';
 // Запущенная генерация курса в localStorage: после перезагрузки страницы
 // чат продолжает ту же беседу и следит за той же генерацией.
-import { getLocalStorage } from '@/shared/lib/storage';
-
-export const ACTIVE_CREATOR_COURSE_KEY = 'course-generation:active-course';
+import { localStateStorage } from '@/shared/lib/storage';
 
 export interface StoredGeneration {
   courseId: string;
@@ -24,20 +22,20 @@ export function createUuid(): string {
   });
 }
 
-function getGenerationKey(courseId: string): string {
-  return `course-generation:${courseId}`;
+function getGenerationKey(courseId: string, scope: string): string {
+  return `course-generation:${scope}:${courseId}`;
 }
 
-export function createCourseId(): string {
-  return getLocalStorage()?.getItem(ACTIVE_CREATOR_COURSE_KEY) || createUuid();
-}
-
-export function readGenerationState(courseId: string): StoredGeneration | null {
-  const storage = getLocalStorage();
-  if (!storage || !courseId) return null;
+export function readGenerationState(
+  courseId: string,
+  scope: string,
+): StoredGeneration | null {
+  if (!courseId) return null;
   try {
     const value = asRecord(
-      JSON.parse(storage.getItem(getGenerationKey(courseId)) || 'null'),
+      JSON.parse(
+        localStateStorage.getItem(getGenerationKey(courseId, scope)) || 'null',
+      ),
     );
     if (value.courseId !== courseId) return null;
     return {
@@ -53,18 +51,18 @@ export function readGenerationState(courseId: string): StoredGeneration | null {
   }
 }
 
-export function writeGenerationState(record: StoredGeneration): void {
-  const storage = getLocalStorage();
-  if (!storage || !record?.courseId) return;
-  storage.setItem(getGenerationKey(record.courseId), JSON.stringify(record));
-  storage.setItem(ACTIVE_CREATOR_COURSE_KEY, record.courseId);
+export function writeGenerationState(
+  record: StoredGeneration,
+  scope: string,
+): void {
+  if (!record?.courseId) return;
+  localStateStorage.setItem(
+    getGenerationKey(record.courseId, scope),
+    JSON.stringify(record),
+  );
 }
 
-export function clearGenerationState(courseId: string): void {
-  const storage = getLocalStorage();
-  if (!storage || !courseId) return;
-  storage.removeItem(getGenerationKey(courseId));
-  if (storage.getItem(ACTIVE_CREATOR_COURSE_KEY) === courseId) {
-    storage.removeItem(ACTIVE_CREATOR_COURSE_KEY);
-  }
+export function clearGenerationState(courseId: string, scope: string): void {
+  if (!courseId) return;
+  localStateStorage.removeItem(getGenerationKey(courseId, scope));
 }

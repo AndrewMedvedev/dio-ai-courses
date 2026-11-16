@@ -1,6 +1,7 @@
 import { toText } from '@/shared/lib/text';
 import { asRecord } from '@/shared/api';
-import { getLocalStorage } from '@/shared/lib/storage';
+import { getLocalStorage, reportStorageError } from '@/shared/lib/storage';
+import { getPersistenceScope } from '@/entities/session';
 import {
   DRAFT_KEY,
   EMPTY_COURSE_FORM,
@@ -178,12 +179,17 @@ export function migrateLegacyDraft(legacy: RawApiRecord): DndDraft {
   });
 }
 
-export function loadDraft(): { draft: DndDraft; migrated: boolean } {
+export function loadDraft(scope = getPersistenceScope()): {
+  draft: DndDraft;
+  migrated: boolean;
+} {
   const storage = getLocalStorage();
   if (!storage) return { draft: { ...EMPTY_DRAFT }, migrated: false };
 
   try {
-    const current: unknown = JSON.parse(storage.getItem(DRAFT_KEY) || 'null');
+    const current: unknown = JSON.parse(
+      storage.getItem(`${DRAFT_KEY}:${scope}`) || 'null',
+    );
     if (current && typeof current === 'object') {
       return { draft: sanitizeDraft(asRecord(current)), migrated: false };
     }
@@ -193,12 +199,13 @@ export function loadDraft(): { draft: DndDraft; migrated: boolean } {
 
   try {
     const legacy: unknown = JSON.parse(
-      storage.getItem(LEGACY_DRAFT_KEY) || 'null',
+      storage.getItem(`${LEGACY_DRAFT_KEY}:${scope}`) || 'null',
     );
     if (legacy && typeof legacy === 'object') {
       const draft = migrateLegacyDraft(asRecord(legacy));
       // Старый ключ удаляем только после того, как новый точно записан.
-      if (saveDraft(draft)) storage.removeItem(LEGACY_DRAFT_KEY);
+      if (saveDraft(draft, scope))
+        storage.removeItem(`${LEGACY_DRAFT_KEY}:${scope}`);
       return { draft, migrated: true };
     }
   } catch {
@@ -217,25 +224,35 @@ export function pickDraft(state: DndDraft): DndDraft {
   return draft as unknown as DndDraft;
 }
 
-export function saveDraft(state: DndDraft): boolean {
+export function saveDraft(
+  state: DndDraft,
+  scope = getPersistenceScope(),
+): boolean {
   const storage = getLocalStorage();
-  if (!storage) return false;
+  if (!storage) {
+    reportStorageError();
+    return false;
+  }
   try {
     storage.setItem(
-      DRAFT_KEY,
+      `${DRAFT_KEY}:${scope}`,
       JSON.stringify({ version: 2, ...pickDraft(state) }),
     );
     return true;
   } catch {
+    reportStorageError();
     return false;
   }
 }
 
-export function clearDraft({ includeLegacy = true } = {}) {
+export function clearDraft({
+  includeLegacy = true,
+  scope = getPersistenceScope(),
+} = {}) {
   const storage = getLocalStorage();
   try {
-    storage?.removeItem(DRAFT_KEY);
-    if (includeLegacy) storage?.removeItem(LEGACY_DRAFT_KEY);
+    storage?.removeItem(`${DRAFT_KEY}:${scope}`);
+    if (includeLegacy) storage?.removeItem(`${LEGACY_DRAFT_KEY}:${scope}`);
   } catch {
     // ничего страшного: черновик просто останется
   }

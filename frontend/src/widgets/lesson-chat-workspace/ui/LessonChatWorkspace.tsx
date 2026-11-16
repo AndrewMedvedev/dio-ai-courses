@@ -1,15 +1,10 @@
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
 import {
   LessonAiChat,
   type LessonAiChatProps,
 } from '@/features/lesson-mentor-chat';
+import { usePersistenceScope } from '@/entities/session';
+import { useLocalState } from '@/shared/lib/storage';
 
 /** Свойства чата, которые задаёт страница; остальное управляется раскладкой. */
 export type LessonChatProps = Omit<
@@ -35,22 +30,16 @@ export function LessonChatWorkspace({
   chatKey,
   chatProps,
 }: LessonChatWorkspaceProps) {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
+  const scope = usePersistenceScope();
+  const key = `lesson-chat-layout:${scope}:${chatKey || chatProps.lessonId || chatProps.courseId}`;
+  const [isChatOpen, setIsChatOpen] = useLocalState(`${key}:open`, false);
+  const [hasUnreadResponse, setHasUnreadResponse] = useLocalState(
+    `${key}:unread`,
+    false,
+  );
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const focusFrameRef = useRef<number | null>(null);
   const chatPanelId = useId();
-
-  useEffect(() => {
-    setIsChatOpen(false);
-    setHasUnreadResponse(false);
-  }, [chatKey]);
-
-  useEffect(() => {
-    if (!chatAvailable) {
-      setIsChatOpen(false);
-    }
-  }, [chatAvailable]);
 
   useEffect(
     () => () => {
@@ -64,20 +53,20 @@ export function LessonChatWorkspace({
   const openChat = useCallback(() => {
     setHasUnreadResponse(false);
     setIsChatOpen(true);
-  }, []);
+  }, [setHasUnreadResponse, setIsChatOpen]);
   const markResponseAsUnread = useCallback(() => {
     setHasUnreadResponse(true);
-  }, []);
+  }, [setHasUnreadResponse]);
   const closeChat = useCallback(() => {
     setIsChatOpen(false);
     focusFrameRef.current = requestAnimationFrame(() =>
       openButtonRef.current?.focus(),
     );
-  }, []);
+  }, [setIsChatOpen]);
 
   return (
     <div
-      className={`lesson-view-grid lesson-chat-workspace tw:mt-[16px] tw:grid tw:grid-cols-[340px_minmax(0,_1fr)] tw:gap-[14px] tw:relative tw:[&.is-course-edit-layout]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:[&.generated-course-learning-grid]:grid-cols-[300px_minmax(0,_1fr)_68px] tw:[&.is-learning-layout]:grid-cols-[320px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[&.is-course-edit-layout]:gap-[18px] tw:[&.generated-course-learning-grid]:gap-[18px] tw:[align-items:start] tw:between-1101-1300:[&.is-course-edit-layout]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.is-course-edit-layout]:grid-cols-[1fr] tw:between-1101-1300:[&.generated-course-learning-grid]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.generated-course-learning-grid]:grid-cols-[1fr] tw:between-1101-1300:[&.is-learning-layout]:grid-cols-[300px_minmax(0,_1fr)] tw:max-1100:[&.is-learning-layout]:grid-cols-[1fr] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:pr-[clamp(500px,_32vw,_500px)] tw:[&:not(.has-lesson-chat)_>_.lesson-main-card]:w-[100%] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)_>_.lesson-main-card]:relative tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)_>_.lesson-main-card]:left-[clamp(10px,_0.8vw,_14px)] tw:[&.is-learning-layout_>_.lesson-main-card]:static tw:[&.generated-course-learning-grid_>_.lesson-main-card]:static tw:[&.is-learning-layout_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_.lesson-main-card]:min-w-[0] tw:[&.generated-course-learning-grid_.lesson-main-card]:w-[100%] tw:[&.is-learning-layout_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:mb-[0] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:[justify-self:start] tw:[&_>_*]:min-w-[0] ${className}`}
+      className={`lesson-view-grid lesson-chat-workspace tw:mt-[16px] tw:grid tw:grid-cols-[340px_minmax(0,_1fr)] tw:gap-[14px] tw:relative tw:[&.is-course-edit-layout]:grid-cols-[300px_minmax(0,_1fr)] tw:[&.generated-course-learning-grid]:grid-cols-[288px_minmax(0,_1fr)] tw:[&.is-learning-layout]:grid-cols-[320px_minmax(0,_1fr)] tw:max-1100:grid-cols-[1fr] tw:[&.is-course-edit-layout]:gap-[18px] tw:[&.generated-course-learning-grid]:gap-[18px] tw:[align-items:start] tw:between-1101-1300:[&.is-course-edit-layout]:grid-cols-[280px_minmax(0,_1fr)] tw:max-1100:[&.is-course-edit-layout]:grid-cols-[1fr] tw:between-1101-1300:[&.generated-course-learning-grid]:grid-cols-[260px_minmax(0,_1fr)] tw:max-760:[&.generated-course-learning-grid]:grid-cols-[1fr] tw:between-1101-1300:[&.is-learning-layout]:grid-cols-[300px_minmax(0,_1fr)] tw:max-1100:[&.is-learning-layout]:grid-cols-[1fr] tw:[&:not(.has-lesson-chat)_>_.lesson-main-card]:w-[100%] tw:[&.is-learning-layout_>_.lesson-main-card]:static tw:[&.generated-course-learning-grid_>_.lesson-main-card]:static tw:[&.is-learning-layout_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_>_.lesson-main-card]:overflow-visible tw:[&.generated-course-learning-grid_.lesson-main-card]:min-w-[0] tw:[&.generated-course-learning-grid_.lesson-main-card]:w-[100%] tw:[&.is-learning-layout_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_>_.lesson-main-card]:max-h-[none] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:mb-[0] tw:[&.generated-course-learning-grid_.lesson-mode-switch]:[justify-self:start] tw:[&_>_*]:min-w-[0] tw:[&.generated-course-learning-grid.is-contents-collapsed]:grid-cols-[40px_minmax(0,_1fr)] tw:[&.generated-course-learning-grid.is-overview-layout]:grid-cols-[minmax(0,1fr)] ${className}`}
     >
       {children}
 
@@ -123,7 +112,7 @@ export function LessonChatWorkspace({
             key={chatKey}
             {...chatProps}
             panelId={chatPanelId}
-            isOpen={isChatOpen}
+            isOpen={Boolean(chatAvailable && isChatOpen)}
             onClose={closeChat}
             onAssistantResponse={markResponseAsUnread}
           />

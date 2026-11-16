@@ -137,13 +137,12 @@ export function resolveFreePositions(state: LayoutState): Record<string, XY> {
   // Сначала узлы с сохранёнными координатами, чтобы новые не легли поверх них.
   const entries: [string, Size, XY][] = [
     ['course', NODE_SIZE.course, { x: COLUMN_X.course, y: 0 }],
-    ['upload', NODE_SIZE.upload, { x: COLUMN_X.material, y: 0 }],
     ...(state.materials || [])
       .filter((material) => state.showUsedMaterials || !material.lessonId)
       .map((material): [string, Size, XY] => [
         `material:${material.id}`,
         NODE_SIZE.material,
-        { x: COLUMN_X.material, y: NODE_SIZE.upload.height + COLUMN_GAP },
+        { x: COLUMN_X.material, y: 0 },
       ]),
     ...(state.lessons || [])
       .filter((lesson) => !assigned.has(lesson.id))
@@ -171,7 +170,6 @@ export function freeRects(
   const resolved = resolveFreePositions(state);
   const sizes: Record<string, Size> = {
     course: NODE_SIZE.course,
-    upload: NODE_SIZE.upload,
     material: NODE_SIZE.material,
     lesson: NODE_SIZE.lesson,
   };

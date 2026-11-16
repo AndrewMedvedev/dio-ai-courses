@@ -65,11 +65,11 @@ export function CourseBasicInfo({
   const difficulty = formatCourseLevel(course.difficulty || course.level);
 
   return (
-    <article className="course-viewer-card course-basic-info tw:border-solid tw:border-[rgba(114,_121,_156,_0.22)] tw:rounded-[24px] tw:p-[24px] tw:[border-width:1px] tw:[.course-enrollment-view_&]:border-solid tw:[.generated-course-learning-grid_&]:border-solid tw:[.course-enrollment-view_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:[.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.34)] tw:dark:border-[rgba(255,_255,_255,_0.12)] tw:[.course-enrollment-view_&]:rounded-[14px] tw:[.generated-course-learning-grid_&]:rounded-[14px] tw:[background:rgba(255,_255,_255,_0.72)] tw:[box-shadow:0_20px_60px_rgba(27,_35,_68,_0.08)] tw:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[backdrop-filter:var(--glass-backdrop)] tw:[.generated-course-learning-grid_&]:w-[100%] tw:[.course-enrollment-view_&]:[border-width:1px] tw:[.generated-course-learning-grid_&]:[border-width:1px] tw:dark:[.page_.course-enrollment-view_&]:border-[rgba(247,_220,_168,_0.34)] tw:dark:[.page_.generated-course-learning-grid_&]:border-[rgba(var(--accent-rgb),_0.42)] tw:[.course-enrollment-view_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg)] tw:[.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:dark:[background:rgba(19,_24,_42,_0.72)] tw:[.course-enrollment-view_&]:[box-shadow:none] tw:[.generated-course-learning-grid_&]:[box-shadow:none] tw:[.generated-course-learning-grid_&]:[-webkit-backdrop-filter:none] tw:[.generated-course-learning-grid_&]:[backdrop-filter:none] tw:dark:[.page_.course-enrollment-view_&]:text-[#f4ead8] tw:dark:[.page_.generated-course-learning-grid_&]:text-[#f4ead8] tw:no-backdrop-filter:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:transparency-reduce:[.course-enrollment-view_&]:[background:var(--glass-fallback-bg)] tw:dark:[.page_.course-enrollment-view_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg)] tw:dark:[.page_.generated-course-learning-grid_&]:[background:linear-gradient(rgba(var(--accent-rgb),_0.12),_rgba(var(--accent-rgb),_0.12)),_var(--glass-bg-strong)] tw:[&_h1]:m-[0] tw:dark:[.page_.course-enrollment-view_&_h2]:text-[#fff4df] tw:dark:[.page_.course-enrollment-view_&_h3]:text-[#fff4df] tw:dark:[.page_.course-enrollment-view_&_li]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_&_h2]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_&_h3]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_&_li]:text-[#e9decb]">
+    <article className="course-viewer-document course-basic-info tw:min-w-0 tw:w-full tw:text-(--text) tw:[&_h1]:m-0">
       <div className="course-viewer-eyebrow tw:text-(--ink-accent) tw:text-[0.78rem] tw:font-[700] tw:tracking-[0.08em] tw:uppercase tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#f7dca8] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#f7dca8]">
         Курс
       </div>
-      <h1 className="tw:m-[0] tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:tracking-[-0.025em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
+      <h1 className="tw:m-[0] tw:max-w-[38ch] tw:text-[clamp(1.5rem,_2.3vw,_2.25rem)] tw:leading-[1.3] tw:[text-wrap:balance] tw:[overflow-wrap:break-word] tw:tracking-[-0.025em] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#fff4df] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#fff4df]">
         {course.title}
       </h1>
       {course.description ? (
@@ -82,8 +82,8 @@ export function CourseBasicInfo({
         </p>
       )}
 
-      <div className="course-meta-grid tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] tw:gap-[12px] tw:mt-[20px]">
-        <div className="tw:rounded-[18px] tw:p-[14px] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)]">
+      <div className="course-meta-grid tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] tw:gap-[24px] tw:my-[24px] tw:border-0 tw:border-y tw:border-solid tw:border-(--line) tw:py-[18px]">
+        <div className="tw:min-w-0">
           <span className="tw:text-(--muted) tw:block tw:text-[0.84rem] tw:mb-[4px] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
             Уровень
           </span>
@@ -91,7 +91,7 @@ export function CourseBasicInfo({
             {difficulty}
           </strong>
         </div>
-        <div className="tw:rounded-[18px] tw:p-[14px] tw:[background:linear-gradient(rgba(var(--accent-rgb),_0.08),_rgba(var(--accent-rgb),_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[background:rgba(255,_255,_255,_0.08)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[background:linear-gradient(rgba(255,_255,_255,_0.08),_rgba(255,_255,_255,_0.08)),_var(--glass-bg-strong)] tw:dark:[.page_.course-enrollment-view_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_.course-meta-grid_>_&]:[border:1px_solid_rgba(247,_220,_168,_0.18)]">
+        <div className="tw:min-w-0">
           <span className="tw:text-(--muted) tw:block tw:text-[0.84rem] tw:mb-[4px] tw:dark:[.page_.course-enrollment-view_.course-basic-info_&]:text-[#e9decb] tw:dark:[.page_.generated-course-learning-grid_.course-basic-info_&]:text-[#e9decb]">
             Модулей
           </span>

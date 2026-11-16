@@ -1,3 +1,4 @@
+import { CHAT_DOCK_EVENT } from './use-chat-dock-space';
 import {
   useCallback,
   useEffect,
@@ -12,27 +13,32 @@ import {
 import { createPortal } from 'react-dom';
 import { ChatIconButton } from './ChatParts';
 import { IconClose, IconCollapse, IconExpand } from './icons';
+import {
+  CHAT_PANEL_MIN_WIDTH as MIN_WIDTH,
+  CHAT_PANEL_HANDLE_WIDTH as HANDLE_WIDTH,
+  clampChatPanelWidth,
+  getChatPanelMaxWidth,
+} from './panel-width';
 
 /*
  * Панель ИИ-чата у правого края экрана — как панель DIOS AI:
  * ширину тянут за левый край (360 px … вся ширина окна, запоминается),
  * «Развернуть» — всё окно, Esc сворачивает или закрывает.
- * Панель располагается поверх страницы и не меняет ширину её содержимого.
+ * Общая раскладка страницы резервирует место для всех панелей.
  * На узком экране (≤ 1024 px) панель занимает всю ширину.
  */
 const WIDTH_KEY = 'ai-chat-panel-width';
-const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 440;
-const HANDLE_WIDTH = 6;
 const RESIZE_STEP = 16;
 const WIDE_RESIZE_STEP = 48;
 const WIDE_QUERY = '(min-width: 1025px)';
 const OPEN_EVENT = 'ai-chat-panel:open';
 
-const clampWidth = (value: number) => {
-  const max = Math.max(MIN_WIDTH, window.innerWidth - HANDLE_WIDTH);
-  return Math.round(Math.min(Math.max(value, MIN_WIDTH), max));
-};
+const viewportWidth = () =>
+  (typeof document !== 'undefined' && document.documentElement.clientWidth) ||
+  window.innerWidth;
+const clampWidth = (value: number) =>
+  clampChatPanelWidth(value, viewportWidth());
 
 function readStoredWidth() {
   try {
@@ -105,6 +111,46 @@ export function AiChatPanel({
   const currentWidth =
     typeof window === 'undefined' ? width : clampWidth(width);
 
+  const collapse = useCallback(() => {
+    setExpanded(false);
+    // После растягивания до краёв сворачивание тоже возвращает боковую панель.
+    if (widthRef.current >= window.innerWidth * 0.9) {
+      setWidth(DEFAULT_WIDTH);
+      storeWidth(DEFAULT_WIDTH);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open || !expanded) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open, expanded]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(CHAT_DOCK_EVENT, {
+        detail: {
+          id: panelId,
+          width: docked ? currentWidth + HANDLE_WIDTH + 16 : 0,
+        },
+      }),
+    );
+  }, [currentWidth, docked, panelId]);
+
+  useEffect(
+    () => () => {
+      window.dispatchEvent(
+        new CustomEvent(CHAT_DOCK_EVENT, {
+          detail: { id: panelId, width: 0 },
+        }),
+      );
+    },
+    [panelId],
+  );
+
   useEffect(() => {
     const media = window.matchMedia(WIDE_QUERY);
     const handleChange = (event: MediaQueryListEvent) =>
@@ -115,7 +161,10 @@ export function AiChatPanel({
   }, []);
 
   useEffect(() => {
-    if (!open) setExpanded(false);
+    if (!open) {
+      setExpanded(false);
+      setIsResizing(false);
+    }
   }, [open]);
 
   // Одна панель на экран: открытие новой закрывает остальные.
@@ -167,12 +216,13 @@ export function AiChatPanel({
         document.querySelectorAll('[aria-modal="true"]'),
       ).some((element) => !panelRef.current?.contains(element));
       if (modal) return;
-      if (expandedRef.current) setExpanded(false);
+      event.preventDefault();
+      if (expandedRef.current) collapse();
       else onCloseRef.current();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [open, collapse]);
 
   useEffect(() => {
     if (!isResizing) return undefined;
@@ -182,10 +232,12 @@ export function AiChatPanel({
     body.style.cursor = 'col-resize';
     body.style.userSelect = 'none';
     const handleMove = (event: PointerEvent) => {
+      if (event.buttons === 0) {
+        setIsResizing(false);
+        return;
+      }
       event.preventDefault();
-      setWidth(
-        clampWidth(window.innerWidth - event.clientX - HANDLE_WIDTH / 2),
-      );
+      setWidth(clampWidth(viewportWidth() - event.clientX - HANDLE_WIDTH / 2));
     };
     const stop = () => setIsResizing(false);
     window.addEventListener('pointermove', handleMove);
@@ -207,6 +259,7 @@ export function AiChatPanel({
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
       setIsResizing(true);
     },
     [],
@@ -229,30 +282,28 @@ export function AiChatPanel({
     <>
       {expanded ? (
         <div
-          className="ai-chat-backdrop tw:fixed tw:inset-0 tw:z-[55] tw:bg-[rgba(20,16,12,0.55)] tw:backdrop-blur-[2px] tw:animate-app-modal-fade"
-          onClick={() => setExpanded(false)}
+          className="ai-chat-backdrop tw:fixed tw:inset-0 tw:z-[1059] tw:bg-[rgba(20,16,12,0.55)] tw:backdrop-blur-[2px] tw:animate-app-modal-fade"
+          onClick={collapse}
           aria-hidden="true"
         />
       ) : null}
       <div
-        className={`ai-chat-dock tw:fixed tw:top-0 tw:right-0 tw:bottom-0 tw:z-[56] tw:flex tw:pointer-events-none ${expanded ? 'tw:w-full' : 'tw:max-1024:w-full'}`}
+        className={`ai-chat-dock tw:fixed tw:top-0 tw:right-0 tw:bottom-0 tw:h-dvh tw:flex tw:pointer-events-none ${expanded ? 'tw:z-[1060] tw:w-full' : 'tw:z-[56] tw:max-1024:w-full'}`}
       >
         {docked ? (
           <div
-            className="ai-chat-resizer tw:relative tw:flex tw:w-[6px] tw:shrink-0 tw:cursor-col-resize tw:pointer-events-auto tw:bg-transparent tw:outline-none tw:focus-visible:bg-[rgba(203,170,203,0.6)] tw:[&:hover>span]:bg-(--cta) tw:[&.is-active>span]:bg-(--cta)"
+            className="ai-chat-resizer tw:relative tw:z-20 tw:flex tw:w-[12px] tw:shrink-0 tw:cursor-col-resize tw:pointer-events-auto tw:touch-none tw:bg-transparent tw:outline-none tw:focus-visible:bg-[rgba(203,170,203,0.6)] tw:[&:hover>span]:bg-(--cta) tw:[&.is-active>span]:bg-(--cta)"
             role="separator"
             tabIndex={0}
             aria-label="Изменить ширину чата"
             aria-orientation="vertical"
             aria-controls={panelId}
             aria-valuemin={MIN_WIDTH}
-            aria-valuemax={Math.max(
-              MIN_WIDTH,
-              window.innerWidth - HANDLE_WIDTH,
-            )}
+            aria-valuemax={getChatPanelMaxWidth(viewportWidth())}
             aria-valuenow={currentWidth}
             title="Потяните, чтобы изменить ширину"
             onPointerDown={startResize}
+            onLostPointerCapture={() => setIsResizing(false)}
             onKeyDown={resizeWithKeyboard}
             data-active={isResizing || undefined}
           >
@@ -302,7 +353,7 @@ export function AiChatPanel({
               {isWide ? (
                 <ChatIconButton
                   label={expanded ? 'Свернуть' : 'Развернуть на весь экран'}
-                  onClick={() => setExpanded((value) => !value)}
+                  onClick={() => (expanded ? collapse() : setExpanded(true))}
                   aria-pressed={expanded}
                 >
                   {expanded ? <IconCollapse /> : <IconExpand />}
@@ -329,6 +380,6 @@ export function AiChatPanel({
         </section>
       </div>
     </>,
-    document.body,
+    document.querySelector('.page') || document.body,
   );
 }
