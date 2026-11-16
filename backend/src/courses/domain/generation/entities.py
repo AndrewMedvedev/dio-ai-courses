@@ -12,4 +12,13 @@ class GenerationSession(Entity):
     generation_key: str
 
     def change_status(self, status: GenerationStatus) -> None:
-        self.status = status
+        if (self.status == GenerationStatus.CANCELLING and status == GenerationStatus.RUNNING) or (
+            self.status == GenerationStatus.CANCELLING and status == GenerationStatus.COMPLETED
+        ):
+            return
+        if self.status not in {
+            GenerationStatus.CANCELLED,
+            GenerationStatus.COMPLETED,
+            GenerationStatus.FAILED,
+        }:
+            self.status = status

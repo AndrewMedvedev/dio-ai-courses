@@ -9,7 +9,7 @@ from copy import deepcopy
 from functools import wraps
 
 from openai.types.responses import FunctionToolParam, ToolParam
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from src.llm_service.exceptions import ModelRequestLimitError
 from src.llm_service.strict_schema import to_strict_json_schema
@@ -129,7 +129,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
     async def invoke(
         self,
         messages: list[dict[str, Any]],
-        schema: type[BaseModel] | None = None,
+        schema: type[BaseModel] | TypeAdapter[Any] | None = None,
     ) -> LLMTextResponse:
         limit = self.max_model_requests
         tools = [tool.to_tool_params() for tool in (self.tools or {}).values()]
@@ -236,12 +236,13 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
     @staticmethod
     def _validate_output_schema(
         tool: ToolCallParsed,
-        schema: type[BaseModel],
+        schema: type[BaseModel] | TypeAdapter[Any],
     ) -> tuple[dict[str, Any] | None, str | None]:
         if tool.arguments_error is not None:
             return None, tool.arguments_error + ". Correct the arguments and call again."
         try:
-            schema.model_validate(deepcopy(tool.arguments))
+            adapter = schema if isinstance(schema, TypeAdapter) else TypeAdapter(schema)
+            adapter.validate_python(deepcopy(tool.arguments))
         except ValidationError as exc:
             errors = exc.errors(include_input=False, include_context=False, include_url=False)
             details = "; ".join(f"{e['loc']}: {e['type']}" for e in errors)

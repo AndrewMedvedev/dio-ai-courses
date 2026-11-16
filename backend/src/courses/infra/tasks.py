@@ -44,46 +44,68 @@ async def generation_lifecycle(
     taskiq_context: TaskiqContext,
 ) -> None:
     task_id = taskiq_context.message.task_id
-    generation_session = await repo.read_with_generation_key(task_id)
-    if generation_session is None:
-        raise NotFoundError
-    try:
-        generation_session.change_status(GenerationStatus.RUNNING)
-        await repo.update(generation_session)
-        await session.commit()
 
+    started = await repo.transition(
+        task_id,
+        from_statuses={GenerationStatus.PENDING, GenerationStatus.RUNNING},
+        to_status=GenerationStatus.RUNNING,
+    )
+    if not started:
+        current = await repo.read_with_generation_key(task_id)
+        if current is None:
+            raise NotFoundError
+        if current.status is GenerationStatus.CANCELLING:
+            await repo.transition(
+                task_id,
+                from_statuses={GenerationStatus.CANCELLING},
+                to_status=GenerationStatus.CANCELLED,
+            )
+            await session.commit()
+        # Терминальный статус или уже принятая отмена: граф не запускать.
+        return
+
+    await session.commit()
+
+    try:
         await invoke_or_resume(**args)
+
+        completed = await repo.transition(
+            task_id,
+            from_statuses={GenerationStatus.RUNNING},
+            to_status=GenerationStatus.COMPLETED,
+        )
+        if not completed:
+            # Если отмену приняли до записи COMPLETED, она выигрывает гонку.
+            await repo.transition(
+                task_id,
+                from_statuses={GenerationStatus.CANCELLING},
+                to_status=GenerationStatus.CANCELLED,
+            )
+        await session.commit()
 
     except asyncio.CancelledError:
         await session.rollback()
-        generation_session.change_status(GenerationStatus.CANCELLED)
-        await repo.update(generation_session)
+        await repo.transition(
+            task_id,
+            from_statuses={GenerationStatus.RUNNING, GenerationStatus.CANCELLING},
+            to_status=GenerationStatus.CANCELLED,
+        )
         await session.commit()
         raise
 
     except Exception:
         await session.rollback()
-        logger.exception(
-            "generation failed: task_id=%s",
-            task_id,
-        )
+        logger.exception("generation failed: task_id=%s", task_id)
 
-        retries_left = int(
-            taskiq_context.message.labels.get(
-                "retries_left",
-                "0",
-            )
-        )
-
+        retries_left = int(taskiq_context.message.labels.get("retries_left", "0"))
         if retries_left == 0:
-            generation_session.change_status(GenerationStatus.FAILED)
-            await repo.update(generation_session)
+            await repo.transition(
+                task_id,
+                from_statuses={GenerationStatus.RUNNING},
+                to_status=GenerationStatus.FAILED,
+            )
             await session.commit()
         raise
-    else:
-        generation_session.change_status(GenerationStatus.COMPLETED)
-        await repo.update(generation_session)
-        await session.commit()
 
 
 @taskiq_broker.task(
@@ -104,7 +126,7 @@ async def generate_course(
             "input_data": {"generation_context": context},
             "config": RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{context.course_id}",
+                    "thread_id": f"course:{context.course_id}:task:{taskiq_context.message.task_id}",
                 }
             ),
         },
@@ -151,7 +173,9 @@ async def generate_module(
                 "module_description": description,
             },
             "config": RunnableConfig(
-                configurable={"thread_id": f"course:{context.course_id}:module:{rank}"}
+                configurable={
+                    "thread_id": f"course:{context.course_id}:module:{rank}:task:{taskiq_context.message.task_id}"
+                }
             ),
         },
         repo=repo,
@@ -196,7 +220,7 @@ async def generate_lesson(
             },
             "config": RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{rank}"  # noqa: E501
+                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{rank}:task:{taskiq_context.message.task_id}"  # noqa: E501
                 }
             ),
         },

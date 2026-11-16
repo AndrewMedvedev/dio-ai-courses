@@ -28,23 +28,41 @@ async def cancel_generation(
     session: DBSession,
     repo: GenerationSessionRepoDep,
 ) -> GenerationSessionResponse:
-    generation_session = await repo.read_with_generation_key(generation_key)
-    if generation_session is None:
+    current = await repo.read_with_generation_key(generation_key)
+    if current is None:
         raise NotFoundError("Generation session not found")
-    if generation_session.creator_id != identity.id:
+    if current.creator_id != identity.id:
         raise ForbiddenError("Generation session belongs to another user")
-    if generation_session.status in {
-        GenerationStatus.COMPLETED,
-        GenerationStatus.FAILED,
-    }:
+
+    if current.status in {GenerationStatus.COMPLETED, GenerationStatus.FAILED}:
         raise InvariantViolationError
-    if generation_session.status == GenerationStatus.CANCELLED:
-        return GenerationSessionResponse.model_validate(generation_session)
-    generation_session.change_status(GenerationStatus.CANCELLING)
-    await repo.update(generation_session)
+    if current.status is GenerationStatus.CANCELLED:
+        return GenerationSessionResponse.model_validate(current)
+    if current.status is GenerationStatus.CANCELLING:
+        await cancellation_backend.cancel(generation_key)
+        return GenerationSessionResponse.model_validate(current)
+
+    target = (
+        GenerationStatus.CANCELLED
+        if current.status is GenerationStatus.PENDING
+        else GenerationStatus.CANCELLING
+    )
+    changed = await repo.transition(
+        generation_key,
+        from_statuses={current.status},
+        to_status=target,
+    )
+    if not changed:
+        await session.rollback()
+        raise InvariantViolationError  # Статус изменился; повторите запрос
+
     await session.commit()
     await cancellation_backend.cancel(generation_key)
-    return GenerationSessionResponse.model_validate(generation_session)
+
+    updated = await repo.read_with_generation_key(generation_key)
+    if updated is None:
+        raise NotFoundError("Generation session not found")
+    return GenerationSessionResponse.model_validate(updated)
 
 
 @router.get(
