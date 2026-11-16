@@ -71,14 +71,14 @@ def test_settings_use_course_as_identity_and_primary_key(assessment):
     entities, enums = assessment.entities, assessment.enums
     course_id = uuid4()
     settings = entities.CourseSettings(
-        course_id=course_id,
+        id=course_id,
         visibility=enums.CourseVisibility.PRIVATE,
         navigation_policy=enums.NavigationPolicy.SEQUENTIAL,
         completion_policy=enums.CourseCompletionPolicy.ALL_REQUIRED,
         mentor_enabled=True,
     )
     assignment_settings = entities.AssignmentSettings(
-        course_id=course_id,
+        id=course_id,
         creation_policy=enums.AssignmentCreationPolicy.HYBRID,
         evaluation_policy=enums.AssignmentEvaluationPolicy.AI_THEN_TEACHER,
         auto_generate_missing=False,
@@ -86,11 +86,14 @@ def test_settings_use_course_as_identity_and_primary_key(assessment):
         tests_enabled=True,
     )
     assert settings.id == assignment_settings.id == course_id
+    for entity in (settings, assignment_settings):
+        assert "course_id" not in asdict(entity)
+        assert "__post_init__" not in type(entity).__dict__
     for model_name in ("CourseSettingsOrm", "AssignmentSettingsOrm"):
         model = getattr(assessment.models, model_name)
         assert list(model.__table__.primary_key.columns.keys()) == ["course_id"]
-        orm = model(course_id=course_id)
-        assert orm.id == orm.course_id == course_id
+        orm = model(id=course_id)
+        assert orm.id == course_id
         assert {fk.target_fullname for fk in model.__table__.c.course_id.foreign_keys} == {
             "courses.id"
         }

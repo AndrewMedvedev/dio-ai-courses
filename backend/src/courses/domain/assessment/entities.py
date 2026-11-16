@@ -28,27 +28,19 @@ from .vo import AssignmentContent, AssignmentRules
 
 @dataclass(kw_only=True, slots=True)
 class CourseSettings(Entity):
-    course_id: UUID
     visibility: CourseVisibility
     navigation_policy: NavigationPolicy
     completion_policy: CourseCompletionPolicy
     mentor_enabled: bool
 
-    def __post_init__(self) -> None:
-        self.id = self.course_id
-
 
 @dataclass(kw_only=True, slots=True)
 class AssignmentSettings(Entity):
-    course_id: UUID
     creation_policy: AssignmentCreationPolicy
     evaluation_policy: AssignmentEvaluationPolicy
     auto_generate_missing: bool
     practice_enabled: bool
     tests_enabled: bool
-
-    def __post_init__(self) -> None:
-        self.id = self.course_id
 
 
 @dataclass(kw_only=True, slots=True)

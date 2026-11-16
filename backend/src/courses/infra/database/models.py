@@ -19,7 +19,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.courses.domain.assessment.enums import (
@@ -336,7 +336,6 @@ class CourseSettingsOrm(Base):
     id: Mapped[UUID] = mapped_column(
         "course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True
     )
-    course_id = synonym("id")
     visibility: Mapped[CourseVisibility] = mapped_column(Enum(CourseVisibility))
     navigation_policy: Mapped[NavigationPolicy] = mapped_column(Enum(NavigationPolicy))
     completion_policy: Mapped[CourseCompletionPolicy] = mapped_column(Enum(CourseCompletionPolicy))
@@ -349,7 +348,6 @@ class AssignmentSettingsOrm(Base):
     id: Mapped[UUID] = mapped_column(
         "course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True
     )
-    course_id = synonym("id")
     creation_policy: Mapped[AssignmentCreationPolicy] = mapped_column(
         Enum(AssignmentCreationPolicy)
     )
