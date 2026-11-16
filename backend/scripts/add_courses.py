@@ -15,6 +15,7 @@ from src.courses.domain.catalog.enums import (
     DifficultyLevel,
     ExtendedContentType,
 )
+from src.courses.domain.catalog.ranking import generate_ranks
 from src.courses.domain.catalog.vo import (
     AnyAssignment,
     AnyContentBlock,
@@ -34,7 +35,7 @@ from src.courses.infra.database.repos.course import SqlCourseRepository
 from src.courses.infra.database.repos.lesson import SqlLessonRepository
 from src.courses.infra.database.repos.module import SqlModuleRepository
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COURSE_JSON_FILES = [
     PROJECT_ROOT / "courses/course.json",
     PROJECT_ROOT / "courses/course_result.json",
@@ -156,25 +157,26 @@ def load_course_from_dict(
     )
 
     # Модули
-    for mod_data in course_data.get("modules", []):
+    modules_ranks = generate_ranks(len(course_data.get("modules", [])))
+    for index, mod_data in enumerate(course_data.get("modules", [])):
         module = Module(
             id=UUID(mod_data.get("id", str(uuid4()))),
             course_id=course.id,
             title=mod_data.get("title", ""),
             description=mod_data.get("description", ""),
-            rank=mod_data.get("rank", ""),
+            rank=modules_ranks[index],
             learning_objectives=mod_data.get("learning_objectives", []),
             lessons=[],
         )
 
-        # Уроки
-        for lesson_data in mod_data.get("lessons", []):
+        lessons_ranks = generate_ranks(len(mod_data.get("lessons", [])))
+        for index, lesson_data in enumerate(mod_data.get("lessons", [])):
             lesson = Lesson(
                 id=UUID(lesson_data.get("id", str(uuid4()))),
                 module_id=module.id,
                 title=lesson_data.get("title", ""),
                 description=lesson_data.get("description", ""),
-                rank=lesson_data.get("rank", ""),
+                rank=lessons_ranks[index],
                 learning_objectives=lesson_data.get("learning_objectives", []),
                 estimated_time_minutes=lesson_data.get("estimated_time_minutes"),
             )
@@ -251,8 +253,8 @@ async def main():
     """Запускает сценарий модуля и связывает подготовку данных с основным действием."""
     async with session_factory() as session:
         # Укажите реальный UUID создателя (можно взять из JSON или передать)
-        organization_id = UUID("653494ed-02ce-428c-9c0d-352c979a8837")
-        creator_id = UUID("653494ed-02ce-428c-9c0d-352c979a8837")
+        organization_id = UUID("4a616d30-ace3-4052-8491-138c6fa23b82")
+        creator_id = UUID("2c1f1ba0-e019-42e5-97a7-0f9981e22a26")
         loaded_courses: list[Course] = []
 
         for course_file in COURSE_JSON_FILES:

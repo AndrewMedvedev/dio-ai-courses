@@ -125,12 +125,14 @@ async def generate_text(
             *(middlewares or []),
         ],
     )
-    response_format: AnyContentBlock = content_config.get("response_format")
+    response_format: TypeAdapter[AnyContentBlock] = TypeAdapter(
+        content_config.get("response_format")
+    )
     content_block = await agent.invoke(
         messages=[*content_config.get("few_shot", []), {"role": "user", "content": prompt}],
         schema=response_format,
     )
-    result = TypeAdapter(response_format).validate_python(content_block.output)
+    result = response_format.validate_python(content_block.output)
     result.content_type = content_type
 
     return result

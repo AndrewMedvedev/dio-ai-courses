@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from langchain_core.runnables import RunnableConfig
 
+from src.core.database import checkpointer
 from src.core.tkq import taskiq_broker
 from src.courses.ai.agents.theorist import call_theory_agent
 from src.courses.ai.generation.lesson import (
@@ -10,12 +11,8 @@ from src.courses.ai.generation.lesson import (
     build_lesson_graph,
 )
 from src.courses.ai.schemas.contexts import Context
-from src.courses.ai.serializer import checkpointer
-from src.courses.dependencies.base import get_vector_repo
+from src.courses.api.dependencies.repos import get_vector_repo
 from src.courses.infra.database.repos.lesson import SqlLessonRepository
-from src.courses.infra.services.client import course_client
-
-user_id = UUID("deade2a0-1e82-4e6a-b369-3428107abe65")
 
 
 def build_prompt(
@@ -167,8 +164,8 @@ PQC_LESSON_DESCRIPTION = (
     "отличай финальные стандарты от черновиков."
 )
 
-PQC_COURSE_ID = UUID("693e6c1a-44a5-46f1-a7b3-d94345a670ee")
-PQC_MODULE_ID = UUID("00e6c33f-cfef-49d7-93fb-6c1b09af12b7")
+PQC_COURSE_ID = UUID("cbdbc283-4c20-4459-a792-79a93ad77ccd")
+PQC_MODULE_ID = UUID("c89244ed-2a28-4cb2-b913-2139e659f3c2")
 
 PQC_PROMPT = build_prompt(
     PQC_AUDIENCE,
@@ -261,26 +258,26 @@ LESSONS = [
 
 
 async def run_lesson(lesson: dict) -> None:
-    lesson_agent = LessonAgent(
-        lesson_repo=SqlLessonRepository,  # pyright: ignore[reportArgumentType]
-        vector_repo=get_vector_repo(),
-    )
+    lesson_agent = LessonAgent(lesson_repo=SqlLessonRepository, vector_repo=get_vector_repo())
     lesson_graph = build_lesson_graph(
         agent=lesson_agent,
         checkpointer=checkpointer,
     )
+    organization_id = UUID("4a616d30-ace3-4052-8491-138c6fa23b82")
+    creator_id = UUID("2c1f1ba0-e019-42e5-97a7-0f9981e22a26")
 
     result = await lesson_graph.ainvoke(
         {
             "generation_context": Context(
                 course_id=lesson["course_id"],
-                user_id=user_id,
+                organization_id=organization_id,
+                user_id=creator_id,
                 prompt=lesson["prompt"],
             ),
             "module_id": lesson["module_id"],
             "audience_description": lesson["audience_description"],
             "learning_objectives": lesson["learning_objectives"],
-            "order": lesson["order"],
+            "rank": "j",
             "lesson_description": lesson["lesson_description"],
         },
         config=RunnableConfig(configurable={"thread_id": f"lesson_thread_{uuid4()}"}),
@@ -291,8 +288,7 @@ async def run_lesson(lesson: dict) -> None:
 
 async def main():
     await taskiq_broker.startup()
-    for i in LESSONS:
-        await run_lesson(i)
+    await run_lesson(LESSONS[0])
 
 
 if __name__ == "__main__":

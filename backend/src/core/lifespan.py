@@ -2,8 +2,8 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from ddf.ratelimit.redis import RedisRateLimiter
 from fastapi import FastAPI
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from qdrant_client import models
 
 from src.shared.utils.cli import run_cli_command
@@ -24,8 +24,6 @@ _BOOTSTRAP_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("src.cli", "create-default-organization"),
 )
 
-checkpointer: AsyncPostgresSaver | None = None
-
 
 async def _run_bootstrap_commands() -> None:
     """Запускает команды необходимые для старта приложения."""
@@ -42,13 +40,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging(log_level="INFO")
 
     await redis_client.ping()
+    app.state.rate_limiter = RedisRateLimiter(redis=redis_client, prefix="rate_limit")
     await pool.open()
     try:
+        checkpointer = create_checkpointer()
+        await checkpointer.setup()
         if not taskiq_broker.is_worker_process:
             await taskiq_broker.startup()
             await _run_bootstrap_commands()
-            checkpointer = create_checkpointer()
-            await checkpointer.setup()
+
             exists = await qdrant_client.collection_exists("MAIN_COLLECTION")
             if not exists:
                 await qdrant_client.create_collection(

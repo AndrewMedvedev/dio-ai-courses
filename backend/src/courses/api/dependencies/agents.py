@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 from langgraph.graph.state import CompiledStateGraph
 
-from src.core.database import checkpointer
+from src.core import database
 from src.courses.ai.external_agents import editor, interviewer, mentor, practicer, tester
 from src.courses.ai.generation import (
     CourseAgent,
@@ -152,7 +152,7 @@ def get_lesson_agent(
         lesson_repo=SqlLessonRepository,
         vector_repo=vector_repo,
     )
-    return build_lesson_graph(agent=agent, checkpointer=checkpointer)
+    return build_lesson_graph(agent=agent, checkpointer=database.checkpointer)
 
 
 LessonAgentDep = Annotated[CompiledStateGraph[LessonAgentState], Depends(get_lesson_agent)]
@@ -165,7 +165,7 @@ def get_module_agent(
         module_repo=SqlModuleRepository,
         lesson_agent=lesson_agent,
     )
-    return build_module_graph(agent=agent, checkpointer=checkpointer)
+    return build_module_graph(agent=agent, checkpointer=database.checkpointer)
 
 
 ModuleAgentDep = Annotated[CompiledStateGraph[ModuleAgentState], Depends(get_module_agent)]
@@ -181,7 +181,7 @@ def get_course_agent(
         repo=repo,
         module_agent=module_agent,
     )
-    return build_course_graph(agent=agent, checkpointer=checkpointer)
+    return build_course_graph(agent=agent, checkpointer=database.checkpointer)
 
 
 CourseAgentDep = Annotated[CompiledStateGraph[CourseAgentState], Depends(get_course_agent)]
