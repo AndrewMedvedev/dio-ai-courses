@@ -70,21 +70,19 @@ export function Header({
     <>
       <aside
         aria-label="Основная навигация"
-        className={`main-navigation tw:border-0 tw:border-r tw:border-solid tw:border-(--line) tw:fixed tw:inset-y-0 tw:left-0 tw:z-40 tw:flex tw:flex-col tw:bg-(--navigation-bg) tw:p-[16px] tw:max-980:w-[76px] tw:max-980:px-[12px] ${collapsed ? 'tw:w-[76px] tw:px-[12px]' : 'tw:w-[272px]'}`}
+        className={`main-navigation tw:transition-[width,padding] tw:duration-200 tw:ease-in-out tw:motion-reduce:transition-none tw:border-0 tw:border-r tw:border-solid tw:border-(--line) tw:fixed tw:inset-y-0 tw:left-0 tw:z-40 tw:flex tw:flex-col tw:bg-(--navigation-bg) tw:p-[16px] tw:max-980:w-[76px] tw:max-980:px-[12px] ${collapsed ? 'tw:w-[76px] tw:px-[12px]' : 'tw:w-[272px]'}`}
       >
         <span
           aria-hidden="true"
           className="tw:pointer-events-none tw:absolute tw:top-[65px] tw:inset-x-0 tw:border-0 tw:border-b tw:border-solid tw:border-(--line)"
         />
-        <div
-          className={`tw:relative tw:flex tw:items-center ${collapsed ? 'tw:h-[88px] tw:flex-col tw:gap-[24px] tw:mb-[16px] tw:max-980:h-[36px] tw:max-980:mb-[26px]' : 'tw:h-[36px] tw:mb-[26px] tw:gap-[10px]'}`}
-        >
+        <div className="tw:flex tw:h-[36px] tw:items-center tw:mb-[26px] tw:gap-[10px]">
           <Link
             to="/"
             onClick={onLogoClick}
             data-tip="Главная страница AI Course Lab"
             aria-label="AI Course Lab — главная"
-            className={`tw:flex tw:min-w-0 tw:items-center tw:gap-[12px] tw:text-(--heading) tw:no-underline tw:max-980:w-full tw:max-980:justify-center ${collapsed ? 'tw:w-full tw:justify-center' : ''}`}
+            className={`tw:flex tw:w-full tw:min-w-0 tw:items-center tw:gap-[12px] tw:text-(--heading) tw:no-underline tw:transition-[padding-left] tw:duration-200 tw:ease-in-out tw:motion-reduce:transition-none tw:max-980:pl-[11px] ${collapsed ? 'tw:pl-[11px]' : 'tw:pl-0'}`}
           >
             <img
               src={brandLogo}
@@ -99,22 +97,20 @@ export function Header({
               AI Course Lab
             </span>
           </Link>
-          <button
-            type="button"
-            onClick={onToggleNavigation}
-            data-help="toggle-navigation"
-            data-tip={
-              collapsed
-                ? 'Развернуть меню платформы'
-                : 'Свернуть меню до значков'
-            }
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
-            className={`tw:grid ${collapsed ? 'tw:size-[28px]' : 'tw:ml-auto tw:size-[32px]'} tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-(--navigation-bg) tw:p-0 tw:leading-none tw:text-(--muted) tw:cursor-pointer tw:max-980:hidden`}
-          >
-            <Chevron direction={collapsed ? 'right' : 'left'} />
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={onToggleNavigation}
+          data-help="toggle-navigation"
+          data-tip={
+            collapsed ? 'Развернуть меню платформы' : 'Свернуть меню до значков'
+          }
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
+          className="tw:absolute tw:top-[21px] tw:right-[-13px] tw:z-[1] tw:grid tw:size-[26px] tw:place-items-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-(--navigation-bg) tw:p-0 tw:leading-none tw:text-(--muted) tw:shadow-[0_2px_5px_rgba(0,0,0,0.1)] tw:cursor-pointer tw:focus-visible:outline-2 tw:focus-visible:outline-(--eyebrow) tw:max-980:hidden"
+        >
+          <Chevron direction={collapsed ? 'right' : 'left'} />
+        </button>
         <nav
           className={`${themedScrollbarClass} tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:gap-[8px] tw:overflow-y-auto tw:overflow-x-hidden`}
         >
