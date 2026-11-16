@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { localStateStorage } from '../storage';
 
 const UI_LAYOUT_STORAGE_KEY = 'app-ui-layout-storage';
 const UI_LAYOUT_STORAGE_VERSION = 2;
@@ -198,6 +199,7 @@ export const useUiLayoutStore = create<UiLayoutState>()(
     }),
     {
       name: UI_LAYOUT_STORAGE_KEY,
+      storage: createJSONStorage(() => localStateStorage),
       version: UI_LAYOUT_STORAGE_VERSION,
       // Персистим только лёгкие UI-флаги и id/key -> primitive mappings;
       // серверные списки, токены и производные данные здесь не хранятся.

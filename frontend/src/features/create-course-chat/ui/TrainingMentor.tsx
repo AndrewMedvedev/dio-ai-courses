@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useLocalState } from '@/shared/lib/storage';
+import { usePersistenceScope } from '@/entities/session';
 import { AiChatPanel } from '@/shared/ui/ai-chat';
 import { ChatComposer, ChatMessage } from '@/shared/ui/ai-chat';
 
 /** Учебный ответ показывает механику помощника без запроса к модели. */
 export function TrainingMentor() {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<
+  const scope = usePersistenceScope();
+  const [open, setOpen] = useLocalState(`training-mentor:${scope}:open`, false);
+  const [input, setInput] = useLocalState(`training-mentor:${scope}:input`, '');
+  const [messages, setMessages] = useLocalState<
     { role: 'user' | 'assistant'; text: string }[]
-  >([]);
+  >(`training-mentor:${scope}:messages`, []);
   return (
     <>
       <button

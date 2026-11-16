@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { formatCourseLevel } from '@/entities/course';
 import { toText } from '@/shared/lib/text';
 
@@ -48,9 +48,23 @@ export function CourseCatalog({
   totalItems = 0,
   onPageChange,
 }: CourseCatalogProps) {
-  const [query, setQuery] = useState('');
-  const [level, setLevel] = useState('');
-  const [topic, setTopic] = useState('');
+  const [search, setSearch] = useSearchParams();
+  const query = search.get('q') || '';
+  const level = search.get('level') || '';
+  const topic = search.get('topic') || '';
+  const setFilter = (key: string, value: string) =>
+    setSearch(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+  const setQuery = (value: string) => setFilter('q', value);
+  const setLevel = (value: string) => setFilter('level', value);
+  const setTopic = (value: string) => setFilter('topic', value);
   const levels = [
     ...new Set(
       coursesData

@@ -3,7 +3,7 @@ import { fetchMyCoursesPage, type LearningCourse } from '@/entities/course';
 import { CourseCatalog } from '@/widgets/course-catalog';
 import { useTrainingStore } from '@/features/create-course-chat';
 import { useSessionStore } from '@/entities/session';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getErrorMessage } from '@/shared/lib/errors';
 
 interface MyCoursesPageProps {
@@ -22,7 +22,14 @@ export function MyCoursesPage({
   const navigate = useNavigate();
   const owner = useSessionStore((state) => String(state.user?.id || ''));
   const trainingCourse = useTrainingStore((state) => state.courses[owner]);
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useSearchParams();
+  const page = Math.max(1, Math.floor(Number(search.get('page')) || 1));
+  const setPage = (value: number) =>
+    setSearch((current) => {
+      const next = new URLSearchParams(current);
+      next.set('page', String(value));
+      return next;
+    });
   const [courses, setCourses] = useState<LearningCourse[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);

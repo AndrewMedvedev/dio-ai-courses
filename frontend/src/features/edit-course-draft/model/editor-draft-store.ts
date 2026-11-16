@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { getPersistenceScope } from '@/entities/session';
+import { localStateStorage } from '@/shared/lib/storage';
 
 /**
  * Несохранённые правки модулей и уроков в редакторе курса.
@@ -55,7 +58,7 @@ interface EditorDraftState {
 }
 
 export const draftKey = (kind: DraftKind, entityId: string) =>
-  `${kind}:${entityId}`;
+  `${getPersistenceScope()}:${kind}:${entityId}`;
 
 function isSameValue(left: unknown, right: unknown): boolean {
   if (left === right) return true;
@@ -70,87 +73,108 @@ function hasVisibleChanges(edit: DraftEdit): boolean {
   return Object.keys(edit.changes).some((field) => !DERIVED_FIELDS.has(field));
 }
 
-export const useEditorDraftStore = create<EditorDraftState>((set, get) => ({
-  edits: {},
-  // Растёт при отмене правок: редакторы с внутренним состоянием пересоздаются.
-  revision: 0,
+export const useEditorDraftStore = create<EditorDraftState>()(
+  persist(
+    (set, get) => ({
+      edits: {},
+      // Растёт при отмене правок: редакторы с внутренним состоянием пересоздаются.
+      revision: 0,
 
-  bumpRevision: () => set((state) => ({ revision: state.revision + 1 })),
+      bumpRevision: () => set((state) => ({ revision: state.revision + 1 })),
 
-  recordEdit: ({ kind, courseId, entityId, label, entity, changes }) => {
-    if (!kind || !entityId || !changes) return;
-    set((state) => {
-      const key = draftKey(kind, entityId);
-      const current: DraftEdit = state.edits[key] || {
-        key,
-        kind,
-        courseId,
-        entityId,
-        label: label || '',
-        original: {},
-        changes: {},
-        error: '',
-      };
-      const original = { ...current.original };
-      const nextChanges = { ...current.changes };
+      recordEdit: ({ kind, courseId, entityId, label, entity, changes }) => {
+        if (!kind || !entityId || !changes) return;
+        set((state) => {
+          const key = draftKey(kind, entityId);
+          const current: DraftEdit = state.edits[key] || {
+            key,
+            kind,
+            courseId,
+            entityId,
+            label: label || '',
+            original: {},
+            changes: {},
+            error: '',
+          };
+          const original = { ...current.original };
+          const nextChanges = { ...current.changes };
 
-      Object.entries(changes).forEach(([field, value]) => {
-        if (!(field in original)) {
-          original[field] = entity ? entity[field] : undefined;
-        }
-        if (isSameValue(original[field], value)) {
-          delete nextChanges[field];
-        } else {
-          nextChanges[field] = value;
-        }
-      });
+          Object.entries(changes).forEach(([field, value]) => {
+            if (!(field in original)) {
+              original[field] = entity ? entity[field] : undefined;
+            }
+            if (isSameValue(original[field], value)) {
+              delete nextChanges[field];
+            } else {
+              nextChanges[field] = value;
+            }
+          });
 
-      const edits = { ...state.edits };
-      const nextEdit = {
-        ...current,
-        courseId: courseId || current.courseId,
-        label: label || current.label,
-        original,
-        changes: nextChanges,
-        error: '',
-      };
-      if (hasVisibleChanges(nextEdit)) {
-        edits[key] = nextEdit;
-      } else {
-        delete edits[key];
-      }
-      return { edits };
-    });
-  },
+          const edits = { ...state.edits };
+          const nextEdit = {
+            ...current,
+            courseId: courseId || current.courseId,
+            label: label || current.label,
+            original,
+            changes: nextChanges,
+            error: '',
+          };
+          if (hasVisibleChanges(nextEdit)) {
+            edits[key] = nextEdit;
+          } else {
+            delete edits[key];
+          }
+          return { edits };
+        });
+      },
 
-  setEditError: (key, error) =>
-    set((state) =>
-      state.edits[key]
-        ? { edits: { ...state.edits, [key]: { ...state.edits[key], error } } }
-        : {},
-    ),
-
-  removeEdit: (key) =>
-    set((state) => {
-      if (!state.edits[key]) return {};
-      const edits = { ...state.edits };
-      delete edits[key];
-      return { edits };
-    }),
-
-  removeEntity: (kind, entityId) => get().removeEdit(draftKey(kind, entityId)),
-
-  clearCourse: (courseId) =>
-    set((state) => ({
-      edits: Object.fromEntries(
-        Object.entries(state.edits).filter(
-          ([, edit]) => edit.courseId !== courseId,
+      setEditError: (key, error) =>
+        set((state) =>
+          state.edits[key]
+            ? {
+                edits: {
+                  ...state.edits,
+                  [key]: { ...state.edits[key], error },
+                },
+              }
+            : {},
         ),
-      ),
-    })),
 
-  getCourseEdits: (courseId) =>
-    Object.values(get().edits).filter((edit) => edit.courseId === courseId),
-}));
+      removeEdit: (key) =>
+        set((state) => {
+          if (!state.edits[key]) return {};
+          const edits = { ...state.edits };
+          delete edits[key];
+          return { edits };
+        }),
+
+      removeEntity: (kind, entityId) =>
+        get().removeEdit(draftKey(kind, entityId)),
+
+      clearCourse: (courseId) =>
+        set((state) => ({
+          edits: Object.fromEntries(
+            Object.entries(state.edits).filter(
+              ([, edit]) =>
+                edit.courseId !== courseId ||
+                !edit.key.startsWith(`${getPersistenceScope()}:`),
+            ),
+          ),
+        })),
+
+      getCourseEdits: (courseId) =>
+        Object.values(get().edits).filter(
+          (edit) =>
+            edit.courseId === courseId &&
+            edit.key.startsWith(`${getPersistenceScope()}:`),
+        ),
+    }),
+    {
+      name: 'course-editor-drafts-v1',
+      storage: createJSONStorage(() => localStateStorage),
+      partialize: (state) => ({ edits: state.edits }),
+    },
+  ),
+);
 
 export const isDerivedDraftField = (field: string) => DERIVED_FIELDS.has(field);

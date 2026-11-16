@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { localStateStorage } from '@/shared/lib/storage';
 
 interface TrainingRecord {
   title: string;
@@ -41,6 +42,7 @@ export const useTrainingStore = create<TrainingState>()(
     }),
     {
       name: 'aicolab-training-course-v1',
+      storage: createJSONStorage(() => localStateStorage),
       partialize: (state) => ({ courses: state.courses }),
     },
   ),

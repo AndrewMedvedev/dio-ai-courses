@@ -27,4 +27,8 @@ export type {
   SessionUser,
 } from './model/types';
 export { useAppPermissions } from './model/use-app-permissions';
+export {
+  getPersistenceScope,
+  usePersistenceScope,
+} from './model/persistence-scope';
 export { PermissionGate, type PermissionGateProps } from './ui/PermissionGate';

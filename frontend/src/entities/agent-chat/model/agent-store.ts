@@ -6,7 +6,8 @@ import {
   mockInterviewer,
   type MockAgentKind,
 } from '@/shared/lib/agent-mock';
-import { getLocalStorage } from '@/shared/lib/storage';
+import { localStateStorage } from '@/shared/lib/storage';
+import { getPersistenceScope } from '@/entities/session/@x/agent-chat';
 import {
   askEditorAgent,
   askInterviewerAgent,
@@ -67,21 +68,15 @@ interface AgentState {
 
 type PersistedAgentState = Pick<AgentState, 'conversations' | 'generations'>;
 
-// Диалоги интервьюеров (курс, модуль, урок) сохраняются в браузере вместе с chat_id,
-// чтобы после перезагрузки страницы можно было продолжить ту же беседу.
-// На backend нет ручки чтения истории чата, поэтому история живёт только здесь.
 const PERSISTED_AGENTS = new Set<string>([
   'interviewer',
   'module_interviewer',
   'lesson_interviewer',
+  'mentor',
+  'editor',
 ]);
 const MAX_PERSISTED_MESSAGES = 200;
 const MAX_PERSISTED_CONVERSATIONS = 30;
-const MEMORY_STORAGE = {
-  getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {},
-};
 
 const MAX_MESSAGE_LENGTH = 10_000;
 const REQUEST_TIMEOUT_MS = 120_000;
@@ -221,7 +216,8 @@ export const createAgentConversationKey = (
   agent: AgentType,
   courseId: string | null | undefined,
   contextId = '',
-) => [agent, courseId || 'missing-course', contextId].join(':');
+  scope = getPersistenceScope(),
+) => [scope, agent, courseId || 'missing-course', contextId].join(':');
 
 function partializeAgentState(state: PersistedAgentState): PersistedAgentState {
   const conversations: PersistedAgentState['conversations'] = {};
@@ -236,7 +232,11 @@ function partializeAgentState(state: PersistedAgentState): PersistedAgentState {
         ...conversation,
         messages: (conversation.messages || []).slice(-MAX_PERSISTED_MESSAGES),
         status:
-          conversation.status === 'loading' ? 'idle' : conversation.status,
+          conversation.status === 'loading' ? 'error' : conversation.status,
+        error:
+          conversation.status === 'loading'
+            ? 'Запрос был прерван. Автоматическая повторная отправка отключена.'
+            : conversation.error,
         activeRequestId: null,
       };
       if (state.generations?.[key]) generations[key] = state.generations[key];
@@ -531,7 +531,7 @@ export const useAgentStore = create<AgentState>()(
     {
       name: 'ai-course-agent-chats-v1',
       version: 1,
-      storage: createJSONStorage(() => getLocalStorage() || MEMORY_STORAGE),
+      storage: createJSONStorage(() => localStateStorage),
       partialize: partializeAgentState,
     },
   ),

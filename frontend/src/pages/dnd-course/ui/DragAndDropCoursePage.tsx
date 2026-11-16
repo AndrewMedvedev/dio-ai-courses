@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePersistenceScope } from '@/entities/session';
 import { Canvas } from './Canvas';
 import { FinishDialog, MaterialPickerDialog, ModuleDialog } from './Dialogs';
 import { Celebration, Onboarding } from './Extras';
@@ -45,6 +46,7 @@ export function DragAndDropCoursePage() {
     [navigate],
   );
   const hydrate = useDndCourseStore((state) => state.hydrate);
+  const scope = usePersistenceScope();
   const hydrated = useDndCourseStore((state) => state.hydrated);
   const hasCourse = useDndCourseStore((state) => Boolean(state.course?.id));
   const paletteOpen = useDndCourseStore((state) => state.paletteOpen);
@@ -77,7 +79,7 @@ export function DragAndDropCoursePage() {
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+  }, [hydrate, scope]);
 
   useEffect(() => {
     if (isCompact) setPaletteOpen(false);

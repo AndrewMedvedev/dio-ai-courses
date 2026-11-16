@@ -1,5 +1,6 @@
 import { asRecords } from '@/shared/api';
 import { toText } from '@/shared/lib/text';
+import { usePersistenceScope } from '@/entities/session';
 import { useEffect, useMemo, useState } from 'react';
 import type { RawApiRecord } from '@/shared/api';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
@@ -275,9 +276,14 @@ export function EditorSaveBar({
   onDiscard,
 }: EditorSaveBarProps) {
   const allEdits = useEditorDraftStore((state) => state.edits);
+  const scope = usePersistenceScope();
   const edits = useMemo(
-    () => Object.values(allEdits).filter((edit) => edit.courseId === courseId),
-    [allEdits, courseId],
+    () =>
+      Object.values(allEdits).filter(
+        (edit) =>
+          edit.courseId === courseId && edit.key.startsWith(`${scope}:`),
+      ),
+    [allEdits, courseId, scope],
   );
   const [dialog, setDialog] = useState<'save' | 'discard' | null>(null);
 

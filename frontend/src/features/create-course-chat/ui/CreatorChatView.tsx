@@ -1,4 +1,5 @@
 import { toText } from '@/shared/lib/text';
+import { usePersistenceScope } from '@/entities/session';
 import {
   useCallback,
   useEffect,
@@ -43,7 +44,7 @@ import {
   saveDocument,
 } from '@/shared/api';
 import { fetchCourseStatus } from '@/entities/course';
-import { getLocalStorage } from '@/shared/lib/storage';
+import { useLocalState, useStoredFiles } from '@/shared/lib/storage';
 import {
   estimateProgress,
   extractCourseId,
@@ -54,9 +55,7 @@ import {
   normalizeGenerationResponse,
 } from '../lib/generation-response';
 import {
-  ACTIVE_CREATOR_COURSE_KEY,
   clearGenerationState,
-  createCourseId,
   createUuid,
   readGenerationState,
   writeGenerationState,
@@ -86,15 +85,19 @@ interface GenerationStart {
 /** Чат создания курса: бриф с ИИ-интервьюером, запуск генерации и слежение за ней. */
 export function CreatorChatView() {
   const navigate = useNavigate();
-  const [courseId, setCourseId] = useState(createCourseId);
+  const scope = usePersistenceScope();
+  const [courseId, setCourseId] = useLocalState(
+    `creator-active:${scope}`,
+    createUuid,
+  );
   // Текст, который уйдёт агенту после подтверждения запуска генерации.
   const [confirmLaunchText, setConfirmLaunchText] = useState<string | null>(
     null,
   );
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const conversationKey = useMemo(
-    () => createAgentConversationKey('interviewer', courseId),
-    [courseId],
+    () => createAgentConversationKey('interviewer', courseId, '', scope),
+    [courseId, scope],
   );
   const conversation = useAgentStore(
     (state) => state.conversations[conversationKey],
@@ -116,10 +119,15 @@ export function CreatorChatView() {
   const generation = storeGeneration || defaultGeneration;
   const messages = conversation?.messages || [];
   const isThinking = conversation?.status === 'loading';
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [inputValue, setInputValue] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const draftKey = `creator-draft:${scope}:${courseId}`;
+  const [stepIndex, setStepIndex] = useLocalState(`${draftKey}:step`, 0);
+  const [answers, setAnswers] = useLocalState<Record<string, string>>(
+    `${draftKey}:answers`,
+    {},
+  );
+  const [inputValue, setInputValue] = useLocalState(`${draftKey}:input`, '');
+  const [uploadedFiles, setUploadedFiles, filesReady] =
+    useStoredFiles<UploadedFile>(draftKey);
   const hasGenerationStarted = generation.hasStarted;
   const isGenerating = generation.isGenerating;
   const generationProgress = generation.progress;
@@ -195,7 +203,7 @@ export function CreatorChatView() {
   const finishGeneration = useCallback(
     (status = 'draft') => {
       stopGenerationTimers();
-      clearGenerationState(courseId);
+      clearGenerationState(courseId, scope);
       updateGeneration({
         isGenerating: false,
         hasStarted: true,
@@ -209,7 +217,13 @@ export function CreatorChatView() {
         'Курс сгенерирован! Он находится в профиле в разделе «Мои курсы».',
       );
     },
-    [courseId, pushAssistantMessage, stopGenerationTimers, updateGeneration],
+    [
+      courseId,
+      scope,
+      pushAssistantMessage,
+      stopGenerationTimers,
+      updateGeneration,
+    ],
   );
 
   const startProgressSimulation = useCallback(
@@ -238,7 +252,7 @@ export function CreatorChatView() {
     const statusLookupId = currentGeneration.generatedCourseId;
     if (!statusLookupId) {
       stopGenerationTimers();
-      clearGenerationState(courseId);
+      clearGenerationState(courseId, scope);
       updateGeneration({
         isGenerating: false,
         error: 'Не удалось проверить статус генерации курса.',
@@ -298,7 +312,7 @@ export function CreatorChatView() {
         }
 
         stopGenerationTimers();
-        clearGenerationState(courseId);
+        clearGenerationState(courseId, scope);
         updateGeneration({
           isGenerating: false,
           hasStarted: false,
@@ -326,7 +340,7 @@ export function CreatorChatView() {
 
       if (shouldStopPolling) {
         stopGenerationTimers();
-        clearGenerationState(courseId);
+        clearGenerationState(courseId, scope);
         pushAssistantMessage(errorMessage);
         return true;
       }
@@ -342,6 +356,7 @@ export function CreatorChatView() {
     conversationKey,
     courseId,
     finishGeneration,
+    scope,
     pushAssistantMessage,
     stopGenerationTimers,
     updateGeneration,
@@ -354,10 +369,9 @@ export function CreatorChatView() {
     }
     const finished = await checkStatusOnce();
     if (finished) return;
-    pollingTimerRef.current = window.setInterval(
-      checkStatusOnce,
-      COURSE_GENERATION_POLLING_INTERVAL_MS,
-    );
+    pollingTimerRef.current = window.setInterval(() => {
+      void checkStatusOnce();
+    }, COURSE_GENERATION_POLLING_INTERVAL_MS);
   }, [checkStatusOnce]);
 
   const beginGeneration = useCallback(
@@ -384,14 +398,17 @@ export function CreatorChatView() {
         status: 'Курс генерируется. Это может занять несколько минут.',
         error: '',
       });
-      writeGenerationState({
-        courseId,
-        chatId: nextChatId || conversation?.chatId || null,
-        taskId: nextTaskId || null,
-        generatedCourseId: generationCourseId || null,
-        generationStartedAt: startedAt,
-        status: 'in_generation',
-      });
+      writeGenerationState(
+        {
+          courseId,
+          chatId: nextChatId || conversation?.chatId || null,
+          taskId: nextTaskId || null,
+          generatedCourseId: generationCourseId || null,
+          generationStartedAt: startedAt,
+          status: 'in_generation',
+        },
+        scope,
+      );
       startProgressSimulation(startedAt);
       void startStatusPolling();
     },
@@ -399,6 +416,7 @@ export function CreatorChatView() {
       conversation?.chatId,
       conversationKey,
       courseId,
+      scope,
       startProgressSimulation,
       startStatusPolling,
       updateGeneration,
@@ -480,7 +498,7 @@ export function CreatorChatView() {
   );
 
   useEffect(() => {
-    const savedGeneration = readGenerationState(courseId);
+    const savedGeneration = readGenerationState(courseId, scope);
     if (!savedGeneration) return;
 
     setConversationChatId(conversationKey, savedGeneration.chatId || null);
@@ -501,6 +519,7 @@ export function CreatorChatView() {
     conversationKey,
     courseId,
     setConversationChatId,
+    scope,
     startProgressSimulation,
     startStatusPolling,
     updateGeneration,
@@ -529,7 +548,8 @@ export function CreatorChatView() {
       (!text && !hasFiles) ||
       isThinking ||
       isGenerating ||
-      isUploadingFiles
+      isUploadingFiles ||
+      !filesReady
     ) {
       return;
     }
@@ -558,9 +578,6 @@ export function CreatorChatView() {
     }
 
     if (!isConfirmedLaunch) setInputValue('');
-    // Курс и chat_id запоминаем с первого сообщения, чтобы после перезагрузки
-    // страницы продолжить ту же беседу.
-    getLocalStorage()?.setItem(ACTIVE_CREATOR_COURSE_KEY, courseId);
     try {
       const response = await sendAgentMessage({
         key: conversationKey,
@@ -597,7 +614,7 @@ export function CreatorChatView() {
         });
       }
     } catch {
-      // Публичная ошибка отображается из Zustand-store без технических деталей.
+      if (!isConfirmedLaunch) setInputValue((current) => current || text);
     }
   };
 
@@ -681,7 +698,7 @@ export function CreatorChatView() {
 
   const clearChat = () => {
     stopGenerationTimers();
-    clearGenerationState(courseId);
+    clearGenerationState(courseId, scope);
     clearConversation(conversationKey);
     initializeConversation({
       key: conversationKey,
@@ -708,7 +725,7 @@ export function CreatorChatView() {
 
   const startNewChat = () => {
     stopGenerationTimers();
-    clearGenerationState(courseId);
+    clearGenerationState(courseId, scope);
     clearConversation(conversationKey);
     setStepIndex(0);
     setAnswers({});
@@ -731,6 +748,7 @@ export function CreatorChatView() {
           ? 'ИИ отвечает…'
           : 'Диалог активен';
   const canSend =
+    filesReady &&
     !isGenerating &&
     !isUploadingFiles &&
     !isThinking &&
@@ -929,7 +947,7 @@ export function CreatorChatView() {
                 }
                 onAttach={() => fileInputRef.current?.click()}
                 attachLabel="Прикрепить файлы"
-                attachDisabled={isUploadingFiles}
+                attachDisabled={isUploadingFiles || !filesReady}
                 files={uploadedFiles.map((file) => ({
                   id: file.id,
                   name: file.name,
