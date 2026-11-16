@@ -8,8 +8,17 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator
 
-from src.courses.domain.constants import _BLOCK_REGISTRY, ExtendedContentType
-from src.courses.domain.vo import AnyContentBlock, Question, QuizBlock
+from src.courses.domain.catalog.constants import (
+    _BLOCK_REGISTRY,
+)
+from src.courses.domain.catalog.enums import (
+    ExtendedContentType,
+)
+from src.courses.domain.catalog.vo import (
+    AnyContentBlock,
+    Question,
+    QuizBlock,
+)
 
 
 def block_from_dict(data: dict[str, Any]) -> AnyContentBlock:

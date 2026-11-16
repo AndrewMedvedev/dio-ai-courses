@@ -1,7 +1,9 @@
 from sqlalchemy import select
 
-from src.courses.domain.entities import GenerationSession
-from src.shared.infra.repos import SqlAlchemyRepository
+from src.courses.domain.generation.entities import (
+    GenerationSession,
+)
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import GenerationSessionMapper
 from ..models import GenerationSessionOrm
@@ -15,6 +17,6 @@ class SqlGenerationSessionRepository(
 
     async def read_with_generation_key(self, generation_key: str) -> GenerationSession | None:
         stmt = select(self.model).where(self.model.generation_key == generation_key)
-        result = await self.session.execute(stmt)
+        result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.to_entity(model)
+        return None if model is None else self.model_mapper.from_model(model)

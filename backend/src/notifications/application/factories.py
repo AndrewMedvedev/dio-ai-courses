@@ -1,5 +1,5 @@
 from src.core.settings import app_config
-from src.courses.domain.events import CourseInvited
+from src.courses.domain.enrollment.events import CourseInvited
 from src.iam.domain.events import UserInvited
 from src.notifications.domain.entities import Notification
 from src.notifications.domain.vo import NotificationType

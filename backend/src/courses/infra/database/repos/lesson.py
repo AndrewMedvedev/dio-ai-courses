@@ -6,10 +6,12 @@ from uuid import UUID
 from sqlalchemy import func, literal, select, text, update
 from sqlalchemy.dialects.postgresql import JSONB
 
-from src.courses.application.dtos import LessonBasicInfo
-from src.courses.domain.entities import (
-    AnyContentBlock,
+from src.courses.application.catalog.dtos.basic_info import LessonBasicInfoDTO
+from src.courses.domain.catalog.entities import (
     Lesson,
+)
+from src.courses.domain.catalog.vo import (
+    AnyContentBlock,
 )
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
@@ -26,76 +28,91 @@ class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
     model = LessonOrm
     model_mapper = LessonMapper  # type: ignore
 
-    async def create_at(self, lesson: Lesson) -> Lesson:
-        if lesson.order < 1:
-            raise ValueError("Lesson order must be greater than 0")
-        if lesson.module_id is None:
-            raise ValueError("module_id is required")
+    async def find_rank_bounds(
+        self,
+        module_id: UUID,
+        *,
+        before_id: UUID | None = None,
+        after_id: UUID | None = None,
+        exclude_id: UUID | None = None,
+    ) -> tuple[str | None, str | None]:
+        if before_id is not None and after_id is not None:
+            raise ValueError("Only one of before_id or after_id can be provided.")
 
-        locked = await self._session.scalar(
-            select(ModuleOrm.id)
-            .where(ModuleOrm.id == lesson.module_id)
-            .with_for_update(key_share=True)
-        )
-        if locked is None:
-            raise NotFoundError(f"Module {lesson.module_id} does not exist")
+        anchor_id = before_id or after_id
 
-        max_order = await self._session.scalar(
-            select(func.coalesce(func.max(self.model.order), 0)).where(
-                self.model.module_id == lesson.module_id
+        if anchor_id is not None and anchor_id == exclude_id:
+            raise ValueError("A lesson cannot be positioned relative to itself.")
+
+        stmt = (
+            select(
+                self.model.id,
+                self.model.rank,
+            )
+            .where(self.model.module_id == module_id)
+            .order_by(
+                self.model.rank,
+                self.model.id,
             )
         )
 
-        target = min(lesson.order, max_order + 1)  # pyright: ignore[reportOptionalOperand]
+        if exclude_id is not None:
+            stmt = stmt.where(
+                self.model.id != exclude_id,
+            )
 
-        await self._session.execute(
-            update(self.model)
-            .where(self.model.module_id == lesson.module_id, self.model.order >= target)
-            .values(order=self.model.order + 1)
-            .execution_options(synchronize_session=False)
+        rows = tuple((await self._session.execute(stmt)).all())
+
+        if anchor_id is None:
+            return (
+                rows[-1].rank if rows else None,
+                None,
+            )
+
+        anchor_index = next(
+            (index for index, row in enumerate(rows) if row.id == anchor_id),
+            None,
         )
 
-        lesson.order = target
-        return await self.create(lesson)
+        if anchor_index is None:
+            raise NotFoundError(
+                f"Lesson position anchor {anchor_id} not found in module {module_id}."
+            )
 
-    async def delete_and_compact(self, lesson_id: UUID) -> None:
-        module_id = await self._session.scalar(
-            select(self.model.module_id).where(self.model.id == lesson_id)
+        if before_id is not None:
+            return (
+                rows[anchor_index - 1].rank if anchor_index > 0 else None,
+                rows[anchor_index].rank,
+            )
+
+        return (
+            rows[anchor_index].rank,
+            rows[anchor_index + 1].rank if anchor_index + 1 < len(rows) else None,
         )
 
-        if module_id is None:
-            if not await self.exists(lesson_id):
-                raise NotFoundError(f"Lesson with id {lesson_id} not found")
-
-            await self.delete(lesson_id)
+    async def lock_modules(
+        self,
+        module_ids: set[UUID],
+    ) -> None:
+        if not module_ids:
             return
 
-        await self._session.execute(
-            select(ModuleOrm.id).where(ModuleOrm.id == module_id).with_for_update(key_share=True)
-        )
+        ordered_ids = sorted(module_ids, key=str)
 
-        lesson_order = await self._session.scalar(
-            select(self.model.order)
-            .where(
-                self.model.id == lesson_id,
-                self.model.module_id == module_id,
+        locked_ids = set(
+            await self._session.scalars(
+                select(ModuleOrm.id)
+                .where(ModuleOrm.id.in_(ordered_ids))
+                .order_by(ModuleOrm.id)
+                .with_for_update()
             )
-            .with_for_update(key_share=True)
         )
 
-        if lesson_order is None:
-            raise NotFoundError(f"Lesson with id {lesson_id} not found")
+        missing_ids = set(module_ids) - locked_ids
 
-        await self.delete(lesson_id)
-
-        await self._session.execute(
-            update(self.model)
-            .where(
-                self.model.module_id == module_id,
-                self.model.order > lesson_order,
-            )
-            .values(order=self.model.order - 1)
-        )
+        if missing_ids:
+            missing = ", ".join(sorted(map(str, missing_ids)))
+            raise NotFoundError(f"Modules do not exist: {missing}")
 
     async def get_content_blocks_by_id(self, lesson_id: UUID) -> list[AnyContentBlock] | None:
         """Получает content blocks by id, чтобы вызывающий код работал через единый интерфейс."""
@@ -125,29 +142,20 @@ class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
         )
         await self._session.execute(stmt)
 
-    async def get_by_id_basic_info(self, uid: UUID) -> LessonBasicInfo | None:
+    async def get_by_id_basic_info(self, uid: UUID) -> LessonBasicInfoDTO | None:
         """Получает by id basic info, чтобы вызывающий код работал через единый интерфейс."""
         stmt = select(
             self.model.id,
             self.model.title,
             self.model.description,
-            self.model.order,
+            self.model.rank,
             self.model.learning_objectives,
             self.model.estimated_time_minutes,
         ).where(self.model.id == uid)
+
         result = await self._session.execute(stmt)
         model = result.one_or_none()
         return None if model is None else self.model_mapper.basic_info_mapper(model)  # type: ignore
-
-    async def assign_module(
-        self,
-        lesson_id: UUID,
-        module_id: UUID,
-    ) -> None:
-        """Привязывает один урок к модулю и фиксирует это отношение."""
-        stmt = update(self.model).where(self.model.id == lesson_id).values(module_id=module_id)
-
-        await self._session.execute(stmt)
 
     async def read_course_ownership(
         self,

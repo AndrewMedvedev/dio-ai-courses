@@ -11,13 +11,19 @@ from taskiq import TaskiqDepends
 from taskiq_cancellation import CancellationType
 
 from src.core.tkq import cancellation_backend, taskiq_broker
-from src.courses.agents.course_generator.helper import invoke_or_resume
-from src.courses.agents.schemas import Context, GenerationContext
-from src.courses.dependencies.agents import CourseAgentDep, LessonAgentDep, ModuleAgentDep
-from src.courses.dependencies.base import GenerationSessionRepoDep, LessonRepoDep, VectorRepoDep
-from src.courses.domain.enums import GenerationStatus
-from src.courses.infra.database.repos.generation_session import SqlGenerationSessionRepository
-from src.courses.utils.formatting import get_lesson_context
+from src.courses.ai.helper import invoke_or_resume
+from src.courses.ai.schemas.contexts import Context, GenerationContext
+from src.courses.api.dependencies.agents import CourseAgentDep, LessonAgentDep, ModuleAgentDep
+from src.courses.api.dependencies.repos import (
+    GenerationSessionRepoDep,
+    LessonRepoDep,
+    ModuleRepoDep,
+    VectorRepoDep,
+)
+from src.courses.application.generation.repos import GenerationSessionRepository
+from src.courses.domain.catalog.ranking import rank_between
+from src.courses.domain.generation.enums import GenerationStatus
+from src.courses.infra.formatting import get_lesson_context
 from src.shared.dependencies import DBSession
 from src.shared.domain.exceptions import NotFoundError
 
@@ -33,7 +39,7 @@ RETRY_OPTS = {"retry_on_error": True, "max_retries": 5, "delay": 10, "timeout": 
 
 async def generation_lifecycle(
     args: dict[str, Any],
-    repo: SqlGenerationSessionRepository,
+    repo: GenerationSessionRepository,
     session: AsyncSession,
     taskiq_context: TaskiqContext,
 ) -> None:
@@ -122,8 +128,18 @@ async def generate_module(
     agent: ModuleAgentDep,
     taskiq_context: TaskiqContextDep,
     repo: GenerationSessionRepoDep,
+    module_repo: ModuleRepoDep,
     session: DBSession,
-) -> dict[str, UUID | int]:
+) -> dict[str, UUID | str]:
+    before_rank, after_rank = await module_repo.find_rank_bounds(
+        course_id=context.course_id,
+        before_id=context.position.before_id,
+        after_id=context.position.after_id,
+    )
+    rank = rank_between(
+        before_rank,
+        after_rank,
+    )
     await generation_lifecycle(
         args={
             "graph": agent,
@@ -131,18 +147,18 @@ async def generate_module(
                 "generation_context": context,
                 "audience_description": audience_description,
                 "learning_objectives": learning_objectives,
-                "order": context.order,
+                "rank": rank,
                 "module_description": description,
             },
             "config": RunnableConfig(
-                configurable={"thread_id": f"course:{context.course_id}:module:{context.order}"}
+                configurable={"thread_id": f"course:{context.course_id}:module:{rank}"}
             ),
         },
         repo=repo,
         session=session,
         taskiq_context=taskiq_context,
     )
-    return {"course_id": context.course_id, "module_order": context.order}
+    return {"course_id": context.course_id, "module_rank": rank}
 
 
 @taskiq_broker.task(task_name="courses.generate_lesson", **RETRY_OPTS)
@@ -155,8 +171,18 @@ async def generate_lesson(
     agent: LessonAgentDep,
     taskiq_context: TaskiqContextDep,
     repo: GenerationSessionRepoDep,
+    lesson_repo: LessonRepoDep,
     session: DBSession,
-) -> dict[str, UUID | int]:
+) -> dict[str, UUID | str]:
+    before_rank, after_rank = await lesson_repo.find_rank_bounds(
+        module_id=context.module_id,  # pyright: ignore[reportArgumentType]
+        before_id=context.position.before_id,
+        after_id=context.position.after_id,
+    )
+    rank = rank_between(
+        before_rank,
+        after_rank,
+    )
     await generation_lifecycle(
         args={
             "graph": agent,
@@ -165,12 +191,12 @@ async def generate_lesson(
                 "module_id": context.module_id,
                 "audience_description": audience_description,
                 "learning_objectives": learning_objectives,
-                "order": context.order,
+                "rank": rank,
                 "lesson_description": description,
             },
             "config": RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{context.order}"  # noqa: E501
+                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{rank}"  # noqa: E501
                 }
             ),
         },
@@ -182,7 +208,7 @@ async def generate_lesson(
     return {
         "course_id": context.course_id,
         "module_id": context.module_id,  # pyright: ignore[reportReturnType]
-        "lesson_order": context.order,
+        "lesson_rank": rank,
     }
 
 
@@ -222,7 +248,6 @@ async def index_lesson(
                 "source": lesson.title,
                 "category": "theory",
                 "document_type": "lesson",
-                "lesson_order": lesson.order,
             },
         )
 

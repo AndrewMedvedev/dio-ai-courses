@@ -3,8 +3,8 @@ from typing import Self
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.iam.domain.vo import Email
 from src.shared.domain.entities import AggregateRoot
+from src.shared.domain.vo import Email
 
 from .constants import MAX_COMMENT_LENGTH
 from .events import FeedbackCreated

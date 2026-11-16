@@ -1,12 +1,14 @@
+# pyright: reportArgumentType=false,reportOptionalCall=false
+
 from collections.abc import Callable
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.shared.application.repos import Repository, get_or_raise_404
 from src.shared.application.transaction import Transaction
 from src.shared.domain.entities import Entity
 from src.shared.domain.exceptions import UnsupportedOperationError
+from src.shared.domain.repos import Repository, get_or_raise_404
 
 from .types import (
     CreateHandler,
@@ -95,8 +97,6 @@ class Crud[
 
         return self._to_response(read)
 
-    async def find(self, pagination: ..., filters: ...) -> ...: ...
-
     async def update(
         self, uid: UUID, dto: UpdateT, options: UpdateOptionsT | None = None
     ) -> ResponseT:
@@ -112,7 +112,7 @@ class Crud[
         ) -> EntityT:
             handled = await self._update_handler(entity_, dto_, options_)
 
-            await self._repository.upsert(handled)
+            await self._repository.update(handled)
             await self._transaction(handled)
 
             return handled
@@ -134,7 +134,7 @@ class Crud[
         async def _base_delete(entity_: EntityT, options_: DeleteOptionsT | None) -> EntityT:
             handled = await self._delete_handler(entity_, options_)
 
-            await self._repository.upsert(handled)
+            await self._repository.update(handled)
             await self._transaction(handled)
 
             return handled

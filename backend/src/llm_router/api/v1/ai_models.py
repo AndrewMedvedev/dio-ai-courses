@@ -6,12 +6,12 @@ from fastapi import APIRouter, Depends, status
 
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
+from src.llm_router.api.dependencies.repos import AIModelsRepoDep
+from src.llm_router.application.schemas import AIModelSchema
+from src.llm_router.domain.entities import AIModel
+from src.llm_router.domain.permissions.ai_models import CREATE, DELETE
 from src.shared.application.dtos import Page, Pagination
-
-from ...dependencies import AIModelsRepoDep, DBSession
-from ...domain.dataclass import AIModel
-from ...domain.permissions.ai_models import CREATE, DELETE
-from ...schemas import AIModelSchema
+from src.shared.dependencies import DBSession
 
 router = APIRouter(prefix="/ai-models", tags=["AI Models"])
 
@@ -29,7 +29,6 @@ async def add_model(
     repository: AIModelsRepoDep,
     session: DBSession,
 ) -> AIModel:
-    """Обрабатывает HTTP-запрос `add_model` и связывает API с сервисным слоем."""
     result = await repository.create(AIModel(**schema.model_dump()))
     await session.commit()
     return result
@@ -47,7 +46,6 @@ async def get_models(
     repository: AIModelsRepoDep,
     _identity: CurrentIdentity,
 ) -> Page[AIModel]:
-    """Получает models, чтобы вызывающий код работал через единый интерфейс."""
     return await repository.find(params)
 
 
@@ -63,6 +61,5 @@ async def delete_model(
     session: DBSession,
     repository: AIModelsRepoDep,
 ) -> None:
-    """Обрабатывает HTTP-запрос `delete_model` и связывает API с сервисным слоем."""
     await repository.delete(uid)
     await session.commit()
