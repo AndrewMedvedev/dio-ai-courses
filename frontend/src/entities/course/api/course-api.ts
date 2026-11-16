@@ -1,3 +1,12 @@
+import {
+  getModulePosition,
+  getLessonPosition,
+  findLessonParent,
+  rememberLessonParent,
+  serializeCourseChange,
+  moveModuleRequest,
+  moveLessonRequest,
+} from './positions';
 import { toText } from '@/shared/lib/text';
 import { asRecord, asRecords } from '@/shared/api';
 import {
@@ -174,18 +183,17 @@ export async function createModule(
   data: RawApiRecord,
   options: JsonRequestOptions = {},
 ): Promise<LearningBlock> {
-  const query = courseId
-    ? `?${new URLSearchParams({ course_id: courseId }).toString()}`
-    : '';
+  if (!courseId) throw new Error('Для создания модуля нужен курс.');
+  const position = await getModulePosition(courseId, Number(data.order));
   const payload = {
     title: data.title || 'Новый модуль',
     description: data.description || '',
-    order: Number.isFinite(data.order) ? data.order : 1,
+    position,
     learning_objectives:
       data.learning_objectives || data.learningObjectives || [],
   };
   const response = await jsonRequest(
-    `/modules${query}`,
+    `/modules/${encodeURIComponent(courseId)}`,
     'POST',
     payload,
     options,
@@ -202,7 +210,7 @@ export async function createModule(
       const normalized = normalizeModuleRef(module);
       return (
         normalized.title === payload.title ||
-        Number(normalized.order) === Number(payload.order)
+        Number(normalized.order) === Number(data.order)
       );
     }) ||
     courseModules.at(-1) ||
@@ -212,7 +220,7 @@ export async function createModule(
   return moduleBasicToLearningBlock(asRecord(createdModule), {
     title: payload.title,
     description: payload.description,
-    order: payload.order,
+    order: Number.isFinite(data.order) ? Number(data.order) : 1,
     learningObjectives: payload.learning_objectives,
     learning_objectives: payload.learning_objectives,
   });
@@ -223,13 +231,7 @@ export async function assignModuleToCourse(
   courseId: string,
   options: RequestOptions = {},
 ): Promise<unknown> {
-  return requestJson(
-    `/modules/${encodeURIComponent(moduleId)}/courses/${encodeURIComponent(courseId)}`,
-    {
-      method: 'POST',
-    },
-    options,
-  );
+  return moveModuleRequest(moduleId, courseId, {}, options);
 }
 
 export async function createLesson(
@@ -237,16 +239,18 @@ export async function createLesson(
   options: JsonRequestOptions = {},
 ): Promise<LearningLesson> {
   const moduleId = data.module_id || data.moduleId;
-  const query = moduleId
-    ? `?${new URLSearchParams({ module_id: toText(moduleId) }).toString()}`
-    : '';
+  if (!moduleId) throw new Error('Для создания урока нужен модуль.');
+  const position = await getLessonPosition(
+    toText(moduleId),
+    Number(data.order),
+  );
   const response = await jsonRequest(
-    `/lessons${query}`,
+    `/lessons/${encodeURIComponent(toText(moduleId))}`,
     'POST',
     {
       title: data.title || 'Новый урок',
       description: data.description || '',
-      order: Number.isFinite(data.order) ? data.order : 1,
+      position,
       learning_objectives:
         data.learning_objectives || data.learningObjectives || [],
       estimated_time_minutes:
@@ -254,6 +258,7 @@ export async function createLesson(
     },
     options,
   );
+  rememberLessonParent(String(response.id), toText(moduleId));
   return lessonBasicToLearningLesson(
     normalizeLessonRef(asRecord(response?.lesson || response)),
     {
@@ -273,13 +278,7 @@ export async function assignLessonToModule(
   moduleId: string,
   options: RequestOptions = {},
 ): Promise<unknown> {
-  return requestJson(
-    `/lessons/${encodeURIComponent(lessonId)}/modules/${encodeURIComponent(moduleId)}`,
-    {
-      method: 'POST',
-    },
-    options,
-  );
+  return moveLessonRequest(lessonId, moduleId, {}, options);
 }
 
 export async function updateModule(
@@ -287,11 +286,31 @@ export async function updateModule(
   moduleId: string,
   changes: RawApiRecord,
 ): Promise<LearningBlock | null> {
+  if ('order' in changes) {
+    if (!courseId) throw new Error('Для перестановки нужен курс.');
+    return serializeCourseChange(courseId, async () => {
+      const position = await getModulePosition(
+        courseId,
+        Number(changes.order),
+        moduleId,
+      );
+      const moved = await moveModuleRequest(moduleId, courseId, position);
+      const { order: _order, ...fields } = changes;
+      const updated = Object.keys(fields).length
+        ? await updateModule(courseId, moduleId, fields)
+        : null;
+      return (
+        updated ||
+        moduleBasicToLearningBlock({ ...moved, order: changes.order })
+      );
+    });
+  }
+
   const patch = withoutEmptyValues(moduleChangesToPatch(changes));
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
     `/modules/${encodeURIComponent(moduleId)}`,
-    'PUT',
+    'PATCH',
     patch,
   );
   return moduleBasicToLearningBlock(data);
@@ -302,6 +321,27 @@ export async function updateLesson(
   lessonId: string,
   changes: RawApiRecord,
 ): Promise<LearningLesson | null> {
+  if ('order' in changes) {
+    if (!courseId) throw new Error('Для перестановки нужен курс.');
+    return serializeCourseChange(courseId, async () => {
+      const parent = await findLessonParent(courseId, lessonId);
+      const position = await getLessonPosition(
+        parent,
+        Number(changes.order),
+        lessonId,
+      );
+      const moved = await moveLessonRequest(lessonId, parent, position);
+      const { order: _order, ...fields } = changes;
+      const updated = Object.keys(fields).length
+        ? await updateLesson(courseId, lessonId, fields)
+        : null;
+      return (
+        updated ||
+        lessonBasicToLearningLesson({ ...moved, order: changes.order })
+      );
+    });
+  }
+
   if (
     'contentBlocks' in changes ||
     'content_blocks' in changes ||
@@ -317,7 +357,7 @@ export async function updateLesson(
   if (!Object.keys(patch).length) return null;
   const data = await jsonRequest(
     `/lessons/${encodeURIComponent(lessonId)}`,
-    'PUT',
+    'PATCH',
     patch,
   );
   return lessonBasicToLearningLesson(data);
@@ -369,9 +409,9 @@ export async function updateLessonContentBlocks(
     }
   }
   const data = await jsonRequest(
-    `/lessons/${encodeURIComponent(lessonId)}/content-blocks`,
-    'PUT',
-    payload,
+    `/lessons/${encodeURIComponent(lessonId)}`,
+    'PATCH',
+    { contentBlocks: payload },
   );
   return lessonBasicToLearningLesson({
     id: lessonId,
@@ -406,10 +446,10 @@ export async function fetchCourseStatus(
   courseId: string,
   options: RequestInit = {},
 ): Promise<CourseStatusResult> {
-  const data = await requestJson(
-    `/courses/${encodeURIComponent(courseId)}/status`,
-    { method: 'GET', ...(options || {}) },
-  );
+  const data = await requestJson(`/courses/${encodeURIComponent(courseId)}`, {
+    method: 'GET',
+    ...(options || {}),
+  });
   return { raw: data, status: extractCourseStatus(data) };
 }
 
@@ -491,5 +531,19 @@ export async function fetchCourseMembersPage(
     size: Number(data?.size) || size,
     total: Number(data?.total) || asRecords(items).length,
     hasNext: Boolean(data?.has_next ?? data?.hasNext),
+  };
+}
+
+export async function getGenerationSession(
+  generationKey: string,
+  options: RequestInit = {},
+): Promise<{ status: string; generationKey: string }> {
+  const data = await requestJson(
+    `/generation-sessions/${encodeURIComponent(generationKey)}`,
+    options,
+  );
+  return {
+    status: toText(data.status),
+    generationKey: toText(data.generationKey || data.generation_key),
   };
 }

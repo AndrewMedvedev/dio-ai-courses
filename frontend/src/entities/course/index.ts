@@ -13,6 +13,7 @@ export {
   fetchCoursesPage,
   fetchMyCoursesPage,
   getCourse,
+  getGenerationSession,
   getCourseBasicInfo,
   getLessonBasicInfo,
   getLessonTheory,

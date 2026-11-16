@@ -5,3 +5,5 @@ export {
   normalizeContentType,
   sanitizeContentBlock,
 } from '../lib/content-blocks';
+
+export { getModulePosition, getLessonPosition } from '../api/positions';

@@ -1,6 +1,6 @@
 import { asRecord, asRecords } from '@/shared/api';
 import { toText } from '@/shared/lib/text';
-// Сессии чтения теории урока: активное время и глубина прокрутки (backend: /theory-sessions).
+// Сессии чтения теории урока: активное время и глубина прокрутки (backend: /progress/theory-sessions).
 import {
   API_BASE,
   apiFetch,
@@ -61,7 +61,7 @@ export async function createSession(
   options: RequestInit = {},
 ): Promise<RawApiRecord> {
   const response = await apiFetch(
-    `/theory-sessions/${encodeURIComponent(lessonId)}`,
+    `/progress/theory-sessions/${encodeURIComponent(lessonId)}`,
     {
       ...options,
       method: 'POST',
@@ -82,10 +82,10 @@ export async function updateSession(
   options: RequestInit = {},
 ): Promise<RawApiRecord> {
   const response = await apiFetch(
-    `/theory-sessions/${encodeURIComponent(sessionId)}`,
+    `/progress/theory-sessions/${encodeURIComponent(sessionId)}`,
     {
       ...options,
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
@@ -138,7 +138,7 @@ export async function getTheorySessions(
 
   const query = buildSessionsQuery(filters);
   const response = await apiFetch(
-    `/theory-sessions/${encodeURIComponent(lessonId)}/users/${encodeURIComponent(userId)}${query ? `?${query}` : ''}`,
+    `/progress/theory-sessions/${encodeURIComponent(lessonId)}/users/${encodeURIComponent(userId)}${query ? `?${query}` : ''}`,
     {
       ...options,
       method: 'GET',
@@ -164,15 +164,18 @@ export function updateSessionKeepalive(
     return false;
   }
 
-  fetch(`${API_BASE}/theory-sessions/${encodeURIComponent(sessionId)}`, {
-    method: 'PUT',
-    keepalive: true,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
+  fetch(
+    `${API_BASE}/progress/theory-sessions/${encodeURIComponent(sessionId)}`,
+    {
+      method: 'PATCH',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(metrics),
     },
-    body: JSON.stringify(metrics),
-  }).catch(() => {});
+  ).catch(() => {});
 
   return true;
 }

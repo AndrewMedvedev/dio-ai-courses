@@ -42,14 +42,12 @@ import {
   DOCUMENT_MAX_SIZE_BYTES,
   saveDocument,
 } from '@/shared/api';
-import { fetchCourseStatus } from '@/entities/course';
+import { getGenerationSession } from '@/entities/course';
 import { getLocalStorage } from '@/shared/lib/storage';
 import {
   estimateProgress,
   extractCourseId,
   getStatusErrorMessage,
-  isDraftCourseStatus,
-  isGenerationCourseStatus,
   normalizeCourseStatus,
   normalizeGenerationResponse,
 } from '../lib/generation-response';
@@ -235,7 +233,7 @@ export function CreatorChatView() {
     const currentGeneration = useAgentStore
       .getState()
       .getGeneration(conversationKey);
-    const statusLookupId = currentGeneration.generatedCourseId;
+    const statusLookupId = currentGeneration.taskId;
     if (!statusLookupId) {
       stopGenerationTimers();
       clearGenerationState(courseId);
@@ -253,12 +251,12 @@ export function CreatorChatView() {
     statusRequestControllerRef.current = controller;
 
     try {
-      const { status } = await fetchCourseStatus(statusLookupId, {
+      const { status } = await getGenerationSession(statusLookupId, {
         signal: controller.signal,
       });
       const normalizedStatus = normalizeCourseStatus(status);
 
-      if (isGenerationCourseStatus(normalizedStatus)) {
+      if (['pending', 'running', 'cancelling'].includes(normalizedStatus)) {
         hasReceivedGenerationStatusRef.current = true;
         updateGeneration({
           courseStatus: normalizedStatus,
@@ -267,11 +265,15 @@ export function CreatorChatView() {
         });
         return false;
       }
-      if (isDraftCourseStatus(normalizedStatus)) {
+      if (normalizedStatus === 'completed') {
         hasReceivedGenerationStatusRef.current = true;
-        finishGeneration(normalizedStatus);
+        finishGeneration('draft');
         return true;
       }
+      if (['failed', 'cancelled'].includes(normalizedStatus))
+        throw new Error(
+          'Генерация курса не завершена. Попробуйте создать курс снова.',
+        );
       updateGeneration({
         courseStatus: normalizedStatus,
         status: 'Курс генерируется. Мы сообщим, когда он будет готов.',

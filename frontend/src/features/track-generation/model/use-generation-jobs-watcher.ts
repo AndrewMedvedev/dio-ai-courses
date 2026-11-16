@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import {
   forgetCourseCache,
   getCourseBasicInfo,
+  getGenerationSession,
   getLessonBasicInfo,
   getModuleBasicInfo,
   type LearningBlock,
@@ -62,7 +63,11 @@ function pickNewItem<T extends OrderedItem>(
 
 async function checkModuleJob(
   job: GenerationJob,
-  { updateJob, onModule }: { updateJob: UpdateJob; onModule?: OnModule },
+  {
+    updateJob,
+    onModule,
+    completed,
+  }: { updateJob: UpdateJob; onModule?: OnModule; completed?: boolean },
 ): Promise<void> {
   let moduleId = job.resultId;
   if (!moduleId) {
@@ -96,7 +101,7 @@ async function checkModuleJob(
     resultTitle: module?.title || '',
     lessonsCount,
     lastChangeAt,
-    status: isStable || isTimedOut ? 'done' : 'running',
+    status: completed || isStable || isTimedOut ? 'done' : 'running',
   });
 }
 
@@ -160,10 +165,36 @@ export function useGenerationJobsWatcher({
         if (cancelled) break;
         const before = job.status;
         try {
+          let completed = false;
+          if (job.taskId && !isAgentMockEnabled()) {
+            const session = await getGenerationSession(job.taskId);
+            if (['failed', 'cancelled'].includes(session.status)) {
+              store.updateJob(job.key, {
+                status: 'error',
+                error:
+                  'Генерация завершилась без результата. Повторите запуск.',
+              });
+              callbacksRef.current.onDone?.(
+                useGenerationJobsStore.getState().jobs[job.key],
+              );
+              continue;
+            }
+            completed = session.status === 'completed';
+            if (!completed) {
+              if (elapsedSince(job.startedAt) > JOB_TIMEOUT_MS)
+                store.updateJob(job.key, {
+                  status: 'error',
+                  error:
+                    'Генерация занимает слишком долго. Проверьте результат позже.',
+                });
+              continue;
+            }
+          }
           if (job.kind === 'module') {
             await checkModuleJob(job, {
               updateJob: store.updateJob,
               onModule: callbacksRef.current.onModule,
+              completed,
             });
           } else if (job.kind === 'lesson') {
             await checkLessonJob(job, {
