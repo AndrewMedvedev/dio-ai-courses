@@ -126,7 +126,7 @@ async def generate_course(
             "input_data": {"generation_context": context},
             "config": RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{context.course_id}",
+                    "thread_id": f"course:{context.course_id}:task:{taskiq_context.message.task_id}",
                 }
             ),
         },
@@ -173,7 +173,9 @@ async def generate_module(
                 "module_description": description,
             },
             "config": RunnableConfig(
-                configurable={"thread_id": f"course:{context.course_id}:module:{rank}"}
+                configurable={
+                    "thread_id": f"course:{context.course_id}:module:{rank}:task:{taskiq_context.message.task_id}"
+                }
             ),
         },
         repo=repo,
@@ -218,7 +220,7 @@ async def generate_lesson(
             },
             "config": RunnableConfig(
                 configurable={
-                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{rank}"  # noqa: E501
+                    "thread_id": f"course:{context.course_id}:module:{context.module_id}:lesson:{rank}:task:{taskiq_context.message.task_id}"  # noqa: E501
                 }
             ),
         },
