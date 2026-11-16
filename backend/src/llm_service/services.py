@@ -5,10 +5,14 @@ import logging
 from abc import ABC, abstractmethod
 from asyncio import Semaphore, gather
 from collections.abc import Awaitable, Callable, Sequence
+from copy import deepcopy
 from functools import wraps
 
-from pydantic import BaseModel
+from openai.types.responses import FunctionToolParam, ToolParam
+from pydantic import BaseModel, ValidationError
 
+from src.llm_service.exceptions import ModelRequestLimitError
+from src.llm_service.strict_schema import to_strict_json_schema
 from src.shared.infra.services import SrvBaseClient
 
 from .dataclasses import StructuredTool
@@ -62,7 +66,7 @@ def execute_each_invoke[ResponseT: BaseModel](
         result = await func(self, messages, *args, **kwargs)
         for mw in self.middlewares:
             result = await mw.after_model(self, result)
-        return await self._process_response(result, *args, **kwargs)
+        return result
 
     return wrapper
 
@@ -89,9 +93,6 @@ class BaseLLMService[RequestT: BaseModel, ResponseT: BaseModel](ABC):
     @abstractmethod
     async def _run_loop(self, *args, **kwargs) -> ResponseT: ...
 
-    async def _process_response(self, response: ResponseT, *args, **kwargs) -> ResponseT:
-        return response
-
 
 class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
     response_model = LLMTextResponse
@@ -107,7 +108,14 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         temperature: float | None = None,
         runtime: Runtime | None = None,
         max_parallel: int = 4,
+        max_model_requests: int = 3,
     ) -> None:
+        if temperature is not None and not 0 <= temperature <= 1:
+            raise ValueError(f"temperature must be in [0, 1], got {temperature}")
+        if max_parallel < 1:
+            raise ValueError(f"max_parallel must be >= 1, got {max_parallel}")
+        if max_model_requests < 1:
+            raise ValueError(f"max_model_requests must be >= 1, got {max_model_requests}")
         super().__init__(client=client, runtime=runtime, middlewares=middlewares)
         self.model = model
         self.system_prompt = system_prompt
@@ -115,6 +123,7 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         self.reasoning: Literal["low", "medium", "high"] | None = reasoning
         self.temperature = temperature
         self.semaphore = Semaphore(max_parallel)
+        self.max_model_requests = max_model_requests
 
     @execute_once_per_loop
     async def invoke(
@@ -122,34 +131,149 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
         messages: list[dict[str, Any]],
         schema: type[BaseModel] | None = None,
     ) -> LLMTextResponse:
-        return await self._run_loop(messages=messages, schema=schema)
+        limit = self.max_model_requests
+        tools = [tool.to_tool_params() for tool in (self.tools or {}).values()]
+        final_name = None
+        instructions = self.system_prompt
+        if schema is not None:
+            final_name = "submit_final_result"
+            tools.append(
+                FunctionToolParam(
+                    type="function",
+                    strict=True,
+                    name=final_name,
+                    description="Submit the final structured result and finish the task.",
+                    parameters=to_strict_json_schema(schema),
+                ),
+            )
+            instructions = "\n\n".join(
+                filter(
+                    None,
+                    [
+                        instructions,
+                        f"Finish by calling {final_name} exactly once, on its own, after "
+                        "receiving all other tool results. Its arguments must match the schema.",
+                    ],
+                )
+            )
+
+        for _ in range(limit):
+            response = await self._run_loop(
+                messages=messages,
+                tools=tools or None,
+                instructions=instructions,
+                final_tool_name=final_name,
+            )
+
+            final_calls = [call for call in response.tool_calls if call.name == final_name]
+            ordinary_calls = [call for call in response.tool_calls if call.name != final_name]
+
+            feedback = []
+
+            if len(final_calls) == 1 and not ordinary_calls:
+                output, error = self._validate_output_schema(
+                    final_calls[0],
+                    schema,
+                )
+
+                if error is None:
+                    response.output = output
+                    response.messages = [
+                        *response.messages,
+                        StructuredTool.to_tool_result(
+                            final_calls[0].call_id,
+                            "Final result accepted.",
+                        ),
+                    ]
+                    response.tool_calls = []
+                    return response
+
+                feedback.append(
+                    StructuredTool.to_tool_result(
+                        final_calls[0].call_id,
+                        {"error": error},
+                    )
+                )
+
+            elif final_calls:
+                feedback.extend(
+                    StructuredTool.to_tool_result(
+                        call.call_id,
+                        {
+                            "error": (
+                                "Multiple final calls are not allowed. Submit exactly one final call."
+                                if len(final_calls) > 1
+                                else "Do not submit the final result together with other tools. "
+                                "Wait for their results, then submit one separate final call."
+                            )
+                        },
+                    )
+                    for call in final_calls
+                )
+
+            elif not ordinary_calls and schema is None:
+                return response
+
+            if ordinary_calls:
+                handler = self._build_tool_call_handler()
+                feedback.extend(await gather(*(handler(call) for call in ordinary_calls)))
+
+            elif not final_calls:
+                feedback.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Submit the result by calling {final_name}; "
+                            "a text response does not complete this task."
+                        ),
+                    }
+                )
+
+            messages = response.messages + feedback
+
+        raise ModelRequestLimitError("LLM model request budget exhausted")
+
+    @staticmethod
+    def _validate_output_schema(
+        tool: ToolCallParsed,
+        schema: type[BaseModel],
+    ) -> tuple[dict[str, Any] | None, str | None]:
+        if tool.arguments_error is not None:
+            return None, tool.arguments_error + ". Correct the arguments and call again."
+        try:
+            schema.model_validate(deepcopy(tool.arguments))
+        except ValidationError as exc:
+            errors = exc.errors(include_input=False, include_context=False, include_url=False)
+            details = "; ".join(f"{e['loc']}: {e['type']}" for e in errors)
+            return None, f"Final result failed schema validation: {details}. Correct and retry."
+
+        return tool.arguments, None
 
     @execute_each_invoke
     async def _run_loop(
         self,
         messages: list[dict[str, Any]],
-        schema: type[BaseModel] | None = None,
+        tools: list[ToolParam] | None = None,
+        instructions: str | None = None,
+        final_tool_name: str | None = None,
     ) -> LLMTextResponse:
         request = LLMTextRequest(
             input=messages,
-            tools=[tool.to_tool_params() for tool in self.tools.values()] if self.tools else None,
-            instructions=self.system_prompt,
+            tools=tools,
+            instructions=instructions,
+            disable_retries=True,
+            final_tool_name=final_tool_name,
             reasoning=self.reasoning,
             temperature=self.temperature,
         )
 
         if self.runtime is not None:
             self.runtime.messages = list(messages)
-        if schema is not None:
-            request.format_schema(schema)
+
         return await self._send_request(
             request=request,
             path=f"/api/v1/responses/text{f'?model={self.model}' if self.model is not None else ''}",  # noqa: E501
         )
-        # return await self._send_request(
-        #     request=request,
-        #     path="/api/v1/responses/text?model=gpt-5-nano",
-        # )
 
     def _build_tool_call_handler(self) -> Callable[[ToolCallParsed], Awaitable[dict]]:
         async def base_handler(tool: ToolCallParsed) -> dict:
@@ -203,20 +327,6 @@ class LLMTextService(BaseLLMService[LLMTextRequest, LLMTextResponse]):
                     },
                 )
 
-    async def _process_response(
-        self,
-        response: LLMTextResponse,
-        schema: type[BaseModel] | None = None,
-    ) -> LLMTextResponse:
-        if response.tool_calls:
-            handler = self._build_tool_call_handler()
-            tasks = [handler(tool) for tool in response.tool_calls]
-            tool_call_results = await gather(*tasks)
-            full_input = response.messages + tool_call_results
-            return await self._run_loop(messages=full_input, schema=schema)
-
-        return response
-
 
 class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
     response_model = LLMImageResponse
@@ -252,7 +362,3 @@ class LLMImageService(BaseLLMService[LLMImageRequest, LLMImageResponse]):
             request=request,
             path=f"/api/v1/responses/image{f'?model={self.model}' if self.model is not None else ''}",  # noqa: E501
         )
-        # return await self._send_request(
-        #     request=request,
-        #     path="/api/v1/responses/image?model=gpt-image-2",
-        # )

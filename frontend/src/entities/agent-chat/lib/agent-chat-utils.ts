@@ -72,7 +72,7 @@ export function extractTaskId(
     const record = content as { task_id?: string; taskId?: string };
     return record.task_id || record.taskId || null;
   }
-  const match = toText(content || '').match(/task_id\s*[=:]\s*([\w-]+)/i);
+  const match = toText(content || '').match(/task_id\s*[=:]\s*([\w:-]+)/i);
   return match ? match[1] : null;
 }
 

@@ -1,13 +1,12 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select
 
-from src.courses.application.dtos import (
-    BasicInfo,
-    ModuleBasicInfo,
+from src.courses.application.catalog.dtos.basic_info import BasicInfoDTO, ModuleBasicInfoDTO
+from src.courses.domain.catalog.entities import (
+    Module,
 )
-from src.courses.domain.entities import Module
 from src.shared.domain.exceptions import NotFoundError
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
@@ -23,125 +22,124 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
     model = ModuleOrm
     model_mapper = ModuleMapper  # type: ignore
 
-    async def create_at(self, module: Module) -> Module:
-        if module.order < 0:
-            raise ValueError("Module order must be non-negative")
+    async def find_rank_bounds(
+        self,
+        course_id: UUID,
+        *,
+        before_id: UUID | None = None,
+        after_id: UUID | None = None,
+        exclude_id: UUID | None = None,
+    ) -> tuple[str | None, str | None]:
+        if before_id is not None and after_id is not None:
+            raise ValueError("Only one of before_id or after_id can be provided.")
 
-        if module.course_id is None:
-            raise ValueError("course_id is required")
+        anchor_id = before_id or after_id
 
-        locked = await self._session.scalar(
-            select(CourseOrm.id)
-            .where(CourseOrm.id == module.course_id)
-            .with_for_update(key_share=True)
-        )
-        if locked is None:
-            raise NotFoundError(f"Course {module.course_id} does not exist")
+        if anchor_id is not None and anchor_id == exclude_id:
+            raise ValueError("A module cannot be positioned relative to itself.")
 
-        max_order = await self._session.scalar(
-            select(func.coalesce(func.max(self.model.order), 0)).where(
-                self.model.course_id == module.course_id
+        stmt = (
+            select(
+                self.model.id,
+                self.model.rank,
+            )
+            .where(self.model.course_id == course_id)
+            .order_by(
+                self.model.rank,
+                self.model.id,
             )
         )
 
-        target = min(module.order, max_order + 1)  # pyright: ignore[reportOptionalOperand]
-
-        await self._session.execute(
-            update(self.model)
-            .where(
-                self.model.course_id == module.course_id,
-                self.model.order >= target,
+        if exclude_id is not None:
+            stmt = stmt.where(
+                self.model.id != exclude_id,
             )
-            .values(order=self.model.order + 1)
-            .execution_options(synchronize_session=False)
+
+        rows = tuple((await self._session.execute(stmt)).all())
+
+        if anchor_id is None:
+            return (
+                rows[-1].rank if rows else None,
+                None,
+            )
+
+        anchor_index = next(
+            (index for index, row in enumerate(rows) if row.id == anchor_id),
+            None,
         )
 
-        module.order = target
-        return await self.create(module)
+        if anchor_index is None:
+            raise NotFoundError(
+                f"Module position anchor {anchor_id} not found in course {course_id}."
+            )
 
-    async def delete_and_compact(self, module_id: UUID) -> None:
-        course_id = await self._session.scalar(
-            select(self.model.course_id).where(self.model.id == module_id)
+        if before_id is not None:
+            return (
+                rows[anchor_index - 1].rank if anchor_index > 0 else None,
+                rows[anchor_index].rank,
+            )
+
+        return (
+            rows[anchor_index].rank,
+            rows[anchor_index + 1].rank if anchor_index + 1 < len(rows) else None,
         )
-        if course_id is None:
-            exists = await self.exists(module_id)
 
-            if not exists:
-                raise NotFoundError(f"Module with id {module_id} not found")
-
-            # Модуль существует, но не привязан к курсу.
-            # Уплотнять порядок нечего.
-            await self.delete(module_id)
+    async def lock_courses(
+        self,
+        course_ids: set[UUID],
+    ) -> None:
+        if not course_ids:
             return
 
-        await self._session.execute(
-            select(CourseOrm.id).where(CourseOrm.id == course_id).with_for_update(key_share=True)
+        ordered_ids = sorted(course_ids, key=str)
+
+        locked_ids = set(
+            await self._session.scalars(
+                select(CourseOrm.id)
+                .where(CourseOrm.id.in_(ordered_ids))
+                .order_by(CourseOrm.id)
+                .with_for_update()
+            )
         )
 
-        module_row = (
-            await self._session.execute(
-                select(self.model.order)
-                .where(
-                    self.model.id == module_id,
-                    self.model.course_id == course_id,
-                )
-                .with_for_update(key_share=True)
-            )
-        ).one_or_none()
+        missing_ids = set(course_ids) - locked_ids
 
-        if module_row is None:
-            raise NotFoundError(f"Module with id {module_id} not found")
+        if missing_ids:
+            missing = ", ".join(sorted(map(str, missing_ids)))
+            raise NotFoundError(f"Courses do not exist: {missing}")
 
-        await self.delete(module_id)
-
-        await self._session.execute(
-            update(self.model)
-            .where(
-                self.model.course_id == course_id,
-                self.model.order > module_row.order,
-            )
-            .values(order=self.model.order - 1)
-        )
-
-    async def assign_course(
-        self,
-        module_id: UUID,
-        course_id: UUID,
-    ) -> None:
-        """Связывает курс с родительской сущностью и фиксирует это отношение."""
-        stmt = update(self.model).where(self.model.id == module_id).values(course_id=course_id)
-        await self._session.execute(stmt)
-
-    async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfo]:
-        """Выбирает lessons by id module из хранилища для использования в бизнес-логике."""
+    async def select_lessons_by_id_module(self, module_id: UUID) -> list[BasicInfoDTO]:
         lessons_stmt = (
             select(
                 LessonOrm.id,
                 LessonOrm.title,
-                LessonOrm.order,
+                LessonOrm.rank,
             )
             .where(LessonOrm.module_id == module_id)
-            .order_by(LessonOrm.order)
+            .order_by(
+                LessonOrm.rank,
+                LessonOrm.id,
+            )
         )
 
         lessons_result = await self._session.execute(lessons_stmt)
 
         return [
-            BasicInfo(
+            BasicInfoDTO(
                 id=row.id,
                 title=row.title,
-                order=row.order,
+                rank=row.rank,
             )
             for row in lessons_result.all()
         ]
 
-    async def get_by_id_basic_info(self, uid: UUID) -> ModuleBasicInfo | None:
+    async def get_by_id_basic_info(self, uid: UUID) -> ModuleBasicInfoDTO | None:
         """Получает by id basic info, чтобы вызывающий код работал через единый интерфейс."""
         module_stmt = select(
             self.model.id,
             self.model.title,
             self.model.description,
-            self.model.order,
+            self.model.rank,
             self.model.learning_objectives,
         ).where(self.model.id == uid)
 

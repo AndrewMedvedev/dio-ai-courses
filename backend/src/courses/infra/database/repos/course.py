@@ -3,13 +3,17 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from src.courses.application.dtos import (
-    BasicInfo,
-    CourseBasicInfo,
+from src.courses.application.catalog.dtos.basic_info import (
+    BasicInfoDTO,
+    CourseBasicInfoDTO,
 )
-from src.courses.domain.entities import Course
-from src.courses.domain.enums import CourseStatus
-from src.shared.application.dtos import Page, Pagination
+from src.courses.domain.catalog.entities import (
+    Course,
+)
+from src.courses.domain.catalog.enums import (
+    CourseStatus,
+)
+from src.shared.application.dtos import BaseQueryParamFilters, Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ..mappers import (
@@ -27,6 +31,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     async def find(
         self,
         pagination: Pagination,
+        filters: BaseQueryParamFilters | None = None,
     ) -> Page[Course]:
         """Для расширения логики фильтрации можно переопределить в дочерних классах."""
 
@@ -42,6 +47,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             mapper=self.model_mapper.from_model,
+            sort=filters.sort if filters else "created_at:desc",
         )
 
     async def find_user_courses(
@@ -97,29 +103,32 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             sort="created_at:desc",
         )
 
-    async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfo]:
+    async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfoDTO]:
         """Выбирает modules by id course из хранилища для использования в бизнес-логике."""
         modules_stmt = (
             select(
                 ModuleOrm.id,
                 ModuleOrm.title,
-                ModuleOrm.order,
+                ModuleOrm.rank,
             )
             .where(ModuleOrm.course_id == course_id)
-            .order_by(ModuleOrm.order)
+            .order_by(
+                ModuleOrm.rank,
+                ModuleOrm.id,
+            )
         )
         modules_result = await self._session.execute(modules_stmt)
 
         return [
-            BasicInfo(
+            BasicInfoDTO(
                 id=row.id,
                 title=row.title,
-                order=row.order,
+                rank=row.rank,
             )
             for row in modules_result.all()
         ]
 
-    async def get_by_id_basic_info(self, uid: UUID) -> CourseBasicInfo | None:
+    async def get_by_id_basic_info(self, uid: UUID) -> CourseBasicInfoDTO | None:
         """Получает by id basic info, чтобы вызывающий код работал через единый интерфейс."""
         course_stmt = select(
             self.model.id,

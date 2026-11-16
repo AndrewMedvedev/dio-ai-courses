@@ -120,14 +120,14 @@ beforeEach(() => {
         id: url.split('/').pop(),
         title: 'Current lesson',
       });
-    if (url.includes('/agent/check/'))
+    if (url.includes('/agents/check/'))
       return Response.json({ score: 95, ai_feedback: 'Решение верное' });
-    if (url.includes('/agent/practices/'))
+    if (url.includes('/agents/practices/'))
       return Response.json({
         practice_id: 'practice-mock',
         practice: { title: 'Mock practice', allowed_extensions: ['.py'] },
       });
-    if (url.includes('/agent/tests/'))
+    if (url.includes('/agents/tests/'))
       return Response.json({
         practice_id: 'test-mock',
         practice: {
@@ -506,7 +506,7 @@ void test('uploaded solution restores with its filename and is checked without r
   responder = async (url, options) => {
     if (url.includes('/lessons/'))
       return Response.json({ id: 'file-restored', title: 'Current lesson' });
-    assert.match(url, /agent\/check\/practices\/file-id/);
+    assert.match(url, /agents\/check\/practices\/file-id/);
     const form = options?.body as FormData;
     const file = form.get('file') as File;
     assert.equal(file.name, 'saved.py');
@@ -526,7 +526,7 @@ void test('uploaded solution restores with its filename and is checked without r
 void test('creator retains the same conversation, brief and input when leaving and returning', async () => {
   useSessionStore.setState({ user: { id: 'creator-test' } });
   responder = (url) => {
-    assert.match(url, /agent\/interviewer/);
+    assert.match(url, /agents\/courses\/interviewer\//);
     return Response.json({
       content: 'What is your goal?',
       chat_id: 'creator-chat',
@@ -659,10 +659,14 @@ async function openEditor(page: ReactTestRenderer) {
 }
 async function editorProposal(lessonId: string) {
   responder = (url) => {
-    assert.match(url, /agent\/editor$/);
+    assert.match(url, /agents\/editor\/editor-course$/);
     return Response.json({
       chat_id: 'local-editor-chat',
-      content: JSON.stringify({ md_content: 'Proposed first block' }),
+      content: {
+        content_type: 'text',
+        md_content: 'Proposed first block',
+        ai_generated: true,
+      },
     });
   };
   const page = await render(
@@ -923,7 +927,7 @@ void test('forced refresh bypasses course, module, lesson and theory caches', as
   );
   assert.ok(requestModes.every((mode) => mode === 'no-store'));
   assert.equal(
-    calls.some((url) => url.includes('/agent/')),
+    calls.some((url) => url.includes('/agents/')),
     false,
   );
 });
@@ -999,7 +1003,7 @@ void test('lesson preflight blocks a paid check on 404 and retains the typed sol
   };
   await click(button(page, 'Проверить решение'));
   assert.equal(
-    calls.some((url) => url.includes('/agent/check/')),
+    calls.some((url) => url.includes('/agents/check/')),
     false,
   );
   assert.equal(
@@ -1014,7 +1018,7 @@ void test('lesson preflight blocks a paid check on 404 and retains the typed sol
     'Keep my solution',
   );
   assert.equal(
-    calls.filter((url) => url.includes('/agent/practices/')).length,
+    calls.filter((url) => url.includes('/agents/practices/')).length,
     1,
   );
   await unmount(page);

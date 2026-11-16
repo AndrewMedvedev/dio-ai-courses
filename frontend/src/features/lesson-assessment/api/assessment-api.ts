@@ -42,7 +42,7 @@ export async function generateLessonTest(
 ): Promise<CreatedPractice> {
   return normalizeCreatedPracticeResponse(
     await requestJson(
-      `/agent/tests/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
+      `/agents/tests/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
       { method: 'POST', ...(options || {}) },
     ),
   );
@@ -54,7 +54,7 @@ export async function checkLessonTest(
   options: JsonRequestOptions = {},
 ): Promise<RawApiRecord> {
   return jsonRequest(
-    `/agent/check/tests/${encodeURIComponent(practiceId)}`,
+    `/agents/check/tests/${encodeURIComponent(practiceId)}`,
     'POST',
     payload,
     options,
@@ -68,7 +68,7 @@ export async function generateLessonPractice(
 ): Promise<CreatedPractice> {
   return normalizeCreatedPracticeResponse(
     await requestJson(
-      `/agent/practices/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
+      `/agents/practices/${encodeURIComponent(moduleId)}/${encodeURIComponent(lessonId)}`,
       { method: 'POST', ...(options || {}) },
     ),
   );
@@ -85,7 +85,7 @@ export async function checkLessonPractice(
   formData.append('file', file);
 
   const response = await apiFetch(
-    `/agent/check/practices/${encodeURIComponent(practiceId)}`,
+    `/agents/check/practices/${encodeURIComponent(practiceId)}`,
     { method: 'POST', body: formData, ...(options || {}) },
   );
 

@@ -2,12 +2,11 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
+from src.llm_router.domain.entities import AIModel, LLMInvocation
+from src.llm_router.infra.models import AIModelOrm, LLMInvocationOrm
 from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.mappers import ModelMapper
 from src.shared.infra.database.repos import SqlAlchemyRepository
-
-from ..domain.dataclass import AIModel, LLMInvocation
-from .models import AIModelOrm, LLMInvocationOrm
 
 
 class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
@@ -39,7 +38,7 @@ class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
 
 class SqlAIModelRepository(SqlAlchemyRepository[AIModel, AIModelOrm]):
     model = AIModelOrm
-    model_mapper = AIModelMapper  # type: ignore  # ruff: ignore[blanket-type-ignore]
+    model_mapper = AIModelMapper  # type: ignore
 
     async def read_fields(self, params: Pagination) -> Page:
         # 1. Основной запрос — выбираем только нужные поля, без служебных
@@ -78,7 +77,7 @@ class SqlAIModelRepository(SqlAlchemyRepository[AIModel, AIModelOrm]):
         stmt = select(self.model).where(self.model.id == model_id)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)  # type: ignore  # ruff: ignore[blanket-type-ignore]
+        return None if model is None else self.model_mapper.from_model(model)  # type: ignore
 
 
 class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
@@ -121,4 +120,4 @@ class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
 
 class SqlLLMInvocationRepository(SqlAlchemyRepository[LLMInvocation, LLMInvocationOrm]):
     model = LLMInvocationOrm
-    model_mapper = LLMInvocationMapper  # type: ignore  # ruff: ignore[blanket-type-ignore]
+    model_mapper = LLMInvocationMapper  # type: ignore

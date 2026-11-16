@@ -9,7 +9,7 @@ from httpx import AsyncClient
 
 from src.iam.dependencies.identity import get_current_identity
 from src.llm_router.dependencies import get_ai_model_repo
-from src.llm_router.domain.dataclass import AIModel
+from src.llm_router.domain.entities import AIModel
 from src.llm_router.domain.permissions.ai_models import CREATE, DELETE
 from src.shared.application.dtos import Page
 from src.shared.dependencies.database import DBSession

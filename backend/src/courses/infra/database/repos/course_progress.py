@@ -2,17 +2,17 @@ from uuid import UUID
 
 from sqlalchemy import exists, func, select
 
-from src.shared.application.dtos import Page
+from src.courses.domain.learning.entities import CourseProgress
+from src.shared.application.dtos import Page, Pagination
 from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
-from ....domain.entities import CourseProgress
 from ..mappers import CourseProgressMapper
-from ..models import CourseProgressOrm, LessonProgressOrm
+from ..models import CourseOrm, CourseProgressOrm, LessonProgressOrm
 
 
 class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CourseProgressOrm]):
     model = CourseProgressOrm
-    model_mapper = CourseProgressMapper
+    model_mapper = CourseProgressMapper  # pyright: ignore[reportAssignmentType]
 
     async def get_by_user(self, user_id: UUID, resource_id: UUID) -> CourseProgress | None:
         stmt = select(self.model).where(
@@ -60,3 +60,21 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
             mapper=self.model_mapper.from_model,
             sort="created_at:desc",
         )
+
+    async def read_course_ownership(
+        self,
+        uid: UUID,
+    ) -> tuple[UUID, UUID] | None:
+        stmt = (
+            select(
+                CourseOrm.id.label("course_id"),
+                CourseOrm.creator_id,
+            )
+            .select_from(self.model)
+            .join(CourseOrm, CourseOrm.id == self.model.course_id)
+            .where(self.model.id == uid)
+        )
+
+        row = (await self._session.execute(stmt)).one_or_none()
+
+        return (row.course_id, row.creator_id) if row is not None else None
