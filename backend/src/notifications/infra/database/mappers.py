@@ -1,4 +1,4 @@
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 from src.shared.infra.repos import ModelMapper
 
 from ...domain.entities import Notification, UserPreference

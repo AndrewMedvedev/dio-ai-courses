@@ -2,6 +2,8 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.crud.crud import Crud
+from ddf.application.utils import get_or_raise_not_found
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,9 +17,7 @@ from src.courses.application.catalog.repos import CourseRepository
 from src.courses.domain.catalog.entities import Course
 from src.courses.domain.catalog.enums import CourseStatus
 from src.iam.application.dtos import Identity
-from src.shared.application.crud import Crud
 from src.shared.dependencies import TransactionDep
-from src.shared.domain.repos import get_or_raise_404
 
 CourseCrud = Crud[
     Course,
@@ -78,7 +78,7 @@ async def change_course_status(
     repository: CourseRepository,
     session: AsyncSession,
 ) -> None:
-    course = await get_or_raise_404(repository.read, course_id, Course)
+    course = await get_or_raise_not_found(repository.read, course_id, Course)
     course.change_status(status)
     await repository.update(course)
     await session.commit()

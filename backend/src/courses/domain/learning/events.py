@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from ddf.domain.events import Event
 from pydantic import BaseModel
-
-from src.shared.domain.events import Event
 
 
 class LessonProgressUpdate(BaseModel):

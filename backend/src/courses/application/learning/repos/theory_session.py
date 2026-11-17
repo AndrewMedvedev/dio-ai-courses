@@ -2,9 +2,10 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.application.repositories import Repository
+
 from src.courses.application.learning.dtos import LessonTheorySessionFilters
 from src.courses.domain.learning.entities import LessonTheorySession
-from src.shared.application.repos import Repository
 
 
 class LessonTheorySessionRepository(Repository[LessonTheorySession], Protocol):

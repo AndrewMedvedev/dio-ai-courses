@@ -1,10 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
+from ddf.application.dsl import Expression
+from ddf.application.dtos import QueryDTO
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
-
-from src.shared.application.dtos import BaseQueryParamFilters
 
 
 class LessonTheorySessionResponse(BaseModel):
@@ -32,7 +32,7 @@ class UpdateLessonTheorySessionDTO(BaseModel):
     max_scroll_depth_percent: int | None = None
 
 
-class LessonTheorySessionFilters(BaseQueryParamFilters):
+class LessonTheorySessionFilters(Expression):
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=to_camel,

@@ -10,7 +10,7 @@ from src.core.settings import settings
 from src.iam.domain.entities import _generate_invite_token
 from src.iam.domain.types import RoleId
 from src.shared.domain.entities import AggregateRoot, Entity
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 from .events import OrganizationInvited

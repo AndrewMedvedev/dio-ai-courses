@@ -1,12 +1,12 @@
 import logging
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
 from sqlalchemy import select, update
 
 from src.courses.domain.conversations.entities import (
     Chat,
 )
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     ChatMapper,
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
     model = ChatOrm
-    model_mapper = ChatMapper  # type: ignore
+    data_mapper = ChatMapper()
 
     async def read(self, user_id: UUID, course_id: UUID, chat_id: UUID) -> Chat | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
@@ -29,7 +29,7 @@ class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def update(self, chat_id: UUID, user_id: UUID, course_id: UUID, **kwargs) -> Chat | None:
         """Обновляет существующую запись, чтобы сохранить изменённое состояние."""
@@ -45,4 +45,4 @@ class SqlChatRepository(SqlAlchemyRepository[Chat, ChatOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)

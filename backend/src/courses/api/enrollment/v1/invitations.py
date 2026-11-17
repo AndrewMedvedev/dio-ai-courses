@@ -2,6 +2,7 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.dtos import Page
 from fastapi import APIRouter, Path, status
 
 from src.courses.api.dependencies.services import InvitationServiceDep
@@ -11,7 +12,6 @@ from src.courses.application.enrollment.dtos.invitation import (
     InvitationResponse,
 )
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page
 from src.shared.dependencies.params import PaginationDep
 
 router = APIRouter(

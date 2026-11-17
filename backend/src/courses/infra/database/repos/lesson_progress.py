@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from sqlalchemy import exists, select, update
 
 from src.courses.domain.learning.entities import LessonProgress
@@ -10,14 +11,13 @@ from src.courses.infra.database.models import (
     LessonProgressOrm,
     ModuleProgressOrm,
 )
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import LessonProgressMapper
 
 
 class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonProgressOrm]):
     model = LessonProgressOrm
-    model_mapper = LessonProgressMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = LessonProgressMapper
 
     async def get_by_user(self, user_id: UUID, resource_id: UUID) -> LessonProgress | None:
         stmt = (
@@ -31,7 +31,7 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def exist_by_user(self, user_id: UUID, resource_id: UUID) -> bool:
         stmt = select(
@@ -47,10 +47,10 @@ class SqlLessonProgressRepository(SqlAlchemyRepository[LessonProgress, LessonPro
     async def update_from_event(self, event: LessonProgressUpdated) -> None:
         """Обновляет прогресс урока по событию."""
         stmt = (
-            update(LessonProgressOrm)
+            update(self.model)
             .where(
-                LessonProgressOrm.lesson_id == event.lesson_id,
-                LessonProgressOrm.module_progress.has(
+                self.model.lesson_id == event.lesson_id,
+                self.model.module_progress.has(
                     ModuleProgressOrm.course_progress.has(user_id=event.user_id)
                 ),
             )

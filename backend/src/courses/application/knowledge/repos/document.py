@@ -2,8 +2,9 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.application.repositories import Repository
+
 from src.courses.domain.knowledge.entities import Document
-from src.shared.application.repos import Repository
 
 
 class DocumentRepository(Repository[Document], Protocol):

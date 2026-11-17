@@ -7,11 +7,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from ddf.domain.models import Entity
+from ddf.domain.vo import Email
+
 from src.core.settings import settings
 from src.courses.domain.enrollment.events import CourseInvited
 from src.courses.domain.enrollment.vo import MemberRole
-from src.shared.domain.entities import Entity
-from src.shared.domain.vo import Email
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 INVITATION_EXPIRES_IN_DAYS = 7

@@ -2,8 +2,9 @@ from typing import Any, Protocol
 
 from uuid import UUID
 
+from ddf.application.repositories import Repository
+
 from src.courses.domain.assessment.entities import Practice
-from src.shared.application.repos import Repository
 
 
 class PracticeRepository(Repository[Practice], Protocol):

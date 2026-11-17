@@ -2,6 +2,7 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
 from fastapi import APIRouter, Depends, Query, status
 
 from src.courses.api.dependencies.access import course_access
@@ -16,7 +17,6 @@ from src.courses.application.learning.dtos.progress import (
 )
 from src.courses.domain.permissions.courses import READ, UPDATE
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies import DBSession
 
 router = APIRouter(tags=["Course Learning Progress"])
@@ -92,4 +92,4 @@ async def get_course_students_progress(
     pagination: Annotated[Pagination, Query()],
 ) -> Page[CourseProgressResponse]:
     result = await repo.find_by_course(uid, pagination)
-    return result.to_response(CourseProgressResponse.model_validate)
+    return result.map(CourseProgressResponse.model_validate)

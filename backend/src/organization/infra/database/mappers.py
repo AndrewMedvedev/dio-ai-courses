@@ -2,7 +2,7 @@ from uuid import UUID
 
 from src.iam.domain.types import RoleId
 from src.organization.domain.entities import Invitation, Organization
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 from src.shared.infra.database.repos.sqlalchemy import ModelMapper
 
 from .models import InvitationOrm, OrganizationOrm

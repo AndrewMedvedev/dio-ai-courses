@@ -1,12 +1,13 @@
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+
 from src.courses.application.catalog.policies import ManageCourseOptions
 from src.courses.application.catalog.repos import BasicInfoProtocol
 from src.courses.application.enrollment.repos import MemberRepository
 from src.iam.application.dtos import Identity
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
-from src.shared.domain.exceptions import NotFoundError
 
 
 class CourseAccess:

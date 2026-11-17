@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from ddf.domain.vo.email import Email
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 from pydantic.alias_generators import to_camel
 
 from src.courses.domain.enrollment.vo import MemberRole
@@ -36,3 +37,8 @@ class InvitationResponse(BaseModel):
     invited_by: UUID
     created_at: datetime
     expires_at: datetime
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def unwrap_email(cls, value: Email | str) -> str:
+        return value.value if isinstance(value, Email) else value

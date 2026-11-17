@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from ddf.domain.models import Entity
+
 from src.courses.domain.generation.enums import GenerationStatus
-from src.shared.domain.entities import Entity
 
 
 @dataclass(kw_only=True, slots=True)

@@ -3,8 +3,9 @@ from typing import Protocol
 from collections.abc import Sequence
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+
 from src.courses.domain.catalog.ranking import rank_between
-from src.shared.domain.exceptions import NotFoundError
 
 from .dtos.position import RelativePosition
 

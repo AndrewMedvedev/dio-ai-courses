@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from ddf.application.events import EventDispatcher
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,8 +12,8 @@ from .events import EventPublisherDep
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 
 
-def get_transaction(db: DBSession, publisher: EventPublisherDep) -> Transaction:
-    return Transaction(uow=db, publisher=publisher)
+def get_transaction(db: DBSession, publisher: EventPublisherDep) -> EventDispatcher:
+    return EventDispatcher(uow=db, evnt_publisher=publisher)
 
 
 TransactionDep = Annotated[Transaction, Depends(get_transaction)]

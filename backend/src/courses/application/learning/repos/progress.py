@@ -2,8 +2,8 @@ from typing import Protocol
 
 from uuid import UUID
 
-from src.shared.application.repos import Repository
-from src.shared.domain.entities import Entity
+from ddf.application.repositories import Repository
+from ddf.domain.models import Entity
 
 
 class ProgressRepository[ProgressT: Entity](Repository[ProgressT], Protocol):

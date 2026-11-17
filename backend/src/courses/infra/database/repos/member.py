@@ -1,6 +1,9 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
+from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import exists, select
 
 from src.courses.domain.enrollment.entities import (
@@ -9,8 +12,6 @@ from src.courses.domain.enrollment.entities import (
 from src.courses.domain.enrollment.vo import (
     MemberRole,
 )
-from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ..mappers import (
     MemberMapper,
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
     model = MemberOrm
-    model_mapper = MemberMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = MemberMapper
 
     async def read(self, user_id: UUID, course_id: UUID) -> Member | None:
         """Получает существующую запись по идентификатору или заданным параметрам."""
@@ -32,7 +33,7 @@ class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
+        return None if model is None else self.data_mapper.from_model(model)
 
     async def exists(self, user_id: UUID, course_id: UUID) -> bool:
         stmt = select(
@@ -60,7 +61,7 @@ class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            mapper=self.model_mapper.from_model,
+            from_model=self.data_mapper.from_model,
             sort="created_at:desc",
         )
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 
 from ...iam.domain.exceptions import PermissionDeniedError
 from ...shared.domain.entities import Entity

@@ -2,8 +2,9 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
+
 from src.courses.domain.learning.entities import CourseProgress
-from src.shared.application.dtos import Page, Pagination
 
 from .progress import ProgressRepository
 

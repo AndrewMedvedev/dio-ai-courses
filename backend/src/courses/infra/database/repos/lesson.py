@@ -3,6 +3,8 @@ from typing import Any
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from sqlalchemy import func, literal, select, text, update
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -13,8 +15,6 @@ from src.courses.domain.catalog.entities import (
 from src.courses.domain.catalog.vo import (
     AnyContentBlock,
 )
-from src.shared.domain.exceptions import NotFoundError
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     LessonMapper,
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
     model = LessonOrm
-    model_mapper = LessonMapper  # type: ignore
+    data_mapper = LessonMapper
 
     async def find_rank_bounds(
         self,

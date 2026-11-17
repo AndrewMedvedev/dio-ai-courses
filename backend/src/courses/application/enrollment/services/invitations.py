@@ -2,6 +2,16 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
+from ddf.application.events import EventDispatcher
+from ddf.application.exceptions import (
+    AlreadyExistsError,
+    NotFoundError,
+)
+from ddf.application.utils import get_or_raise_not_found
+from ddf.domain.exceptions import InvalidStateError
+from ddf.domain.vo import Email
+
 from src.courses.application.catalog.repos import CourseRepository
 from src.courses.application.enrollment.dtos import (
     InvitationCreateDTO,
@@ -25,15 +35,6 @@ from src.iam.application.dtos import InvitationCreate as IAMInvitationCreate
 from src.iam.application.policies import authorize
 from src.iam.domain.entities import Permission
 from src.organization.application.dtos import InvitationCreate as OrganizationInvitationCreate
-from src.shared.application.dtos import Page, Pagination
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import (
-    AlreadyExistsError,
-    InvalidStateError,
-    NotFoundError,
-)
-from src.shared.domain.repos import get_or_raise_404
-from src.shared.domain.vo import Email
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 class InvitationService:
     def __init__(
         self,
-        transaction: Transaction,
+        dispatcher: EventDispatcher,
         invitation_repo: InvitationRepository,
         course_repo: CourseRepository,
         member_repo: MemberRepository,
@@ -49,7 +50,7 @@ class InvitationService:
         organization_repo: OrganizationRepository,
         client: SrvCourseClient,
     ) -> None:
-        self.transaction = transaction
+        self.dispatcher = dispatcher
         self.invitation_repo = invitation_repo
         self.course_repo = course_repo
         self.member_repo = member_repo
@@ -130,7 +131,7 @@ class InvitationService:
             await self.invitation_repo.create(invitation)
         elif invitation.is_valid:
             invitation.invite()
-        await self.transaction(invitation)
+        await self.dispatcher(invitation)
         return InvitationResponse.model_validate(invitation)
 
     async def accept(self, token: str, user_id: UUID) -> MemberResponse:
@@ -152,7 +153,7 @@ class InvitationService:
             )
         )
         invitation.mark_as_used()
-        await self.transaction(member, invitation)
+        await self.dispatcher(member, invitation)
         return MemberResponse.model_validate(member)
 
     async def get_course_invitations(
@@ -168,13 +169,15 @@ class InvitationService:
             role=MemberRole.MODERATOR,
         )
         result = await self.invitation_repo.find_by_course(course_id, pagination)
-        return result.to_response(InvitationResponse.model_validate)
+        return result.map(InvitationResponse.model_validate)
 
     async def revoke_invitation(self, invitation_id: UUID, identity: Identity) -> None:
         """
         Отзыв ошибочно отправленного приглашения.
         """
-        invitation = await get_or_raise_404(self.invitation_repo.read, invitation_id, Invitation)
+        invitation = await get_or_raise_not_found(
+            self.invitation_repo.read, invitation_id, Invitation
+        )
         await self._check_access(
             identity,
             permission=INVITE,
@@ -185,5 +188,5 @@ class InvitationService:
             raise InvalidStateError("Invitation is already accepted and can't be revoked.")
 
         await self.invitation_repo.delete(invitation_id)
-        await self.transaction(invitation)
+        await self.dispatcher(invitation)
         logger.info("Invitation deleted successfully")

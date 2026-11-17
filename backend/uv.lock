@@ -2686,7 +2686,7 @@ wheels = [
 [[package]]
 name = "py-ddd-framework"
 version = "0.1.0"
-source = { git = "https://github.com/Andr171p/py-ddd-framework.git#675fd577aa8fd8f5c3c74925ec46fadd21a30af8" }
+source = { git = "https://github.com/Andr171p/py-ddd-framework.git#60b5354fe8a0899cda851cc7d75245ac4028f8a5" }
 dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "msgpack" },

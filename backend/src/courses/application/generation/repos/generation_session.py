@@ -1,8 +1,9 @@
 from typing import Protocol
 
+from ddf.application.repositories import Repository
+
 from src.courses.domain.generation.entities import GenerationSession
 from src.courses.domain.generation.enums import GenerationStatus
-from src.shared.application.repos import Repository
 
 
 class GenerationSessionRepository(Repository[GenerationSession], Protocol):

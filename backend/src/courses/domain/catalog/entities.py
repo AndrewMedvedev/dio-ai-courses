@@ -3,10 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from uuid import UUID
 
+from ddf.domain.models import AggregateRoot, Entity
+
 from src.courses.domain.catalog.enums import CourseStatus, DifficultyLevel
 from src.courses.domain.catalog.vo import AnyContentBlock
 from src.courses.domain.enrollment.entities import Member
-from src.shared.domain.entities import AggregateRoot, Entity
 
 
 @dataclass(kw_only=True, slots=True)

@@ -11,7 +11,7 @@ from src.iam.domain.entities import (
     Membership,
 )
 from src.shared.application.repos import Repository
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 
 from ..domain.entities import Invitation, Organization
 

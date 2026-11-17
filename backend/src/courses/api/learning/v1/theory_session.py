@@ -3,6 +3,7 @@ from typing import Annotated
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from fastapi import APIRouter, Depends, Query, status
 
 from src.courses.api.dependencies.access import course_access
@@ -19,7 +20,7 @@ from src.courses.domain.permissions.courses import READ as READ_COURSE
 from src.courses.domain.permissions.theory_session import READ
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.dependencies import DBSession
-from src.shared.domain.exceptions import ForbiddenError, NotFoundError
+from src.shared.domain.exceptions import ForbiddenError
 
 logger = logging.getLogger(__name__)
 

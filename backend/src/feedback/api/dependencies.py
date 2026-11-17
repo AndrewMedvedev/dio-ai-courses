@@ -11,7 +11,7 @@ from src.feedback.infra.database.repos.feedback import SqlFeedbackRepository
 from src.iam.dependencies import CurrentIdentity
 from src.shared.application.transaction import Transaction
 from src.shared.dependencies.database import DBSession
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 
 
 def get_feedback_repo(session: DBSession) -> SqlFeedbackRepository:

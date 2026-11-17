@@ -3,8 +3,9 @@ from typing import Any
 from dataclasses import dataclass, field
 from uuid import UUID
 
+from ddf.domain.models import Entity
+
 from src.courses.domain.assessment.enums import PracticeStatus
-from src.shared.domain.entities import Entity
 
 
 @dataclass(kw_only=True, slots=True)

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from src.shared.domain.entities import AggregateRoot, Entity
+from ddf.domain.models import AggregateRoot, Entity
 
 
 @dataclass(kw_only=True, slots=True)

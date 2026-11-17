@@ -2,10 +2,11 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.application.dtos import Page, Pagination
+from ddf.application.repositories import Repository
+
 from src.courses.domain.enrollment.entities import Member
 from src.courses.domain.enrollment.vo import MemberRole
-from src.shared.application.dtos import Page, Pagination
-from src.shared.application.repos import Repository
 
 
 class MemberRepository(Repository[Member], Protocol):

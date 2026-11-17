@@ -5,7 +5,7 @@ from sqlalchemy import select
 from src.organization.domain.entities import Invitation
 from src.organization.infra.database.mappers import InvitationMapper
 from src.organization.infra.database.models import InvitationOrm
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 from src.shared.infra.database import SqlAlchemyRepository
 
 

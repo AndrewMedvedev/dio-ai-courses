@@ -4,6 +4,7 @@ import asyncio
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from langchain_core.runnables import RunnableConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 from taskiq import Context as TaskiqContext
@@ -25,7 +26,6 @@ from src.courses.domain.catalog.ranking import rank_between
 from src.courses.domain.generation.enums import GenerationStatus
 from src.courses.infra.formatting import get_lesson_context
 from src.shared.dependencies import DBSession
-from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 

@@ -3,6 +3,9 @@
 
 import logging
 
+from ddf.domain.vo import Email
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
+
 from src.courses.application.catalog.dtos.basic_info import (
     BasicInfoDTO,
     CourseBasicInfoDTO,
@@ -42,8 +45,6 @@ from src.courses.domain.learning.entities import (
     LessonTheorySession,
     ModuleProgress,
 )
-from src.shared.domain.vo import Email
-from src.shared.infra.database.mappers import ModelMapper
 
 from .models import (
     ChatOrm,
@@ -64,7 +65,7 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
-class ChatMapper(ModelMapper[Chat, ChatOrm]):
+class ChatMapper(DataMapper[Chat, ChatOrm]):
     @staticmethod
     def from_model(model: ChatOrm) -> Chat:
 
@@ -90,7 +91,7 @@ class ChatMapper(ModelMapper[Chat, ChatOrm]):
         )
 
 
-class LessonMapper(ModelMapper[Lesson, LessonOrm]):
+class LessonMapper(DataMapper[Lesson, LessonOrm]):
     @staticmethod
     def from_model(model: LessonOrm) -> Lesson:
 
@@ -134,7 +135,7 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
         )
 
 
-class ModuleMapper(ModelMapper[Module, ModuleOrm]):
+class ModuleMapper(DataMapper[Module, ModuleOrm]):
     @staticmethod
     def from_model(model: ModuleOrm) -> Module:
         return Module(
@@ -173,7 +174,7 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
         )
 
 
-class CourseMapper(ModelMapper[Course, CourseOrm]):
+class CourseMapper(DataMapper[Course, CourseOrm]):
     @staticmethod
     def from_model(model: CourseOrm) -> Course:
         return Course(
@@ -223,7 +224,7 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
         )
 
 
-class LessonTheorySessionMapper(ModelMapper[LessonTheorySession, LessonTheorySessionOrm]):
+class LessonTheorySessionMapper(DataMapper[LessonTheorySession, LessonTheorySessionOrm]):
     @staticmethod
     def from_model(model: LessonTheorySessionOrm) -> LessonTheorySession:
         return LessonTheorySession(
@@ -251,7 +252,7 @@ class LessonTheorySessionMapper(ModelMapper[LessonTheorySession, LessonTheorySes
         )
 
 
-class LessonProgressMapper(ModelMapper[LessonProgress, LessonProgressOrm]):
+class LessonProgressMapper(DataMapper[LessonProgress, LessonProgressOrm]):
     @staticmethod
     def from_model(model: LessonProgressOrm) -> LessonProgress:
         return LessonProgress(
@@ -279,7 +280,7 @@ class LessonProgressMapper(ModelMapper[LessonProgress, LessonProgressOrm]):
         )
 
 
-class ModuleProgressMapper(ModelMapper[ModuleProgress, ModuleProgressOrm]):
+class ModuleProgressMapper(DataMapper[ModuleProgress, ModuleProgressOrm]):
     @staticmethod
     def from_model(model: ModuleProgressOrm) -> ModuleProgress:
         return ModuleProgress(
@@ -301,7 +302,7 @@ class ModuleProgressMapper(ModelMapper[ModuleProgress, ModuleProgressOrm]):
         )
 
 
-class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
+class CourseProgressMapper(DataMapper[CourseProgress, CourseProgressOrm]):
     @staticmethod
     def from_model(model: CourseProgressOrm) -> CourseProgress:
         return CourseProgress(
@@ -325,7 +326,7 @@ class CourseProgressMapper(ModelMapper[CourseProgress, CourseProgressOrm]):
         )
 
 
-class DocumentMapper(ModelMapper[Document, DocumentOrm]):
+class DocumentMapper(DataMapper[Document, DocumentOrm]):
     @staticmethod
     def from_model(model: DocumentOrm) -> Document:
         return Document(
@@ -353,7 +354,7 @@ class DocumentMapper(ModelMapper[Document, DocumentOrm]):
         )
 
 
-class PracticeMapper(ModelMapper[Practice, PracticeOrm]):
+class PracticeMapper(DataMapper[Practice, PracticeOrm]):
     @staticmethod
     def from_model(model: PracticeOrm) -> Practice:
         return Practice(
@@ -381,7 +382,7 @@ class PracticeMapper(ModelMapper[Practice, PracticeOrm]):
         )
 
 
-class MemberMapper(ModelMapper[Member, MemberOrm]):
+class MemberMapper(DataMapper[Member, MemberOrm]):
     @staticmethod
     def from_model(model: MemberOrm) -> Member:
         return Member(
@@ -405,7 +406,7 @@ class MemberMapper(ModelMapper[Member, MemberOrm]):
         )
 
 
-class GenerationSessionMapper(ModelMapper[GenerationSession, GenerationSessionOrm]):
+class GenerationSessionMapper(DataMapper[GenerationSession, GenerationSessionOrm]):
     @staticmethod
     def from_model(model: GenerationSessionOrm) -> GenerationSession:
         return GenerationSession(
@@ -429,7 +430,7 @@ class GenerationSessionMapper(ModelMapper[GenerationSession, GenerationSessionOr
         )
 
 
-class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
+class InvitationMapper(DataMapper[Invitation, InvitationOrm]):
     @staticmethod
     def from_model(model: InvitationOrm) -> Invitation:
         return Invitation(

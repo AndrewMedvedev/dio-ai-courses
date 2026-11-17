@@ -1,6 +1,7 @@
 import logging
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.courses.domain.knowledge.entities import (
@@ -9,7 +10,6 @@ from src.courses.domain.knowledge.entities import (
 from src.courses.domain.knowledge.enums import (
     DocumentNodeType,
 )
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     DocumentMapper,
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
     model = DocumentOrm
-    model_mapper = DocumentMapper  # type: ignore
+    data_mapper = DocumentMapper
 
     # ── 1. Все оглавления (TOC) владельца ─────────────────────────────────────────
     async def get_tocs(self, owner_id: UUID) -> list[Document]:
@@ -36,7 +36,7 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             .order_by(self.model.created_at, self.model.id)
         )
 
-        return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
+        return [self.data_mapper.from_model(model) for model in stmt.scalars().all()]
 
     # ── 2. Все заголовки (HEADING) конкретного TOC ────────────────────────────────
     async def get_headings(
@@ -54,7 +54,7 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
             .order_by(self.model.created_at, self.model.id)
         )
 
-        return [self.model_mapper.from_model(model) for model in stmt.scalars().all()]
+        return [self.data_mapper.from_model(model) for model in stmt.scalars().all()]
 
     # ── 3. Текст (TEXT) конкретного заголовка ─────────────────────────────────────
     async def get_text(
@@ -74,4 +74,4 @@ class SqlDocumentRepository(SqlAlchemyRepository[Document, DocumentOrm]):
 
         model = stmt.scalar_one_or_none()
 
-        return self.model_mapper.from_model(model) if model is not None else None
+        return self.data_mapper.from_model(model) if model is not None else None

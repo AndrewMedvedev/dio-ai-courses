@@ -3,7 +3,7 @@ from uuid import UUID
 
 from src.iam.domain.types import RoleId
 from src.shared.domain.events import Event
-from src.shared.domain.vo import Email
+from ddf.domain.vo import Email
 
 
 @dataclass(frozen=True, kw_only=True)

@@ -5,6 +5,7 @@ from typing import Any
 from datetime import datetime
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import Base, EntityMixin
 from sqlalchemy import (
     TEXT,
     CheckConstraint,
@@ -20,7 +21,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
 from src.courses.domain.assessment.enums import (
     PracticeStatus,
 )
@@ -41,7 +41,7 @@ from src.courses.domain.knowledge.enums import (
 from .types import ContentBlockListType
 
 
-class CourseOrm(Base):
+class CourseOrm(Base, EntityMixin):
     __tablename__ = "courses"
 
     title: Mapped[str]
@@ -67,7 +67,7 @@ class CourseOrm(Base):
     course_progress: Mapped[list[CourseProgressOrm]] = relationship(back_populates="course")
 
 
-class ModuleOrm(Base):
+class ModuleOrm(Base, EntityMixin):
     __tablename__ = "modules"
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
@@ -99,7 +99,7 @@ class ModuleOrm(Base):
     )
 
 
-class LessonOrm(Base):
+class LessonOrm(Base, EntityMixin):
     __tablename__ = "lessons"
 
     module_id: Mapped[UUID] = mapped_column(
@@ -139,7 +139,7 @@ class LessonOrm(Base):
     )
 
 
-class LessonTheorySessionOrm(Base):
+class LessonTheorySessionOrm(Base, EntityMixin):
     __tablename__ = "lesson_theory_sessions"
 
     __table_args__ = (
@@ -163,7 +163,7 @@ class LessonTheorySessionOrm(Base):
     max_scroll_depth_percent: Mapped[int] = mapped_column(default=0)
 
 
-class CourseProgressOrm(Base):
+class CourseProgressOrm(Base, EntityMixin):
     __tablename__ = "course_progress"
 
     user_id: Mapped[UUID]
@@ -186,7 +186,7 @@ class CourseProgressOrm(Base):
     )
 
 
-class ModuleProgressOrm(Base):
+class ModuleProgressOrm(Base, EntityMixin):
     __tablename__ = "module_progress"
 
     course_progress_id: Mapped[UUID] = mapped_column(
@@ -211,7 +211,7 @@ class ModuleProgressOrm(Base):
     )
 
 
-class LessonProgressOrm(Base):
+class LessonProgressOrm(Base, EntityMixin):
     __tablename__ = "lesson_progress"
 
     module_progress_id: Mapped[UUID] = mapped_column(
@@ -238,7 +238,7 @@ class LessonProgressOrm(Base):
     )
 
 
-class ChatOrm(Base):
+class ChatOrm(Base, EntityMixin):
     __tablename__ = "chats"
 
     user_id: Mapped[UUID]
@@ -246,7 +246,7 @@ class ChatOrm(Base):
     messages: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
 
-class MemberOrm(Base):
+class MemberOrm(Base, EntityMixin):
     __tablename__ = "members"
 
     course_id: Mapped[UUID] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
@@ -262,7 +262,7 @@ class MemberOrm(Base):
     )
 
 
-class DocumentOrm(Base):
+class DocumentOrm(Base, EntityMixin):
     __tablename__ = "documents"
 
     owner_id: Mapped[UUID] = mapped_column(nullable=False)
@@ -317,7 +317,7 @@ class DocumentOrm(Base):
     )
 
 
-class PracticeOrm(Base):
+class PracticeOrm(Base, EntityMixin):
     __tablename__ = "practices"
 
     user_id: Mapped[UUID]
@@ -328,7 +328,7 @@ class PracticeOrm(Base):
     practice: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
 
 
-class InvitationOrm(Base):
+class InvitationOrm(Base, EntityMixin):
     __tablename__ = "course_invitations"
 
     title: Mapped[str]
@@ -348,7 +348,7 @@ class InvitationOrm(Base):
     )
 
 
-class GenerationSessionOrm(Base):
+class GenerationSessionOrm(Base, EntityMixin):
     __tablename__ = "generation_sessions"
 
     creator_id: Mapped[UUID]

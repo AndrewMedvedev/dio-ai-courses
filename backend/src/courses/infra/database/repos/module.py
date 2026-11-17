@@ -1,14 +1,14 @@
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.courses.application.catalog.dtos.basic_info import BasicInfoDTO, ModuleBasicInfoDTO
 from src.courses.domain.catalog.entities import (
     Module,
 )
-from src.shared.domain.exceptions import NotFoundError
-from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     ModuleMapper,
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
     model = ModuleOrm
-    model_mapper = ModuleMapper  # type: ignore
+    data_mapper = ModuleMapper
 
     async def find_rank_bounds(
         self,
