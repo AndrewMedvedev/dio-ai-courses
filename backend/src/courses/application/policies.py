@@ -66,13 +66,26 @@ def can_take_action(identity: Identity, resource: ManageCourseOptions) -> bool:
 
 @register_policy(INVITE, PermissionScope.COURSE)
 def can_invite_in_course(identity: Identity, resource: InviteCourseOptions) -> bool:
-    if identity.id == resource.course.creator_id:
+    return can_invite_role(
+        identity,
+        ManageCourseOptions(
+            creator_id=resource.course.creator_id,
+            member_role=resource.member.role if resource.member is not None else None,
+        ),
+        resource.role,
+    )
+
+
+def can_invite_role(
+    identity: Identity, resource: ManageCourseOptions, role: MemberRole,
+) -> bool:
+    if identity.id == resource.creator_id:
         return True
 
-    if resource.member is None:
+    if resource.member_role is None:
         return False
 
-    return resource.member.role.can_assign(resource.role)
+    return resource.member_role.can_assign(role)
 
 
 @register_policy(READ_PRACTICE, PermissionScope.COURSE)
@@ -83,3 +96,20 @@ def can_read_practice(identity: Identity, resource: ManageCourseOptions) -> bool
 @register_policy(READ_THEORY_SESSION, PermissionScope.COURSE)
 def can_read_theory_session(identity: Identity, resource: ManageCourseOptions) -> bool:
     return can_take_action(identity, resource)
+
+
+def get_course_permissions(identity: Identity, resource: ManageCourseOptions) -> list[str]:
+    permissions = {
+        permission.code
+        for permission, policy in (
+            (READ_COURSE, can_read_course),
+            (UPDATE, can_update_course),
+            (DELETE, can_delete_course),
+            (READ_PRACTICE, can_read_practice),
+            (READ_THEORY_SESSION, can_read_theory_session),
+        )
+        if policy(identity, resource)
+    }
+    if any(can_invite_role(identity, resource, role) for role in MemberRole):
+        permissions.add(INVITE.code)
+    return sorted(permissions)

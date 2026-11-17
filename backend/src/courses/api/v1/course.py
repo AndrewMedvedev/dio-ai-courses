@@ -3,7 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.courses.application.dtos import CourseBasicInfo, CourseSchema, EditCourseSchema
+from src.courses.application.dtos import (
+    CourseBasicInfo,
+    CoursePermissions,
+    CourseSchema,
+    EditCourseSchema,
+)
 from src.courses.dependencies.base import CourseRepoDep
 from src.courses.dependencies.services import CheckCourseAccessDep, CourseServiceDep
 from src.courses.domain.entities import Course
@@ -58,6 +63,19 @@ async def get_user_courses(
     pagination: Pagination,
 ) -> Page[Course]:
     return await repo.find_user_courses(identity.id, pagination)
+
+
+@router.get(
+    "/{course_id}/permissions",
+    summary="Получить мои разрешения в курсе",
+    description="Возвращает разрешения роли текущего пользователя в указанном курсе.",
+)
+async def get_course_permissions(
+    course_id: UUID,
+    identity: CurrentIdentity,
+    check_access: CheckCourseAccessDep,
+) -> CoursePermissions:
+    return CoursePermissions(permissions=await check_access.get_permissions(identity, course_id))
 
 
 @router.get(
