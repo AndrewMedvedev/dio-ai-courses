@@ -9,6 +9,7 @@ import {
   type RoleDescription,
 } from '@/entities/invitation';
 import { getErrorMessage } from '@/shared/lib/errors';
+import { ApiError } from '@/shared/api';
 import { notify } from '@/shared/ui/toast';
 import { useEmailRows } from '../model/use-email-rows';
 import { EmailRowsField } from './EmailRowsField';
@@ -32,6 +33,8 @@ const CONFIG = {
 };
 
 function sendErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.isInternalError)
+    return 'Не удалось подтвердить отправку приглашения. Проверьте список приглашений позже.';
   if (statusOf(error) === 403)
     return 'Недостаточно прав, чтобы отправлять приглашения.';
   if (statusOf(error) === 404) return 'Организация или роль не найдена.';

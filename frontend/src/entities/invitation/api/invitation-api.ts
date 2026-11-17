@@ -114,11 +114,14 @@ export async function inviteToCourse({
   email: string;
   role: string;
 }): Promise<unknown> {
-  return jsonRequest('/courses/invitations', 'POST', {
-    course_id: courseId,
-    email,
-    role,
-  });
+  return jsonRequest(
+    `/courses/invitations/${encodeURIComponent(courseId)}`,
+    'POST',
+    {
+      email,
+      role,
+    },
+  );
 }
 
 // Приглашения курса, которые ещё ждут ответа (без токенов из писем).
@@ -127,14 +130,22 @@ export async function fetchCourseInvitationsPage(
   { page = 1, size = 20 }: PageParams = {},
 ): Promise<ItemsPage<RawApiRecord>> {
   const query = new URLSearchParams({
-    course_id: courseId,
     page: String(page),
     size: String(size),
   });
-  const data = await requestJson(`/courses/invitations?${query.toString()}`);
+  const data = await requestJson(
+    `/courses/invitations/${encodeURIComponent(courseId)}?${query.toString()}`,
+  );
   const items = Array.isArray(data) ? data : data?.items || [];
   return {
-    items: asRecords(items),
+    items: asRecords(items).map((item) => ({
+      ...item,
+      course_id: item.course_id ?? item.courseId,
+      user_id: item.user_id ?? item.userId,
+      invited_by: item.invited_by ?? item.invitedBy,
+      created_at: item.created_at ?? item.createdAt,
+      expires_at: item.expires_at ?? item.expiresAt,
+    })),
     page: Number(data?.page) || page,
     size: Number(data?.size) || size,
     total: Number(data?.total) || asRecords(items).length,

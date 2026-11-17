@@ -9,6 +9,7 @@ import {
 } from 'react-test-renderer';
 import { indexedDB } from 'fake-indexeddb';
 import { useState, type ReactElement } from 'react';
+import { EmailRowsField, useEmailRows } from '@/features/invite';
 import { PageLoadBoundary } from '@/app/router';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { apiFetch, requestJson } from '@/shared/api';
@@ -1261,6 +1262,62 @@ void test('failed page loading shows recovery controls and permits navigation wi
     assert.deepEqual(page.root.findByType('p').children, ['Page content']);
   } finally {
     console.error = originalError;
+    await unmount(page);
+  }
+});
+
+void test('leaving the invitation email field keeps layout stable and sends the draft with the chosen role once', async () => {
+  const sent: Array<{ email: string; role: string }> = [];
+  responder = () => Response.json({ items: [] });
+  function Probe() {
+    const emails = useEmailRows();
+    const [role, setRole] = useState('student');
+    return (
+      <>
+        <EmailRowsField id="invite-email" emails={emails} />
+        <span>{emails.rows.length}</span>
+        <button onClick={() => setRole('teacher')}>Choose teacher</button>
+        <button
+          onClick={() =>
+            emails.sendAll(
+              (email) => {
+                sent.push({ email, role });
+                return Promise.resolve();
+              },
+              () => 'Failed',
+            )
+          }
+        >
+          Send invite
+        </button>
+      </>
+    );
+  }
+  const page = await render(<Probe />);
+  try {
+    const input = page.root.findByType('input');
+    await act(async () => {
+      (input.props.onChange as (event: { target: { value: string } }) => void)({
+        target: { value: 'learner@example.test' },
+      });
+      await tick();
+    });
+    await act(async () => {
+      (input.props.onBlur as (() => void) | undefined)?.();
+      await tick();
+    });
+    assert.equal(input.props.value, 'learner@example.test');
+    assert.equal(
+      page.root.findAllByType('li').length,
+      0,
+      'blur must not insert a row and move the role cards under the pointer',
+    );
+    await click(button(page, 'Choose teacher'));
+    await click(button(page, 'Send invite'));
+    assert.deepEqual(sent, [
+      { email: 'learner@example.test', role: 'teacher' },
+    ]);
+  } finally {
     await unmount(page);
   }
 });

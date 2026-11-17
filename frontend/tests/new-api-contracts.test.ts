@@ -6,6 +6,14 @@ import { extractTaskId } from '../src/entities/agent-chat/lib/agent-chat-utils';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calls, setResponder } from './fixtures/api';
+import { createApiError } from '../src/shared/api/api-error';
+import { getErrorMessage } from '../src/shared/lib/errors';
+import {
+  inviteToCourse,
+  fetchCourseInvitationsPage,
+  revokeCourseInvitation,
+  acceptCourseInvitation,
+} from '../src/entities/invitation/api/invitation-api';
 import {
   createModule,
   createLesson,
@@ -35,6 +43,264 @@ import {
 const C = '10000000-0000-4000-8000-000000000001';
 const M = '20000000-0000-4000-8000-000000000001';
 const L = '30000000-0000-4000-8000-000000000001';
+
+void test('internal response validation under HTTP 400 stays out of user messages and retains diagnostics', async () => {
+  const diagnostic =
+    "1 validation error for InvitationResponse email Input should be a valid string [type=string_type, input_value=Email('synthetic@example.com'), input_type=Email] For further information visit https://errors.pydantic.dev/2.13/v/string_type";
+  const payload = {
+    error: {
+      grant: 'VALIDATION_ERROR',
+      message: diagnostic,
+      status: 400,
+      details: {},
+    },
+  };
+  const error = await createApiError(
+    Response.json(payload, { status: 400 }),
+    'Ошибка запроса POST /courses/invitations/example',
+  );
+  assert.equal(error.status, 400);
+  assert.equal(error.isInternalError, true);
+  assert.deepEqual(error.payload, payload);
+  assert.equal(error.message, error.userMessage);
+  assert.doesNotMatch(
+    error.userMessage,
+    /InvitationResponse|input_value|pydantic|synthetic@/,
+  );
+  assert.equal(
+    getErrorMessage(error, 'Не удалось загрузить приглашения.'),
+    'Не удалось загрузить приглашения.',
+  );
+});
+
+void test('server errors, HTML proxy pages and unknown status fallbacks do not expose implementation details', async () => {
+  for (const response of [
+    new Response('Traceback (most recent call last): synthetic failure', {
+      status: 500,
+    }),
+    new Response('<html><body>upstream unavailable</body></html>', {
+      status: 502,
+      headers: { 'Content-Type': 'text/html' },
+    }),
+    Response.json(
+      { detail: 'database pool configuration failed' },
+      { status: 503 },
+    ),
+  ]) {
+    const error = await createApiError(
+      response,
+      'Ошибка запроса GET /internal-resource',
+    );
+    assert.equal(error.isInternalError, true);
+    assert.equal(
+      error.userMessage,
+      'Сервис не смог обработать запрос. Попробуйте позже.',
+    );
+  }
+  const unknown = await createApiError(
+    new Response('', { status: 418 }),
+    'Ошибка запроса GET /internal-resource',
+  );
+  assert.doesNotMatch(unknown.userMessage, /GET|internal-resource/);
+  const malformed = await createApiError(
+    new Response('{', {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+    'Failed',
+  );
+  assert.equal(malformed.userMessage, 'Некорректный запрос.');
+  const method = await createApiError(
+    Response.json({ detail: 'Method Not Allowed' }, { status: 405 }),
+    'Failed',
+  );
+  assert.equal(method.userMessage, 'Это действие сейчас недоступно.');
+});
+
+void test('explicit public messages and readable business errors remain specific', async () => {
+  const maintenance = await createApiError(
+    Response.json(
+      {
+        error: {
+          public_message:
+            'Идёт обслуживание. Попробуйте через несколько минут.',
+          message: 'Internal database failure',
+        },
+      },
+      { status: 503 },
+    ),
+    'Failed',
+  );
+  assert.equal(
+    maintenance.userMessage,
+    'Идёт обслуживание. Попробуйте через несколько минут.',
+  );
+  assert.equal(
+    getErrorMessage(maintenance, 'Не удалось загрузить данные.'),
+    maintenance.userMessage,
+  );
+  const duplicate = await createApiError(
+    Response.json(
+      {
+        error: {
+          code: 'ALREADY_EXISTS',
+          message: 'Пользователь уже состоит в организации.',
+        },
+      },
+      { status: 409 },
+    ),
+    'Failed',
+  );
+  assert.equal(
+    duplicate.userMessage,
+    'Пользователь уже состоит в организации.',
+  );
+  assert.equal(duplicate.code, 'ALREADY_EXISTS');
+  assert.equal(duplicate.isInternalError, false);
+});
+
+void test('request validation explains fields without dumping inputs or Python messages', async () => {
+  const error = await createApiError(
+    Response.json(
+      {
+        detail: [
+          {
+            loc: ['body', 'email'],
+            msg: 'value is not a valid email address: An email address must have an @-sign.',
+            type: 'value_error',
+            input: 'synthetic-invalid',
+          },
+          {
+            loc: ['body', 'password'],
+            msg: 'String should have at least 8 characters',
+            type: 'string_too_short',
+            ctx: { min_length: 8 },
+            input: 'synthetic-secret',
+          },
+          {
+            loc: ['body', 'full_name'],
+            msg: 'Field required',
+            type: 'missing',
+          },
+        ],
+      },
+      { status: 422 },
+    ),
+    'Failed',
+  );
+  assert.deepEqual(error.validationErrors, {
+    email: 'Введите корректный email.',
+    password: 'Минимальная длина — 8 символов.',
+    full_name: 'Обязательное поле.',
+  });
+  assert.equal(error.isInternalError, false);
+  assert.doesNotMatch(
+    error.userMessage,
+    /synthetic|body\.|String should|Field required/,
+  );
+  const responseFailure = await createApiError(
+    Response.json(
+      {
+        detail: [
+          {
+            loc: ['response', 'email'],
+            msg: 'Input should be a valid string',
+            type: 'string_type',
+          },
+        ],
+      },
+      { status: 422 },
+    ),
+    'Failed',
+  );
+  assert.equal(responseFailure.isInternalError, true);
+  assert.deepEqual(responseFailure.validationErrors, {});
+});
+
+void test('network errors explain connection failures while other contextual errors retain their messages', () => {
+  assert.equal(
+    getErrorMessage(
+      new TypeError('Failed to fetch'),
+      'Не удалось загрузить данные.',
+    ),
+    'Не удалось связаться с сервером. Проверьте соединение.',
+  );
+  assert.equal(
+    getErrorMessage(new Error('Файл недоступен.'), 'Failed'),
+    'Файл недоступен.',
+  );
+});
+
+void test('course invitations use resource URLs, role payloads and camelCase list responses', async () => {
+  const invitationId = 'invitation-id';
+  const createdAt = '2026-11-17T06:00:00Z';
+  const expiresAt = '2026-11-24T06:00:00Z';
+  setResponder((path, method) => {
+    if (method === 'GET')
+      return {
+        items: [
+          {
+            id: invitationId,
+            courseId: C,
+            email: 'learner@example.test',
+            role: 'student',
+            userId: null,
+            invitedBy: 'synthetic-user',
+            createdAt,
+            expiresAt,
+          },
+        ],
+        page: 2,
+        size: 1,
+        total: 3,
+        has_next: true,
+      };
+    return { id: invitationId };
+  });
+  for (const role of ['student', 'moderator', 'teacher']) {
+    await inviteToCourse({ courseId: C, email: 'learner@example.test', role });
+    assert.deepEqual(calls.at(-1), {
+      path: `/courses/invitations/${C}`,
+      method: 'POST',
+      body: { email: 'learner@example.test', role },
+    });
+  }
+  const result = await fetchCourseInvitationsPage(C, { page: 2, size: 1 });
+  assert.equal(calls.at(-1)?.path, `/courses/invitations/${C}?page=2&size=1`);
+  assert.equal(result.page, 2);
+  assert.equal(result.size, 1);
+  assert.equal(result.total, 3);
+  assert.equal(result.hasNext, true);
+  assert.equal(result.items[0].course_id, C);
+  assert.equal(result.items[0].user_id, null);
+  assert.equal(result.items[0].created_at, createdAt);
+  assert.equal(result.items[0].expires_at, expiresAt);
+  await revokeCourseInvitation(invitationId);
+  assert.equal(
+    calls.at(-1)?.path,
+    `/courses/invitations/revoke/${invitationId}`,
+  );
+  assert.equal(calls.at(-1)?.method, 'DELETE');
+  await acceptCourseInvitation('synthetic/token');
+  assert.equal(
+    calls.at(-1)?.path,
+    '/courses/invitations/accept/synthetic%2Ftoken',
+  );
+  assert.equal(calls.at(-1)?.method, 'POST');
+
+  const denied = new Error('Not allowed');
+  setResponder(() => {
+    throw denied;
+  });
+  await assert.rejects(
+    inviteToCourse({
+      courseId: C,
+      email: 'learner@example.test',
+      role: 'student',
+    }),
+    (error) => error === denied,
+  );
+});
 
 void test('SGK-054 clients use resource routes, relative positions and camelCase responses', async () => {
   setResponder((path, method, body) => {
