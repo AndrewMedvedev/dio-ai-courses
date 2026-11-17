@@ -134,6 +134,7 @@ export function ChatComposer({
             ))}
           </ul>
         ) : null}
+        {/* The composer shell draws focus; suppress the D&D descendant outline. */}
         <textarea
           id={id}
           ref={(element) => {
@@ -141,7 +142,7 @@ export function ChatComposer({
             if (textareaRef) textareaRef.current = element;
             autosizeTextarea(element, maxHeight);
           }}
-          className={`ai-chat-input ${chatScrollbarClass} tw:block tw:w-full tw:min-h-[22px] tw:resize-none tw:border-0 tw:outline-none tw:bg-transparent tw:p-0 tw:m-0 tw:[font:inherit] tw:text-[14px] tw:leading-[1.5] tw:text-(--text) tw:placeholder:text-(--muted) tw:disabled:cursor-not-allowed`}
+          className={`ai-chat-input ${chatScrollbarClass} tw:block tw:w-full tw:min-h-[22px] tw:resize-none tw:border-0 tw:outline-none! tw:bg-transparent tw:p-0 tw:m-0 tw:[font:inherit] tw:text-[14px] tw:leading-[1.5] tw:text-(--text) tw:placeholder:text-(--muted) tw:disabled:cursor-not-allowed`}
           rows={1}
           value={value}
           onChange={(event) => onChange(event.target.value)}

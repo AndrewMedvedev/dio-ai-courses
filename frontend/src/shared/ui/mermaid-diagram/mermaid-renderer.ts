@@ -22,7 +22,8 @@ export type DiagramStatus =
 /* Global Mermaid */
 /* -------------------------------------------------------------------------- */
 let mermaidPromise: Promise<Mermaid> | null = null;
-let mermaidInitialized = false;
+let initializedTheme: MermaidTheme | null = null;
+let fontsReady: Promise<unknown> | null = null;
 let globalRenderCounter = 0;
 export const nextDiagramId = () => globalRenderCounter++;
 
@@ -49,7 +50,16 @@ export const formatMermaidError = (rawError: unknown): string => {
 /* -------------------------------------------------------------------------- */
 /* Theme */
 /* -------------------------------------------------------------------------- */
-const themeVariables = {
+export type MermaidTheme = 'light' | 'dark';
+
+export const getMermaidTheme = (): MermaidTheme =>
+  typeof document !== 'undefined' &&
+  document.documentElement?.dataset.theme === 'dark'
+    ? 'dark'
+    : 'light';
+
+const lightThemeVariables = {
+  darkMode: false,
   background: '#f6f1e9',
   primaryColor: '#e9dce9',
   primaryTextColor: '#2b2b2b',
@@ -65,6 +75,34 @@ const themeVariables = {
   fontFamily: '"Manrope", Arial, sans-serif',
 };
 
+const darkThemeVariables = {
+  ...lightThemeVariables,
+  darkMode: true,
+  background: '#222831',
+  primaryColor: '#384554',
+  primaryTextColor: '#f2e7d4',
+  primaryBorderColor: '#9bb6d1',
+  secondaryColor: '#463c50',
+  secondaryTextColor: '#f2e7d4',
+  secondaryBorderColor: '#bda4c4',
+  tertiaryColor: '#343e38',
+  tertiaryTextColor: '#f2e7d4',
+  tertiaryBorderColor: '#9fb5a6',
+  lineColor: '#b7c4d3',
+  textColor: '#f2e7d4',
+  edgeLabelBackground: '#252b34',
+  clusterBkg: '#2d3540',
+  clusterBorder: '#9bb6d1',
+  noteBkgColor: '#4b3e30',
+  noteTextColor: '#f2e7d4',
+  noteBorderColor: '#cba474',
+  actorBkg: '#384554',
+  actorTextColor: '#f2e7d4',
+  actorBorder: '#9bb6d1',
+  signalColor: '#b7c4d3',
+  signalTextColor: '#f2e7d4',
+};
+
 /* -------------------------------------------------------------------------- */
 /* Ultimate fallback — всегда валидный SVG, не зависит от Mermaid */
 /* -------------------------------------------------------------------------- */
@@ -72,23 +110,33 @@ const themeVariables = {
 /* -------------------------------------------------------------------------- */
 /* Mermaid loader */
 /* -------------------------------------------------------------------------- */
-const getMermaid = async (): Promise<Mermaid> => {
-  if (typeof document !== 'undefined' && document.fonts) {
-    await document.fonts.ready;
-  }
+const getMermaid = async (theme = getMermaidTheme()): Promise<Mermaid> => {
   if (!mermaidPromise) {
     mermaidPromise = import('mermaid').then(
       (module) => module.default ?? module,
     );
   }
+  // A blocked web-font request must not hold every queued diagram indefinitely.
+  // The same bounded wait is shared by all diagrams, not repeated per render.
+  if (!fontsReady && typeof document !== 'undefined' && document.fonts) {
+    fontsReady = new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 300);
+      void document.fonts.ready.then(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
+  await fontsReady;
   const mermaid = await mermaidPromise;
-  if (!mermaidInitialized) {
+  if (initializedTheme !== theme) {
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',
       suppressErrorRendering: true,
       theme: 'base',
-      themeVariables,
+      themeVariables:
+        theme === 'dark' ? darkThemeVariables : lightThemeVariables,
       flowchart: {
         htmlLabels: false,
         useMaxWidth: true,
@@ -110,7 +158,7 @@ const getMermaid = async (): Promise<Mermaid> => {
         useMaxWidth: true,
       },
     });
-    mermaidInitialized = true;
+    initializedTheme = theme;
   }
   return mermaid;
 };
@@ -622,14 +670,16 @@ const renderCandidate = async (
 export const renderMermaid = async ({
   chart,
   componentId,
+  theme = getMermaidTheme(),
 }: {
   chart: unknown;
   componentId: string;
+  theme?: MermaidTheme;
 }): Promise<MermaidRenderResult> => {
   let lastError = 'Не удалось отрисовать Mermaid-диаграмму.';
 
   try {
-    const mermaid = await getMermaid();
+    const mermaid = await getMermaid(theme);
     const candidates = createRenderCandidates(chart);
 
     if (!candidates.length) {

@@ -127,12 +127,15 @@ export const ChatThread = forwardRef<ChatThreadHandle, ChatThreadProps>(
     useEffect(() => {
       const element = elementRef.current;
       if (!element) return;
-      element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' });
-    }, [scrollKey]);
+      element.scrollTo({
+        top: centered ? 0 : element.scrollHeight,
+        behavior: 'smooth',
+      });
+    }, [scrollKey, centered]);
     return (
       <div
         ref={elementRef}
-        className={`ai-chat-thread ${chatScrollbarClass} tw:flex-1 tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-[16px] tw:py-[16px] tw:flex tw:flex-col tw:gap-[14px] ${centered ? 'tw:justify-center' : ''} ${className}`}
+        className={`ai-chat-thread ${chatScrollbarClass} tw:flex-1 tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-[16px] tw:py-[16px] tw:flex tw:flex-col tw:gap-[14px] ${centered ? 'tw:[justify-content:safe_center]' : ''} ${className}`}
         aria-live="polite"
         aria-busy={busy}
         aria-label={label}
@@ -301,7 +304,7 @@ export function ChatEmpty({
   children?: ReactNode;
 }) {
   return (
-    <div className="ai-chat-empty tw:flex tw:flex-col tw:items-center tw:text-center tw:gap-[10px] tw:py-[12px] tw:px-[8px] tw:m-auto tw:max-w-[440px]">
+    <div className="ai-chat-empty tw:shrink-0 tw:flex tw:flex-col tw:items-center tw:text-center tw:gap-[10px] tw:py-[12px] tw:px-[8px] tw:m-auto tw:max-w-[440px]">
       <span
         className="tw:inline-flex tw:items-center tw:justify-center tw:size-[44px] tw:rounded-[14px] tw:bg-(--cta) tw:text-[#2b2b2b]"
         aria-hidden="true"

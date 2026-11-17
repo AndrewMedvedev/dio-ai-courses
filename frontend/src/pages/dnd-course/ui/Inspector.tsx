@@ -283,9 +283,9 @@ function MaterialInspector({
 
   if (tab === 'ai') {
     return (
-      <div className="dnd-ai tw:flex tw:flex-col tw:h-[min(640px,_calc(100vh_-_240px))] tw:min-h-[380px] tw:-mx-[4px]">
+      <div className="dnd-ai tw:flex tw:flex-col tw:flex-1 tw:min-h-0 tw:h-full tw:overflow-hidden tw:-mx-[4px]">
         {!isReady ? (
-          <ChatNotice tone="info" className="tw:mx-[4px]">
+          <ChatNotice tone="info" className="tw:mx-[4px] tw:shrink-0">
             ИИ-редактор станет доступен, когда материал будет обработан.
           </ChatNotice>
         ) : null}
@@ -296,7 +296,7 @@ function MaterialInspector({
           label="Переписка с ИИ-редактором"
           className="tw:px-[4px]!"
         >
-          {messages.length === 0 && !aiBusy && !material.proposal ? (
+          {isReady && messages.length === 0 && !aiBusy && !material.proposal ? (
             <ChatEmpty
               title="Что поменять в материале?"
               text="Я подготовлю правку — исходный текст не изменится, пока вы её не примените."
@@ -1313,7 +1313,7 @@ export function Inspector({
         ))}
       </div>
       <div
-        className="dnd-inspector-body nowheel tw:flex-[1] tw:min-h-[0] tw:overflow-y-auto tw:p-[16px_14px_24px] tw:[overscroll-behavior:contain] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-inspector:has(.lesson-editor-block-row.has-ai)_&]:px-[clamp(16px,_2vw,_32px)] tw:[.page_.dnd-builder_.dnd-inspector:has(.lesson-editor-block-row.has-ai)_&]:overflow-x-hidden"
+        className={`dnd-inspector-body nowheel tw:flex-[1] tw:min-h-[0] tw:overflow-y-auto tw:p-[16px_14px_24px] tw:[overscroll-behavior:contain] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_.dnd-inspector:has(.lesson-editor-block-row.has-ai)_&]:px-[clamp(16px,_2vw,_32px)] tw:[.page_.dnd-builder_.dnd-inspector:has(.lesson-editor-block-row.has-ai)_&]:overflow-x-hidden ${type === 'material' && tab === 'ai' ? 'tw:flex tw:flex-col tw:overflow-hidden! tw:pb-[4px]' : ''}`}
         role="tabpanel"
         id="dnd-tabpanel"
         aria-labelledby={`dnd-tab-${tab}`}

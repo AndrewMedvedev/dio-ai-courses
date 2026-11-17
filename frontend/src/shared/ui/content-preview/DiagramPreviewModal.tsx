@@ -73,7 +73,7 @@ export function DiagramPreviewModal({
   const [isDark, setIsDark] = useState(
     () =>
       typeof document !== 'undefined' &&
-      Boolean(document.querySelector('.page[data-theme="dark"]')),
+      document.documentElement.dataset.theme === 'dark',
   );
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -189,8 +189,7 @@ export function DiagramPreviewModal({
   );
 
   useEffect(() => {
-    const page = document.querySelector('.page');
-    if (!page) return undefined;
+    const page = document.documentElement;
     const observer = new MutationObserver(() =>
       setIsDark(page.getAttribute('data-theme') === 'dark'),
     );
@@ -460,7 +459,7 @@ export function DiagramPreviewModal({
         </div>
         <div
           ref={viewportRef}
-          className={`content-preview-body is-diagram tw:min-h-[0] tw:block tw:relative tw:w-[100%] tw:flex-[1] tw:overflow-hidden tw:p-[0] tw:cursor-grab tw:[place-items:center] tw:[background:#f6f1e9] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[&_img]:block tw:[&_img]:w-[100%] tw:[&_img]:max-w-[none] tw:[&_img]:h-[auto] tw:[&_img]:object-contain ${dragging ? 'is-dragging' : ''}`}
+          className={`content-preview-body is-diagram tw:min-h-[0] tw:block tw:relative tw:w-[100%] tw:flex-[1] tw:overflow-hidden tw:p-[0] tw:cursor-grab tw:[place-items:center] tw:[background:#f6f1e9] tw:[.content-preview-backdrop.is-dark_&]:[background:#222831] tw:[&.is-dragging]:cursor-grabbing tw:[touch-action:none] tw:[&_img]:block tw:[&_img]:w-[100%] tw:[&_img]:max-w-[none] tw:[&_img]:h-[auto] tw:[&_img]:object-contain ${dragging ? 'is-dragging' : ''}`}
           onPointerDown={pointerDown}
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
