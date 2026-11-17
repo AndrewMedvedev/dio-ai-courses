@@ -9,11 +9,16 @@ from uuid import UUID
 from fastapi import UploadFile
 from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter
-from markitdown import MarkItDown
+from markitdown import (
+    FileConversionException,
+    MarkItDown,
+    MissingDependencyException,
+    UnsupportedFormatException,
+)
 
 from src.core.others import thread_executor
 
-from ..domain.exceptions import PayloadTooLargeError
+from ..domain.exceptions import InvalidDocumentError, PayloadTooLargeError
 
 MAX_FILE_SIZE = 30 * 1024 * 1024  # 30 МБ
 CHUNK_SIZE = 1024 * 1024  # 1 МБ — размер порции при потоковом чтении
@@ -28,7 +33,16 @@ DEFAULT_HEADERS: list[tuple[str, str]] = [
 
 
 MEDIA_PATTERN = re.compile(r"!\[(.*?)\]\(media://([0-9a-fA-F-]+)\)")
-_HEADING_ONLY_RE = re.compile(r"^#{1,6}\s*$")
+_HEADING_ONLY_RE = re.compile(r"^#{1,6}(?:[ \t]+.*)?$")
+_CODE_OR_COMMENT_RE = re.compile(
+    r"(?P<block>^[ \t]{0,3}(?P<fence>(?P<fence_char>`|~)(?P=fence_char){2,})[^\n]*\n.*?"
+    r"(?:^[ \t]{0,3}(?P=fence)(?P=fence_char)*[ \t]*(?:\r?\n|$)|\Z))"
+    r"|(?P<inline>(?<!`)(?P<ticks>`+)(?!`)"
+    r"(?:(?!\r?\n[ \t]*\r?\n|^[ \t]{0,3}(?:`{3,}|~{3,})).)*?"
+    r"(?<!`)(?P=ticks)(?!`))"
+    r"|(?P<comment><!--.*?(?:-->|\Z))",
+    re.MULTILINE | re.DOTALL,
+)
 
 _markitdown: MarkItDown = MarkItDown()
 
@@ -54,12 +68,20 @@ class MediaChunk:
 
 def convert_document_to_md(file: bytes, file_extension: str) -> str:
     """Выполняет действие `convert_document_to_md`, чтобы поддержать основной сценарий модуля."""
-    return _markitdown.convert_stream(io.BytesIO(file), file_extension=file_extension).markdown
+    try:
+        return _markitdown.convert_stream(io.BytesIO(file), file_extension=file_extension).markdown
+    except FileConversionException as exc:
+        for attempt in exc.attempts or []:
+            if attempt.exc_info and isinstance(attempt.exc_info[1], MissingDependencyException):
+                raise attempt.exc_info[1] from exc
+        raise InvalidDocumentError from exc
+    except UnsupportedFormatException as exc:
+        raise InvalidDocumentError from exc
 
 
 async def convert_document_to_md_async(file: bytes, file_extension: str) -> str:
     # convert_stream блокирует event loop — выносим в отдельный поток
-    """Выполняет действие `convert_document_to_md_async`, чтобы поддержать основной сценарий модуля."""
+    """Конвертирует файл в Markdown вне event loop."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         thread_executor,
@@ -69,7 +91,7 @@ async def convert_document_to_md_async(file: bytes, file_extension: str) -> str:
     )
 
 
-def extract_media(md_content: str) -> list["MediaChunk"]:
+def extract_media(md_content: str) -> list[MediaChunk]:
     """Выполняет действие `extract_media`, чтобы поддержать основной сценарий модуля."""
     media = []
     for match in MEDIA_PATTERN.finditer(md_content):
@@ -86,7 +108,7 @@ def extract_media(md_content: str) -> list["MediaChunk"]:
     return media
 
 
-def remove_media_syntax(md_content: str, chunks: list["MediaChunk"]) -> str:
+def remove_media_syntax(md_content: str, chunks: list[MediaChunk]) -> str:
     # Один проход + join() вместо слайс-присваивания в list (было O(n*m), стало O(n))
     """Выполняет действие `remove_media_syntax`, чтобы поддержать основной сценарий модуля."""
     if not chunks:
@@ -113,9 +135,9 @@ def get_heading_chain(doc: Document, header_order: list[str]) -> list[str]:
 
 
 def is_heading_only(content: str) -> bool:
-    # Заголовок без текста после него ("##" и т.п.) — мусорный чанк
-    """Выполняет действие `is_heading_only`, чтобы поддержать основной сценарий модуля."""
-    return bool(_HEADING_ONLY_RE.fullmatch(content.strip()))
+    """Определяет фрагмент, содержащий только заголовки без текста."""
+    lines = [line.strip() for line in content.splitlines() if line.strip()]
+    return bool(lines) and all(_HEADING_ONLY_RE.fullmatch(line) for line in lines)
 
 
 def split_markdown(md_content: str, headers_to_split_on=None) -> list[Document]:
@@ -124,15 +146,26 @@ def split_markdown(md_content: str, headers_to_split_on=None) -> list[Document]:
         return []
     headers = headers_to_split_on or DEFAULT_HEADERS
     splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
-    cleaned = remove_media_syntax(md_content, extract_media(md_content))
+    cleaned = _CODE_OR_COMMENT_RE.sub(
+        lambda match: "" if match.group("comment") else match.group(0),
+        md_content,
+    )
+    cleaned = remove_media_syntax(cleaned, extract_media(cleaned))
     docs = splitter.split_text(cleaned)
-    return [d for d in docs if not is_heading_only(d.page_content)]
+    return [d for d in docs if d.page_content.strip() and not is_heading_only(d.page_content)]
+
+
+def has_document_content(markdown: str) -> bool:
+    return bool(split_markdown(markdown))
 
 
 async def document_pipeline(file: bytes, file_extension: str) -> list[Document]:
     """Выполняет действие `document_pipeline`, чтобы поддержать основной сценарий модуля."""
     md = await convert_document_to_md_async(file=file, file_extension=file_extension)
-    return split_markdown(md)
+    docs = split_markdown(md)
+    if not docs:
+        raise InvalidDocumentError("Документ не содержит извлекаемого текста")
+    return docs
 
 
 async def read_upload_with_limit(file: UploadFile) -> bytes:
