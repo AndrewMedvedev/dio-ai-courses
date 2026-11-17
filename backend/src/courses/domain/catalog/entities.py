@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from uuid import UUID
 
+from src.courses.domain.assessment.enums import (
+    CourseCompletionPolicy,
+    CourseVisibility,
+    NavigationPolicy,
+)
 from src.courses.domain.catalog.enums import CourseStatus, DifficultyLevel
 from src.courses.domain.catalog.vo import AnyContentBlock
 from src.courses.domain.enrollment.entities import Member
@@ -90,6 +95,10 @@ class Course(AggregateRoot):
     learning_objectives: list[str] = field(default_factory=list)
     modules: list[Module] = field(default_factory=list)
     members: list[Member] = field(default_factory=list)
+    visibility: CourseVisibility = CourseVisibility.PUBLIC
+    navigation_policy: NavigationPolicy = NavigationPolicy.FREE
+    completion_policy: CourseCompletionPolicy = CourseCompletionPolicy.ALL_LESSONS
+    mentor_enabled: bool = True
 
     def edit(
         self,
@@ -98,6 +107,10 @@ class Course(AggregateRoot):
         description: str | None = None,
         difficulty: DifficultyLevel | None = None,
         tags: list[str] | None = None,
+        visibility: CourseVisibility | None = None,
+        navigation_policy: NavigationPolicy | None = None,
+        completion_policy: CourseCompletionPolicy | None = None,
+        mentor_enabled: bool | None = None,
     ) -> None:
         if title is not None:
             self.title = title
@@ -110,6 +123,18 @@ class Course(AggregateRoot):
 
         if tags is not None:
             self.tags = list(tags)
+
+        if visibility is not None:
+            self.visibility = visibility
+
+        if navigation_policy is not None:
+            self.navigation_policy = navigation_policy
+
+        if completion_policy is not None:
+            self.completion_policy = completion_policy
+
+        if mentor_enabled is not None:
+            self.mentor_enabled = mentor_enabled
 
     def change_status(self, status: CourseStatus) -> None:
         self.status = status

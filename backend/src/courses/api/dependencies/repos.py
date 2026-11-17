@@ -4,7 +4,11 @@ from fastapi import Depends
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.core.qdrant import qdrant_client
-from src.courses.application.assessment.repos import PracticeRepository
+from src.courses.application.assessment.repos import (
+    AssignmentRepository,
+    AssignmentVersionRepository,
+    PracticeRepository,
+)
 from src.courses.application.catalog.repos import (
     CourseRepository,
     LessonRepository,
@@ -20,6 +24,8 @@ from src.courses.application.learning.repos import (
     LessonTheorySessionRepository,
     ModuleProgressRepository,
 )
+from src.courses.infra.database.repos.assignment import SqlAssignmentRepository
+from src.courses.infra.database.repos.assignment_version import SqlAssignmentVersionRepository
 from src.courses.infra.database.repos.chat import SqlChatRepository
 from src.courses.infra.database.repos.course import SqlCourseRepository
 from src.courses.infra.database.repos.course_progress import SqlCourseProgressRepository
@@ -67,6 +73,14 @@ def get_practice_repo(session: DBSession) -> PracticeRepository:
     return SqlPracticeRepository(session)
 
 
+def get_assignment_repo(session: DBSession) -> AssignmentRepository:
+    return SqlAssignmentRepository(session)
+
+
+def get_assignment_version_repo(session: DBSession) -> AssignmentVersionRepository:
+    return SqlAssignmentVersionRepository(session)
+
+
 def get_chat_repo(session: DBSession) -> ChatRepository:
     return SqlChatRepository(session)
 
@@ -102,6 +116,10 @@ CourseProgressRepoDep = Annotated[CourseProgressRepository, Depends(get_course_p
 ModuleRepoDep = Annotated[ModuleRepository, Depends(get_module_repo)]
 CourseRepoDep = Annotated[CourseRepository, Depends(get_course_repo)]
 PracticeRepoDep = Annotated[PracticeRepository, Depends(get_practice_repo)]
+AssignmentRepoDep = Annotated[AssignmentRepository, Depends(get_assignment_repo)]
+AssignmentVersionRepoDep = Annotated[
+    AssignmentVersionRepository, Depends(get_assignment_version_repo)
+]
 ChatRepoDep = Annotated[ChatRepository, Depends(get_chat_repo)]
 DocumentRepoDep = Annotated[DocumentRepository, Depends(get_document_repo)]
 TheorySessionRepoDep = Annotated[LessonTheorySessionRepository, Depends(get_theory_session_repo)]

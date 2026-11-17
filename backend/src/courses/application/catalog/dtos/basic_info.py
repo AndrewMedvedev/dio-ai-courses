@@ -6,6 +6,11 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from src.courses.domain.assessment.enums import (
+    CourseCompletionPolicy,
+    CourseVisibility,
+    NavigationPolicy,
+)
 from src.courses.domain.catalog.enums import DifficultyLevel
 
 
@@ -45,3 +50,7 @@ class CourseBasicInfoDTO(BaseModel):
     tags: list[str]
     learning_objectives: list[str] = Field(default_factory=list)
     modules: list[BasicInfoDTO] = Field(default_factory=list)  # [{"id": UUID, "rank": str}, ...]
+    visibility: CourseVisibility
+    navigation_policy: NavigationPolicy
+    completion_policy: CourseCompletionPolicy
+    mentor_enabled: bool

@@ -67,6 +67,16 @@ class CourseOrm(Base):
     organization_id: Mapped[UUID]
     image_url: Mapped[str | None] = mapped_column(nullable=True)
     learning_objectives: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    visibility: Mapped[CourseVisibility] = mapped_column(
+        Enum(CourseVisibility), default=CourseVisibility.PUBLIC
+    )
+    navigation_policy: Mapped[NavigationPolicy] = mapped_column(
+        Enum(NavigationPolicy), default=NavigationPolicy.FREE
+    )
+    completion_policy: Mapped[CourseCompletionPolicy] = mapped_column(
+        Enum(CourseCompletionPolicy), default=CourseCompletionPolicy.ALL_LESSONS
+    )
+    mentor_enabled: Mapped[bool] = mapped_column(default=True)
 
     modules: Mapped[list[ModuleOrm]] = relationship(
         back_populates="course",
@@ -328,18 +338,6 @@ class DocumentOrm(Base):
         #         проверки на уровне приложения (см. pipeline ниже).
         CheckConstraint("id != parent_node_id", name="ck_no_self_parent"),
     )
-
-
-class CourseSettingsOrm(Base):
-    __tablename__ = "course_settings"
-
-    id: Mapped[UUID] = mapped_column(
-        "course_id", ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True
-    )
-    visibility: Mapped[CourseVisibility] = mapped_column(Enum(CourseVisibility))
-    navigation_policy: Mapped[NavigationPolicy] = mapped_column(Enum(NavigationPolicy))
-    completion_policy: Mapped[CourseCompletionPolicy] = mapped_column(Enum(CourseCompletionPolicy))
-    mentor_enabled: Mapped[bool]
 
 
 class AssignmentSettingsOrm(Base):

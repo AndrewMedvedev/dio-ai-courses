@@ -3,6 +3,8 @@
 
 import logging
 
+from pydantic import TypeAdapter
+
 from src.courses.application.catalog.dtos.basic_info import (
     BasicInfoDTO,
     CourseBasicInfoDTO,
@@ -10,8 +12,11 @@ from src.courses.application.catalog.dtos.basic_info import (
     ModuleBasicInfoDTO,
 )
 from src.courses.domain.assessment.entities import (
+    Assignment,
+    AssignmentVersion,
     Practice,
 )
+from src.courses.domain.assessment.vo import AssignmentContent, AssignmentRules
 from src.courses.domain.catalog.entities import (
     Course,
     Lesson,
@@ -46,6 +51,8 @@ from src.shared.domain.vo import Email
 from src.shared.infra.database.mappers import ModelMapper
 
 from .models import (
+    AssignmentOrm,
+    AssignmentVersionOrm,
     ChatOrm,
     CourseOrm,
     CourseProgressOrm,
@@ -62,6 +69,73 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+_assignment_content = TypeAdapter(AssignmentContent)
+_assignment_rules = TypeAdapter(AssignmentRules)
+
+
+class AssignmentMapper(ModelMapper[Assignment, AssignmentOrm]):
+    @staticmethod
+    def from_model(model: AssignmentOrm) -> Assignment:
+        return Assignment(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
+            type=model.type,
+            source=model.source,
+            status=model.status,
+            unit_type=model.unit_type,
+            unit_id=model.unit_id,
+            current_version_id=model.current_version_id,
+        )
+
+    @staticmethod
+    def to_model(entity: Assignment) -> AssignmentOrm:
+        return AssignmentOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            deleted_at=entity.deleted_at,
+            type=entity.type,
+            source=entity.source,
+            status=entity.status,
+            unit_type=entity.unit_type,
+            unit_id=entity.unit_id,
+            current_version_id=entity.current_version_id,
+        )
+
+
+class AssignmentVersionMapper(ModelMapper[AssignmentVersion, AssignmentVersionOrm]):
+    @staticmethod
+    def from_model(model: AssignmentVersionOrm) -> AssignmentVersion:
+        return AssignmentVersion(
+            id=model.id,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            deleted_at=model.deleted_at,
+            assignment_id=model.assignment_id,
+            version=model.version,
+            title=model.title,
+            description=model.description,
+            content=_assignment_content.validate_python(model.content),
+            rules=_assignment_rules.validate_python(model.rules),
+        )
+
+    @staticmethod
+    def to_model(entity: AssignmentVersion) -> AssignmentVersionOrm:
+        return AssignmentVersionOrm(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            deleted_at=entity.deleted_at,
+            assignment_id=entity.assignment_id,
+            version=entity.version,
+            title=entity.title,
+            description=entity.description,
+            content=_assignment_content.dump_python(entity.content, mode="json"),
+            rules=_assignment_rules.dump_python(entity.rules, mode="json"),
+        )
 
 
 class ChatMapper(ModelMapper[Chat, ChatOrm]):
@@ -190,6 +264,10 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             organization_id=model.organization_id,
             image_url=model.image_url,
             learning_objectives=model.learning_objectives,
+            visibility=model.visibility,
+            navigation_policy=model.navigation_policy,
+            completion_policy=model.completion_policy,
+            mentor_enabled=model.mentor_enabled,
         )
 
     @staticmethod
@@ -208,6 +286,10 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             organization_id=entity.organization_id,
             image_url=entity.image_url,
             learning_objectives=entity.learning_objectives,
+            visibility=entity.visibility,
+            navigation_policy=entity.navigation_policy,
+            completion_policy=entity.completion_policy,
+            mentor_enabled=entity.mentor_enabled,
         )
 
     @staticmethod
@@ -220,6 +302,10 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             tags=row.tags,
             learning_objectives=row.learning_objectives,
             modules=modules,
+            visibility=row.visibility,
+            navigation_policy=row.navigation_policy,
+            completion_policy=row.completion_policy,
+            mentor_enabled=row.mentor_enabled,
         )
 
 

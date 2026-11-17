@@ -1,3 +1,5 @@
+from typing import Annotated
+
 import importlib
 import sys
 from dataclasses import asdict
@@ -7,9 +9,11 @@ from types import ModuleType, SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from fastapi import Depends
 from pydantic import TypeAdapter
 from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import configure_mappers
 from sqlalchemy.schema import CreateTable
 
@@ -29,7 +33,12 @@ def assessment(monkeypatch):
         "src.shared.application",
         "src.shared.infra",
         "src.shared.infra.database",
+        "src.shared.api",
         "src.iam",
+        "src.iam.domain",
+        "src.iam.application",
+        "src.iam.application.dtos",
+        "src.iam.dependencies",
         "src.iam.infra",
         "src.iam.infra.database",
         "src.courses",
@@ -38,10 +47,22 @@ def assessment(monkeypatch):
         "src.courses.domain.catalog",
         "src.courses.domain.enrollment",
         "src.courses.domain.knowledge",
+        "src.courses.domain.generation",
+        "src.courses.domain.learning",
+        "src.courses.domain.conversations",
         "src.courses.application",
         "src.courses.application.assessment",
+        "src.courses.application.enrollment",
+        "src.courses.application.enrollment.repos",
         "src.courses.infra",
         "src.courses.infra.database",
+        "src.courses.api",
+        "src.courses.api.dependencies",
+        "src.courses.api.dependencies.catalog",
+        "src.courses.api.assessment",
+        "src.courses.api.assessment.v1",
+        "src.activity",
+        "src.activity.domain",
     )
     for name in packages:
         package = ModuleType(name)
@@ -49,6 +70,7 @@ def assessment(monkeypatch):
         monkeypatch.setitem(sys.modules, name, package)
     settings = ModuleType("src.core.settings")
     settings.timezone = UTC
+    settings.settings = SimpleNamespace()
     monkeypatch.setitem(sys.modules, settings.__name__, settings)
 
     # Убираем кеш прошлой загрузки, иначе ORM получит разные экземпляры enum/Base.
@@ -63,15 +85,74 @@ def assessment(monkeypatch):
     models = importlib.import_module("src.courses.infra.database.models")
     importlib.import_module("src.iam.infra.database.models")
     repos = importlib.import_module("src.courses.application.assessment.repos")
+    identity = importlib.import_module("src.iam.application.dtos.identity")
+    sys.modules["src.iam.application.dtos"].Identity = identity.Identity
+    sys.modules["src.iam.application.dtos"].IdentityType = identity.IdentityType
+    member_repo = importlib.import_module("src.courses.application.enrollment.repos.member")
+    sys.modules[
+        "src.courses.application.enrollment.repos"
+    ].MemberRepository = member_repo.MemberRepository
+    mappers = importlib.import_module("src.courses.infra.database.mappers")
+    catalog = importlib.import_module("src.courses.domain.catalog.entities")
+    transaction = importlib.import_module("src.shared.application.transaction").Transaction
+
+    # Только инфраструктурные Depends подменяются: CRUD, политики и мапперы настоящие.
+    def unused_provider():
+        return None
+
+    repo_deps = ModuleType("src.courses.api.dependencies.repos")
+    for name, module, contract in (
+        ("AssignmentRepoDep", "assessment.repos", "AssignmentRepository"),
+        ("AssignmentVersionRepoDep", "assessment.repos", "AssignmentVersionRepository"),
+        ("CourseRepoDep", "catalog.repos", "CourseRepository"),
+        ("ModuleRepoDep", "catalog.repos", "ModuleRepository"),
+        ("LessonRepoDep", "catalog.repos", "LessonRepository"),
+        ("MemberRepoDep", "enrollment.repos", "MemberRepository"),
+    ):
+        protocol = getattr(importlib.import_module(f"src.courses.application.{module}"), contract)
+        setattr(repo_deps, name, Annotated[protocol, Depends(unused_provider)])
+    monkeypatch.setitem(sys.modules, repo_deps.__name__, repo_deps)
+    dependencies = ModuleType("src.shared.dependencies")
+    dependencies.DBSession = Annotated[AsyncSession, Depends(unused_provider)]
+    dependencies.TransactionDep = Annotated[transaction, Depends(unused_provider)]
+    monkeypatch.setitem(sys.modules, dependencies.__name__, dependencies)
+    identity_deps = ModuleType("src.iam.dependencies.identity")
+    identity_deps.CurrentIdentity = Annotated[identity.Identity, Depends(unused_provider)]
+    monkeypatch.setitem(sys.modules, identity_deps.__name__, identity_deps)
+    crud = importlib.import_module("src.courses.api.dependencies.assessment.assignment")
+    dto = importlib.import_module("src.courses.application.assessment.dtos.assignment")
+    api = importlib.import_module("src.courses.api.assessment.v1.assignment")
+    errors = importlib.import_module("src.shared.domain.exceptions")
     configure_mappers()
-    return SimpleNamespace(entities=entities, enums=enums, vo=vo, models=models, repos=repos)
+    return SimpleNamespace(
+        entities=entities,
+        enums=enums,
+        vo=vo,
+        models=models,
+        repos=repos,
+        mappers=mappers,
+        catalog=catalog,
+        identity=identity,
+        transaction=transaction,
+        crud=crud,
+        dto=dto,
+        api=api,
+        errors=errors,
+        identity_provider=unused_provider,
+    )
 
 
-def test_settings_use_course_as_identity_and_primary_key(assessment):
+def test_course_settings_are_part_of_course(assessment):
     entities, enums = assessment.entities, assessment.enums
     course_id = uuid4()
-    settings = entities.CourseSettings(
+    course = assessment.catalog.Course(
         id=course_id,
+        title="Курс",
+        description="Описание",
+        difficulty="beginner",
+        tags=[],
+        creator_id=uuid4(),
+        organization_id=uuid4(),
         visibility=enums.CourseVisibility.PRIVATE,
         navigation_policy=enums.NavigationPolicy.SEQUENTIAL,
         completion_policy=enums.CourseCompletionPolicy.ALL_REQUIRED,
@@ -85,11 +166,22 @@ def test_settings_use_course_as_identity_and_primary_key(assessment):
         practice_enabled=True,
         tests_enabled=True,
     )
-    assert settings.id == assignment_settings.id == course_id
-    for entity in (settings, assignment_settings):
+    assert course.id == assignment_settings.id == course_id
+    assert not hasattr(entities, "CourseSettings")
+    assert not hasattr(assessment.models, "CourseSettingsOrm")
+    course.edit(mentor_enabled=False, visibility=enums.CourseVisibility.PUBLIC)
+    assert course.mentor_enabled is False
+    assert course.visibility is enums.CourseVisibility.PUBLIC
+    restored = assessment.mappers.CourseMapper.from_model(
+        assessment.mappers.CourseMapper.to_model(course)
+    )
+    assert restored.navigation_policy is enums.NavigationPolicy.SEQUENTIAL
+    assert restored.completion_policy is enums.CourseCompletionPolicy.ALL_REQUIRED
+    assert restored.mentor_enabled is False
+    for entity in (course, assignment_settings):
         assert "course_id" not in asdict(entity)
         assert "__post_init__" not in type(entity).__dict__
-    for model_name in ("CourseSettingsOrm", "AssignmentSettingsOrm"):
+    for model_name in ("AssignmentSettingsOrm",):
         model = getattr(assessment.models, model_name)
         assert list(model.__table__.primary_key.columns.keys()) == ["course_id"]
         orm = model(id=course_id)
@@ -165,7 +257,6 @@ def test_attempt_keeps_assignment_version_and_evaluations(assessment):
 
 def test_new_tables_compile_for_postgresql(assessment):
     for name in (
-        "CourseSettingsOrm",
         "AssignmentSettingsOrm",
         "AssignmentOrm",
         "AssignmentVersionOrm",
@@ -193,9 +284,12 @@ def test_repositories_only_inherit_base_contract(assessment):
         assert "create" not in repo.__dict__
         assert "find" not in repo.__dict__
         assert "update" not in repo.__dict__
-        assert not any(
-            callable(value) for key, value in repo.__dict__.items() if not key.startswith("_")
-        )
+        custom_methods = {
+            key
+            for key, value in repo.__dict__.items()
+            if not key.startswith("_") and callable(value)
+        }
+        assert custom_methods == ({"read_for_update"} if name == "AssignmentRepository" else set())
 
 
 def test_enums_match_diagram(assessment):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from dataclasses import dataclass, field
@@ -7,6 +9,8 @@ from uuid import UUID
 from pydantic import JsonValue
 
 from src.shared.domain.entities import Entity
+from src.shared.domain.exceptions import InvariantViolationError
+from src.shared.utils.time import current_datetime
 
 from .enums import (
     AssignmentCreationPolicy,
@@ -15,23 +19,12 @@ from .enums import (
     AssignmentStatus,
     AssignmentType,
     AttemptStatus,
-    CourseCompletionPolicy,
-    CourseVisibility,
     EvaluationResult,
     EvaluationStatus,
     ExaminerType,
-    NavigationPolicy,
     PracticeStatus,
 )
 from .vo import AssignmentContent, AssignmentRules
-
-
-@dataclass(kw_only=True, slots=True)
-class CourseSettings(Entity):
-    visibility: CourseVisibility
-    navigation_policy: NavigationPolicy
-    completion_policy: CourseCompletionPolicy
-    mentor_enabled: bool
 
 
 @dataclass(kw_only=True, slots=True)
@@ -51,6 +44,18 @@ class Assignment(Entity):
     unit_type: str
     unit_id: UUID
     current_version_id: UUID | None = None
+    current_version: AssignmentVersion | None = None
+
+    def set_current_version(self, version: AssignmentVersion) -> None:
+        if version.assignment_id != self.id:
+            raise InvariantViolationError("Версия принадлежит другому заданию.")
+        self.current_version_id = version.id
+        self.current_version = version
+        self.updated_at = current_datetime()
+
+    def archive(self) -> None:
+        self.status = AssignmentStatus.ARCHIVED
+        self.updated_at = current_datetime()
 
 
 @dataclass(kw_only=True, slots=True)

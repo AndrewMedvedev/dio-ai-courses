@@ -137,6 +137,10 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             self.model.difficulty,
             self.model.tags,
             self.model.learning_objectives,
+            self.model.visibility,
+            self.model.navigation_policy,
+            self.model.completion_policy,
+            self.model.mentor_enabled,
         ).where(self.model.id == uid)
 
         course_result = await self._session.execute(course_stmt)

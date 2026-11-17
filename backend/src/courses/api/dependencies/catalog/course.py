@@ -53,6 +53,10 @@ async def update_handler(
         description=dto.description,
         difficulty=dto.difficulty,
         tags=dto.tags,
+        visibility=dto.visibility,
+        navigation_policy=dto.navigation_policy,
+        completion_policy=dto.completion_policy,
+        mentor_enabled=dto.mentor_enabled,
     )
     return course
 

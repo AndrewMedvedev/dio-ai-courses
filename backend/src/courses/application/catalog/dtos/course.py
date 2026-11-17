@@ -5,6 +5,11 @@ from pydantic.alias_generators import to_camel
 
 from src.courses.application.catalog.dtos import BasicInfoDTO
 from src.courses.application.enrollment.dtos import MemberResponse
+from src.courses.domain.assessment.enums import (
+    CourseCompletionPolicy,
+    CourseVisibility,
+    NavigationPolicy,
+)
 from src.courses.domain.catalog.enums import CourseStatus, DifficultyLevel
 
 
@@ -28,6 +33,10 @@ class CourseResponse(BaseModel):
     learning_objectives: list[str] = Field(default_factory=list)
     modules: list[BasicInfoDTO] = Field(default_factory=list)
     members: list[MemberResponse] = Field(default_factory=list)
+    visibility: CourseVisibility
+    navigation_policy: NavigationPolicy
+    completion_policy: CourseCompletionPolicy
+    mentor_enabled: bool
 
 
 class CreateCourseDTO(BaseModel):
@@ -40,6 +49,10 @@ class CreateCourseDTO(BaseModel):
     description: str
     difficulty: DifficultyLevel = DifficultyLevel.BEGINNER
     tags: list[str]
+    visibility: CourseVisibility = CourseVisibility.PUBLIC
+    navigation_policy: NavigationPolicy = NavigationPolicy.FREE
+    completion_policy: CourseCompletionPolicy = CourseCompletionPolicy.ALL_LESSONS
+    mentor_enabled: bool = True
 
 
 class UpdateCourseDTO(BaseModel):
@@ -52,3 +65,7 @@ class UpdateCourseDTO(BaseModel):
     description: str | None = None
     difficulty: DifficultyLevel | None = None
     tags: list[str] | None = None
+    visibility: CourseVisibility | None = None
+    navigation_policy: NavigationPolicy | None = None
+    completion_policy: CourseCompletionPolicy | None = None
+    mentor_enabled: bool | None = None
