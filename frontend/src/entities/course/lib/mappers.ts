@@ -19,6 +19,28 @@ import {
   sanitizeContentBlock,
 } from './content-blocks';
 
+function apiFields(data: RawApiRecord): RawApiRecord {
+  return {
+    ...data,
+    learning_objectives: data.learning_objectives ?? data.learningObjectives,
+    estimated_time_minutes:
+      data.estimated_time_minutes ?? data.estimatedTimeMinutes,
+    content_blocks: data.content_blocks ?? data.contentBlocks,
+    creator_id: data.creator_id ?? data.creatorId,
+    image_url: data.image_url ?? data.imageUrl,
+  };
+}
+function rankCompare(a: unknown, b: unknown): number {
+  const left = asRecord(a).rank;
+  const right = asRecord(b).rank;
+  return typeof left === 'string' && typeof right === 'string'
+    ? left < right
+      ? -1
+      : left > right
+        ? 1
+        : 0
+    : 0;
+}
 export function parseMinutes(value: unknown): number | null {
   const match = /(\d+)/.exec(toText(value || ''));
   return match ? Number(match[1]) : null;
@@ -77,11 +99,13 @@ export function readCourseModules(
     data?.moduleIdsList ||
     [];
 
-  return asArray(modules).filter(
-    (item): item is RawApiRecord | string =>
-      typeof item === 'string' ||
-      (item !== null && typeof item === 'object' && !Array.isArray(item)),
-  );
+  return asArray(modules)
+    .sort(rankCompare)
+    .filter(
+      (item): item is RawApiRecord | string =>
+        typeof item === 'string' ||
+        (item !== null && typeof item === 'object' && !Array.isArray(item)),
+    );
 }
 
 function getModuleId(
@@ -122,7 +146,7 @@ export function normalizeModuleRef(value: unknown): RawApiRecord {
 
   const id = getModuleId(module);
   return {
-    ...module,
+    ...apiFields(module || {}),
     id,
   };
 }
@@ -139,11 +163,13 @@ function readModuleLessons(
     data?.lessons_ids ||
     [];
 
-  return asArray(lessons).filter(
-    (item): item is RawApiRecord | string =>
-      typeof item === 'string' ||
-      (item !== null && typeof item === 'object' && !Array.isArray(item)),
-  );
+  return asArray(lessons)
+    .sort(rankCompare)
+    .filter(
+      (item): item is RawApiRecord | string =>
+        typeof item === 'string' ||
+        (item !== null && typeof item === 'object' && !Array.isArray(item)),
+    );
 }
 
 export function normalizeLessonRef(value: unknown): RawApiRecord {
@@ -158,18 +184,20 @@ export function normalizeLessonRef(value: unknown): RawApiRecord {
 
   const id = lesson?.id || lesson?.lesson_id || lesson?.lessonId;
   return {
-    ...lesson,
+    ...apiFields(lesson || {}),
     id,
   };
 }
 
 /** Полный курс с модулями и уроками → модель интерфейса. */
 export function mapCourseFromApi(data: RawApiRecord): LearningCourse {
+  data = apiFields(data);
   const blocks = readCourseModules(data).map(
     (rawModule, moduleIndex): LearningBlock => {
       const module = normalizeModuleRef(rawModule);
       return {
         id: toText(module.id),
+        rank: module.rank,
         title: toText(module.title || 'Модуль без названия'),
         description: toText(module.description || ''),
         order: Number(
@@ -193,6 +221,7 @@ export function mapCourseFromApi(data: RawApiRecord): LearningCourse {
             );
             return {
               id: toText(lesson.id),
+              rank: lesson.rank,
               title: toText(lesson.title || 'Урок без названия'),
               duration: Number.isFinite(lesson.estimated_time_minutes)
                 ? `${toText(lesson.estimated_time_minutes)} мин.`
@@ -223,6 +252,7 @@ export function mapCourseFromApi(data: RawApiRecord): LearningCourse {
   return {
     ...data,
     id: toText(data.id),
+    rank: data.rank,
     title: toText(data.title || ''),
     category: toText(data.category || ''),
     description: toText(data.description || ''),
@@ -259,7 +289,6 @@ export function moduleChangesToPatch(changes: RawApiRecord): RawApiRecord {
   const patch: RawApiRecord = {};
   if ('title' in changes) patch.title = changes.title;
   if ('description' in changes) patch.description = changes.description;
-  if ('order' in changes) patch.order = changes.order;
   if ('learningObjectives' in changes) {
     patch.learning_objectives = changes.learningObjectives;
   }
@@ -274,7 +303,6 @@ export function lessonChangesToPatch(changes: RawApiRecord): RawApiRecord {
   if ('title' in changes) patch.title = changes.title;
   if ('description' in changes) patch.description = changes.description;
   if ('summary' in changes) patch.description = changes.summary;
-  if ('order' in changes) patch.order = changes.order;
   if ('learningObjectives' in changes) {
     patch.learning_objectives = changes.learningObjectives;
   }
@@ -315,11 +343,13 @@ export function lessonChangesToPatch(changes: RawApiRecord): RawApiRecord {
 export function courseBasicToLearningCourse(
   data: RawApiRecord,
 ): LearningCourse {
+  data = apiFields(data);
   const blocks = readCourseModules(data).map(
     (rawModule, moduleIndex): LearningBlock => {
       const module = normalizeModuleRef(rawModule);
       return {
         id: toText(module.id),
+        rank: module.rank,
         title: toText(module.title || 'Модуль без названия'),
         description: toText(module.description || ''),
         order: Number(
@@ -387,11 +417,13 @@ export function moduleBasicToLearningBlock(
     };
   }
 
+  data = apiFields(data);
   const learningObjectives =
     data.learning_objectives || data.learningObjectives || [];
   return {
     ...currentBlock,
     id: getModuleId(data, toText(currentBlock.id)),
+    rank: data.rank,
     title: toText(data.title || 'Модуль без названия'),
     description: toText(data.description || ''),
     order: Number(
@@ -416,6 +448,7 @@ export function lessonBasicToLearningLesson(
   data: RawApiRecord,
   currentLesson: RawApiRecord = {},
 ): LearningLesson {
+  data = apiFields(data);
   const contentBlocks = normalizeTheoryContentBlocks(
     data.content_blocks ||
       data.contentBlocks ||
@@ -423,11 +456,13 @@ export function lessonBasicToLearningLesson(
       [],
   );
   const markdown = lessonMarkdownFromBlocks(contentBlocks);
+  data = apiFields(data);
   const learningObjectives =
     data.learning_objectives || data.learningObjectives || [];
   return {
     ...currentLesson,
     id: toText(data.id),
+    rank: data.rank,
     title: toText(data.title || 'Урок без названия'),
     duration: toText(
       Number.isFinite(data.estimated_time_minutes)

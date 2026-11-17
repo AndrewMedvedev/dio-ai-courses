@@ -7,6 +7,7 @@ import {
   formatMermaidError,
   normalizeMermaidSource,
   renderMermaid,
+  getMermaidTheme,
 } from './mermaid-renderer';
 
 export interface MermaidDiagramProps {
@@ -32,6 +33,22 @@ export function MermaidDiagram({
   const [errorMessage, setErrorMessage] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [showSource, setShowSource] = useState(false);
+  const [theme, setTheme] = useState(getMermaidTheme);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setTheme(getMermaidTheme()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    setTheme(getMermaidTheme());
+    const onFontsLoaded = () => setRetryCount((current) => current + 1);
+    document.fonts?.addEventListener('loadingdone', onFontsLoaded);
+    return () => {
+      observer.disconnect();
+      document.fonts?.removeEventListener('loadingdone', onFontsLoaded);
+    };
+  }, []);
 
   const normalizedChart = useMemo(() => normalizeMermaidSource(chart), [chart]);
 
@@ -60,7 +77,9 @@ export function MermaidDiagram({
 
     const execute = async () => {
       const result = await enqueueRender(() =>
-        cancelled ? null : renderMermaid({ chart: chartToRender, componentId }),
+        cancelled
+          ? null
+          : renderMermaid({ chart: chartToRender, componentId, theme }),
       );
 
       if (!result || cancelled || currentVersion !== renderVersionRef.current)
@@ -110,12 +129,12 @@ export function MermaidDiagram({
       cancelled = true;
       renderVersionRef.current += 1;
     };
-  }, [normalizedChart, componentId, retryCount, lessonId, blockId]);
+  }, [normalizedChart, componentId, retryCount, lessonId, blockId, theme]);
 
   return (
     <div
       className={[
-        'mermaid-diagram tw:m-[12px_0] tw:w-[100%] tw:overflow-x-auto tw:border-solid tw:border-[rgba(140,_113,_140,_0.38)] tw:rounded-[12px] tw:p-[12px] tw:[.content-preview-diagram-trigger_&]:m-[0] tw:[.content-preview-body_&]:m-[0] tw:[.content-block-card_&]:overflow-auto tw:[.content-preview-diagram-scale_&]:overflow-visible tw:[border-width:1px] tw:[.content-preview-modal.is-diagram_&]:border-none tw:dark:border-[rgba(183,_151,_183,_0.5)] tw:[.content-preview-modal.is-diagram_&]:border-[currentcolor] tw:[background:#f6f1e9] tw:[.content-preview-modal.is-diagram_&]:p-[0] tw:[.content-preview-modal.is-diagram_&]:[border-width:0] tw:dark:[.content-preview-modal.is-diagram_&]:border-[rgba(183,_151,_183,_0.5)] tw:dark:[background:#222831] tw:[.content-preview-modal.is-diagram_&]:[background:transparent] tw:[.content-preview-modal.is-diagram_&]:[box-shadow:none] tw:dark:[.content-preview-modal.is-diagram_&]:[background:#222831] tw:[&_svg]:block tw:[&_svg]:w-[auto] tw:[&_svg]:min-w-[min(100%,_640px)] tw:[&_svg]:max-w-[none] tw:[&_svg]:h-[auto] tw:[&_svg]:overflow-visible tw:[&_svg]:m-[0_auto] tw:dark:[.page_&_marker_path]:fill-[#b7c4d3]! tw:dark:[.page_&_marker_path]:stroke-[#b7c4d3]! tw:dark:[.page_&_.flowchart-link]:stroke-[#b7c4d3]! tw:dark:[.page_&_.edgeLabel]:[background:#252b34]! tw:dark:[.page_&_.edgeLabel]:text-[#f2e7d4]! tw:dark:[.page_&_.label]:fill-[#f2e7d4]! tw:dark:[.page_&_.label]:text-[#f2e7d4]! tw:dark:[.page_&_text]:fill-[#f2e7d4]! tw:dark:[.page_&_text]:text-[#f2e7d4]! tw:dark:[.page_&_tspan]:fill-[#f2e7d4]! tw:dark:[.page_&_tspan]:text-[#f2e7d4]! tw:dark:[.page_&_.edgeLabel_rect]:fill-[#252b34]! tw:dark:[.page_&_.edgeLabel_rect]:opacity-[0.96]! tw:dark:[.page_&_.node_rect]:fill-[#384554]! tw:dark:[.page_&_.node_rect]:stroke-[#9bb6d1]! tw:dark:[.page_&_.nodeLabel]:fill-[#f2e7d4]! tw:dark:[.page_&_.nodeLabel]:text-[#f2e7d4]! tw:dark:[.page_&_.node_polygon]:fill-[#384554]! tw:dark:[.page_&_.node_polygon]:stroke-[#9bb6d1]! tw:[.content-preview-diagram-scale_&_svg]:min-w-[100%] tw:[.content-preview-diagram-scale_&_svg]:ml-[0] tw:[.content-preview-diagram-scale_&_svg]:mr-[0] tw:[.content-preview-modal.is-diagram_&_svg]:w-[100%] tw:[.content-preview-modal.is-diagram_&_svg]:min-w-[0] tw:[.content-preview-modal.is-diagram_&_svg]:max-w-[none]',
+        'mermaid-diagram tw:m-[12px_0] tw:w-[100%] tw:overflow-x-auto tw:border-solid tw:border-[rgba(140,_113,_140,_0.38)] tw:rounded-[12px] tw:p-[12px] tw:[.content-preview-diagram-trigger_&]:m-[0] tw:[.content-preview-body_&]:m-[0] tw:[.content-block-card_&]:overflow-auto tw:[.content-preview-diagram-scale_&]:overflow-visible tw:[border-width:1px] tw:[.content-preview-modal.is-diagram_&]:border-none tw:dark:border-[rgba(183,_151,_183,_0.5)] tw:[.content-preview-modal.is-diagram_&]:border-[currentcolor] tw:[background:#f6f1e9] tw:[.content-preview-modal.is-diagram_&]:p-[0] tw:[.content-preview-modal.is-diagram_&]:[border-width:0] tw:dark:[.content-preview-modal.is-diagram_&]:border-[rgba(183,_151,_183,_0.5)] tw:dark:[background:#222831] tw:[.content-preview-modal.is-diagram_&]:[background:transparent] tw:[.content-preview-modal.is-diagram_&]:[box-shadow:none] tw:dark:[.content-preview-modal.is-diagram_&]:[background:#222831] tw:[&_svg]:block tw:[&_svg]:w-[auto] tw:[&_svg]:min-w-[min(100%,_640px)] tw:[&_svg]:max-w-[none] tw:[&_svg]:h-[auto] tw:[&_svg]:overflow-visible tw:[&_svg]:m-[0_auto] tw:[.content-preview-diagram-scale_&_svg]:min-w-[100%] tw:[.content-preview-diagram-scale_&_svg]:ml-[0] tw:[.content-preview-diagram-scale_&_svg]:mr-[0] tw:[.content-preview-modal.is-diagram_&_svg]:w-[100%] tw:[.content-preview-modal.is-diagram_&_svg]:min-w-[0] tw:[.content-preview-modal.is-diagram_&_svg]:max-w-[none]',
         `is-${status}`,
       ].join(' ')}
     >

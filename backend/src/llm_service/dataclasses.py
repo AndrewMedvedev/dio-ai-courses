@@ -40,12 +40,10 @@ class StructuredTool:
     param_groups: dict[str, ParamGroup]
 
     def to_tool_params(self) -> FunctionToolParam:
-        """Преобразует данные в tool params, чтобы передать их в нужный слой приложения."""
         return FunctionToolParam(type="function", strict=True, **self.args_schema)
 
     @staticmethod
     def to_tool_result(call_id: str, result: Any) -> dict:
-        """Преобразует данные в tool result, чтобы передать их в нужный слой приложения."""
         return {
             "type": "function_call_output",
             "call_id": call_id,
@@ -85,7 +83,6 @@ class StructuredTool:
         return call_kwargs
 
     async def run_tool(self, raw_args: dict[str, Any], *, runtime: Any = None) -> Any:
-        """Выполняет действие `run_tool`, чтобы поддержать основной сценарий модуля."""
         validated = self.args_model.model_validate(raw_args)
         if self.runtime:
             call_kwargs = self.build_call_kwargs(validated, runtime=runtime)

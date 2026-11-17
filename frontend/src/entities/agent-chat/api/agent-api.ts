@@ -8,6 +8,8 @@ import {
 import { withoutEmptyValues } from '@/shared/lib/object';
 import {
   SUPPORTED_CONTENT_TYPES,
+  getModulePosition,
+  getLessonPosition,
   normalizeContentType,
   sanitizeContentBlock,
 } from '@/entities/course/@x/agent-chat';
@@ -25,8 +27,8 @@ function normalizeAgentResponse(
 
 function toAgentChatPayload(payload: AgentPayload = {}) {
   return withoutEmptyValues({
-    chat_id: payload.chat_id || payload.chatId,
-    course_id: payload.course_id || payload.courseId,
+    chat_id: payload.chat_id || payload.chatId || undefined,
+
     role: payload.role || 'user',
     content: payload.content ?? payload.message ?? payload.prompt ?? '',
   });
@@ -38,7 +40,7 @@ export async function askInterviewerAgent(
 ): Promise<AgentResponse> {
   return normalizeAgentResponse(
     await jsonRequest(
-      '/agent/course/interviewer',
+      `/agents/courses/interviewer/${encodeURIComponent(String(payload.course_id || payload.courseId))}`,
       'POST',
       toAgentChatPayload(payload),
       options,
@@ -54,11 +56,14 @@ export async function askModuleInterviewerAgent(
 ): Promise<AgentResponse> {
   return normalizeAgentResponse(
     await jsonRequest(
-      '/agent/module/interviewer',
+      `/agents/modules/interviewer/${encodeURIComponent(String(payload.course_id || payload.courseId))}`,
       'POST',
       {
         ...toAgentChatPayload(payload),
-        order: Math.max(1, Number(payload.order) || 1),
+        position: await getModulePosition(
+          String(payload.course_id || payload.courseId),
+          Number(payload.order),
+        ),
       },
       options,
     ),
@@ -72,12 +77,15 @@ export async function askLessonInterviewerAgent(
 ): Promise<AgentResponse> {
   return normalizeAgentResponse(
     await jsonRequest(
-      '/agent/lesson/interviewer',
+      `/agents/lessons/interviewer/${encodeURIComponent(String(payload.course_id || payload.courseId))}`,
       'POST',
       {
         ...toAgentChatPayload(payload),
         module_id: payload.module_id || payload.moduleId,
-        order: Math.max(1, Number(payload.order) || 1),
+        position: await getLessonPosition(
+          String(payload.module_id || payload.moduleId),
+          Number(payload.order),
+        ),
       },
       options,
     ),
@@ -90,7 +98,7 @@ export async function askMentorAgent(
 ): Promise<AgentResponse> {
   return normalizeAgentResponse(
     await jsonRequest(
-      '/agent/mentor',
+      `/agents/mentor/${encodeURIComponent(String(payload.course_id || payload.courseId))}`,
       'POST',
       {
         ...toAgentChatPayload(payload),
@@ -163,24 +171,28 @@ export async function askEditorAgent(
   const requestPayload = withoutEmptyValues({
     ...toAgentChatPayload(payload),
     content_type: contentType,
-    content_block: normalizeEditorContentBlock(
-      payload.content_block,
-      contentType,
-    ),
+    content_block: (() => {
+      const block = normalizeEditorContentBlock(
+        payload.content_block,
+        contentType,
+      );
+      return typeof block === 'string' ? block : JSON.stringify(block || {});
+    })(),
     content_blocks: Array.isArray(payload.content_blocks)
       ? payload.content_blocks.map(sanitizeContentBlock)
       : [],
     images: images.length > 0 ? images : undefined,
   });
   const data = await jsonRequest(
-    '/agent/editor',
+    `/agents/editor/${encodeURIComponent(String(payload.course_id || payload.courseId))}`,
     'POST',
     requestPayload,
     options,
   );
 
   const content = data?.content;
-  let parsedContent = null;
+  let parsedContent =
+    content && typeof content === 'object' ? asRecord(content) : null;
   if (typeof content === 'string' && content.trim()) {
     try {
       parsedContent = asRecord(JSON.parse(content));

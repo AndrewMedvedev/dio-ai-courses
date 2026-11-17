@@ -6,14 +6,14 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from src.shared.domain.entities import Entity
-from src.shared.domain.exceptions import UnsupportedOperationError
+from src.shared.domain.exceptions import NotFoundError, UnsupportedOperationError
 
-from .dtos import Page, Pagination
-from .repos import Repository, get_or_raise_404
+from .dtos import BaseQueryParamFilters, Page, Pagination
+from .repos import Repository
 from .transaction import Transaction
 
 
-async def _method_not_allowed_stub(*args: Any, **kwargs: Any) -> Any:  # noqa: RUF029, ARG001
+async def _method_not_allowed_stub(*args: Any, **kwargs: Any) -> Any:
     raise UnsupportedOperationError("This CRUD method not allowed.")
 
 
@@ -25,14 +25,14 @@ class Crud[
     **DeleteP,
 ]:
     def __init__(
-            self,
-            repository: Repository[EntityT],
-            transaction: Transaction,
-            to_response: Callable[[EntityT], ResponseT],
-            *,
-            create_handler: Callable[CreateP, Awaitable[EntityT]] = _method_not_allowed_stub,
-            update_handler: Callable[UpdateP, Awaitable[EntityT]] = _method_not_allowed_stub,
-            delete_handler: Callable[DeleteP, Awaitable[EntityT]] = _method_not_allowed_stub,
+        self,
+        repository: Repository[EntityT],
+        transaction: Transaction,
+        to_response: Callable[[EntityT], ResponseT],
+        *,
+        create_handler: Callable[CreateP, Awaitable[EntityT]] = _method_not_allowed_stub,
+        update_handler: Callable[UpdateP, Awaitable[EntityT]] = _method_not_allowed_stub,
+        delete_handler: Callable[DeleteP, Awaitable[EntityT]] = _method_not_allowed_stub,
     ) -> None:
         self._repository = repository
         self._transaction = transaction
@@ -55,11 +55,16 @@ class Crud[
         return self._to_response(entity)
 
     async def read(self, uid: UUID) -> ResponseT:
-        entity = await get_or_raise_404(self._repository.read, uid, type[EntityT])
+        entity = await self._repository.read(uid)
+        if entity is None:
+            raise NotFoundError(f"Entity with ID {uid} not found")
+
         return self._to_response(entity)
 
-    async def paginate[FilterT](
-            self, pagination: Pagination, filters: FilterT | None = None,
+    async def paginate(
+        self,
+        pagination: Pagination,
+        filters: BaseQueryParamFilters | None = None,
     ) -> Page[ResponseT]:
         page = await self._repository.find(pagination, filters)
         return page.to_response(self._to_response)

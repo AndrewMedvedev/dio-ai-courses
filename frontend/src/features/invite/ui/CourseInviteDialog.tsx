@@ -16,7 +16,7 @@ import {
   revokeCourseInvitation,
 } from '@/entities/invitation';
 import { fetchUserById, type User } from '@/entities/user';
-import type { RawApiRecord } from '@/shared/api';
+import { ApiError, type RawApiRecord } from '@/shared/api';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { notify } from '@/shared/ui/toast';
 import { useEmailRows } from '../model/use-email-rows';
@@ -71,6 +71,8 @@ const memberUserId = (member: RawApiRecord | null | undefined): string =>
   toText(member?.user_id || member?.userId);
 
 function inviteErrorMessage(error: unknown, roleLabel: string): string {
+  if (error instanceof ApiError && error.isInternalError)
+    return 'Не удалось подтвердить отправку приглашения. Проверьте список приглашений позже.';
   if (statusOf(error) === 403) {
     return `Недостаточно прав, чтобы приглашать с ролью «${roleLabel}».`;
   }

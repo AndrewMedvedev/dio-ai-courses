@@ -7,9 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
-from src.llm_router.domain.enums import Complexity
-
-from ..domain.dataclass import LLMInvocationStatus
+from src.llm_router.domain.enums import Complexity, LLMInvocationStatus
 
 
 class AIModelOrm(Base):

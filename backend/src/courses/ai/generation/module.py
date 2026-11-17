@@ -1,0 +1,256 @@
+from typing import Any, NotRequired, TypedDict
+
+import logging
+import time
+from asyncio import Semaphore, TaskGroup
+from collections.abc import Callable
+from uuid import UUID
+
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.database import session_factory
+from src.courses.ai.generation.lesson import LessonAgentState
+from src.courses.ai.prompts.few_shots import MODULE_STRUCTURE_FEW_SHOT
+from src.courses.ai.prompts.generation.structure import MODULE_STRUCTURE_PROMPT
+from src.courses.ai.prompts.models import ModuleStructure
+from src.courses.ai.schemas.contexts import Context
+from src.courses.application.catalog.repos import (
+    ModuleRepository,
+)
+from src.courses.application.generation.contracts import (
+    LessonDict,
+    ModuleDict,
+    ModuleStructureDict,
+)
+from src.courses.application.generation.mapping import (
+    dict_to_module,
+    model_to_typed_dict,
+    module_to_dict,
+)
+from src.courses.domain.catalog.entities import (
+    Module,
+)
+from src.courses.domain.catalog.ranking import (
+    generate_ranks,
+)
+from src.courses.infra.services import course_client
+from src.llm_service import LLMTextService
+
+from ..helper import invoke_or_resume
+
+logger = logging.getLogger(__name__)
+
+
+class ModuleAgentState(TypedDict):
+    """Состояние агента для создания модулей"""
+
+    generation_context: Context
+    audience_description: str  # Описание целевой аудитории курса
+    learning_objectives: list[str]  # Цели обучения курса
+    rank: str
+    module_description: str  # Описание модуля из структуры курса
+    module_structure: NotRequired[ModuleStructureDict]  # Структура/сценарий модуля
+    module: NotRequired[ModuleDict]  # Сгенерированный модуль
+
+
+class ModuleAgent:
+    def __init__(
+        self,
+        module_repo: Callable[
+            [AsyncSession],
+            ModuleRepository,
+        ],
+        lesson_agent: CompiledStateGraph[LessonAgentState, Any],
+        max_parallel: int = 4,
+    ):
+        self._module_repo = module_repo
+        self._lesson_agent = lesson_agent
+        self.semaphore = Semaphore(max_parallel)
+
+    async def plan_module_structure(
+        self,
+        state: ModuleAgentState,
+    ) -> dict[str, ModuleStructureDict | ModuleDict]:
+        """Планирование структуры модуля"""
+
+        module_structure_planner = LLMTextService(
+            client=course_client,
+            system_prompt=MODULE_STRUCTURE_PROMPT,
+        )
+        prompt_template = f"""\
+        Спроектируй структуру текущего учебного модуля.
+
+        ## Контекст курса
+
+        Целевая аудитория:
+        {state["audience_description"]}
+
+        Конечные цели обучения курса:
+        {state["learning_objectives"]}
+
+        ## Текущий модуль
+
+        ВАЖНО:
+        порядковый номер места модуля не используется в образовательной траектории.
+
+        Не добавляй номер в title.
+        Не используй названия вида "Модуль 1. ...".
+
+        Описание и требования к содержанию модуля:
+        {state["module_description"]}
+
+        ## Задача
+
+        Определи структуру модуля так, чтобы он:
+        - соответствовал уровню целевой аудитории;
+        - выполнял свою роль в общей программе;
+        - достигал заявленных образовательных результатов;
+        - состоял из последовательных уроков;
+        - не требовал знаний, которые появятся только позже;
+        - не дублировал материал соседних этапов;
+        - содержал минимально достаточное количество уроков.
+
+        Каждый урок должен представлять отдельный логический шаг
+        в освоении материала.
+
+        Верни результат строго по переданной JSON Schema.
+        """
+        logger.info(
+            "Planning module structure by description: '%s ...'",
+            state["module_description"][:100],
+        )
+        result = await module_structure_planner.invoke(
+            messages=[
+                *MODULE_STRUCTURE_FEW_SHOT,
+                {"role": "user", "content": prompt_template},
+            ],
+            schema=ModuleStructure,
+        )
+
+        module_structure = ModuleStructure.model_validate(result.output)
+        logger.info(
+            "Module structure is done, start filling `title`, `description`, `learning_objectives`"
+        )
+        module = Module(
+            course_id=state["generation_context"].course_id,
+            title=module_structure.title,
+            description=module_structure.description,
+            learning_objectives=module_structure.learning_objectives,
+            rank=state["rank"],
+        )
+        return {
+            "module_structure": model_to_typed_dict(module_structure),
+            "module": module_to_dict(module),
+        }
+
+    async def save_module(self, state: ModuleAgentState) -> None:
+        """Сохраняет модуль, чтобы результат был доступен после завершения операции."""
+
+        module = dict_to_module(state["module"])  # type: ignore
+        async with session_factory() as session:
+            try:
+                repo = self._module_repo(session)
+                await repo.create(module)
+                logger.info("Saving module '%s' to database ...", module.title)
+
+                await session.commit()
+            except IntegrityError:
+                await session.rollback()
+                logger.info("Module %s alredy exsists", module.title)
+
+    async def build_lesson(
+        self,
+        rank: str,
+        lesson_description: str,
+        generation_context: Context,
+        module_id: UUID,
+        audience_description: str,
+        learning_objectives: list[str],
+    ) -> LessonDict:
+        lesson_thread_id = (
+            f"course:{generation_context.course_id}:module:{module_id}:lesson:{rank}"
+        )
+
+        async with self.semaphore:
+            result = await invoke_or_resume(
+                self._lesson_agent,
+                input_data={
+                    "generation_context": generation_context,
+                    "module_id": module_id,
+                    "audience_description": audience_description,
+                    "learning_objectives": learning_objectives,
+                    "rank": rank,
+                    "lesson_description": lesson_description,
+                },
+                config=RunnableConfig(
+                    configurable={
+                        "thread_id": lesson_thread_id,
+                    }
+                ),
+            )
+
+            return result["lesson"]
+
+    async def generate_lessons(
+        self,
+        state: ModuleAgentState,
+    ) -> dict[str, ModuleDict]:
+        """Генерация уроков по структуре модуля"""
+
+        module_structure, module = state["module_structure"], state["module"]  # type: ignore
+        start_time = time.monotonic()
+        total_lessons = len(module_structure["lessons_descriptions"])
+        ranks = generate_ranks(total_lessons)
+        logger.info("Start generate %s lessons ...", total_lessons)
+        async with TaskGroup() as tg:
+            tasks = [
+                tg.create_task(
+                    self.build_lesson(
+                        rank=rank,
+                        lesson_description=description,
+                        generation_context=state["generation_context"],
+                        module_id=module["id"],
+                        audience_description=state["audience_description"],
+                        learning_objectives=module_structure["learning_objectives"],
+                    )
+                )
+                for description, rank in zip(
+                    module_structure["lessons_descriptions"], ranks, strict=True
+                )
+            ]
+
+        lessons = sorted(
+            (task.result() for task in tasks),
+            key=lambda lesson: lesson["rank"],
+        )
+        module["lessons"].extend(lessons)
+
+        logger.info(
+            "Successfully generated %s lessons, spent time %s seconds",
+            total_lessons,
+            round(time.monotonic() - start_time, 2),
+        )
+        return {"module": module}
+
+
+def build_module_graph(
+    agent: ModuleAgent,
+    checkpointer: AsyncPostgresSaver,
+) -> CompiledStateGraph[ModuleAgentState]:
+    graph = StateGraph(ModuleAgentState)
+
+    graph.add_node("plan_module_structure", agent.plan_module_structure)
+    graph.add_node("save_module", agent.save_module)
+    graph.add_node("generate_lessons", agent.generate_lessons)
+
+    graph.add_edge(START, "plan_module_structure")
+    graph.add_edge("plan_module_structure", "save_module")
+    graph.add_edge("save_module", "generate_lessons")
+    graph.add_edge("generate_lessons", END)
+
+    return graph.compile(checkpointer=checkpointer)

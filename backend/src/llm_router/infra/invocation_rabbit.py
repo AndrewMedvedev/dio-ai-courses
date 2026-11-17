@@ -4,11 +4,11 @@ from faststream.rabbit import RabbitQueue
 
 from src.core.rabbit import events_exchange as exchange
 from src.core.rabbit import router as rabbit_router
+from src.llm_router.api.dependencies.repos import LLMInvocationRepoDep
+from src.llm_router.api.dependencies.services import MediaClientDep
+from src.llm_router.domain.entities import LLMInvocation
+from src.llm_router.domain.events import LLMInvocationCreated
 from src.shared.dependencies.database import DBSession
-
-from ..dependencies import LLMInvocationRepoDep, MediaClientDep
-from ..domain.dataclass import LLMInvocation
-from ..domain.events import LLMInvocationCreated
 
 MAX_CONCURRENT_INVOCATION_LOGS = 5
 

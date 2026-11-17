@@ -3,29 +3,45 @@
 
 import logging
 
-from src.courses.application.dtos import (
-    BasicInfo,
-    CourseBasicInfo,
-    LessonBasicInfo,
-    ModuleBasicInfo,
+from src.courses.application.catalog.dtos.basic_info import (
+    BasicInfoDTO,
+    CourseBasicInfoDTO,
+    LessonBasicInfoDTO,
+    ModuleBasicInfoDTO,
 )
-from src.courses.domain.entities import (
-    Chat,
-    Course,
-    CourseProgress,
-    Document,
-    GenerationSession,
-    Invitation,
-    Lesson,
-    LessonProgress,
-    LessonTheorySession,
-    Member,
-    Module,
-    ModuleProgress,
+from src.courses.domain.assessment.entities import (
     Practice,
 )
-from src.courses.domain.enums import GenerationStatus
-from src.courses.domain.vo import MemberRole
+from src.courses.domain.catalog.entities import (
+    Course,
+    Lesson,
+    Module,
+)
+from src.courses.domain.conversations.entities import (
+    Chat,
+)
+from src.courses.domain.enrollment.entities import (
+    Invitation,
+    Member,
+)
+from src.courses.domain.enrollment.vo import (
+    MemberRole,
+)
+from src.courses.domain.generation.entities import (
+    GenerationSession,
+)
+from src.courses.domain.generation.enums import (
+    GenerationStatus,
+)
+from src.courses.domain.knowledge.entities import (
+    Document,
+)
+from src.courses.domain.learning.entities import (
+    CourseProgress,
+    LessonProgress,
+    LessonTheorySession,
+    ModuleProgress,
+)
 from src.shared.domain.vo import Email
 from src.shared.infra.database.mappers import ModelMapper
 
@@ -85,7 +101,7 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
             module_id=model.module_id,
             title=model.title,
             description=model.description,
-            order=model.order,
+            rank=model.rank,
             learning_objectives=model.learning_objectives,
             content_blocks=model.content_blocks,
             estimated_time_minutes=model.estimated_time_minutes,
@@ -100,19 +116,19 @@ class LessonMapper(ModelMapper[Lesson, LessonOrm]):
             module_id=entity.module_id,
             title=entity.title,
             description=entity.description,
-            order=entity.order,
+            rank=entity.rank,
             learning_objectives=entity.learning_objectives,
             content_blocks=entity.content_blocks,
             estimated_time_minutes=entity.estimated_time_minutes,
         )
 
     @staticmethod
-    def basic_info_mapper(row: tuple) -> LessonBasicInfo:
-        return LessonBasicInfo(
+    def basic_info_mapper(row: tuple) -> LessonBasicInfoDTO:
+        return LessonBasicInfoDTO(
             id=row.id,
             title=row.title,
             description=row.description,
-            order=row.order,
+            rank=row.rank,
             learning_objectives=row.learning_objectives,
             estimated_time_minutes=row.estimated_time_minutes,
         )
@@ -128,7 +144,7 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
             course_id=model.course_id,
             title=model.title,
             description=model.description,
-            order=model.order,
+            rank=model.rank,
             learning_objectives=model.learning_objectives,
         )
 
@@ -141,17 +157,17 @@ class ModuleMapper(ModelMapper[Module, ModuleOrm]):
             course_id=entity.course_id,
             title=entity.title,
             description=entity.description,
-            order=entity.order,
+            rank=entity.rank,
             learning_objectives=entity.learning_objectives,
         )
 
     @staticmethod
-    def basic_info_mapper(row: tuple, lessons: list[BasicInfo]) -> ModuleBasicInfo:
-        return ModuleBasicInfo(
+    def basic_info_mapper(row: tuple, lessons: list[BasicInfoDTO]) -> ModuleBasicInfoDTO:
+        return ModuleBasicInfoDTO(
             id=row.id,
             title=row.title,
             description=row.description,
-            order=row.order,
+            rank=row.rank,
             learning_objectives=row.learning_objectives,
             lessons=lessons,
         )
@@ -171,6 +187,7 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             status=model.status,
             popularity=model.popularity,
             creator_id=model.creator_id,
+            organization_id=model.organization_id,
             image_url=model.image_url,
             learning_objectives=model.learning_objectives,
         )
@@ -188,13 +205,14 @@ class CourseMapper(ModelMapper[Course, CourseOrm]):
             status=entity.status,
             popularity=entity.popularity,
             creator_id=entity.creator_id,
+            organization_id=entity.organization_id,
             image_url=entity.image_url,
             learning_objectives=entity.learning_objectives,
         )
 
     @staticmethod
-    def basic_info_mapper(row: tuple, modules: list[BasicInfo]) -> CourseBasicInfo:
-        return CourseBasicInfo(
+    def basic_info_mapper(row: tuple, modules: list[BasicInfoDTO]) -> CourseBasicInfoDTO:
+        return CourseBasicInfoDTO(
             id=row.id,
             title=row.title,
             description=row.description,
@@ -389,7 +407,7 @@ class MemberMapper(ModelMapper[Member, MemberOrm]):
 
 class GenerationSessionMapper(ModelMapper[GenerationSession, GenerationSessionOrm]):
     @staticmethod
-    def to_entity(model: GenerationSessionOrm) -> GenerationSession:
+    def from_model(model: GenerationSessionOrm) -> GenerationSession:
         return GenerationSession(
             id=model.id,
             created_at=model.created_at,
@@ -400,7 +418,7 @@ class GenerationSessionMapper(ModelMapper[GenerationSession, GenerationSessionOr
         )
 
     @staticmethod
-    def from_entity(entity: GenerationSession) -> GenerationSessionOrm:
+    def to_model(entity: GenerationSession) -> GenerationSessionOrm:
         return GenerationSessionOrm(
             id=entity.id,
             created_at=entity.created_at,
@@ -413,7 +431,7 @@ class GenerationSessionMapper(ModelMapper[GenerationSession, GenerationSessionOr
 
 class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
     @staticmethod
-    def to_entity(model: InvitationOrm) -> Invitation:
+    def from_model(model: InvitationOrm) -> Invitation:
         return Invitation(
             id=model.id,
             created_at=model.created_at,
@@ -431,7 +449,7 @@ class InvitationMapper(ModelMapper[Invitation, InvitationOrm]):
         )
 
     @staticmethod
-    def from_entity(entity: Invitation) -> InvitationOrm:
+    def to_model(entity: Invitation) -> InvitationOrm:
         return InvitationOrm(
             id=entity.id,
             created_at=entity.created_at,

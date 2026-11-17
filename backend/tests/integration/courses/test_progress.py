@@ -1,16 +1,24 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 
-from src.courses.application.services.progress import LearningProgressService
-from src.courses.domain.events import LessonProgressUpdated, LessonProgressUpdate
-from src.courses.infra.mappers import CourseProgressMapper, LessonProgressMapper
+from src.courses.api.dependencies.crud.course_progress import CourseProgressCrud
+from src.courses.api.dependencies.crud.lesson_progress import LessonProgressCrud
+from src.courses.api.dependencies.crud.module_progress import ModuleProgressCrud
+from src.courses.domain.events import LessonProgressUpdate, LessonProgressUpdated
+from src.courses.infra.database.mappers import CourseProgressMapper, LessonProgressMapper
+from src.courses.infra.database.models import (
+    CourseProgressOrm,
+    LessonProgressOrm,
+    ModuleProgressOrm,
+)
 from src.courses.infra.database.repos.course_progress import SqlCourseProgressRepository
 from src.courses.infra.database.repos.lesson_progress import SqlLessonProgressRepository
 from src.courses.infra.database.repos.module_progress import SqlModuleProgressRepository
-from src.courses.infra.models import CourseProgressOrm, LessonProgressOrm, ModuleProgressOrm
 from src.shared.application.dtos import Pagination
+from src.shared.application.transaction import Transaction
 
 
 @pytest.mark.asyncio
@@ -89,7 +97,7 @@ async def test_count_completed_lessons_ignores_incomplete_lessons(session):
         course_progress_id=course_progress_id,
         module_id=uuid4(),
     )
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
     completed_lesson = LessonProgressOrm(
         module_progress_id=module_progress_id,
         lesson_id=uuid4(),
@@ -137,7 +145,7 @@ async def test_update_course_progress_rounds_completed_lesson_fraction(session):
         course_progress_id=course_progress.id,
         module_id=uuid4(),
     )
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
     completed_lesson = LessonProgressOrm(
         module_progress_id=module_progress.id,
         lesson_id=uuid4(),
@@ -151,16 +159,12 @@ async def test_update_course_progress_rounds_completed_lesson_fraction(session):
     ]
     session.add_all([course_progress, module_progress, completed_lesson, *incomplete_lessons])
     await session.flush()
-    service = LearningProgressService(
-        progress_repo=SqlLessonProgressRepository(session),
-        course_progress_repo=SqlCourseProgressRepository(session),
-        module_progress_repo=SqlModuleProgressRepository(session),
-        session=session,
+    crud = CourseProgressCrud(
+        SqlCourseProgressRepository(session),
+        Transaction(session, AsyncMock()),
     )
 
-    progress = await service.update_course_progress(
-        CourseProgressMapper.from_model(course_progress), total_lessons=3
-    )
+    progress = await crud.update(CourseProgressMapper.from_model(course_progress), total_lessons=3)
 
     assert progress.progress_percent == 33.33
 
@@ -211,7 +215,7 @@ async def test_update_from_event_updates_only_target_user_progress(session):
         ]
     )
     await session.flush()
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
     event = LessonProgressUpdated(
         user_id=user_id,
         lesson_id=lesson_id,
@@ -240,7 +244,7 @@ async def test_update_from_event_preserves_completed_progress_parts(session):
         course_progress_id=course_progress.id,
         module_id=uuid4(),
     )
-    practice_completed_at = datetime.now(timezone.utc)
+    practice_completed_at = datetime.now(UTC)
     lesson_progress = LessonProgressOrm(
         module_progress_id=module_progress.id,
         lesson_id=uuid4(),
@@ -248,7 +252,7 @@ async def test_update_from_event_preserves_completed_progress_parts(session):
     )
     session.add_all([course_progress, module_progress, lesson_progress])
     await session.flush()
-    test_completed_at = datetime.now(timezone.utc)
+    test_completed_at = datetime.now(UTC)
     event = LessonProgressUpdated(
         user_id=course_progress.user_id,
         lesson_id=lesson_progress.lesson_id,
@@ -269,7 +273,7 @@ async def test_update_from_event_does_not_create_unknown_lesson_progress(session
     event = LessonProgressUpdated(
         user_id=uuid4(),
         lesson_id=uuid4(),
-        progress=LessonProgressUpdate(theory_completed_at=datetime.now(timezone.utc)),
+        progress=LessonProgressUpdate(practice_completed_at=datetime.now(UTC)),
     )
     repository = SqlLessonProgressRepository(session)
 
@@ -289,7 +293,7 @@ async def test_update_course_progress_saves_calculated_percent(session):
         course_progress_id=course_progress.id,
         module_id=uuid4(),
     )
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
     completed_lesson = LessonProgressOrm(
         module_progress_id=module_progress.id,
         lesson_id=uuid4(),
@@ -303,14 +307,15 @@ async def test_update_course_progress_saves_calculated_percent(session):
     )
     session.add_all([course_progress, module_progress, completed_lesson, incomplete_lesson])
     await session.flush()
-    service = LearningProgressService(
-        progress_repo=SqlLessonProgressRepository(session),
-        course_progress_repo=SqlCourseProgressRepository(session),
-        module_progress_repo=SqlModuleProgressRepository(session),
-        session=session,
+    crud = CourseProgressCrud(
+        SqlCourseProgressRepository(session),
+        Transaction(session, AsyncMock()),
     )
 
-    progress = await service.update_course_progress(CourseProgressMapper.from_model(course_progress), total_lessons=2)
+    progress = await crud.update(
+        CourseProgressMapper.from_model(course_progress),
+        total_lessons=2,
+    )
 
     assert progress is not None
     assert progress.progress_percent == 50
@@ -326,16 +331,22 @@ async def test_create_progress_tree_links_course_module_and_lesson(session):
     course_progress_repository = SqlCourseProgressRepository(session)
     module_progress_repository = SqlModuleProgressRepository(session)
     lesson_progress_repository = SqlLessonProgressRepository(session)
-    service = LearningProgressService(
-        progress_repo=lesson_progress_repository,
-        course_progress_repo=course_progress_repository,
-        module_progress_repo=module_progress_repository,
-        session=session,
+    transaction = Transaction(session, AsyncMock())
+    course_crud = CourseProgressCrud(course_progress_repository, transaction)
+    module_crud = ModuleProgressCrud(
+        module_progress_repository,
+        course_progress_repository,
+        transaction,
+    )
+    lesson_crud = LessonProgressCrud(
+        lesson_progress_repository,
+        module_progress_repository,
+        transaction,
     )
 
-    course_progress = await service.create_course_progress(user_id, course_id)
-    module_progress = await service.create_module_progress(user_id, course_id, module_id)
-    lesson_progress = await service.create_lesson_progress(user_id, module_id, lesson_id)
+    course_progress = await course_crud.create(user_id, course_id)
+    module_progress = await module_crud.create(user_id, course_id, module_id)
+    lesson_progress = await lesson_crud.create(user_id, module_id, lesson_id)
 
     assert module_progress.course_progress_id == course_progress.id
     assert lesson_progress.module_progress_id == module_progress.id
@@ -387,15 +398,17 @@ async def test_update_marks_theory_completed_only_for_target_user(session):
         ]
     )
     await session.flush()
-    service = LearningProgressService(
-        progress_repo=SqlLessonProgressRepository(session),
-        course_progress_repo=SqlCourseProgressRepository(session),
-        module_progress_repo=SqlModuleProgressRepository(session),
-        session=session,
+    crud = LessonProgressCrud(
+        SqlLessonProgressRepository(session),
+        SqlModuleProgressRepository(session),
+        Transaction(session, AsyncMock()),
     )
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
 
-    progress = await service.update(LessonProgressMapper.from_model(target_lesson_progress), completed_at)
+    progress = await crud.update(
+        LessonProgressMapper.from_model(target_lesson_progress),
+        completed_at,
+    )
     await session.refresh(target_lesson_progress)
     await session.refresh(other_lesson_progress)
 

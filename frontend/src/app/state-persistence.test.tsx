@@ -8,13 +8,24 @@ import {
   type ReactTestInstance,
 } from 'react-test-renderer';
 import { indexedDB } from 'fake-indexeddb';
-import type { ReactElement } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { useState, type ReactElement } from 'react';
+import { EmailRowsField, useEmailRows } from '@/features/invite';
+import { PageLoadBoundary } from '@/app/router';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { apiFetch, requestJson } from '@/shared/api';
+import { fetchModelsPage } from '@/entities/ai-model';
 import {
   getCourseLearningStructure,
   getLessonById,
   getLessonContentBlocks,
+  forgetLessonTheory,
+  useStudentStore,
+  getSelectedCourse,
+  getRouteState,
+  EMPTY_COURSE,
 } from '@/entities/course';
+import { CourseViewer } from '@/pages/course-view';
+import { useCourseProgress } from '@/features/course-progress';
 import { useRefreshOnReturn } from '@/shared/lib/use-refresh-on-return';
 import { CreatorChatView } from '@/features/create-course-chat';
 import { CourseCatalog } from '@/widgets/course-catalog';
@@ -25,7 +36,12 @@ import {
   LessonContentEditor,
   type LessonContentChange,
 } from '@/features/edit-lesson-content';
-import { useSessionStore, getPersistenceScope } from '@/entities/session';
+import {
+  useSessionStore,
+  usePermissionStore,
+  COURSE_PERMISSIONS,
+  getPersistenceScope,
+} from '@/entities/session';
 import {
   createAgentConversationKey,
   useAgentStore,
@@ -120,14 +136,14 @@ beforeEach(() => {
         id: url.split('/').pop(),
         title: 'Current lesson',
       });
-    if (url.includes('/agent/check/'))
+    if (url.includes('/agents/check/'))
       return Response.json({ score: 95, ai_feedback: 'Решение верное' });
-    if (url.includes('/agent/practices/'))
+    if (url.includes('/agents/practices/'))
       return Response.json({
         practice_id: 'practice-mock',
         practice: { title: 'Mock practice', allowed_extensions: ['.py'] },
       });
-    if (url.includes('/agent/tests/'))
+    if (url.includes('/agents/tests/'))
       return Response.json({
         practice_id: 'test-mock',
         practice: {
@@ -506,7 +522,7 @@ void test('uploaded solution restores with its filename and is checked without r
   responder = async (url, options) => {
     if (url.includes('/lessons/'))
       return Response.json({ id: 'file-restored', title: 'Current lesson' });
-    assert.match(url, /agent\/check\/practices\/file-id/);
+    assert.match(url, /agents\/check\/practices\/file-id/);
     const form = options?.body as FormData;
     const file = form.get('file') as File;
     assert.equal(file.name, 'saved.py');
@@ -526,7 +542,7 @@ void test('uploaded solution restores with its filename and is checked without r
 void test('creator retains the same conversation, brief and input when leaving and returning', async () => {
   useSessionStore.setState({ user: { id: 'creator-test' } });
   responder = (url) => {
-    assert.match(url, /agent\/interviewer/);
+    assert.match(url, /agents\/courses\/interviewer\//);
     return Response.json({
       content: 'What is your goal?',
       chat_id: 'creator-chat',
@@ -659,10 +675,14 @@ async function openEditor(page: ReactTestRenderer) {
 }
 async function editorProposal(lessonId: string) {
   responder = (url) => {
-    assert.match(url, /agent\/editor$/);
+    assert.match(url, /agents\/editor\/editor-course$/);
     return Response.json({
       chat_id: 'local-editor-chat',
-      content: JSON.stringify({ md_content: 'Proposed first block' }),
+      content: {
+        content_type: 'text',
+        md_content: 'Proposed first block',
+        ai_generated: true,
+      },
     });
   };
   const page = await render(
@@ -870,6 +890,515 @@ void test('AI editor saves a late proposal after leaving the page and keeps it a
   await unmount(page);
 });
 
+void test('concurrent GET consumers share a request and get independently readable response bodies', async () => {
+  let release!: (response: Response) => void;
+  responder = () =>
+    new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+  const first = requestJson('/audit-read', {}, { auth: false });
+  const second = requestJson('/audit-read', {}, { auth: false });
+  assert.equal(calls.length, 1);
+  release(Response.json({ title: 'Fresh' }));
+  assert.deepEqual(await Promise.all([first, second]), [
+    { title: 'Fresh' },
+    { title: 'Fresh' },
+  ]);
+  responder = () => Response.json({ title: 'Updated' });
+  assert.deepEqual(await requestJson('/audit-read', {}, { auth: false }), {
+    title: 'Updated',
+  });
+  assert.equal(
+    calls.length,
+    2,
+    'completed reads must not suppress later refreshes',
+  );
+  await Promise.all([
+    requestJson(
+      '/audit-write',
+      { method: 'POST', body: '{}' },
+      { auth: false },
+    ),
+    requestJson(
+      '/audit-write',
+      { method: 'POST', body: '{}' },
+      { auth: false },
+    ),
+  ]);
+  assert.equal(calls.length, 4, 'writes must never be combined');
+});
+
+void test('shared GET requests isolate authorization, cancellation and failures', async () => {
+  responder = () => Response.json({ ok: true });
+  await Promise.all([
+    apiFetch(
+      '/audit-scope',
+      { headers: { Authorization: 'Bearer synthetic-a' } },
+      { auth: false },
+    ),
+    apiFetch(
+      '/audit-scope',
+      { headers: { Authorization: 'Bearer synthetic-b' } },
+      { auth: false },
+    ),
+  ]);
+  assert.equal(calls.length, 2);
+  const controller = new AbortController();
+  let finishIndependent!: (response: Response) => void;
+  responder = (_url, options) =>
+    new Promise<Response>((resolve, reject) => {
+      if (options?.signal) {
+        options.signal.addEventListener(
+          'abort',
+          () => reject(new DOMException('Cancelled', 'AbortError')),
+          { once: true },
+        );
+      } else finishIndependent = resolve;
+    });
+  const cancelled = apiFetch(
+    '/audit-abort',
+    { signal: controller.signal },
+    { auth: false },
+  );
+  const independent = apiFetch('/audit-abort', {}, { auth: false });
+  controller.abort();
+  await assert.rejects(cancelled, { name: 'AbortError' });
+  finishIndependent(Response.json({ ok: true }));
+  assert.deepEqual(await (await independent).json(), { ok: true });
+  responder = () => Promise.reject(new Error('Offline'));
+  await assert.rejects(
+    requestJson('/audit-retry', {}, { auth: false }),
+    /Offline/,
+  );
+  responder = () => Response.json({ ok: true });
+  assert.deepEqual(await requestJson('/audit-retry', {}, { auth: false }), {
+    ok: true,
+  });
+});
+
+void test('model list uses the current API, shares concurrent searches and maps backend ids', async () => {
+  responder = () =>
+    Response.json({
+      items: [{ id: 'model-id', name: 'Synthetic model' }],
+      total: 1,
+      pages: 1,
+    });
+  const [first, second] = await Promise.all([
+    fetchModelsPage(),
+    fetchModelsPage(),
+  ]);
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].endsWith('/ai-models/search'));
+  assert.equal(first.items[0].uid, 'model-id');
+  assert.deepEqual(first, second);
+});
+
+void test('course structure shares active requests, loads modules concurrently and preserves order', async () => {
+  const courseId = '50000000-0000-4000-8000-000000000001';
+  const moduleIds = Array.from(
+    { length: 8 },
+    (_, index) => `module-concurrent-${index}`,
+  );
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let active = 0;
+  let peak = 0;
+  responder = async (url) => {
+    if (url.endsWith(`/courses/${courseId}`)) {
+      return Response.json({
+        id: courseId,
+        modules: moduleIds.map((id) => ({ id })),
+      });
+    }
+    const id = url.split('/').pop()!;
+    assert.ok(moduleIds.includes(id));
+    active += 1;
+    peak = Math.max(peak, active);
+    await gate;
+    active -= 1;
+    return Response.json({ id, title: id, lessons: [] });
+  };
+  const first = getCourseLearningStructure(courseId, true);
+  const second = getCourseLearningStructure(courseId, true);
+  try {
+    await tick();
+    assert.equal(
+      active,
+      6,
+      'independent module reads must start before their siblings finish',
+    );
+    assert.equal(
+      calls.filter((url) => url.endsWith(`/courses/${courseId}`)).length,
+      1,
+    );
+  } finally {
+    release();
+  }
+  const courses = await Promise.all([first, second]);
+  assert.equal(peak, 6);
+  assert.equal(
+    calls.length,
+    9,
+    'one course and one request per module for both consumers',
+  );
+  for (const course of courses) {
+    assert.deepEqual(
+      course.blocks.map((block) => block.id),
+      moduleIds,
+    );
+  }
+});
+
+void test('a failed shared theory request can be retried', async () => {
+  const lessonId = 'failed-theory-request';
+  responder = () => Promise.reject(new Error('Connection interrupted'));
+  await assert.rejects(
+    Promise.all([
+      getLessonContentBlocks(lessonId, true),
+      getLessonContentBlocks(lessonId, true),
+    ]),
+    /Connection interrupted/,
+  );
+  assert.equal(calls.length, 1);
+  responder = () =>
+    Response.json([{ content_type: 'text', md_content: 'Recovered' }]);
+  assert.equal(
+    (await getLessonContentBlocks(lessonId, true))[0].md_content,
+    'Recovered',
+  );
+  assert.equal(calls.length, 2);
+});
+
+void test('invalidating theory prevents an older in-flight response from replacing saved content', async () => {
+  const lessonId = 'invalidated-theory-request';
+  let release!: (response: Response) => void;
+  responder = () =>
+    new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+  const oldRequest = getLessonContentBlocks(lessonId, true);
+  forgetLessonTheory(lessonId);
+  responder = () =>
+    Response.json([{ content_type: 'text', md_content: 'New content' }]);
+  await getLessonContentBlocks(lessonId, true);
+  release(Response.json([{ content_type: 'text', md_content: 'Old content' }]));
+  await oldRequest;
+  assert.equal(
+    (await getLessonContentBlocks(lessonId))[0].md_content,
+    'New content',
+  );
+});
+
+void test('deep lesson reload requests theory immediately and ignores changes to the separate editor tree', async () => {
+  const courseId = '60000000-0000-4000-8000-000000000001';
+  const moduleId = '60000000-0000-4000-8000-000000000002';
+  const lessonId = '60000000-0000-4000-8000-000000000003';
+  const originalDocument = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'document',
+  );
+  const originalPermissions = usePermissionStore.getState().permissions;
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(
+    window,
+    'matchMedia',
+  );
+  Object.assign(window, {
+    matchMedia: () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }),
+  });
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: Object.assign(new EventTarget(), {
+      visibilityState: 'hidden',
+      hidden: true,
+      documentElement: { clientWidth: 1440, dataset: {} },
+    }),
+  });
+  usePermissionStore
+    .getState()
+    .setPermissions([COURSE_PERMISSIONS.COURSE_READ]);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  responder = async (url) => {
+    if (url.endsWith(`/courses/${courseId}`)) {
+      return Response.json({ id: courseId, modules: [{ id: moduleId }] });
+    }
+    if (url.endsWith(`/modules/${moduleId}`)) {
+      await gate;
+      return Response.json({ id: moduleId, lessons: [{ id: lessonId }] });
+    }
+    if (url.endsWith(`/lessons/${lessonId}/theory`)) return Response.json([]);
+    if (url.endsWith(`/lessons/${lessonId}`))
+      return Response.json({ id: lessonId });
+    if (url.includes('/members?')) return Response.json({ items: [] });
+    if (url.endsWith('/courses/my-courses')) {
+      return Response.json({
+        items: [{ id: courseId, creatorId: 'student-a' }],
+      });
+    }
+    if (url.includes('/progress/theory-sessions/'))
+      return Response.json({ id: 'synthetic-session' });
+    assert.fail(`Unexpected request: ${url}`);
+  };
+  const element = (title: string) => (
+    <MemoryRouter initialEntries={[`/course/${courseId}/lesson/${lessonId}`]}>
+      <Routes>
+        <Route
+          path="/course/:courseId/lesson/:lessonId"
+          element={
+            <CourseViewer localCourse={{ id: courseId, title, blocks: [] }} />
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+  let page: ReactTestRenderer | undefined;
+  try {
+    page = await render(element('Editor tree before its own fetch'));
+    assert.equal(
+      calls.filter((url) => url.endsWith(`/lessons/${lessonId}/theory`)).length,
+      1,
+    );
+    release();
+    await act(tick);
+    await act(tick);
+    assert.equal(
+      page.root.findAll(
+        (node) => node.props.className === 'lesson-theory-content',
+      ).length,
+      1,
+      'an author must see their own lesson even when they are not enrolled and the catalogue was not loaded',
+    );
+    assert.equal(useStudentStore.getState().isCourseEnrolled(courseId), false);
+    assert.equal(
+      calls.filter((url) => url.endsWith('/courses/my-courses')).length,
+      1,
+    );
+    await act(async () => {
+      page!.update(element('Editor tree updated'));
+      await tick();
+    });
+    assert.equal(
+      calls.filter((url) => url.endsWith(`/courses/${courseId}`)).length,
+      1,
+    );
+    assert.equal(calls.filter((url) => url.includes('/members?')).length, 1);
+    assert.equal(
+      calls.filter((url) => url.endsWith(`/lessons/${lessonId}/theory`)).length,
+      1,
+    );
+  } finally {
+    if (page) await unmount(page);
+    release();
+    await tick();
+    usePermissionStore.getState().setPermissions(originalPermissions);
+    if (originalMatchMedia)
+      Object.defineProperty(window, 'matchMedia', originalMatchMedia);
+    else Reflect.deleteProperty(window, 'matchMedia');
+    if (originalDocument)
+      Object.defineProperty(globalThis, 'document', originalDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  }
+});
+
+void test('failed page loading shows recovery controls and permits navigation without remounting healthy pages', async () => {
+  let mounts = 0;
+  function Page({ fail }: { fail: boolean }) {
+    useState(() => {
+      mounts += 1;
+      return null;
+    });
+    if (fail) throw new Error('Synthetic chunk download failure');
+    return <p>Page content</p>;
+  }
+  const page = await render(
+    <PageLoadBoundary pathname="/course/one/lesson/one">
+      <Page fail={false} />
+    </PageLoadBoundary>,
+  );
+  const originalError = console.error;
+  try {
+    await act(async () => {
+      page.update(
+        <PageLoadBoundary pathname="/course/one/lesson/two">
+          <Page fail={false} />
+        </PageLoadBoundary>,
+      );
+      await tick();
+    });
+    assert.equal(
+      mounts,
+      1,
+      'ordinary route changes must preserve the mounted viewer',
+    );
+    console.error = () => {};
+    await act(async () => {
+      page.update(
+        <PageLoadBoundary pathname="/broken">
+          <Page fail={true} />
+        </PageLoadBoundary>,
+      );
+      await tick();
+    });
+    assert.equal(
+      page.root.findByProps({ role: 'alert' }).findAllByType('button').length,
+      1,
+    );
+    await act(async () => {
+      page.update(
+        <PageLoadBoundary pathname="/courses">
+          <Page fail={false} />
+        </PageLoadBoundary>,
+      );
+      await tick();
+    });
+    assert.deepEqual(page.root.findByType('p').children, ['Page content']);
+  } finally {
+    console.error = originalError;
+    await unmount(page);
+  }
+});
+
+void test('leaving the invitation email field keeps layout stable and sends the draft with the chosen role once', async () => {
+  const sent: Array<{ email: string; role: string }> = [];
+  responder = () => Response.json({ items: [] });
+  function Probe() {
+    const emails = useEmailRows();
+    const [role, setRole] = useState('student');
+    return (
+      <>
+        <EmailRowsField id="invite-email" emails={emails} />
+        <span>{emails.rows.length}</span>
+        <button onClick={() => setRole('teacher')}>Choose teacher</button>
+        <button
+          onClick={() =>
+            emails.sendAll(
+              (email) => {
+                sent.push({ email, role });
+                return Promise.resolve();
+              },
+              () => 'Failed',
+            )
+          }
+        >
+          Send invite
+        </button>
+      </>
+    );
+  }
+  const page = await render(<Probe />);
+  try {
+    const input = page.root.findByType('input');
+    await act(async () => {
+      (input.props.onChange as (event: { target: { value: string } }) => void)({
+        target: { value: 'learner@example.test' },
+      });
+      await tick();
+    });
+    await act(async () => {
+      (input.props.onBlur as (() => void) | undefined)?.();
+      await tick();
+    });
+    assert.equal(input.props.value, 'learner@example.test');
+    assert.equal(
+      page.root.findAllByType('li').length,
+      0,
+      'blur must not insert a row and move the role cards under the pointer',
+    );
+    await click(button(page, 'Choose teacher'));
+    await click(button(page, 'Send invite'));
+    assert.deepEqual(sent, [
+      { email: 'learner@example.test', role: 'teacher' },
+    ]);
+  } finally {
+    await unmount(page);
+  }
+});
+
+void test('an explicit course route never edits the first cached course while its own data is missing', () => {
+  const first = { id: 'first-course', title: 'First course', blocks: [] };
+  const second = {
+    id: 'requested-course',
+    title: 'Requested course',
+    blocks: [],
+  };
+  const route = '/course/requested-course/edit';
+  const selectedId = getRouteState(route, [first]).courseId;
+  assert.equal(selectedId, second.id);
+  assert.equal(getSelectedCourse([first], selectedId), EMPTY_COURSE);
+  assert.equal(getSelectedCourse([first, second], selectedId), second);
+  assert.equal(getSelectedCourse([first], null), first);
+  assert.equal(getSelectedCourse([], selectedId), EMPTY_COURSE);
+});
+
+void test('opening a lesson waits for initial progress instead of reading and ensuring it twice', async () => {
+  const courseId = '70000000-0000-4000-8000-000000000001';
+  const moduleId = '70000000-0000-4000-8000-000000000002';
+  const lessonId = '70000000-0000-4000-8000-000000000003';
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const lessonProgress = { id: 'existing-progress', lesson_id: lessonId };
+  let lessonReads = 0;
+  responder = async (url, options) => {
+    if (url.endsWith(`/progress/lessons/${lessonId}`)) {
+      lessonReads += 1;
+      await gate;
+      return Response.json(lessonProgress);
+    }
+    if (url.includes(`/progress/courses/${courseId}`))
+      return Response.json({ id: 'course-progress', course_id: courseId });
+    if (url.endsWith(`/courses/${courseId}`))
+      return Response.json({ id: courseId, modules: [{ id: moduleId }] });
+    if (url.endsWith(`/modules/${moduleId}`))
+      return Response.json({ id: moduleId, lessons: [{ id: lessonId }] });
+    assert.fail(`Unexpected ${options?.method || 'GET'} request: ${url}`);
+  };
+  let progress!: ReturnType<typeof useCourseProgress>;
+  function Probe() {
+    progress = useCourseProgress(courseId);
+    return null;
+  }
+  const page = await render(<Probe />);
+  let tracked = false;
+  const tracking = progress.trackLesson(moduleId, lessonId).then((result) => {
+    tracked = true;
+    return result;
+  });
+  try {
+    await tick();
+    assert.equal(lessonReads, 1);
+    assert.equal(
+      tracked,
+      false,
+      'tracking must wait for the existing course read',
+    );
+    await act(async () => {
+      release();
+      await tracking;
+      await tick();
+    });
+    assert.equal((await tracking)?.id, 'existing-progress');
+    assert.equal(lessonReads, 1);
+    assert.equal(
+      progress.lessonProgressById[lessonId]?.id,
+      'existing-progress',
+    );
+  } finally {
+    release();
+    await tracking;
+    await unmount(page);
+  }
+});
+
 void test('forced refresh bypasses course, module, lesson and theory caches', async () => {
   const courseId = '40000000-0000-4000-8000-000000000001';
   const moduleId = '40000000-0000-4000-8000-000000000002';
@@ -923,7 +1452,7 @@ void test('forced refresh bypasses course, module, lesson and theory caches', as
   );
   assert.ok(requestModes.every((mode) => mode === 'no-store'));
   assert.equal(
-    calls.some((url) => url.includes('/agent/')),
+    calls.some((url) => url.includes('/agents/')),
     false,
   );
 });
@@ -999,7 +1528,7 @@ void test('lesson preflight blocks a paid check on 404 and retains the typed sol
   };
   await click(button(page, 'Проверить решение'));
   assert.equal(
-    calls.some((url) => url.includes('/agent/check/')),
+    calls.some((url) => url.includes('/agents/check/')),
     false,
   );
   assert.equal(
@@ -1014,7 +1543,7 @@ void test('lesson preflight blocks a paid check on 404 and retains the typed sol
     'Keep my solution',
   );
   assert.equal(
-    calls.filter((url) => url.includes('/agent/practices/')).length,
+    calls.filter((url) => url.includes('/agents/practices/')).length,
     1,
   );
   await unmount(page);

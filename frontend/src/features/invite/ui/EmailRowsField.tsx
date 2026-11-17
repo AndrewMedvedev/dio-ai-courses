@@ -95,7 +95,6 @@ export function EmailRowsField({
                 removeRow(rows[rows.length - 1].email);
               }
             }}
-            onBlur={() => draft.trim() && addEmails(draft)}
             onPaste={(event) => {
               const text = event.clipboardData.getData('text');
               if (/[\s,;]/.test(text.trim())) {

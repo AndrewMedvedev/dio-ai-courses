@@ -16,9 +16,11 @@ DELETE = register_permission(
     Permission(
         resource="ai_model",
         action="delete",
-        scopes=frozenset({
-            PermissionScope.GLOBAL,
-        }),
+        scopes=frozenset(
+            {
+                PermissionScope.GLOBAL,
+            }
+        ),
         title="Удаление ии модели",
     ),
 )

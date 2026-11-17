@@ -65,6 +65,7 @@ export function useCourseProgress(
   const activeCourseIdRef = useRef<string | null>(null);
   const lessonIdsRef = useRef<string[]>([]);
   const lessonProgressRef = useRef<LessonProgressById>({});
+  const initialProgressLoadRef = useRef<Promise<void> | null>(null);
   const theoryRequestsRef = useRef(new Set<string>());
   const refreshTokensRef = useRef<Record<string, symbol>>({});
 
@@ -113,6 +114,7 @@ export function useCourseProgress(
     activeCourseIdRef.current = enabled && courseId ? courseId : null;
     lessonIdsRef.current = [];
     lessonProgressRef.current = {};
+    initialProgressLoadRef.current = null;
     theoryRequestsRef.current = new Set();
     refreshTokensRef.current = {};
 
@@ -171,7 +173,7 @@ export function useCourseProgress(
       }
     }
 
-    void load();
+    initialProgressLoadRef.current = load();
 
     return () => {
       controller.abort();
@@ -182,6 +184,10 @@ export function useCourseProgress(
     async (moduleId: string, lessonId: string) => {
       const targetCourseId = activeCourseIdRef.current;
       if (!targetCourseId || !moduleId || !lessonId) return null;
+      // The initial course read already includes this lesson. Let it finish
+      // before deciding whether a missing progress record needs creating.
+      await initialProgressLoadRef.current;
+      if (!isActive(targetCourseId)) return null;
       if (lessonProgressRef.current[lessonId]) {
         return lessonProgressRef.current[lessonId];
       }

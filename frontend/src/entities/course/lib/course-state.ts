@@ -191,11 +191,11 @@ export function getSelectedCourse(
   courses: CourseNode[],
   selectedCourseId: string | null | undefined,
 ): CourseNode {
-  return (
-    courses.find((course) => course.id === selectedCourseId) ||
-    courses[0] ||
-    EMPTY_COURSE
-  );
+  if (selectedCourseId)
+    return (
+      courses.find((course) => course.id === selectedCourseId) || EMPTY_COURSE
+    );
+  return courses[0] || EMPTY_COURSE;
 }
 
 export function getSelectedBlock(

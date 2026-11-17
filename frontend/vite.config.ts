@@ -11,18 +11,9 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined;
-          if (id.includes('mermaid')) return 'vendor-mermaid';
-          if (id.includes('react-markdown') || id.includes('remark-gfm')) {
-            return 'vendor-markdown';
-          }
-          return undefined;
-        },
-      },
-    },
+    // Preserve dynamic import boundaries. Grouping Mermaid with all of its
+    // dependencies can pull shared utilities into the initial page bundle.
+    manifest: true,
   },
   server: {
     host: '0.0.0.0',
