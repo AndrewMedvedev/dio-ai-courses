@@ -16,6 +16,7 @@ import {
   getLessonById,
   getLessonContentBlocks,
   getModuleById,
+  fetchMyCoursesPage,
   useStudentStore,
   ContentBlocks,
   CourseBasicInfo,
@@ -123,6 +124,8 @@ export function CourseViewer({
   const [isLoadingLesson, setIsLoadingLesson] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const effectiveCourseId = courseId || '';
+  // Remote pages must not reload whenever App updates its separate editor tree.
+  const effectiveLocalCourse = isUuid(effectiveCourseId) ? null : localCourse;
   const refreshRevision = useRefreshOnReturn(isUuid(effectiveCourseId));
   const isMetricsMode = mode === 'metrics';
   const signCourse = useStudentStore((state) => state.signCourse);
@@ -190,6 +193,7 @@ export function CourseViewer({
       null
     );
   }, [selectedBlock, selectedLessonId]);
+  const lessonContentTargetId = lessonId || selectedLesson?.id;
 
   const moduleBasicInfo = useMemo(
     () => toModuleBasicInfoFromLearningBlock(selectedBlock),
@@ -246,7 +250,11 @@ export function CourseViewer({
     contentRef: theoryContentRef,
     // При смене адреса курс перезагружается и теория монтируется заново —
     // учитываем это, иначе трекер держит ссылку на уже снятый DOM-узел.
-    isContentReady: !isLoadingCourse && !isLoadingLesson && !error,
+    isContentReady:
+      !isLoadingCourse &&
+      !isLoadingLesson &&
+      contentLessonId === selectedLesson?.id &&
+      !error,
     // Теория засчитывается автоматически, когда ученик долистал её до конца.
     onReachEnd: isProgressTracked
       ? (reachedLessonId) =>
@@ -312,22 +320,23 @@ export function CourseViewer({
         // не находится и вместо него открывается обзор курса.
         const isDeepLink =
           isUuid(effectiveCourseId) && Boolean(blockId || lessonId);
-        let basicCourse =
+        const [loadedCourse] = await Promise.all([
           isMetricsMode || isDeepLink
-            ? await getCourseLearningStructure(effectiveCourseId, true)
-            : !isUuid(effectiveCourseId) &&
-                localCourse?.id === effectiveCourseId
+            ? getCourseLearningStructure(effectiveCourseId, true)
+            : effectiveLocalCourse?.id === effectiveCourseId
               ? // Локальный черновик курса устроен так же, как курс с бэкенда.
-                (localCourse as LearningCourse)
-              : await getCourseBasicInfo(effectiveCourseId, true);
+                (effectiveLocalCourse as LearningCourse)
+              : getCourseBasicInfo(effectiveCourseId, true),
+          !isMetricsMode && canReadCourseContent
+            ? loadMyCourses({ page: 1, size: 100 }).catch(() => null)
+            : null,
+        ]);
+        if (!isMounted) return;
+        let basicCourse = loadedCourse;
 
         if (!isMetricsMode && isDeepLink && lessonId && isUuid(lessonId)) {
           await getLessonById(lessonId, true);
           basicCourse = await getCourseBasicInfo(effectiveCourseId);
-        }
-
-        if (!isMetricsMode && canReadCourseContent) {
-          await loadMyCourses({ page: 1, size: 100 }).catch(() => null);
         }
 
         const enrolled = canReadCourseContent
@@ -341,11 +350,34 @@ export function CourseViewer({
           return;
         }
 
+        // The public course detail omits creatorId. Ownership must not depend
+        // on a background catalogue request having happened to load this course.
+        if (
+          !isMetricsMode &&
+          canReadCourseContent &&
+          !enrolled &&
+          !getCourseCreatorId(basicCourse)
+        ) {
+          const ownCourses = await fetchMyCoursesPage({ page: 1, size: 100 });
+          const summary = ownCourses.items.find(
+            (item) => item.id === basicCourse.id,
+          );
+          if (summary) basicCourse = { ...summary, ...basicCourse };
+        }
+        if (!isMounted) return;
+
         loadedCourseIdRef.current = effectiveCourseId;
         setCourse(basicCourse);
         setIsEnrolled(enrolled);
         const route = `${effectiveCourseId}:${blockId || ''}:${lessonId || ''}`;
-        if (!isSameCourse || loadedRouteRef.current !== route) {
+        // A quick Back can return to the last completed route while the next
+        // route is still loading. Its optimistic selection must be reset too.
+        if (
+          !isSameCourse ||
+          loadedRouteRef.current !== route ||
+          blockId ||
+          lessonId
+        ) {
           setSelectedModuleId(blockId ?? null);
           setSelectedLessonId(lessonId ?? null);
           setIsLearningStarted(
@@ -377,19 +409,21 @@ export function CourseViewer({
     isMetricsMode,
     lessonId,
     loadMyCourses,
-    localCourse,
+    effectiveLocalCourse,
     refreshRevision,
   ]);
 
   useEffect(() => {
-    if (isMetricsMode || !canReadCourseContent || !selectedLesson?.id) {
+    if (isMetricsMode || !canReadCourseContent || !lessonContentTargetId) {
       setContentBlocks([]);
       setContentLessonId(null);
       return;
     }
 
     let isMounted = true;
-    const contentLessonIdToLoad = selectedLesson.id;
+    // A direct lesson URL already identifies the theory resource. Do not wait
+    // for every module, enrollment and lesson metadata before starting it.
+    const contentLessonIdToLoad = lessonContentTargetId;
 
     async function loadLessonContent() {
       setIsLoadingLesson(true);
@@ -425,7 +459,7 @@ export function CourseViewer({
   }, [
     canReadCourseContent,
     isMetricsMode,
-    selectedLesson?.id,
+    lessonContentTargetId,
     refreshRevision,
   ]);
 
@@ -1013,7 +1047,8 @@ export function CourseViewer({
                         {lessonBasicInfo.description}
                       </p>
                     )}
-                    {isLoadingLesson ? (
+                    {isLoadingLesson ||
+                    contentLessonId !== selectedLesson.id ? (
                       <p className="course-viewer-muted tw:text-(--muted) tw:leading-[1.6] tw:m-[10px_0_0]">
                         Загружаем теорию урока...
                       </p>

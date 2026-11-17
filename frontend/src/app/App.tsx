@@ -1,5 +1,5 @@
 import { useChatDockSpace } from '@/shared/ui/ai-chat';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePersistenceScope } from '@/entities/session';
 import { useLocalState, hasLocalStorageError } from '@/shared/lib/storage';
 import {
@@ -16,29 +16,8 @@ import { FeedbackDialog } from '@/features/send-feedback';
 import { ContextualHelp } from '@/features/contextual-help';
 import { Breadcrumbs } from '@/widgets/breadcrumbs';
 import { Toaster, notify } from '@/shared/ui/toast';
-import { ProtectedRoute } from '@/app/router';
+import { PageLoadBoundary, ProtectedRoute } from '@/app/router';
 import { HomePage } from '@/pages/home';
-import { CoursesPage } from '@/pages/catalog';
-import { MyCoursesPage } from '@/pages/my-courses';
-import { QuickStartPage } from '@/pages/quick-start';
-import { CoursePage } from '@/pages/course-edit';
-import {
-  InvitationAcceptPage,
-  InvitationLinkRedirect,
-} from '@/pages/invitation-accept';
-import { CourseViewer } from '@/pages/course-view';
-import { BlockPage } from '@/pages/module-edit';
-import { LessonPage } from '@/pages/lesson-edit';
-import { PracticePage } from '@/pages/practice';
-import { CreatorPage } from '@/pages/creator';
-import {
-  DragAndDropCoursePage,
-  DragAndDropCoursePreviewPage,
-} from '@/pages/dnd-course';
-import { ProfilePage } from '@/pages/profile';
-import { OrganizationsPage } from '@/pages/organizations';
-import { ModelsPage } from '@/pages/models';
-import { AuthPage } from '@/pages/auth';
 import { getErrorMessage } from '@/shared/lib/errors';
 import {
   getRouteState,
@@ -49,6 +28,7 @@ import {
   deleteModule as deleteModuleApi,
   fetchCoursesPage,
   getCourse,
+  getCachedCourseBasicInfo,
   getLessonBasicInfo,
   getModuleBasicInfo,
   publishCourse as publishCourseApi,
@@ -103,6 +83,82 @@ import {
 } from '@/features/edit-course-draft';
 import { useGenerationJobsWatcher } from '@/features/track-generation';
 
+const CoursesPage = lazy(() =>
+  import('@/pages/catalog').then((module) => ({ default: module.CoursesPage })),
+);
+const MyCoursesPage = lazy(() =>
+  import('@/pages/my-courses').then((module) => ({
+    default: module.MyCoursesPage,
+  })),
+);
+const QuickStartPage = lazy(() =>
+  import('@/pages/quick-start').then((module) => ({
+    default: module.QuickStartPage,
+  })),
+);
+const CoursePage = lazy(() =>
+  import('@/pages/course-edit').then((module) => ({
+    default: module.CoursePage,
+  })),
+);
+const InvitationAcceptPage = lazy(() =>
+  import('@/pages/invitation-accept').then((module) => ({
+    default: module.InvitationAcceptPage,
+  })),
+);
+const InvitationLinkRedirect = lazy(() =>
+  import('@/pages/invitation-accept').then((module) => ({
+    default: module.InvitationLinkRedirect,
+  })),
+);
+const CourseViewer = lazy(() =>
+  import('@/pages/course-view').then((module) => ({
+    default: module.CourseViewer,
+  })),
+);
+const BlockPage = lazy(() =>
+  import('@/pages/module-edit').then((module) => ({
+    default: module.BlockPage,
+  })),
+);
+const LessonPage = lazy(() =>
+  import('@/pages/lesson-edit').then((module) => ({
+    default: module.LessonPage,
+  })),
+);
+const PracticePage = lazy(() =>
+  import('@/pages/practice').then((module) => ({
+    default: module.PracticePage,
+  })),
+);
+const CreatorPage = lazy(() =>
+  import('@/pages/creator').then((module) => ({ default: module.CreatorPage })),
+);
+const DragAndDropCoursePage = lazy(() =>
+  import('@/pages/dnd-course').then((module) => ({
+    default: module.DragAndDropCoursePage,
+  })),
+);
+const DragAndDropCoursePreviewPage = lazy(() =>
+  import('@/pages/dnd-course').then((module) => ({
+    default: module.DragAndDropCoursePreviewPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import('@/pages/profile').then((module) => ({ default: module.ProfilePage })),
+);
+const OrganizationsPage = lazy(() =>
+  import('@/pages/organizations').then((module) => ({
+    default: module.OrganizationsPage,
+  })),
+);
+const ModelsPage = lazy(() =>
+  import('@/pages/models').then((module) => ({ default: module.ModelsPage })),
+);
+const AuthPage = lazy(() =>
+  import('@/pages/auth').then((module) => ({ default: module.AuthPage })),
+);
+
 type CompletedMap = Record<string, boolean | undefined>;
 
 const errorText = (error: unknown, fallback: string): string =>
@@ -152,6 +208,9 @@ function AppContent() {
       window.removeEventListener('local-state-save-error', onStorageError);
   }, []);
   const location = useLocation();
+  const needsCourseCatalog = ['/courses', '/profile'].includes(
+    location.pathname,
+  );
   const isLanding = location.pathname === '/';
   useEffect(() => {
     if (isLanding) setNavigationCollapsed(true);
@@ -231,9 +290,13 @@ function AppContent() {
   const lessonRequestRef = useRef(0);
   const loadedLessonDetailsRef = useRef(new Set<string>());
   const [isCourseEditMode, setIsCourseEditMode] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState<
+  const [storedSelectedCourseId, setSelectedCourseId] = useState<
     string | null | undefined
   >(initialRouteState.courseId);
+  // The editor must follow the URL in this render, before selection effects run.
+  const selectedCourseId = location.pathname.startsWith('/course/')
+    ? getRouteState(location.pathname).courseId
+    : storedSelectedCourseId;
   const [selectedBlockId, setSelectedBlockId] = useState<
     string | null | undefined
   >(initialRouteState.blockId);
@@ -279,6 +342,7 @@ function AppContent() {
       setCoursesError('');
       return undefined;
     }
+    if (!needsCourseCatalog) return undefined;
 
     const requestId = coursesPageRequestRef.current + 1;
     coursesPageRequestRef.current = requestId;
@@ -295,9 +359,7 @@ function AppContent() {
         setEditableCourses((prev) => mergeCoursePage(prev, response.items));
         setCoursesTotalPages(response.total_pages || 1);
         setCoursesTotal(response.total || response.items.length);
-        if (!selectedCourseId && response.items[0]?.id) {
-          setSelectedCourseId(response.items[0].id);
-        }
+        setSelectedCourseId((current) => current || response.items[0]?.id);
       })
       .catch((error) => {
         if (
@@ -318,7 +380,7 @@ function AppContent() {
       });
 
     return () => controller.abort();
-  }, [canBrowseCourses, coursesPage, coursesPageSize, selectedCourseId]);
+  }, [canBrowseCourses, coursesPage, coursesPageSize, needsCourseCatalog]);
 
   useEffect(() => {
     if (!location.pathname.startsWith('/course')) {
@@ -340,9 +402,11 @@ function AppContent() {
 
     if (
       !canViewCourseInfo ||
+      (!location.pathname.startsWith('/course/') &&
+        location.pathname !== '/profile') ||
       !selectedCourseId ||
       hasLoadedBlocks ||
-      loadedCourseDetailsRef.current.has(selectedCourseId)
+      (courseFromState && loadedCourseDetailsRef.current.has(selectedCourseId))
     ) {
       return;
     }
@@ -353,12 +417,14 @@ function AppContent() {
     setCoursesLoading(true);
     setCoursesError('');
 
-    getCourse(selectedCourseId)
+    getCachedCourseBasicInfo(selectedCourseId, true)
       .then((nextCourse) => {
-        if (courseRequestRef.current !== requestId) return;
+        // Keep successfully loaded entities even if another course request
+        // became active. Otherwise the loaded marker hides a missing course.
         setEditableCourses((prev) => mergeCourse(prev, nextCourse));
       })
       .catch((error) => {
+        loadedCourseDetailsRef.current.delete(selectedCourseId);
         if (courseRequestRef.current === requestId) {
           setCoursesError(errorText(error, 'Не удалось загрузить курс.'));
         }
@@ -368,9 +434,14 @@ function AppContent() {
           setCoursesLoading(false);
         }
       });
-  }, [canViewCourseInfo, editableCourses, selectedCourseId]);
+  }, [canViewCourseInfo, editableCourses, selectedCourseId, location.pathname]);
 
   const selectedCourse = getSelectedCourse(editableCourses, selectedCourseId);
+  const isEditorCourseLoading =
+    canUpdateCourse &&
+    canViewCourseInfo &&
+    /^\/course\/[^/]+\/edit(?:\/|$)/.test(location.pathname) &&
+    !selectedCourse.id;
   useEffect(() => {
     if (
       !selectedCourse.id ||
@@ -397,7 +468,11 @@ function AppContent() {
   );
 
   useEffect(() => {
-    if (!canViewCourseInfo || !selectedCourse.id) {
+    if (
+      !canViewCourseInfo ||
+      !selectedCourse.id ||
+      !location.pathname.startsWith(`/course/${selectedCourse.id}/edit`)
+    ) {
       return;
     }
 
@@ -572,7 +647,12 @@ function AppContent() {
   }, [canViewCourseInfo, location.pathname, selectedCourse]);
 
   useEffect(() => {
-    if (!canViewCourseInfo || !selectedCourse.id || !selectedLessonId) {
+    if (
+      !canViewCourseInfo ||
+      !selectedCourse.id ||
+      !selectedLessonId ||
+      !location.pathname.startsWith(`/course/${selectedCourse.id}/edit`)
+    ) {
       return;
     }
 
@@ -611,7 +691,7 @@ function AppContent() {
           setCoursesError(errorText(error, 'Не удалось загрузить урок.'));
         }
       });
-  }, [canViewCourseInfo, selectedCourse, selectedLessonId]);
+  }, [canViewCourseInfo, location.pathname, selectedCourse, selectedLessonId]);
 
   const {
     totalLessonsCount,
@@ -1667,16 +1747,18 @@ function AppContent() {
             : 'tw:relative tw:z-[1] tw:[body.is-dnd-fullscreen_&]:z-[100] tw:min-w-0 tw:[--glass-shadow:none] tw:[--glass-inset:none] tw:[--glass-highlight:transparent] tw:[--glass-blur:0px] tw:[--glass-tint:var(--panel-bg)] tw:p-[24px_16px_16px] tw:max-760:p-[16px] tw:[&_.container]:w-full tw:[&_.container]:max-w-full tw:[&_.container]:mx-0'
         }
       >
-        {!arePermissionsLoaded ? (
+        {!arePermissionsLoaded || isEditorCourseLoading ? (
           <section className="container section tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
             <article className="glass-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:[.page.is-home-page_&]:[background:transparent] tw:[.page.is-home-page_&]:[backdrop-filter:none] tw:[.page.is-home-page_&]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[.page.is-home-page_&]:[&::after]:absolute tw:[.page.is-home-page_&]:[&::after]:inset-[0] tw:[.page.is-home-page_&]:[&::after]:z-[-1] tw:[.page.is-home-page_&]:[&::after]:rounded-[inherit] tw:[.page.is-home-page_&]:[&::after]:pointer-events-none tw:[.page.is-home-page_&]:[&::after]:[content:''] tw:[.page.is-home-page_&]:[&::after]:[backdrop-filter:blur(2px)] tw:[.page.is-home-page_&]:[&::after]:[-webkit-backdrop-filter:blur(2px)] tw:[.page.is-home-page_&]:[&::after]:[filter:url(#glass-distortion)] tw:[.page.is-home-page_&]:[&::after]:[-webkit-filter:url('#glass-distortion')] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]">
               <p className="course-details-text tw:m-[12px_0_0] tw:text-(--muted)">
-                Настраиваем доступный функционал...
+                {!arePermissionsLoaded
+                  ? 'Настраиваем доступный функционал...'
+                  : coursesError || 'Загружаем выбранный курс...'}
               </p>
             </article>
           </section>
         ) : (
-          <>
+          <PageLoadBoundary pathname={location.pathname}>
             {(!location.pathname.startsWith('/course/') ||
               location.pathname.split('/')[3] === 'edit') && (
               <Breadcrumbs
@@ -1963,7 +2045,7 @@ function AppContent() {
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </>
+          </PageLoadBoundary>
         )}
       </main>
 

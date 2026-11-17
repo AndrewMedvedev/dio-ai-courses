@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:state": "node --input-type=module < scripts/test-state.ts",
+    "test:bundle": "node --experimental-strip-types --test tests/bundle-loading.test.ts",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

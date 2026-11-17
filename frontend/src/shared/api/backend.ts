@@ -25,6 +25,39 @@ export type JsonRequestOptions = RequestInit &
 
 let refreshPromise: Promise<string | null> | null = null;
 let unauthorizedHandler: (() => void) | null = null;
+const pendingReads = new Map<string, Promise<Response>>();
+
+/** Share concurrent reads, never responses from a previous completed request.
+ * Requests with their own cancellation signal remain independent.
+ */
+async function fetchResponse(
+  url: string,
+  options: RequestInit,
+): Promise<Response> {
+  if (
+    (options.method || 'GET').toUpperCase() !== 'GET' ||
+    options.signal ||
+    options.body ||
+    options.cache === 'no-store' ||
+    options.cache === 'reload'
+  ) {
+    return fetch(url, options);
+  }
+  const headers = [...new Headers(options.headers).entries()].sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  const key = JSON.stringify([url, { ...options, headers }]);
+  let request = pendingReads.get(key);
+  if (!request) {
+    const current = fetch(url, options).finally(() => {
+      if (pendingReads.get(key) === current) pendingReads.delete(key);
+    });
+    pendingReads.set(key, current);
+    request = current;
+  }
+  // Each consumer needs its own body stream for JSON/error parsing.
+  return (await request).clone();
+}
 
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
@@ -127,13 +160,13 @@ export async function apiFetch(
     headers.Authorization = `Bearer ${access}`;
   }
 
-  let response = await fetch(url, { ...options, headers });
+  let response = await fetchResponse(url, { ...options, headers });
 
   if (auth && retry && response.status === 401 && access) {
     try {
       const newToken = await refreshAccessToken();
       if (newToken) {
-        response = await fetch(url, {
+        response = await fetchResponse(url, {
           ...options,
           headers: { ...headers, Authorization: `Bearer ${newToken}` },
         });
