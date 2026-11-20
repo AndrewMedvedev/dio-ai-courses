@@ -72,11 +72,15 @@ const theory =
 export function TrainingLesson({
   onBack,
   onFinish,
+  run = 0,
 }: {
   onBack: () => void;
   onFinish: () => void;
+  run?: number;
 }) {
-  const scope = usePersistenceScope();
+  const ownerScope = usePersistenceScope();
+  // A replay starts fresh without touching the saved example or real lessons.
+  const scope = run ? `${ownerScope}:training-run-${run}` : ownerScope;
   const key = `training-lesson:${scope}`;
   const [selected, setSelected] = useLocalState(
     `${key}:selected`,
@@ -148,6 +152,7 @@ export function TrainingLesson({
   return (
     <section
       className="training-lesson"
+      data-training-run={run}
       data-training-lesson-step={
         practiceResult.startsWith('Учебный пример готов')
           ? 5
@@ -372,7 +377,7 @@ export function TrainingLesson({
           )}
         </article>
       </div>
-      <TrainingMentor />
+      <TrainingMentor run={run} />
     </section>
   );
 }

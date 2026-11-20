@@ -267,8 +267,8 @@ export function ContextualHelp() {
     if (!training || !owner) return;
     dismissedPathRef.current = null;
     let lastStep = '';
+    let lastRun: string | null = null;
     const sync = () => {
-      if (dismissedPathRef.current === location.pathname) return;
       const element = document.querySelector<HTMLElement>(
         '.creator-training[data-training-step]',
       );
@@ -287,6 +287,10 @@ export function ContextualHelp() {
         );
         return;
       }
+      const run = active.dataset.trainingRun || '0';
+      if (lastRun !== null && lastRun !== run) dismissedPathRef.current = null;
+      lastRun = run;
+      if (dismissedPathRef.current === location.pathname) return;
       const index = Number(
         element
           ? element.dataset.trainingStep
@@ -298,7 +302,7 @@ export function ContextualHelp() {
         index >= helpGuides[id].steps.length
       )
         return;
-      const key = `${id}:${index}`;
+      const key = `${id}:${run}:${index}`;
       if (lastStep === key) return;
       lastStep = key;
       setTour((previous) =>
@@ -315,7 +319,11 @@ export function ContextualHelp() {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ['data-training-step', 'data-training-lesson-step'],
+      attributeFilter: [
+        'data-training-step',
+        'data-training-lesson-step',
+        'data-training-run',
+      ],
     });
     return () => observer.disconnect();
   }, [training, owner, location.pathname, location.key]);
@@ -530,7 +538,12 @@ export function ContextualHelp() {
     const element = document.querySelector<HTMLElement>(step.target);
     const rect = element?.getBoundingClientRect();
     if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80))
-      element?.scrollIntoView({ block: 'center' });
+      element?.scrollIntoView({
+        block: 'center',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+      });
     let frame: number | null = null;
     const scheduleMeasure = () => {
       if (frame !== null) return;
@@ -587,7 +600,7 @@ export function ContextualHelp() {
       {target && (
         <div
           aria-hidden="true"
-          className="tw:pointer-events-none tw:fixed tw:z-[1300] tw:rounded-[16px] tw:border-2 tw:border-solid tw:border-(--eyebrow)"
+          className="contextual-help-target tw:pointer-events-none tw:fixed tw:z-[1300] tw:rounded-[16px] tw:border-2 tw:border-solid tw:border-(--eyebrow) tw:transition-none"
           style={target}
         />
       )}
@@ -597,7 +610,7 @@ export function ContextualHelp() {
           role="region"
           aria-label={`Обучение: ${guide.label}`}
           aria-live="polite"
-          className={`contextual-help ${inlineHost ? 'tw:relative tw:w-full' : 'tw:fixed'} tw:z-[1310] tw:box-border tw:overflow-y-auto tw:overscroll-contain tw:rounded-[22px] tw:border tw:border-solid tw:border-(--eyebrow) tw:bg-(--panel-bg) ${inChat ? 'tw:p-[16px] tw:shadow-none tw:[&_h2]:text-[17px]! tw:[&_h2]:mt-[10px]! tw:[&_h2]:mb-[8px]!' : 'tw:p-[24px] tw:shadow-xl'} tw:text-(--text)}`}
+          className={`contextual-help ${inlineHost ? 'tw:relative tw:w-full' : 'tw:fixed'} tw:z-[1310] tw:box-border tw:overflow-y-auto tw:overscroll-contain tw:rounded-[22px] tw:border tw:border-solid tw:border-(--eyebrow) tw:bg-(--panel-bg) ${inChat ? 'tw:p-[16px] tw:shadow-none tw:[&_h2]:text-[17px]! tw:[&_h2]:mt-[10px]! tw:[&_h2]:mb-[8px]!' : 'tw:p-[24px] tw:shadow-xl'} tw:text-(--text) tw:transition-[left,top,width] tw:duration-300 tw:ease-out tw:animate-help-panel-in tw:motion-reduce:transition-none tw:motion-reduce:animate-none`}
           style={inlineHost ? undefined : panelPosition}
         >
           <div className="tw:flex tw:items-center tw:justify-between tw:gap-[12px]">
@@ -617,18 +630,38 @@ export function ContextualHelp() {
               ×
             </button>
           </div>
-          <h2 className="tw:mt-[16px] tw:mb-[12px] tw:text-[20px] tw:leading-[1.4] tw:[font-family:Unbounded,sans-serif]">
-            {step.title}
-          </h2>
-          <p className="tw:m-0 tw:text-[15px] tw:leading-[1.7] tw:text-(--muted)">
-            {step.text}
-          </p>
-          {waiting && (
-            <p className="tw:mt-[14px] tw:mb-0 tw:text-[13px] tw:leading-[1.6] tw:text-(--eyebrow)">
-              Выполните действие на странице — затем продолжим. Можно закрыть
-              подсказку и повторить обучение позже.
+          <div
+            role="progressbar"
+            aria-label="Прогресс знакомства"
+            aria-valuemin={0}
+            aria-valuemax={guide.steps.length}
+            aria-valuenow={tour.step + 1}
+            className="tw:mt-[14px] tw:h-[3px] tw:overflow-hidden tw:rounded-full tw:bg-(--line)"
+          >
+            <div
+              className="tw:h-full tw:rounded-full tw:bg-(--eyebrow) tw:transition-[width] tw:duration-300 tw:ease-out tw:motion-reduce:transition-none"
+              style={{
+                width: `${((tour.step + 1) / guide.steps.length) * 100}%`,
+              }}
+            />
+          </div>
+          <div
+            key={`${tour.id}:${tour.step}`}
+            className="contextual-help-step tw:animate-help-step-in tw:motion-reduce:animate-none"
+          >
+            <h2 className="tw:mt-[16px] tw:mb-[12px] tw:text-[20px] tw:leading-[1.4] tw:[font-family:Unbounded,sans-serif]">
+              {step.title}
+            </h2>
+            <p className="tw:m-0 tw:text-[15px] tw:leading-[1.7] tw:text-(--muted)">
+              {step.text}
             </p>
-          )}
+            {waiting && (
+              <p className="tw:mt-[14px] tw:mb-0 tw:text-[13px] tw:leading-[1.6] tw:text-(--eyebrow)">
+                Выполните действие на странице — затем продолжим. Можно закрыть
+                подсказку и повторить обучение позже.
+              </p>
+            )}
+          </div>
           <div className="tw:mt-[22px] tw:flex tw:flex-wrap tw:items-center tw:justify-end tw:gap-[10px]">
             {tour.step > 0 &&
               tour.id !== 'creatorTraining' &&

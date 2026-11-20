@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useSessionStore, usePersistenceScope } from '@/entities/session';
 import { useLocalState } from '@/shared/lib/storage';
 import {
@@ -29,13 +29,16 @@ const examples = [
 
 /** Изолированное знакомство: ответы и пробный курс сохраняются только в браузере. */
 export function CreatorTrainingView() {
-  const [search] = useSearchParams();
+  const [search, setSearch] = useSearchParams();
+  const location = useLocation();
+  const consumedStartRef = useRef<string | null>(null);
   const owner = useSessionStore((state) => String(state.user?.id || ''));
   const saveCourse = useTrainingStore((state) => state.save);
   const completeCourse = useTrainingStore((state) => state.complete);
   const scope = usePersistenceScope();
   const draftKey = `training-creator:${scope}`;
   const [finished, setFinished] = useLocalState(`${draftKey}:finished`, false);
+  const [lessonRun, setLessonRun] = useLocalState(`${draftKey}:lesson-run`, 0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [courseReady, setCourseReady] = useLocalState(
     `${draftKey}:ready`,
@@ -64,6 +67,56 @@ export function CreatorTrainingView() {
   const question = intakeQuestions[answers.length];
   const complete = answers.length === intakeQuestions.length;
 
+  const restartTraining = useCallback(
+    (openLesson: boolean) => {
+      setFinished(false);
+      setCourseReady(false);
+      setAnswers([]);
+      setInput('');
+      setFiles([]);
+      setFileError('');
+      setMessages([{ role: 'assistant', text: intakeQuestions[0].prompt }]);
+      setConfirmOpen(false);
+      setClearOpen(false);
+      setLessonOpen(openLesson);
+      setLessonRun((run) => run + 1);
+    },
+    [
+      setFinished,
+      setCourseReady,
+      setAnswers,
+      setInput,
+      setFiles,
+      setMessages,
+      setLessonOpen,
+      setLessonRun,
+    ],
+  );
+
+  // An explicit Quick Start entry overrides the old completion screen once.
+  // Remove the marker so a reload resumes the new attempt instead of resetting it.
+  useEffect(() => {
+    if (
+      search.get('start') !== '1' ||
+      consumedStartRef.current === location.key
+    )
+      return;
+    consumedStartRef.current = location.key;
+    const openLesson = search.get('lesson') === '1';
+    if (finished) restartTraining(openLesson);
+    else setLessonOpen(openLesson);
+    const next = new URLSearchParams(search);
+    next.delete('start');
+    setSearch(next, { replace: true });
+  }, [
+    search,
+    setSearch,
+    location.key,
+    finished,
+    restartTraining,
+    setLessonOpen,
+  ]);
+
   function submit(value = input) {
     const text =
       value.trim() ||
@@ -87,6 +140,13 @@ export function CreatorTrainingView() {
     ]);
   }
 
+  if (search.get('start') === '1')
+    return (
+      <p role="status" className="tw:p-[24px] tw:text-(--muted)">
+        Открываем обучение…
+      </p>
+    );
+
   if (finished)
     return (
       <article className="tw:max-w-[860px] tw:rounded-[24px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[36px] tw:max-760:p-[24px]">
@@ -102,6 +162,20 @@ export function CreatorTrainingView() {
         </p>
         <h3 className="tw:mb-[20px] tw:text-[20px]">Что дальше?</h3>
         <div className="tw:grid tw:max-w-[380px] tw:gap-[14px]">
+          <button
+            type="button"
+            onClick={() => restartTraining(true)}
+            className="tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-(--contrast) tw:px-[24px] tw:py-[14px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--text-solid) tw:cursor-pointer"
+          >
+            Повторить обучение
+          </button>
+          <button
+            type="button"
+            onClick={() => restartTraining(false)}
+            className="tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[24px] tw:py-[14px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--text) tw:cursor-pointer"
+          >
+            Повторить создание курса
+          </button>
           {[
             ['/drag-and-drop-course', 'Собрать курс из материалов'],
             ['/quick-start', 'Открыть быстрый старт'],
@@ -121,6 +195,7 @@ export function CreatorTrainingView() {
   if (lessonOpen)
     return (
       <TrainingLesson
+        run={lessonRun}
         onBack={() => setLessonOpen(false)}
         onFinish={() => {
           if (!useTrainingStore.getState().courses[owner])
@@ -147,6 +222,7 @@ export function CreatorTrainingView() {
       <div className="tw:min-w-0">
         <article
           data-training-step={courseReady ? 8 : answers.length}
+          data-training-run={lessonRun}
           className="creator-training tw:flex tw:h-[calc(100dvh_-_260px)] tw:min-h-[480px] tw:flex-col tw:overflow-hidden tw:rounded-[22px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg)"
         >
           <header className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-[12px] tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:px-[22px] tw:py-[18px]">
