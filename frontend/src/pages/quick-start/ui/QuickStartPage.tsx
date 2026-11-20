@@ -118,12 +118,14 @@ export function QuickStartPage() {
                 className={`${button} ${guide.id === 'creator' ? 'tw:border-transparent! tw:bg-(--contrast)! tw:text-(--text-solid)!' : ''}`}
                 onClick={() => {
                   if (guide.id === 'creator') {
-                    void navigate('/quick-start/training?training=creator');
+                    void navigate(
+                      '/quick-start/training?training=creator&start=1',
+                    );
                     return;
                   }
                   if (guide.id === 'learning') {
                     void navigate(
-                      '/quick-start/training?training=creator&lesson=1',
+                      '/quick-start/training?training=creator&lesson=1&start=1',
                     );
                     return;
                   }

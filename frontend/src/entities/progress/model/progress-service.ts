@@ -33,6 +33,7 @@ export interface LessonProgress {
   id: string;
   lessonId: string;
   moduleProgressId: string;
+  updatedAt?: string | null;
   theoryCompletedAt: string | null;
   practiceCompletedAt: string | null;
   testCompletedAt: string | null;
@@ -97,6 +98,7 @@ export function normalizeLessonProgress(
     moduleProgressId: toText(
       raw.module_progress_id || raw.moduleProgressId || '',
     ),
+    updatedAt: toText(raw.updated_at ?? raw.updatedAt) || null,
     theoryCompletedAt:
       toText(raw.theory_completed_at ?? raw.theoryCompletedAt ?? null) || null,
     practiceCompletedAt:
