@@ -4,6 +4,8 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from ddf.application.cache import Cache
+
 from src.core.settings import jwt_config
 from src.iam.application.builders import build_login_response
 from src.iam.application.dtos import (
@@ -26,7 +28,6 @@ from src.iam.security import (
     verify_password_async,
 )
 from src.organization.application.repos import OrganizationRepository
-from src.shared.infra.cache import Cache
 from src.shared.utils.time import from_timestamp, get_expiration_timestamp
 
 from .blacklist import is_revoked, revoke_token

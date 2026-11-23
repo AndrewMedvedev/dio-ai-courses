@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from ddf.domain.exceptions import DomainError
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
@@ -14,7 +15,6 @@ from src.iam.application.dtos import Identity, IdentityType
 from src.iam.dependencies.identity import get_current_identity
 from src.iam.domain.vo import Email
 from src.shared.dependencies.events import get_event_publisher
-from src.shared.domain.exceptions import DomainError
 
 
 def _client(identity: Identity) -> tuple[TestClient, AsyncMock, AsyncMock]:
@@ -60,7 +60,7 @@ def test_http_post_creates_feedback_using_token_identity() -> None:
     session.scalar.assert_awaited_once()
     session.add.assert_called_once()
     session.commit.assert_awaited_once()
-    publisher.publish_all.assert_awaited_once()
+    publisher.assert_awaited_once()
 
 
 def test_http_post_rejects_client_supplied_identity() -> None:

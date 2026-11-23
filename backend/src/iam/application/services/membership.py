@@ -1,10 +1,10 @@
 import logging
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.iam.application.dtos.membership import CreateMembershipDTO
 from src.iam.domain.entities import Membership
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 from ..repos import MembershipRepository, UserRepository
 

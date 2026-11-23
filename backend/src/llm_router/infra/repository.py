@@ -1,15 +1,15 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
 from sqlalchemy import func, select
 
 from src.llm_router.domain.entities import AIModel, LLMInvocation
 from src.llm_router.infra.models import AIModelOrm, LLMInvocationOrm
 from src.shared.application.dtos import Page, Pagination
-from src.shared.infra.database.mappers import ModelMapper
 from src.shared.infra.database.repos import SqlAlchemyRepository
 
 
-class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
+class AIModelMapper(DataMapper[AIModel, AIModelOrm]):
     @staticmethod
     def from_model(model: AIModelOrm) -> AIModel:
         """Преобразует данные в доменную сущность, чтобы передать их в нужный слой приложения."""
@@ -38,7 +38,7 @@ class AIModelMapper(ModelMapper[AIModel, AIModelOrm]):
 
 class SqlAIModelRepository(SqlAlchemyRepository[AIModel, AIModelOrm]):
     model = AIModelOrm
-    model_mapper = AIModelMapper  # type: ignore
+    data_mapper = AIModelMapper  # type: ignore
 
     async def read_fields(self, params: Pagination) -> Page:
         # 1. Основной запрос — выбираем только нужные поля, без служебных
@@ -77,10 +77,10 @@ class SqlAIModelRepository(SqlAlchemyRepository[AIModel, AIModelOrm]):
         stmt = select(self.model).where(self.model.id == model_id)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)  # type: ignore
+        return None if model is None else self.data_mapper.from_model(model)  # type: ignore
 
 
-class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
+class LLMInvocationMapper(DataMapper[LLMInvocation, LLMInvocationOrm]):
     @staticmethod
     def from_model(model: LLMInvocationOrm) -> LLMInvocation:
         """Преобразует запись мониторинга в доменную сущность."""
@@ -120,4 +120,4 @@ class LLMInvocationMapper(ModelMapper[LLMInvocation, LLMInvocationOrm]):
 
 class SqlLLMInvocationRepository(SqlAlchemyRepository[LLMInvocation, LLMInvocationOrm]):
     model = LLMInvocationOrm
-    model_mapper = LLMInvocationMapper  # type: ignore
+    data_mapper = LLMInvocationMapper  # type: ignore

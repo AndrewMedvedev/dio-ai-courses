@@ -90,6 +90,7 @@ export default function CourseInviteDialog({
   const [members, setMembers] = useState({
     items: [],
     page: 0,
+    nextCursor: null,
     total: 0,
     hasNext: false,
     loading: false,
@@ -102,17 +103,18 @@ export default function CourseInviteDialog({
   const [, forceUsersRender] = useState(0);
 
   const loadMembers = useCallback(
-    async (page) => {
+    async (cursor) => {
       setMembers((current) => ({ ...current, loading: true, error: "" }));
       try {
         const result = await fetchCourseMembersPage(courseId, {
-          page,
+          cursor,
           size: MEMBERS_PAGE_SIZE,
         });
         setMembers((current) => ({
-          items: page === 1 ? result.items : [...current.items, ...result.items],
-          page: result.page,
-          total: result.total,
+          items: cursor ? [...current.items, ...result.items] : result.items,
+          page: cursor ? current.page + 1 : 1,
+          nextCursor: result.nextCursor,
+          total: (cursor ? current.items.length : 0) + result.items.length,
           hasNext: result.hasNext,
           loading: false,
           error: "",
@@ -223,6 +225,7 @@ export default function CourseInviteDialog({
     setMembers({
       items: [],
       page: 0,
+      nextCursor: null,
       total: 0,
       hasNext: false,
       loading: false,
@@ -250,7 +253,7 @@ export default function CourseInviteDialog({
 
   useEffect(() => {
     if (open && tab === "members" && canViewMembers && members.page === 0) {
-      loadMembers(1);
+      loadMembers(null);
     }
   }, [canViewMembers, loadMembers, members.page, open, tab]);
 
@@ -274,7 +277,9 @@ export default function CourseInviteDialog({
       inputRef.current?.focus();
       return;
     }
-    if (members.page > 0) setMembers((current) => ({ ...current, page: 0 }));
+    if (members.page > 0) {
+      setMembers((current) => ({ ...current, page: 0, nextCursor: null }));
+    }
     setPending((current) => (current.page > 0 ? { ...current, page: 0 } : current));
     const { sent, total } = result;
     if (!sent.length) return;
@@ -499,7 +504,7 @@ export default function CourseInviteDialog({
               <button
                 type="button"
                 className="btn btn-outline course-invite-more"
-                onClick={() => loadMembers(members.page + 1)}
+                onClick={() => loadMembers(members.nextCursor)}
               >
                 Показать ещё
               </button>

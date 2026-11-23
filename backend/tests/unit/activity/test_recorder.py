@@ -1,14 +1,15 @@
-from dataclasses import dataclass, field
 from typing import ClassVar
+
+from dataclasses import dataclass, field
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
+from ddf.domain.events import Event
 
 from src.activity.domain.models import ActivityLog
 from src.activity.recorder import ActivityRecorder
 from src.activity.registry import register_activity_log_mapper
-from src.shared.domain.events import Event
 
 
 @dataclass(frozen=True)

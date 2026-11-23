@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from ddf.application.dtos import Page, Pagination
+from ddf.application.dtos import CursorPagination, Page, Sort
 from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import exists, func, select
@@ -49,7 +49,7 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
     async def find_by_course(
         self,
         course_id: UUID,
-        pagination: Pagination,
+        pagination: CursorPagination,
     ) -> Page[CourseProgress]:
         """Возвращает progress всех учеников курса для teacher endpoint."""
         stmt = select(self.model).where(self.model.course_id == course_id)
@@ -59,7 +59,7 @@ class SqlCourseProgressRepository(SqlAlchemyRepository[CourseProgress, CoursePro
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
-            sort="created_at:desc",
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def read_course_ownership(

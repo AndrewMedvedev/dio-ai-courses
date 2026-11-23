@@ -3,11 +3,13 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.dtos import CursorPagination
+from ddf.application.events import EventDispatcher as Transaction
 from src.courses.api.dependencies.crud.course_progress import CourseProgressCrud
 from src.courses.api.dependencies.crud.lesson_progress import LessonProgressCrud
 from src.courses.api.dependencies.crud.module_progress import ModuleProgressCrud
 from src.courses.domain.events import LessonProgressUpdate, LessonProgressUpdated
+
 from src.courses.infra.database.mappers import CourseProgressMapper, LessonProgressMapper
 from src.courses.infra.database.models import (
     CourseProgressOrm,
@@ -17,8 +19,6 @@ from src.courses.infra.database.models import (
 from src.courses.infra.database.repos.course_progress import SqlCourseProgressRepository
 from src.courses.infra.database.repos.lesson_progress import SqlLessonProgressRepository
 from src.courses.infra.database.repos.module_progress import SqlModuleProgressRepository
-from src.shared.application.dtos import Pagination
-from src.shared.application.transaction import Transaction
 
 
 @pytest.mark.asyncio
@@ -443,8 +443,18 @@ async def test_find_by_course_returns_paginated_student_progress(session):
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
-    page = await repository.find_by_course(course_id, Pagination(page=1, size=1))
+    page = await repository.find_by_course(course_id, CursorPagination(size=1))
 
-    assert page.total == 2
+    assert page.meta.has_next
+    assert page.meta.next_cursor is not None
     assert len(page.items) == 1
     assert page.items[0].id in {first_progress.id, second_progress.id}
+
+    next_page = await repository.find_by_course(
+        course_id,
+        CursorPagination(cursor=page.meta.next_cursor, size=1),
+    )
+
+    assert not next_page.meta.has_next
+    assert len(next_page.items) == 1
+    assert next_page.items[0].id != page.items[0].id

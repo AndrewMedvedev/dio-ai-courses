@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.learning.dtos.progress import LessonProgressResponse
@@ -9,7 +10,6 @@ from src.courses.application.learning.repos import (
     ModuleProgressRepository,
 )
 from src.courses.domain.learning.entities import LessonProgress
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 
 async def create(

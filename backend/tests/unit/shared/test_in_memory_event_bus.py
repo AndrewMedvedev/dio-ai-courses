@@ -1,8 +1,8 @@
 import asyncio
 
 import pytest
+from ddf.domain.events import Event
 
-from src.shared.domain.events import Event
 from src.shared.infra.events.in_memory import ImMemoryEventBus
 
 

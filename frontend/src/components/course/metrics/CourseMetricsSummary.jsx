@@ -39,7 +39,7 @@ export default function CourseMetricsSummary({ courseId, onOpenStudent }) {
 
   useEffect(() => {
     if (!courseId) return;
-    loadStudents(courseId, { page: 1, size: METRICS_STUDENTS_LIMIT }).catch(
+    loadStudents(courseId, { size: METRICS_STUDENTS_LIMIT }).catch(
       () => null,
     );
   }, [courseId, loadStudents]);
@@ -48,15 +48,27 @@ export default function CourseMetricsSummary({ courseId, onOpenStudent }) {
     if (!courseId) return undefined;
     const controller = new AbortController();
     setProgress({ loading: true, error: "", byUser: {} });
-    fetchCourseStudentsProgress(
-      courseId,
-      { size: METRICS_STUDENTS_LIMIT },
-      { signal: controller.signal },
-    )
-      .then((response) => {
+    const loadAllProgress = async () => {
+      const items = [];
+      let cursor = null;
+
+      while (true) {
+        const page = await fetchCourseStudentsProgress(
+          courseId,
+          { cursor, size: METRICS_STUDENTS_LIMIT },
+          { signal: controller.signal },
+        );
+        items.push(...page.items);
+        if (!page.hasNext || !page.nextCursor) return items;
+        cursor = page.nextCursor;
+      }
+    };
+
+    loadAllProgress()
+      .then((items) => {
         if (controller.signal.aborted) return;
         const byUser = {};
-        response.items.forEach((item) => {
+        items.forEach((item) => {
           const record = normalizeCourseProgress(item);
           if (record?.userId) byUser[record.userId] = record;
         });

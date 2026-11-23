@@ -8,24 +8,24 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from ddf.application.events import EventDispatcher as Transaction
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from src.feedback.application.services import FeedbackService
 
 from src.core.database import get_db, postgres_config
 from src.feedback.api.v1.feedback import router as feedback_router
 from src.feedback.application.dtos import FeedbackFilters
-from src.feedback.application.services import FeedbackService
 from src.feedback.domain.entities import Feedback
+from src.feedback.domain.permissions.feedback import READ
 from src.feedback.infra.database.models import FeedbackOrm
 from src.feedback.infra.database.repos.feedback import SqlFeedbackRepository
-from src.feedback.domain.permissions.feedback import READ
 from src.iam.application.dtos import Identity, IdentityType
 from src.iam.dependencies.identity import get_current_identity
 from src.iam.domain.vo import Email
 from src.shared.application.dtos import Pagination
-from src.shared.application.transaction import Transaction
 from src.shared.dependencies.events import get_event_publisher
 from src.shared.domain.exceptions import RateLimitExceededError
 from src.shared.utils.time import current_datetime
@@ -92,7 +92,7 @@ async def test_create_persists_feedback_and_enforces_daily_limit(
         user_id=user_id,
     )
     assert recent.total == 5
-    assert publisher.publish_all.await_count == 5
+    assert publisher.await_count == 5
 
     with pytest.raises(RateLimitExceededError):
         await service.create_feedback(
@@ -135,7 +135,7 @@ async def test_feedback_http_round_trip_uses_postgres(feedback_session: AsyncSes
     assert listed.status_code == 200
     assert [item["id"] for item in listed.json()["items"]] == [created.json()["id"]]
     assert "_events" not in listed.json()["items"][0]
-    publisher.publish_all.assert_awaited_once()
+    publisher.assert_awaited_once()
 
 
 @pytest.mark.asyncio

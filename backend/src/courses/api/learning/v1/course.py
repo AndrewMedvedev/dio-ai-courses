@@ -2,7 +2,7 @@ from typing import Annotated
 
 from uuid import UUID
 
-from ddf.application.dtos import Page, Pagination
+from ddf.application.dtos import CursorPagination, Page
 from fastapi import APIRouter, Depends, Query, status
 
 from src.courses.api.dependencies.access import course_access
@@ -89,7 +89,8 @@ async def update_course_progress(
 async def get_course_students_progress(
     uid: UUID,
     repo: CourseProgressRepoDep,
-    pagination: Annotated[Pagination, Query()],
+    cursor: Annotated[str | None, Query()] = None,
+    size: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> Page[CourseProgressResponse]:
-    result = await repo.find_by_course(uid, pagination)
+    result = await repo.find_by_course(uid, CursorPagination(cursor=cursor, size=size))
     return result.map(CourseProgressResponse.model_validate)

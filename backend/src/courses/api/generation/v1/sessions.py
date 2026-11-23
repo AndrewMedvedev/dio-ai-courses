@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ddf.application.exceptions import NotFoundError
+from ddf.domain.exceptions import InvariantViolationError
 from fastapi import APIRouter, Depends, status
 
 from src.core.tkq import cancellation_backend
@@ -12,7 +14,7 @@ from src.courses.domain.permissions.courses import CREATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.dependencies.database import DBSession
-from src.shared.domain.exceptions import ForbiddenError, InvariantViolationError, NotFoundError
+from src.shared.domain.exceptions import ForbiddenError
 
 router = APIRouter(prefix="/generation-sessions", tags=["Generation Session"])
 

@@ -3,14 +3,14 @@ from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
+from ddf.application.events import EventDispatcher as Transaction
+from src.feedback.application.services import FeedbackService
 
 from src.feedback.application.dtos import FeedbackFilters
-from src.feedback.application.services import FeedbackService
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.events import FeedbackCreated
 from src.iam.domain.vo import Email
 from src.shared.application.dtos import Page, Pagination
-from src.shared.application.transaction import Transaction
 from src.shared.domain.exceptions import RateLimitExceededError
 from src.shared.utils.time import current_datetime
 
@@ -125,8 +125,8 @@ async def test_create_commits_and_publishes_registered_event(
     )
 
     uow.commit.assert_awaited_once()
-    publisher.publish_all.assert_awaited_once()
-    events = publisher.publish_all.await_args.args[0]
+    publisher.assert_awaited_once()
+    events = publisher.await_args.args[0]
     assert len(events) == 1
     assert isinstance(events[0], FeedbackCreated)
     assert events[0].feedback_id == feedback.id

@@ -4,11 +4,10 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.exceptions import NotFoundError
 from src.courses.application.dtos import EditModuleSchema, ModuleSchema
 from src.courses.application.services.module import ModuleService
 from src.courses.domain.entities import Module
-from src.shared.domain.exceptions import NotFoundError
 
 
 @pytest.fixture

@@ -2,11 +2,11 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 
 from src.organization.application.dtos import OrganizationCreate, OrganizationEdit
 from src.organization.application.services import OrganizationService
 from src.organization.domain.entities import Organization
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 
 @pytest.mark.asyncio

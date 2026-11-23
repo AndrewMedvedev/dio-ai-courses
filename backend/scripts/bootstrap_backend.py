@@ -557,7 +557,7 @@ async def prepare(  # noqa: C901, PLR0912, PLR0915 - sequential bootstrap under 
                         raise BootstrapError(
                             f"{prefix}: ambiguous managed roles; recovery refused."
                         )
-                    role = role_repo.model_mapper.from_model(models[0])
+                    role = role_repo.data_mapper.from_model(models[0])
                     if (
                         role.id != uid
                         or role.code != code
@@ -632,7 +632,7 @@ async def prepare(  # noqa: C901, PLR0912, PLR0915 - sequential bootstrap under 
                 if len(owned_models) > 1:
                     raise BootstrapError(f"{prefix}: ambiguous bootstrap account duplicates.")
                 owned = (
-                    account_repo.model_mapper.from_model(owned_models[0]) if owned_models else None
+                    account_repo.data_mapper.from_model(owned_models[0]) if owned_models else None
                 )
                 if owned and not account_is_managed(owned, prefix, org.id):
                     raise BootstrapError(
@@ -649,7 +649,7 @@ async def prepare(  # noqa: C901, PLR0912, PLR0915 - sequential bootstrap under 
                 if len(selected_models) > 1:
                     raise BootstrapError(f"{prefix}: ambiguous client_id duplicates.")
                 selected = (
-                    account_repo.model_mapper.from_model(selected_models[0])
+                    account_repo.data_mapper.from_model(selected_models[0])
                     if selected_models
                     else None
                 )

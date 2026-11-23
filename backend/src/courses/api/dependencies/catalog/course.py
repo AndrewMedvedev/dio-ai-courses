@@ -90,7 +90,7 @@ def get_course_crud(
 ) -> CourseCrud:
     return CourseCrud(
         repository=repo,  # pyright: ignore[reportArgumentType]
-        transaction=transaction,
+        dispatcher=transaction,
         to_response=map_to_response,
         create_handler=create_handler,  # pyright: ignore[reportArgumentType]
         update_handler=update_handler,

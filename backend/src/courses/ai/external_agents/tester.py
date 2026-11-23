@@ -4,6 +4,8 @@ import json
 import secrets
 from uuid import UUID
 
+from ddf.application.events import EventDispatcher as Transaction
+from ddf.application.exceptions import NotFoundError
 from pydantic import TypeAdapter
 
 from src.courses.ai.prompts.practice.assignment import ASSIGNMENT_PROMPT
@@ -30,8 +32,6 @@ from src.courses.domain.learning.events import (
 )
 from src.courses.infra.services import course_client
 from src.llm_service import LLMTextService
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import NotFoundError
 from src.shared.utils.time import current_datetime
 
 

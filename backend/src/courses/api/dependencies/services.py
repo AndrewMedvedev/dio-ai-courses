@@ -3,6 +3,7 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from fastapi import Depends
 
 from src.courses.api.dependencies.repos import (
@@ -17,7 +18,6 @@ from src.courses.infra.external_apis import IAMClient, invite_user_in_organizati
 from src.courses.infra.services import course_client
 from src.iam.dependencies import CurrentIdentity
 from src.shared.dependencies.database import TransactionDep
-from src.shared.domain.exceptions import NotFoundError
 
 
 def get_iam_repo() -> IAMRepository:
@@ -44,7 +44,7 @@ def get_invitation_service(
 ) -> InvitationService:
     return InvitationService(
         invitation_repo=invitation_repo,
-        transaction=transaction,
+        dispatcher=transaction,
         course_repo=course_repo,
         member_repo=member_repo,
         iam_repo=iam_repo,

@@ -1,11 +1,12 @@
 import logging
 from uuid import UUID
 
+from ddf.application.events import EventDispatcher as Transaction
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
+from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
+
 from src.iam.domain.types import RoleId
 from src.iam.domain.vo import Email
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
-from src.shared.domain.repos import get_or_raise_404
 from src.shared.utils.time import current_datetime
 
 from ...domain.entities import Invitation

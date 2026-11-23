@@ -3,18 +3,18 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from src.courses.api.dependencies.crud.course_progress import CourseProgressCrud
 from src.courses.api.dependencies.crud.lesson_progress import LessonProgressCrud
 from src.courses.api.dependencies.crud.module_progress import ModuleProgressCrud
-from src.courses.api.dependencies.services import get_progress
 from src.courses.application.dtos.progress import (
     CourseProgressResponse,
     LessonProgressResponse,
     ModuleProgressResponse,
 )
 from src.courses.domain.entities import CourseProgress, LessonProgress, ModuleProgress
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
+
+from src.courses.api.dependencies.services import get_progress
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from uuid import UUID
 
-from ddf.application.dtos import Page
+from ddf.application.dtos import OffsetPagination, Page
 from fastapi import APIRouter, Path, status
 
 from src.courses.api.dependencies.services import InvitationServiceDep
@@ -47,7 +47,7 @@ async def get_course_invitations(
     return await service.get_course_invitations(
         course_id=course_id,
         identity=identity,
-        pagination=pagination,
+        pagination=OffsetPagination(page=pagination.page, size=pagination.size),
     )
 
 

@@ -17,7 +17,7 @@ from src.llm_service.schemas import LLMTextRequest, LLMTextResponse
 @pytest.mark.asyncio
 async def test_publish_invocation_does_not_raise_on_publisher_error():
     publisher = AsyncMock()
-    publisher.publish.side_effect = Exception("RabbitMQ error")
+    publisher.side_effect = Exception("RabbitMQ error")
 
     router = LLMRouter(
         ai_model_repos=AsyncMock(),
@@ -38,7 +38,7 @@ async def test_publish_invocation_does_not_raise_on_publisher_error():
 
     await router._publish_invocation(event)
 
-    publisher.publish.assert_awaited_once_with(event)
+    publisher.assert_awaited_once_with([event])
 
 
 @pytest.mark.asyncio

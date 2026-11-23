@@ -50,7 +50,7 @@ async def test_text_invocation_publishes_event() -> None:
         reset_request_id(token)
 
     assert result.raw_text == "Готовый ответ"
-    event = publisher.publish.await_args.args[0]
+    event = publisher.await_args.args[0][0]
     assert isinstance(event, LLMInvocationCreated)
     assert event.request_id == request_id
     assert event.model == "gpt-5.4-mini"
@@ -75,7 +75,7 @@ async def test_publish_invocation_publishes_ready_event() -> None:
 
     await router._publish_invocation(event)
 
-    publisher.publish.assert_awaited_once_with(event)
+    publisher.assert_awaited_once_with([event])
 
 
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_failed_invocation_publishes_event_and_reraises() -> None:
     with pytest.raises(RuntimeError, match="provider unavailable"):
         await router._invoke(model="gpt-5-nano", schema=schema)
 
-    event = publisher.publish.await_args.args[0]
+    event = publisher.await_args.args[0][0]
     assert event.status is LLMInvocationStatus.FAILED
     assert event.error == "provider unavailable"
     assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
@@ -114,7 +114,7 @@ async def test_monitoring_publish_failure_does_not_break_llm_response() -> None:
         usage=SimpleNamespace(total_tokens=3),
     )
     publisher = AsyncMock()
-    publisher.publish.side_effect = RuntimeError("rabbit unavailable")
+    publisher.side_effect = RuntimeError("rabbit unavailable")
     router = _text_router(
         SimpleNamespace(responses=SimpleNamespace(create=AsyncMock(return_value=provider_response))),
         publisher,
@@ -126,7 +126,7 @@ async def test_monitoring_publish_failure_does_not_break_llm_response() -> None:
     )
 
     assert result.raw_text == "Ответ"
-    publisher.publish.assert_awaited_once()
+    publisher.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -160,7 +160,7 @@ async def test_image_invocation_publishes_response_schema() -> None:
         size="1024x1024",
         output_format="png",
     )
-    event = publisher.publish.await_args.args[0]
+    event = publisher.await_args.args[0][0]
     assert event.request == schema.model_dump(mode="json", by_alias=True, exclude_none=True)
     assert event.response == result.model_dump(mode="json", exclude_none=True)
 
@@ -200,7 +200,7 @@ async def test_image_edit_decodes_base64_and_excludes_it_from_provider_request()
         size="1024x1024",
         output_format="png",
     )
-    event = publisher.publish.await_args.args[0]
+    event = publisher.await_args.args[0][0]
     assert event.request["image"] == [image_base64]
 
 
@@ -220,8 +220,8 @@ async def test_media_error_does_not_retry_image_generation() -> None:
     with pytest.raises(RuntimeError, match="media down"):
         await router._invoke_image(model="gpt-image-2", schema=LLMImageRequest(prompt="Draw"))
     generate.assert_awaited_once()
-    publisher.publish.assert_awaited_once()
-    event = publisher.publish.await_args.args[0]
+    publisher.assert_awaited_once()
+    event = publisher.await_args.args[0][0]
     assert event.status is LLMInvocationStatus.FAILED
     assert event.error == "media down"
     assert event.total_tokens == 12

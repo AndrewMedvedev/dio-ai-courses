@@ -1,10 +1,6 @@
 import logging
 from uuid import UUID
 
-from ddf.application.dtos import Page, Pagination
-from ddf.application.dtos.query import QueryDTO
-from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
-from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import select
 
 from src.courses.application.catalog.dtos.basic_info import (
@@ -17,6 +13,8 @@ from src.courses.domain.catalog.entities import (
 from src.courses.domain.catalog.enums import (
     CourseStatus,
 )
+from src.shared.application.dtos import BaseQueryParamFilters, Page, Pagination
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository, paginate
 
 from ..mappers import (
     CourseMapper,
@@ -33,7 +31,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     async def find(
         self,
         pagination: Pagination,
-        filters: QueryDTO | None = None,
+        filters: BaseQueryParamFilters | None = None,
     ) -> Page[Course]:
         """Для расширения логики фильтрации можно переопределить в дочерних классах."""
 
@@ -48,7 +46,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            from_model=self.data_mapper.from_model,
+            mapper=self.data_mapper.from_model,
             sort=filters.sort if filters else "created_at:desc",
         )
 
@@ -69,7 +67,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            from_model=self.data_mapper.from_model,
+            mapper=self.data_mapper.from_model,
         )
 
     async def find_member_courses(
@@ -101,7 +99,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            from_model=self.data_mapper.from_model,
+            mapper=self.data_mapper.from_model,
             sort="created_at:desc",
         )
 
@@ -149,7 +147,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
 
         modules = await self.select_modules_by_id_course(uid)
 
-        return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore
+        return self.data_mapper.basic_info_mapper(course_row, modules)  # type: ignore
 
     async def get_course_status(
         self,
@@ -184,7 +182,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            from_model=self.data_mapper.from_model,
+            mapper=self.data_mapper.from_model,
         )
 
     async def read_course_ownership(self, uid: UUID) -> tuple[UUID, UUID] | None:

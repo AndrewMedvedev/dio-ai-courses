@@ -3,6 +3,7 @@ from typing import Annotated
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import CursorPagination, Page as DdfPage
 from fastapi import APIRouter, Depends, Query, status
 
 from src.courses.api.dependencies.access import course_access
@@ -67,7 +68,8 @@ async def get_courses(
 async def get_course_students(
     uid: UUID,
     repo: MemberRepoDep,
-    pagination: Annotated[Pagination, Query()],
-) -> Page[MemberResponse]:
-    result = await repo.find_by_course(uid, pagination)
-    return result.to_response(MemberResponse.model_validate)
+    cursor: Annotated[str | None, Query()] = None,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> DdfPage[MemberResponse]:
+    result = await repo.find_by_course(uid, CursorPagination(cursor=cursor, size=size))
+    return result.map(MemberResponse.model_validate)

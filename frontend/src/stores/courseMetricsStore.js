@@ -121,7 +121,7 @@ export const useCourseMetricsStore = create((set, get) => ({
     return nextFilters;
   },
 
-  loadStudents: async (courseId, { page = 1, size = 10 } = {}) => {
+  loadStudents: async (courseId, { size = 10 } = {}) => {
     if (!courseId) return null;
     if (studentsController) studentsController.abort();
     studentsController = new AbortController();
@@ -133,7 +133,7 @@ export const useCourseMetricsStore = create((set, get) => ({
     try {
       const response = await getCourseStudents(
         courseId,
-        { page, size },
+        { size },
         { signal: studentsController.signal },
       );
       if (requestId !== studentsRequestId) return null;
@@ -141,7 +141,7 @@ export const useCourseMetricsStore = create((set, get) => ({
       set({
         students: response.items,
         studentsMeta: {
-          page: response.page || page,
+          page: response.page,
           size: response.size || size,
           total: response.total || 0,
           pages: response.pages || response.total_pages || 1,

@@ -116,4 +116,4 @@ async def test_media_failure_does_not_regenerate_paid_image(monkeypatch):
 
     generate.assert_awaited_once()
     save_image.assert_awaited_once()
-    publisher.publish.assert_awaited_once()
+    publisher.assert_awaited_once()

@@ -43,13 +43,13 @@ def apply_permission_query_param_filters(
 
 class SqlPermissionRepository:
     model: ClassVar[type[PermissionOrm]] = PermissionOrm
-    model_mapper: ClassVar[type[PermissionMapper]] = PermissionMapper
+    data_mapper: ClassVar[type[PermissionMapper]] = PermissionMapper
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def create_or_update(self, permission: Permission) -> None:
-        values = self.model_mapper.to_dict(permission)
+        values = self.data_mapper.to_dict(permission)
 
         insert_stmt = pg_insert(self.model).values(**values)
         upsert_stmt = insert_stmt.on_conflict_do_update(
@@ -76,6 +76,6 @@ class SqlPermissionRepository:
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            mapper=self.model_mapper.from_model,
+            mapper=self.data_mapper.from_model,
             sort=filters.sort,
         )

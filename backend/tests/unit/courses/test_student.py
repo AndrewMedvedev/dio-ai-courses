@@ -4,12 +4,12 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from src.courses.application.services.member import MemberService
 from src.courses.domain.entities import Member
 from src.courses.domain.vo import MemberRole
+
 from src.shared.application.dtos import Page, Pagination
-from src.shared.domain.exceptions import AlreadyExistsError, NotFoundError
 
 
 @pytest.fixture

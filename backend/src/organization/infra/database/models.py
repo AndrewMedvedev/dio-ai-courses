@@ -1,11 +1,11 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy.types import DatatimeTz, DatetimeTzNull, StrUnique
 from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
-from src.shared.infra.database.types import DatetimeNull, DatetimeTz, StrUnique
 
 
 class OrganizationOrm(Base):
@@ -26,9 +26,9 @@ class InvitationOrm(Base):
     invited_by: Mapped[UUID]
     granted_roles: Mapped[list[UUID]] = mapped_column(JSONB)
     organization_id: Mapped[UUID]
-    expires_at: Mapped[DatetimeTz]
+    expires_at: Mapped[DatatimeTz]
 
-    used_at: Mapped[DatetimeNull]
+    used_at: Mapped[DatetimeTzNull]
     is_used: Mapped[bool]
 
     __table_args__ = (

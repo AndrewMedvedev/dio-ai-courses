@@ -1,11 +1,11 @@
 from uuid import UUID
 
+from ddf.application.exceptions import AlreadyExistsError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.learning.dtos.progress import CourseProgressResponse
 from src.courses.application.learning.repos import CourseProgressRepository
 from src.courses.domain.learning.entities import CourseProgress
-from src.shared.domain.exceptions import AlreadyExistsError
 
 
 async def create(

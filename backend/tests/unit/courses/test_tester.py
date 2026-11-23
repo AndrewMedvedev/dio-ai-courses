@@ -3,13 +3,12 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.events import EventDispatcher as Transaction
+from ddf.application.exceptions import NotFoundError
 from src.courses.agents.external_agents.tester import TesterAgent as KnowledgeTesterAgent
 from src.courses.domain.entities import Practice
-from src.courses.domain.events import LessonProgressUpdated
 from src.courses.domain.enums import PracticeStatus
-from src.shared.application.transaction import Transaction
-from src.shared.domain.exceptions import NotFoundError
+from src.courses.domain.events import LessonProgressUpdated
 
 
 @pytest.mark.asyncio
@@ -41,7 +40,7 @@ async def test_call_agent_checker_marks_test_completed_and_publishes_progress_ev
     practice_repo.exists.assert_awaited_once_with(practice.id)
     assert practice_repo.update.await_args.kwargs["status"] == PracticeStatus.COMPLETED
     session.commit.assert_awaited_once_with()
-    event = event_publisher.publish_all.await_args.args[0][0]
+    event = event_publisher.await_args.args[0][0]
     assert isinstance(event, LessonProgressUpdated)
     assert event.user_id == user_id
     assert event.lesson_id == lesson_id
@@ -75,7 +74,7 @@ async def test_call_agent_checker_marks_test_failed_without_progress_event(monke
 
     assert practice_repo.update.await_args.kwargs["status"] == PracticeStatus.FAILED
     session.commit.assert_awaited_once_with()
-    event_publisher.publish_all.assert_awaited_once_with([])
+    event_publisher.assert_not_awaited()
 
 
 @pytest.mark.asyncio

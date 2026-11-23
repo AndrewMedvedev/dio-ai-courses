@@ -4,12 +4,11 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.exceptions import NotFoundError
 from src.courses.application.dtos import EditLessonSchema, LessonSchema
 from src.courses.application.services.lesson import LessonService
 from src.courses.domain.entities import Lesson
 from src.courses.domain.vo import TextBlock
-from src.shared.domain.exceptions import NotFoundError
 
 
 @pytest.fixture

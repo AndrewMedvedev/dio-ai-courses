@@ -5,12 +5,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from ddf.domain.exceptions import InvariantViolationError
+from ddf.domain.models import Entity
+from ddf.domain.utils import apply_changes
 from typing_extensions import Doc
 
 from src.core.settings import settings
-from src.shared.domain.entities import Entity
-from src.shared.domain.exceptions import InvariantViolationError
-from src.shared.domain.helpers import apply_changes
 from src.shared.utils.time import current_datetime, get_expiration_time
 
 from .events import UserInvited

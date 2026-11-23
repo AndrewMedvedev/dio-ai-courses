@@ -1,6 +1,7 @@
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from fastapi import APIRouter, Depends, status
 
 from src.courses.api.dependencies.access import course_access
@@ -21,7 +22,6 @@ from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
 from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies import DBSession
-from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 

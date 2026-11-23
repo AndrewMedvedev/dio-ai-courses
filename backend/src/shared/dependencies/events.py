@@ -1,17 +1,15 @@
 from typing import Annotated
 
+from ddf.application.events import EventPublisher
+from ddf.infra.brokers.rabbit.config import RabbitConfig
+from ddf.infra.brokers.rabbit.event_publisher import create_rabbit_publisher
 from fastapi import Depends
 
 from src.core.rabbit import broker, events_exchange
-from src.shared.domain.events import EventPublisher
-from src.shared.infra.events import RabbitMQEventPublisher
 
 
 def get_event_publisher() -> EventPublisher:
-    return RabbitMQEventPublisher(
-        broker,
-        exchange=events_exchange,
-    )
+    return create_rabbit_publisher(broker, RabbitConfig(exchange=events_exchange.name))
 
 
 EventPublisherDep = Annotated[EventPublisher, Depends(get_event_publisher)]

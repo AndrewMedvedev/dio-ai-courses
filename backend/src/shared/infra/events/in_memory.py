@@ -3,7 +3,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
 
-from src.shared.domain.events import Event
+from ddf.domain.events import Event
 
 logger = logging.getLogger(__name__)
 

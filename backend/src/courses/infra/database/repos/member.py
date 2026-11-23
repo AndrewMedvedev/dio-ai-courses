@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from ddf.application.dtos import Page, Pagination
+from ddf.application.dtos import CursorPagination, Page, Sort
 from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import exists, select
@@ -12,7 +12,6 @@ from src.courses.domain.enrollment.entities import (
 from src.courses.domain.enrollment.vo import (
     MemberRole,
 )
-
 from ..mappers import (
     MemberMapper,
 )
@@ -48,7 +47,7 @@ class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
     async def find_by_course(
         self,
         course_id: UUID,
-        pagination: Pagination,
+        pagination: CursorPagination,
     ) -> Page[Member]:
         """Получает студентов, записанных на курс, с пагинацией."""
 
@@ -62,7 +61,7 @@ class SqlMemberRepository(SqlAlchemyRepository[Member, MemberOrm]):
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
-            sort="created_at:desc",
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def read_role(self, user_id: UUID, course_id: UUID) -> MemberRole | None:

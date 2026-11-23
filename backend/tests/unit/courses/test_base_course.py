@@ -2,9 +2,8 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
+from ddf.application.exceptions import NotFoundError
 from src.courses.application.services.base_course import BaseCourseService
-from src.shared.domain.exceptions import NotFoundError
 
 
 @pytest.fixture

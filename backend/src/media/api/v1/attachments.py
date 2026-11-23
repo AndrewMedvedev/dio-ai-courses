@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from fastapi import APIRouter, status
 
 from src.iam.dependencies import CurrentIdentity
-from src.shared.domain.exceptions import NotFoundError
 
 from ...application.dtos import (
     CreateUploadDTO,

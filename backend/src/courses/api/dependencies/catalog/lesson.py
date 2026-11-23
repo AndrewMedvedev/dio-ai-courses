@@ -2,6 +2,10 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.crud import Crud
+from ddf.application.events import EventDispatcher as Transaction
+from ddf.application.exceptions import NotFoundError
+from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
 from fastapi import Depends
 
 from src.courses.api.dependencies.repos import LessonRepoDep
@@ -16,11 +20,7 @@ from src.courses.application.catalog.repos import LessonRepository
 from src.courses.domain.catalog.entities import Lesson
 from src.courses.domain.catalog.ranking import rank_between
 from src.courses.domain.catalog.vo import AnyContentBlock
-from src.shared.application.crud import Crud
-from src.shared.application.transaction import Transaction
 from src.shared.dependencies import DBSession, TransactionDep
-from src.shared.domain.exceptions import NotFoundError
-from src.shared.domain.repos import get_or_raise_404
 
 LessonCrud = Crud[
     Lesson,
@@ -122,7 +122,7 @@ def get_lesson_crud(
 ) -> LessonCrud:
     return LessonCrud(
         repository=repo,  # pyright: ignore[reportArgumentType]
-        transaction=transaction,
+        dispatcher=transaction,
         to_response=map_to_response,
         create_handler=make_create_handler(repo),
         update_handler=update_handler,

@@ -1,7 +1,8 @@
 from uuid import UUID
 
+from ddf.domain.models import Entity
+
 from src.shared.application.dtos import Page, Pagination
-from src.shared.domain.entities import Entity
 
 
 class InMemoryRepository[EntityT: Entity]:

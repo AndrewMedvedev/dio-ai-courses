@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, Mock, call
 from uuid import uuid4
 
 import pytest
+from ddf.application.exceptions import NotFoundError
 
 
 @pytest.fixture
@@ -48,7 +49,6 @@ def load_courses(monkeypatch):
     )
     stub("src.courses.dependencies.base", ModuleRepoDep=object, LessonRepoDep=object)
     stub("src.shared.dependencies", TransactionDep=object)
-    stub("src.shared.application.transaction", Transaction=object)
 
     def load(relative, *, submodules=()):
         name = "src." + relative.replace("/", ".")
@@ -72,13 +72,10 @@ def load_courses(monkeypatch):
 
     for relative in (
         "shared/utils/time",
-        "shared/domain/events",
-        "shared/domain/entities",
         "shared/domain/vo",
         "shared/domain/exceptions",
         "shared/application/dtos",
         "shared/application/repos",
-        "shared/application/crud",
         "courses/domain/constants",
         "courses/domain/enums",
         "courses/domain/vo",
@@ -87,9 +84,7 @@ def load_courses(monkeypatch):
         "courses/application/dtos/module",
         "courses/application/dtos/lesson",
     ):
-        load(
-            relative, submodules=("types", "crud") if relative == "shared/application/crud" else ()
-        )
+        load(relative)
     return load
 
 
@@ -151,7 +146,7 @@ def subject(request, load_courses):
         create_dto=getattr(dtos, f"Create{name}DTO")(**values),
         update_dto=getattr(dtos, f"Update{name}DTO"),
         response_type=getattr(dtos, f"{name}Response"),
-        not_found=sys.modules["src.shared.domain.exceptions"].NotFoundError,
+        not_found=NotFoundError,
     )
 
 

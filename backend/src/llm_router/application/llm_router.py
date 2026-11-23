@@ -2,6 +2,7 @@ import base64
 import logging
 
 from aiohttp import ClientSession
+from ddf.application.events import EventPublisher
 from langsmith import traceable
 from openai import (
     AsyncOpenAI,
@@ -33,7 +34,6 @@ from src.llm_service.schemas import (
     LLMTextResponse,
 )
 from src.shared.application.dtos import Pagination
-from src.shared.domain.events import EventPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class LLMRouter:
     ) -> None:
         """Публикует событие для асинхронного сохранения мониторинга."""
         try:
-            await self._event_publisher.publish(event)
+            await self._event_publisher([event])
             logger.info(
                 "LLM invocation published",
                 extra={
