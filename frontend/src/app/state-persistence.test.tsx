@@ -12,7 +12,8 @@ import { useState, type ReactElement } from 'react';
 import { EmailRowsField, useEmailRows } from '@/features/invite';
 import { PageLoadBoundary } from '@/app/router';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { apiFetch, requestJson } from '@/shared/api';
+import { apiFetch, attachmentsApi, requestJson } from '@/shared/api';
+import { getMediaUrl, MEDIA_FOLDERS } from '@/shared/lib/media';
 import { fetchModelsPage } from '@/entities/ai-model';
 import {
   getCourseLearningStructure,
@@ -37,6 +38,7 @@ import {
   useTrainingStore,
 } from '@/features/create-course-chat';
 import { CourseCatalog } from '@/widgets/course-catalog';
+import { Breadcrumbs } from '@/widgets/breadcrumbs';
 import { CourseNavigationTree } from '@/entities/course';
 import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 import { Select } from '@/shared/ui/select';
@@ -205,6 +207,144 @@ async function unmount(renderer: ReactTestRenderer) {
   act(() => renderer.unmount());
   await tick();
 }
+
+const mediaUserId = '11111111-1111-4111-8111-111111111111';
+const mediaUploadId = '22222222-2222-4222-8222-222222222222';
+const mediaObjectId = '33333333-3333-4333-8333-333333333333';
+const mediaKey = `course-images/${mediaObjectId}/${mediaUploadId}.png`;
+const mediaStorageUrl = 'https://storage.example.test/media.png';
+
+void test('avatar sends size and SHA-256, confirms by upload id, and saves the returned object path', async (context) => {
+  const file = new File(['abc'], 'avatar.png', { type: 'image/png' });
+  const avatarUrl = getMediaUrl(mediaUserId, MEDIA_FOLDERS.AVATAR, mediaKey);
+  assert.ok(avatarUrl.endsWith(`/${mediaKey}`));
+  assert.ok(
+    getMediaUrl(mediaUserId, MEDIA_FOLDERS.AVATAR, 'old.png').endsWith(
+      `/avatar/${mediaUserId}/old.png`,
+    ),
+  );
+  const absoluteAvatarUrl = new URL(avatarUrl, window.location.origin).href;
+  const { accessToken } = useSessionStore.getState();
+  context.after(() => useSessionStore.setState({ accessToken }));
+  useSessionStore.setState({
+    user: { id: mediaUserId },
+    accessToken: 'mock-only',
+  });
+  responder = (url, options) => {
+    const headers = new Headers(options?.headers);
+    if (url === mediaStorageUrl) {
+      assert.equal(options?.method, 'PUT');
+      assert.equal(options?.body, file);
+      assert.equal(headers.get('Content-Type'), 'image/png');
+      assert.equal(headers.get('X-Upload-Header'), 'mock-value');
+      assert.equal(headers.get('Authorization'), null);
+      assert.equal(options?.credentials, 'omit');
+      return new Response(null, { status: 200 });
+    }
+    assert.equal(headers.get('Authorization'), 'Bearer mock-only');
+    if (url.endsWith('/attachments/presigned-upload')) {
+      assert.equal(options?.method, 'POST');
+      assert.ok(typeof options?.body === 'string');
+      assert.deepEqual(JSON.parse(options.body), {
+        filename: 'avatar.png',
+        folder: 'avatar',
+        content_type: 'image/png',
+        size_bytes: 3,
+        sha256:
+          'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      });
+      return Response.json({
+        id: mediaUploadId,
+        upload: {
+          url: mediaStorageUrl,
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'image/png',
+            'X-Upload-Header': 'mock-value',
+          },
+          expiresIn: 1800,
+        },
+      });
+    }
+    if (url.endsWith(`/attachments/confirm-upload/${mediaUploadId}`)) {
+      assert.equal(options?.method, 'POST');
+      assert.equal(options?.body, undefined);
+      return Response.json(
+        { id: mediaObjectId, storage_key: mediaKey },
+        { status: 201 },
+      );
+    }
+    assert.ok(url.endsWith('/users/me'));
+    if (options?.method === 'PATCH') {
+      assert.ok(typeof options.body === 'string');
+      assert.deepEqual(JSON.parse(options.body), {
+        avatarUrl: absoluteAvatarUrl,
+      });
+    }
+    return Response.json({ id: mediaUserId, avatarUrl: absoluteAvatarUrl });
+  };
+
+  const user = await useSessionStore.getState().uploadAvatar(file);
+  assert.equal(user.avatarUrl, avatarUrl);
+  const reloadedUser = await useSessionStore.getState().loadCurrentUser();
+  assert.equal(reloadedUser?.avatarUrl, avatarUrl);
+  assert.deepEqual(calls, [
+    '/api/v1/attachments/presigned-upload',
+    mediaStorageUrl,
+    `/api/v1/attachments/confirm-upload/${mediaUploadId}`,
+    '/api/v1/users/me',
+    '/api/v1/users/me',
+  ]);
+});
+
+void test('a rejected storage upload uses the file MIME fallback and skips confirmation', async () => {
+  const file = new File(['image'], 'picture.png', { type: 'image/png' });
+  responder = (url, options) => {
+    if (url === mediaStorageUrl) {
+      assert.equal(
+        new Headers(options?.headers).get('Content-Type'),
+        'image/png',
+      );
+      return new Response(null, { status: 403 });
+    }
+    assert.ok(url.endsWith('/attachments/presigned-upload'));
+    return Response.json({
+      id: mediaUploadId,
+      upload: { url: mediaStorageUrl, method: 'PUT', headers: {} },
+    });
+  };
+  await assert.rejects(
+    attachmentsApi.uploadAttachment(
+      file,
+      MEDIA_FOLDERS.COURSE_IMAGES,
+      mediaUserId,
+    ),
+    { code: 'STORAGE_PUT_403' },
+  );
+  assert.equal(calls.length, 2);
+});
+
+void test('attachment metadata and links use Bearer, and storage download omits credentials', async () => {
+  responder = (url, options) => {
+    const headers = new Headers(options?.headers);
+    if (url === mediaStorageUrl) {
+      assert.equal(headers.get('Authorization'), null);
+      assert.equal(options?.credentials, 'omit');
+      return new Response('image bytes');
+    }
+    assert.equal(headers.get('Authorization'), 'Bearer mock-only');
+    if (url.endsWith(`/attachments/${mediaObjectId}/presigned-download`)) {
+      return Response.json({ download_url: mediaStorageUrl });
+    }
+    assert.ok(url.endsWith(`/attachments/${mediaObjectId}`));
+    return Response.json({ id: mediaObjectId, storage_key: mediaKey });
+  };
+
+  const attachment = await attachmentsApi.getAttachment(mediaObjectId);
+  const blob = await attachmentsApi.fetchAttachmentBlob(mediaObjectId);
+  assert.equal(attachment.storage_key, mediaKey);
+  assert.equal(await blob.text(), 'image bytes');
+});
 
 void test('practice: draft, result and AI feedback survive remount and storage hydration without new POST', async () => {
   let page = await render(
@@ -622,6 +762,24 @@ void test('catalog restores filters from the URL without changing API calls', as
   assert.equal(page.root.findAllByType(Select)[1].props.value, 'python');
   assert.equal(calls.length, 0);
   await unmount(page);
+});
+
+void test('organization and model breadcrumbs show the current section name', async () => {
+  for (const [path, label] of [
+    ['/organizations', 'Организации'],
+    ['/models', 'AI-модели'],
+  ]) {
+    const page = await render(
+      <MemoryRouter initialEntries={[path]}>
+        <Breadcrumbs />
+      </MemoryRouter>,
+    );
+    assert.deepEqual(
+      page.root.findByProps({ 'aria-current': 'page' }).children,
+      [label],
+    );
+    await unmount(page);
+  }
 });
 
 void test('training tree shares scoped lesson tabs and keeps other accounts separate', async () => {

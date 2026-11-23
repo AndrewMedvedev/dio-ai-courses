@@ -330,7 +330,7 @@ export function CourseInviteDialog({
 
   return createPortal(
     <div
-      className="course-invite-backdrop tw:fixed tw:z-[1000] tw:inset-[0] tw:grid tw:p-[min(10vh,_96px)_16px_24px] tw:overflow-y-auto tw:[--invite-bg:rgba(250,_247,_241,_0.97)] tw:[--invite-row:rgba(255,_255,_255,_0.55)] tw:[--invite-border:rgba(43,_43,_43,_0.12)] tw:[place-items:start_center] tw:max-640:p-[0] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:animate-course-invite-fade tw:dark:[--invite-bg:rgba(40,_40,_40,_0.97)] tw:dark:[--invite-row:rgba(233,_222,_203,_0.05)] tw:dark:[--invite-border:rgba(233,_222,_203,_0.16)] tw:max-640:[place-items:end_stretch] tw:dark:[background:rgba(8,_9,_12,_0.66)] tw:motion-reduce:animate-none"
+      className="course-invite-backdrop tw:fixed tw:grid-cols-[minmax(0,1fr)] tw:z-[1000] tw:inset-[0] tw:grid tw:p-[min(10vh,_96px)_16px_24px] tw:overflow-y-auto tw:[--invite-bg:rgba(250,_247,_241,_0.97)] tw:[--invite-row:rgba(255,_255,_255,_0.55)] tw:[--invite-border:rgba(43,_43,_43,_0.12)] tw:[place-items:start_center] tw:max-640:p-[0] tw:[background:rgba(16,_18,_24,_0.55)] tw:[-webkit-backdrop-filter:blur(6px)] tw:[backdrop-filter:blur(6px)] tw:animate-course-invite-fade tw:dark:[--invite-bg:rgba(40,_40,_40,_0.97)] tw:dark:[--invite-row:rgba(233,_222,_203,_0.05)] tw:dark:[--invite-border:rgba(233,_222,_203,_0.16)] tw:max-640:[place-items:end_stretch] tw:dark:[background:rgba(8,_9,_12,_0.66)] tw:motion-reduce:animate-none"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !isSending) onClose();
@@ -398,7 +398,7 @@ export function CourseInviteDialog({
         ) : null}
 
         {tab === 'invite' ? (
-          <div className="course-invite-body tw:grid tw:gap-[22px] tw:p-[22px_32px] tw:overflow-y-auto tw:max-640:px-[16px] tw:[overscroll-behavior:contain]">
+          <div className="course-invite-body tw:grid tw:grid-cols-[minmax(0,1fr)] tw:gap-[22px] tw:p-[22px_32px] tw:overflow-y-auto tw:max-640:px-[16px] tw:[overscroll-behavior:contain]">
             <EmailRowsField
               id={inputId}
               inputRef={inputRef}
@@ -407,7 +407,7 @@ export function CourseInviteDialog({
             />
 
             <fieldset
-              className="course-invite-roles tw:grid tw:grid-cols-[repeat(3,_minmax(0,_1fr))] tw:gap-[10px] tw:m-[0] tw:p-[0] tw:min-w-[0] tw:max-640:grid-cols-[1fr] tw:[border:0]"
+              className="course-invite-roles tw:grid tw:grid-cols-[repeat(3,_minmax(0,_1fr))] tw:gap-[10px] tw:m-[0] tw:p-[0] tw:min-w-[0] tw:max-640:grid-cols-[minmax(0,1fr)] tw:[border:0]"
               disabled={isSending}
             >
               <legend className="tw:p-[0] tw:text-(--text) tw:text-[1rem] tw:font-[800] tw:mb-[8px]">
@@ -435,7 +435,7 @@ export function CourseInviteDialog({
             </fieldset>
           </div>
         ) : (
-          <div className="course-invite-body tw:grid tw:gap-[22px] tw:p-[22px_32px] tw:overflow-y-auto tw:max-640:px-[16px] tw:[overscroll-behavior:contain]">
+          <div className="course-invite-body tw:grid tw:grid-cols-[minmax(0,1fr)] tw:gap-[22px] tw:p-[22px_32px] tw:overflow-y-auto tw:max-640:px-[16px] tw:[overscroll-behavior:contain]">
             {revokeError ? (
               <p
                 className="course-invite-error tw:m-[0] tw:text-[0.92rem] tw:leading-[1.5] tw:text-[#b8443c] tw:dark:[.page_&]:text-[#f0978f]"
@@ -593,7 +593,7 @@ export function CourseInviteDialog({
         )}
 
         {tab === 'invite' ? (
-          <footer className="course-invite-foot tw:flex tw:items-center tw:justify-end tw:gap-[12px] tw:p-[18px_32px_26px] tw:max-640:px-[16px] tw:[border-top:1px_solid_var(--invite-border)] tw:[&_.btn]:p-[13px_24px] tw:max-640:[&_.btn]:p-[12px_18px] tw:[&_.btn]:text-[1.02rem] tw:[&_.btn:disabled]:opacity-[0.55] tw:[&_.btn:disabled]:cursor-default tw:[&_.btn:disabled]:[transform:none] tw:max-640:[&_.btn]:whitespace-nowrap">
+          <footer className="course-invite-foot tw:flex tw:max-480:flex-wrap tw:items-center tw:justify-end tw:gap-[12px] tw:p-[18px_32px_26px] tw:max-640:px-[16px] tw:[border-top:1px_solid_var(--invite-border)] tw:[&_.btn]:p-[13px_24px] tw:max-640:[&_.btn]:p-[12px_18px] tw:[&_.btn]:text-[1.02rem] tw:[&_.btn:disabled]:opacity-[0.55] tw:[&_.btn:disabled]:cursor-default tw:[&_.btn:disabled]:[transform:none] tw:max-640:[&_.btn]:whitespace-nowrap">
             <span
               className="course-invite-summary tw:mr-[auto] tw:text-(--muted) tw:text-[0.95rem] tw:max-640:hidden"
               aria-live="polite"

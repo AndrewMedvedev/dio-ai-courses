@@ -21,8 +21,35 @@ export function getMediaId(value: unknown): string {
   if (UUID_RE.test(source)) return source;
 
   const withoutQuery = source.split(/[?#]/)[0] || '';
-  const filename = withoutQuery.split('/').filter(Boolean).pop() || '';
-  return filename;
+  const parts = withoutQuery.split('/').filter(Boolean);
+  const [folder, ownerId, filename] = parts.slice(-3);
+  if (
+    (folder === MEDIA_FOLDERS.AVATAR ||
+      folder === MEDIA_FOLDERS.COURSE_IMAGES) &&
+    UUID_RE.test(ownerId) &&
+    filename &&
+    filename !== '.' &&
+    filename !== '..'
+  ) {
+    if (/^https?:\/\//i.test(source)) {
+      try {
+        const storageName = decodeURIComponent(filename);
+        if (
+          storageName &&
+          !/[/?#]/.test(storageName) &&
+          storageName !== '.' &&
+          storageName !== '..'
+        ) {
+          return `${folder}/${ownerId}/${storageName}`;
+        }
+      } catch {
+        return filename;
+      }
+    } else {
+      return `${folder}/${ownerId}/${filename}`;
+    }
+  }
+  return parts.at(-1) || '';
 }
 
 export function getMediaUrl(
@@ -35,6 +62,10 @@ export function getMediaUrl(
     .trim()
     .replace(/^\/+|\/+$/g, '');
   const normalizedImageId = getMediaId(imageId);
+  const storagePath = normalizedImageId.split('/');
+  if (storagePath.length === 3) {
+    return `${MEDIA_BASE_URL}/${storagePath.map(encodeURIComponent).join('/')}`;
+  }
 
   if (!normalizedUserId || !normalizedFolder || !normalizedImageId) return '';
 

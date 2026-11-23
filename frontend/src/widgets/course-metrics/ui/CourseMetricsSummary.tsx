@@ -223,40 +223,50 @@ export function CourseMetricsSummary({
             </p>
           ) : (
             <div className="cm-table-scroll tw:overflow-x-auto">
-              <table className="cm-table tw:w-[100%] tw:min-w-[520px] tw:text-[0.92rem] tw:[border-collapse:collapse]">
-                <thead>
-                  <tr>
+              <table
+                className="cm-table tw:w-[100%] tw:min-w-[520px] tw:text-[0.92rem] tw:[border-collapse:collapse] tw:max-760:block tw:max-760:min-w-0"
+                role="table"
+              >
+                <thead className="tw:max-760:sr-only" role="rowgroup">
+                  <tr role="row">
                     <th
                       className="tw:p-[8px_6px] tw:text-(--muted) tw:text-[0.74rem] tw:font-[800] tw:tracking-[0.05em] tw:text-left tw:uppercase tw:[border-bottom:1px_solid_var(--cm-line)]"
                       scope="col"
+                      role="columnheader"
                     >
                       Студент
                     </th>
                     <th
                       className="tw:p-[8px_6px] tw:text-(--muted) tw:text-[0.74rem] tw:font-[800] tw:tracking-[0.05em] tw:text-left tw:uppercase tw:[border-bottom:1px_solid_var(--cm-line)]"
                       scope="col"
+                      role="columnheader"
                     >
                       Прогресс курса
                     </th>
                     <th
                       className="tw:p-[8px_6px] tw:text-(--muted) tw:text-[0.74rem] tw:font-[800] tw:tracking-[0.05em] tw:text-left tw:uppercase tw:[border-bottom:1px_solid_var(--cm-line)]"
                       scope="col"
+                      role="columnheader"
                     >
                       Статус
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="tw:max-760:block" role="rowgroup">
                   {rows.map((row) => (
                     <tr
                       key={row.key}
-                      className="is-clickable tw:cursor-pointer"
+                      className="is-clickable tw:cursor-pointer tw:max-760:grid tw:max-760:grid-cols-[minmax(0,1fr)] tw:max-760:gap-[4px] tw:max-760:border-0 tw:max-760:border-b tw:max-760:border-solid tw:max-760:border-(--cm-line) tw:max-760:py-[8px] tw:max-760:last:border-b-0"
+                      role="row"
                       onClick={() => onOpenStudent?.(row.userId)}
                     >
-                      <td className="tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0] tw:[.cm-table_tr.is-clickable:hover_&]:[background:rgba(var(--accent-rgb),_0.1)]">
+                      <td
+                        role="cell"
+                        className="tw:max-760:min-w-0 tw:max-760:border-b-0! tw:max-760:p-[4px_0] tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0] tw:[.cm-table_tr.is-clickable:hover_&]:[background:rgba(var(--accent-rgb),_0.1)]"
+                      >
                         <button
                           type="button"
-                          className="cm-person tw:flex tw:items-center tw:gap-[10px] tw:p-[0] tw:text-[inherit] tw:text-left tw:cursor-pointer tw:[border:0] tw:[background:none] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45]"
+                          className="cm-person tw:flex tw:max-w-full tw:items-center tw:gap-[10px] tw:p-[0] tw:text-[inherit] tw:text-left tw:cursor-pointer tw:[border:0] tw:[background:none] tw:[font:inherit] tw:[&&]:text-[0.96rem] tw:[&&]:leading-[1.45]"
                           onClick={(event) => {
                             event.stopPropagation();
                             onOpenStudent?.(row.userId);
@@ -272,7 +282,7 @@ export function CourseMetricsSummary({
                               getInitials(row.name)
                             )}
                           </span>
-                          <span className="cm-person-text tw:flex tw:flex-col tw:min-w-[0]">
+                          <span className="cm-person-text tw:flex tw:flex-col tw:min-w-[0] tw:wrap-anywhere">
                             <strong className="tw:text-(--heading)">
                               {row.name}
                             </strong>
@@ -284,7 +294,16 @@ export function CourseMetricsSummary({
                           </span>
                         </button>
                       </td>
-                      <td className="tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0] tw:[.cm-table_tr.is-clickable:hover_&]:[background:rgba(var(--accent-rgb),_0.1)]">
+                      <td
+                        role="cell"
+                        className="tw:max-760:min-w-0 tw:max-760:border-b-0! tw:max-760:p-[4px_0] tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0] tw:[.cm-table_tr.is-clickable:hover_&]:[background:rgba(var(--accent-rgb),_0.1)]"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="tw:hidden tw:max-760:block tw:text-[12px] tw:font-bold tw:text-(--muted)"
+                        >
+                          Прогресс курса
+                        </span>
                         <div className="cm-meter tw:flex tw:items-center tw:gap-[10px]">
                           <div
                             className="cm-bar tw:flex-[1_1_140px] tw:h-[8px] tw:overflow-hidden tw:rounded-[99px] tw:[background:var(--cm-neutral-bg)]"
@@ -304,7 +323,16 @@ export function CourseMetricsSummary({
                           </b>
                         </div>
                       </td>
-                      <td className="tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0] tw:[.cm-table_tr.is-clickable:hover_&]:[background:rgba(var(--accent-rgb),_0.1)]">
+                      <td
+                        role="cell"
+                        className="tw:max-760:min-w-0 tw:max-760:border-b-0! tw:max-760:p-[4px_0] tw:p-[10px_6px] tw:text-(--text) tw:align-middle tw:[border-bottom:1px_solid_var(--cm-line)] tw:[.cm-table_tr:last-child_&]:[border-bottom:0] tw:[.cm-table_tr.is-clickable:hover_&]:[background:rgba(var(--accent-rgb),_0.1)]"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="tw:hidden tw:max-760:block tw:text-[12px] tw:font-bold tw:text-(--muted)"
+                        >
+                          Статус
+                        </span>
                         <span
                           className={`cm-pill tw:inline-block tw:p-[3px_10px] tw:rounded-[99px] tw:text-[0.76rem] tw:font-[800] tw:whitespace-nowrap tw:[&.is-good]:text-(--cm-good-ink) tw:[&.is-warning]:text-(--cm-warn-ink) tw:[&.is-neutral]:text-(--muted) tw:[&.is-good]:[background:var(--cm-good-bg)] tw:[&.is-warning]:[background:var(--cm-warn-bg)] tw:[&.is-neutral]:[background:var(--cm-neutral-bg)] ${row.status.tone}`}
                         >

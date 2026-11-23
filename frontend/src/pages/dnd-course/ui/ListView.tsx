@@ -73,7 +73,7 @@ function LessonRow({
   const { requestDelete } = useDndActions();
   return (
     <li
-      className={`dnd-list-row tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:flex tw:items-center tw:gap-[10px] tw:min-h-[52px] tw:p-[6px_8px_6px_10px] tw:rounded-[12px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:max-767:flex-wrap tw:[&.is-pending]:opacity-[0.7] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${pending ? 'is-pending' : ''}`}
+      className={`dnd-list-row tw:text-[1rem] tw:max-480:flex-wrap tw:leading-[1.72] tw:tracking-[0.012em] tw:flex tw:items-center tw:gap-[10px] tw:min-h-[52px] tw:p-[6px_8px_6px_10px] tw:rounded-[12px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-node)] tw:max-767:flex-wrap tw:[&.is-pending]:opacity-[0.7] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] ${pending ? 'is-pending' : ''}`}
     >
       {!moduleId ? (
         <input
@@ -192,12 +192,12 @@ export function ListView() {
     .filter((id) => !assigned.has(id));
 
   return (
-    <div className="dnd-list nowheel tw:absolute tw:inset-[0] tw:overflow-y-auto tw:p-[14px] tw:grid tw:gap-[14px] tw:[align-content:start] tw:[background:var(--dnd-canvas)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+    <div className="dnd-list nowheel tw:absolute tw:grid-cols-[minmax(0,1fr)] tw:max-480:p-[8px] tw:inset-[0] tw:overflow-y-auto tw:p-[14px] tw:grid tw:gap-[14px] tw:[align-content:start] tw:[background:var(--dnd-canvas)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
       <section
-        className="dnd-list-section tw:grid tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+        className="dnd-list-section tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:max-480:p-[10px] tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
         aria-labelledby="dnd-list-materials"
       >
-        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:max-480:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <h2
             className="tw:leading-[1.28] tw:tracking-[-0.016em] tw:flex tw:items-center tw:gap-[8px] tw:font-[800] tw:[&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
             id="dnd-list-materials"
@@ -225,7 +225,7 @@ export function ListView() {
               return (
                 <li
                   key={material.id}
-                  className={`dnd-list-row tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:flex tw:items-center tw:gap-[10px] tw:min-h-[52px] tw:p-[6px_8px_6px_10px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[&.is-error]:border-(--dnd-error) tw:[background:var(--dnd-node)] tw:max-767:flex-wrap tw:[&.is-pending]:opacity-[0.7] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] is-${status}`}
+                  className={`dnd-list-row tw:text-[1rem] tw:max-480:flex-wrap tw:leading-[1.72] tw:tracking-[0.012em] tw:flex tw:items-center tw:gap-[10px] tw:min-h-[52px] tw:p-[6px_8px_6px_10px] tw:rounded-[12px] tw:border-solid tw:border-(--dnd-border) tw:[border-width:1px] tw:[&.is-error]:border-(--dnd-error) tw:[background:var(--dnd-node)] tw:max-767:flex-wrap tw:[&.is-pending]:opacity-[0.7] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit] is-${status}`}
                 >
                   <input
                     className="tw:text-[0.96rem] tw:leading-[1.45] tw:w-[18px] tw:h-[18px] tw:flex-[none] tw:accent-(--dnd-accent-ink) tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
@@ -297,7 +297,7 @@ export function ListView() {
           </p>
         )}
         {selectedMaterials.length ? (
-          <div className="dnd-list-toolbar tw:[.page_.dnd-builder_&]:sticky tw:[.page_.dnd-builder_&]:bottom-[0] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[10px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:font-[650] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)] tw:[.page_.dnd-builder_&_span]:flex-[1]">
+          <div className="dnd-list-toolbar tw:max-480:flex-wrap tw:[.page_.dnd-builder_&]:sticky tw:[.page_.dnd-builder_&]:bottom-[0] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[10px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:font-[650] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)] tw:[.page_.dnd-builder_&_span]:flex-[1]">
             <span>
               Выбрано: {countLabel(selectedMaterials.length, WORDS.material)}
             </span>
@@ -323,10 +323,10 @@ export function ListView() {
       </section>
 
       <section
-        className="dnd-list-section tw:grid tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+        className="dnd-list-section tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:max-480:p-[10px] tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
         aria-labelledby="dnd-list-free"
       >
-        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:max-480:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <h2
             className="tw:leading-[1.28] tw:tracking-[-0.016em] tw:flex tw:items-center tw:gap-[8px] tw:font-[800] tw:[&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
             id="dnd-list-free"
@@ -355,7 +355,7 @@ export function ListView() {
           </p>
         )}
         {selectedLessons.length ? (
-          <div className="dnd-list-toolbar tw:[.page_.dnd-builder_&]:sticky tw:[.page_.dnd-builder_&]:bottom-[0] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[10px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:font-[650] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)] tw:[.page_.dnd-builder_&_span]:flex-[1]">
+          <div className="dnd-list-toolbar tw:max-480:flex-wrap tw:[.page_.dnd-builder_&]:sticky tw:[.page_.dnd-builder_&]:bottom-[0] tw:[.page_.dnd-builder_&]:flex tw:[.page_.dnd-builder_&]:items-center tw:[.page_.dnd-builder_&]:flex-wrap tw:[.page_.dnd-builder_&]:gap-[8px] tw:[.page_.dnd-builder_&]:p-[10px] tw:[.page_.dnd-builder_&]:rounded-[12px] tw:[.page_.dnd-builder_&]:text-[0.84rem] tw:[.page_.dnd-builder_&]:font-[650] tw:[.page_.dnd-builder_&]:[background:var(--dnd-info-bg)] tw:[.page_.dnd-builder_&_span]:flex-[1]">
             <span>
               Выбрано: {countLabel(selectedLessons.length, WORDS.lesson)}
             </span>
@@ -371,10 +371,10 @@ export function ListView() {
       </section>
 
       <section
-        className="dnd-list-section tw:grid tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+        className="dnd-list-section tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:max-480:p-[10px] tw:gap-[10px] tw:p-[14px] tw:rounded-[16px] tw:[border:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
         aria-labelledby="dnd-list-modules"
       >
-        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+        <header className="tw:flex tw:items-center tw:justify-between tw:gap-[8px] tw:max-480:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
           <h2
             className="tw:leading-[1.28] tw:tracking-[-0.016em] tw:flex tw:items-center tw:gap-[8px] tw:font-[800] tw:[&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.98rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
             id="dnd-list-modules"
@@ -392,7 +392,7 @@ export function ListView() {
                 key={module.id}
                 className="dnd-list-module tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em] tw:grid tw:gap-[6px] tw:p-[10px] tw:rounded-[14px] tw:[border:1.5px_dashed_var(--dnd-border-strong)] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:text-[length:inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]"
               >
-                <div className="dnd-list-module-head tw:flex tw:items-center tw:gap-[10px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
+                <div className="dnd-list-module-head tw:flex tw:max-480:flex-wrap tw:items-center tw:gap-[10px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                   <span className="dnd-order-num tw:inline-grid tw:min-w-[24px] tw:h-[24px] tw:p-[0_4px] tw:rounded-[7px] tw:text-(--dnd-muted) tw:text-[0.74rem] tw:font-[800] tw:[place-items:center] tw:[background:var(--dnd-panel-2)] tw:[font-variant-numeric:tabular-nums] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
                     {index + 1}
                   </span>

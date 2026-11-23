@@ -54,7 +54,7 @@ export function EmailRowsField({
 
   return (
     <>
-      <div className="course-invite-field tw:grid tw:gap-[8px]">
+      <div className="course-invite-field tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-[8px]">
         <label
           className="tw:p-[0] tw:text-(--text) tw:text-[1rem] tw:font-[800]"
           htmlFor={id}
@@ -62,10 +62,10 @@ export function EmailRowsField({
           Email
         </label>
         <div
-          className={`course-invite-input tw:flex tw:items-center tw:gap-[8px] tw:p-[7px_7px_7px_20px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:[border-width:1px] tw:focus-within:border-[rgba(var(--accent-rgb),_0.85)] tw:[&.has-error]:border-[#c7524a] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease] tw:focus-within:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.18)] ${draftError ? 'has-error' : ''}`}
+          className={`course-invite-input tw:flex tw:max-480:flex-col tw:max-480:items-stretch tw:max-480:p-[8px_10px] tw:items-center tw:gap-[8px] tw:p-[7px_7px_7px_20px] tw:border-solid tw:border-(--invite-border) tw:rounded-[999px] tw:[border-width:1px] tw:focus-within:border-[rgba(var(--accent-rgb),_0.85)] tw:[&.has-error]:border-[#c7524a] tw:[background:var(--invite-row)] tw:[transition:border-color_0.15s_ease] tw:focus-within:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.18)] ${draftError ? 'has-error' : ''}`}
         >
           <input
-            className="tw:flex-[1] tw:min-w-[0] tw:text-(--text) tw:leading-[inherit] tw:text-[1.08rem] tw:[border:0] tw:[outline:0] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit]"
+            className="tw:flex-[1] tw:min-w-[0] tw:max-480:w-full tw:max-480:min-h-[34px] tw:text-(--text) tw:leading-[inherit] tw:text-[1.08rem] tw:[border:0] tw:[outline:0] tw:[background:transparent] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit]"
             ref={inputRef}
             id={id}
             type="text"
@@ -107,7 +107,7 @@ export function EmailRowsField({
           />
           <button
             type="button"
-            className="course-invite-add tw:flex-[none] tw:rounded-[999px] tw:p-[10px_18px] tw:text-(--ink-accent) tw:text-[0.98rem] tw:font-[700] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.7)] tw:[background:rgba(var(--accent-rgb),_0.16)] tw:disabled:cursor-default tw:disabled:opacity-[0.45]"
+            className="course-invite-add tw:flex-[none] tw:max-480:self-end tw:rounded-[999px] tw:p-[10px_18px] tw:text-(--ink-accent) tw:text-[0.98rem] tw:font-[700] tw:cursor-pointer tw:[border:1px_solid_rgba(var(--accent-rgb),_0.7)] tw:[background:rgba(var(--accent-rgb),_0.16)] tw:disabled:cursor-default tw:disabled:opacity-[0.45]"
             onClick={() => addEmails(draft)}
             disabled={!draft.trim() || disabled}
           >

@@ -238,7 +238,7 @@ export function ProfilePage({
     }
   }
   const panel =
-    'tw:rounded-[22px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[22px]';
+    'tw:rounded-[22px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[22px] tw:max-480:p-[16px]';
   const button =
     'tw:[font-family:inherit] tw:min-h-[46px] tw:rounded-full tw:border tw:border-solid tw:border-(--line-strong) tw:bg-transparent tw:px-[20px] tw:py-[12px] tw:text-(--text) tw:text-[14px] tw:font-semibold tw:cursor-pointer tw:disabled:opacity-50 tw:disabled:cursor-wait';
   const field =
@@ -251,8 +251,8 @@ export function ProfilePage({
       <h1 className="tw:mb-[24px] tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:pb-[24px] tw:text-[28px] tw:[font-family:Unbounded,sans-serif]">
         Личный кабинет
       </h1>
-      <div className="profile-layout tw:grid tw:grid-cols-[300px_minmax(0,1fr)] tw:items-start tw:gap-[14px] tw:max-1100:grid-cols-1">
-        <aside className="profile-sidebar tw:grid tw:gap-[14px]">
+      <div className="profile-layout tw:grid tw:grid-cols-[300px_minmax(0,1fr)] tw:items-start tw:gap-[14px] tw:max-1100:grid-cols-[minmax(0,1fr)]">
+        <aside className="profile-sidebar tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-[14px]">
           <article className={`${panel} profile-user-card`}>
             {avatarUrl ? (
               <img
@@ -265,10 +265,10 @@ export function ProfilePage({
                 {getInitials(displayName)}
               </span>
             )}
-            <h2 className="tw:mt-[18px] tw:text-[22px] tw:wrap-anywhere tw:[font-family:Unbounded,sans-serif]">
+            <h2 className="tw:mt-[18px] tw:text-[22px] tw:wrap-anywhere tw:max-480:text-[18px] tw:[font-family:Unbounded,sans-serif]">
               {displayName}
             </h2>
-            <p className="tw:mt-[14px] tw:mb-[12px] tw:wrap-anywhere tw:text-(--muted)">
+            <p className="tw:mt-[14px] tw:mb-[12px] tw:wrap-anywhere tw:max-480:text-[14px] tw:text-(--muted)">
               {email || 'Данные аккаунта загружаются...'}
             </p>
             {username && (
@@ -316,7 +316,7 @@ export function ProfilePage({
                 <button
                   data-help="profile-edit"
                   type="button"
-                  className={`${button} tw:shrink-0`}
+                  className={`${button} tw:shrink-0 tw:max-w-full tw:whitespace-normal tw:text-center`}
                   onClick={() => {
                     setEditing(true);
                     setNotice('');
@@ -367,11 +367,26 @@ export function ProfilePage({
                       accept="image/png,image/jpeg,image/webp"
                       onChange={selectAvatar}
                       disabled={saving}
-                      className="tw:w-full tw:min-w-0 tw:max-w-full tw:text-(--muted)"
+                      className="tw:peer tw:sr-only"
+                      aria-label="Выбрать файл аватара"
+                      aria-describedby="profile-avatar-hint"
                       aria-invalid={Boolean(fieldErrors.avatar)}
                     />
+                    <span
+                      className={`${button} tw:justify-self-start tw:inline-flex tw:max-w-full tw:items-center tw:justify-center tw:whitespace-normal tw:text-center tw:peer-focus-visible:outline-2 tw:peer-focus-visible:outline-offset-2 tw:peer-focus-visible:outline-(--cta) tw:peer-disabled:opacity-50`}
+                    >
+                      Выбрать файл
+                    </span>
+                    {avatarFile && (
+                      <span className="tw:wrap-anywhere tw:text-(--muted)">
+                        {avatarFile.name}
+                      </span>
+                    )}
                   </label>
-                  <p className="tw:text-[12px] tw:leading-[1.7] tw:text-(--muted)">
+                  <p
+                    id="profile-avatar-hint"
+                    className="tw:text-[12px] tw:leading-[1.7] tw:text-(--muted)"
+                  >
                     PNG, JPEG или WebP до 15 МБ.
                   </p>
                   {fieldErrors.avatar && (

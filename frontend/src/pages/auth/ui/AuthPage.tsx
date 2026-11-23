@@ -173,19 +173,13 @@ function ExistingAuthPage({ mode = 'login' }: { mode?: AuthMode }) {
   };
 
   return (
-    <section
-      className={`container section auth-view tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-h-[650px] tw:grid tw:items-center tw:max-760:min-h-[auto] tw:max-760:pt-[24px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)] tw:[&.auth-view-organization_.auth-layout]:grid-cols-[minmax(0,_0.95fr)_minmax(400px,_480px)] tw:[&.auth-view-organization_.auth-layout]:gap-[72px] ${loginStep === 'organization' ? 'auth-view-organization' : ''}`}
-    >
-      <div className="auth-layout tw:w-[min(1120px,_100%)] tw:m-[0_auto] tw:grid tw:grid-cols-[minmax(0,_1fr)_minmax(400px,_480px)] tw:gap-[64px] tw:items-center tw:max-1100:grid-cols-[1fr] tw:[.auth-view-organization_&]:grid-cols-[minmax(0,_0.95fr)_minmax(400px,_480px)] tw:max-1100:gap-[28px] tw:max-760:gap-[22px] tw:[.auth-view-organization_&]:gap-[72px]">
+    <section className="container section auth-view tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-h-[650px] tw:grid tw:items-center tw:max-760:min-h-[auto] tw:max-760:pt-[24px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
+      <div
+        className={`auth-layout tw:w-[min(1120px,_100%)] tw:m-[0_auto] tw:grid tw:items-center tw:max-1100:grid-cols-[1fr] tw:max-1100:gap-[28px] tw:max-760:gap-[22px] ${loginStep === 'organization' ? 'tw:grid-cols-[minmax(0,_0.95fr)_minmax(400px,_480px)] tw:gap-[72px]' : 'tw:grid-cols-[minmax(0,_1fr)_minmax(400px,_480px)] tw:gap-[64px]'}`}
+      >
         <div className="auth-intro tw:max-w-[540px] tw:min-w-[0] tw:max-1100:max-w-[620px]">
           <span className="section-top-label">AI Course Lab</span>
-          <h1
-            className={`tw:max-w-[100%] tw:m-[14px_0_16px] tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:wrap-anywhere tw:tracking-[-0.025em] tw:[font-family:'Unbounded',_sans-serif] tw:[.auth-intro_&.auth-login-title]:whitespace-nowrap ${
-              (isRegister || loginStep === 'organization'
-                ? undefined
-                : 'auth-login-title') ?? ''
-            }`}
-          >
+          <h1 className="tw:max-w-[100%] tw:m-[14px_0_16px] tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:wrap-anywhere tw:tracking-[-0.025em] tw:[font-family:'Unbounded',_sans-serif]">
             {isRegister
               ? 'Создайте учебный профиль'
               : loginStep === 'organization'
@@ -223,7 +217,7 @@ function ExistingAuthPage({ mode = 'login' }: { mode?: AuthMode }) {
 
           {isRegister ? (
             <div className="auth-form tw:grid tw:gap-[18px] tw:mt-[24px]">
-              <p className="auth-notice tw:m-[14px_0_0] tw:p-[12px_14px] tw:rounded-[10px] tw:text-[#7a1b12] tw:text-[1rem] tw:font-[800] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_solid_#b42318] tw:[background:rgba(180,_35,_24,_0.12)] tw:[box-shadow:0_8px_22px_rgba(180,_35,_24,_0.12)]">
+              <p className="auth-notice tw:m-[14px_0_0] tw:dark:text-[#ffada3] tw:p-[12px_14px] tw:rounded-[10px] tw:text-[#7a1b12] tw:text-[1rem] tw:font-[800] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_solid_#b42318] tw:[background:rgba(180,_35,_24,_0.12)] tw:[box-shadow:0_8px_22px_rgba(180,_35,_24,_0.12)]">
                 Регистрация пока не подключена.
               </p>
               <Link

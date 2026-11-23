@@ -169,7 +169,7 @@ export function TrainingLesson({
           <button
             type="button"
             onClick={onBack}
-            className="tw:border-0 tw:bg-transparent tw:text-(--text) tw:cursor-pointer"
+            className="tw:inline-flex tw:min-h-[44px] tw:max-w-full tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[12px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--text) tw:[font-family:inherit] tw:cursor-pointer tw:focus-visible:outline-2 tw:focus-visible:outline-(--cta)"
           >
             К учебному чату
           </button>
@@ -178,7 +178,7 @@ export function TrainingLesson({
             onClick={onFinish}
             data-training-finish
             data-help-exit
-            className="tw:border-0 tw:bg-transparent tw:text-(--text) tw:cursor-pointer"
+            className="tw:inline-flex tw:min-h-[44px] tw:max-w-full tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[12px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--text) tw:[font-family:inherit] tw:cursor-pointer tw:focus-visible:outline-2 tw:focus-visible:outline-(--cta)"
           >
             Завершить знакомство
           </button>
