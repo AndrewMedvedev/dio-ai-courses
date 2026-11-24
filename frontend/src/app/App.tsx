@@ -52,8 +52,6 @@ import {
   moveItem,
   upsertLesson,
   upsertModule,
-  getCourseProgress,
-  getOverallProgress,
   forgetLessonTheory,
   type BlockNode,
   type CourseNode,
@@ -215,9 +213,7 @@ function AppContent() {
       window.removeEventListener('local-state-save-error', onStorageError);
   }, []);
   const location = useLocation();
-  const needsCourseCatalog = ['/courses', '/profile'].includes(
-    location.pathname,
-  );
+  const needsCourseCatalog = location.pathname === '/courses';
   const isLanding = location.pathname === '/';
   useEffect(() => {
     if (isLanding) setNavigationCollapsed(true);
@@ -443,8 +439,7 @@ function AppContent() {
 
     if (
       !canViewCourseInfo ||
-      (!location.pathname.startsWith('/course/') &&
-        location.pathname !== '/profile') ||
+      !location.pathname.startsWith('/course/') ||
       !selectedCourseId ||
       hasLoadedBlocks ||
       (courseFromState && loadedCourseDetailsRef.current.has(selectedCourseId))
@@ -734,24 +729,6 @@ function AppContent() {
       });
   }, [canViewCourseInfo, location.pathname, selectedCourse, selectedLessonId]);
 
-  const {
-    totalLessonsCount,
-    totalPracticesCount,
-    completedLessonsCount,
-    completedPracticesCount,
-    overallProgressPercent,
-  } = getOverallProgress(editableCourses, completedLessons, completedPractices);
-  const profileActiveCourse = selectedCourse || editableCourses[0];
-  const {
-    total: profileActiveCourseTotal,
-    completed: profileActiveCourseCompleted,
-    progress: profileActiveCourseProgress,
-  } = getCourseProgress(
-    profileActiveCourse,
-    completedLessons,
-    completedPractices,
-  );
-
   useEffect(() => {
     if (location.pathname.includes('/edit') && canUpdateCourse) {
       setIsCourseEditMode(true);
@@ -766,10 +743,6 @@ function AppContent() {
       setIsCourseEditMode(false);
     }
   }, [canUpdateCourse, isCourseEditMode]);
-  const profileUpcomingTopics = profileActiveCourse.blocks
-    .slice(0, 3)
-    .map((block) => block.title);
-
   const openCourses = () => {
     void navigate('/courses');
   };
@@ -922,14 +895,6 @@ function AppContent() {
       }
       return null;
     }
-  };
-
-  const openBlock = async (blockId: string | null | undefined) => {
-    const nextBlock = await loadBlockDetails(blockId);
-    if (!nextBlock) return;
-    void navigate(
-      `/course/${selectedCourse.id}/block/${nextBlock.id || blockId}`,
-    );
   };
 
   const openBlockInEditMode = async (blockId: string) => {
@@ -2084,33 +2049,7 @@ function AppContent() {
                     />
                   }
                 />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProfilePage
-                      profileActiveCourse={profileActiveCourse}
-                      profileActiveCourseProgress={profileActiveCourseProgress}
-                      profileActiveCourseTotal={profileActiveCourseTotal}
-                      profileActiveCourseCompleted={
-                        profileActiveCourseCompleted
-                      }
-                      profileUpcomingTopics={profileUpcomingTopics}
-                      completedLessonsCount={completedLessonsCount}
-                      completedPracticesCount={completedPracticesCount}
-                      overallProgressPercent={overallProgressPercent}
-                      totalContentCount={
-                        totalLessonsCount + totalPracticesCount
-                      }
-                      coursesData={editableCourses}
-                      openCourse={openCourse}
-                      openBlock={openBlock}
-                      openCreator={openCreator}
-                      canCreateCourse={canCreateCourse}
-                      canUpdateCourse={canUpdateCourse}
-                      canDeleteCourse={canDeleteCourse}
-                    />
-                  }
-                />
+                <Route path="/profile" element={<ProfilePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

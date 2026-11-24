@@ -75,7 +75,6 @@ export function Header({
   const accessToken = useSessionStore((state) => state.accessToken);
   const logout = useSessionStore((state) => state.logout);
   const resetHistory = useUiLayoutStore((state) => state.resetRouteHistory);
-  const setProfileTab = useUiLayoutStore((state) => state.setActiveProfileTab);
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link tw:relative tw:flex tw:min-h-[54px] tw:items-center tw:gap-[16px] tw:rounded-[16px] tw:px-[16px] tw:text-(--muted) tw:no-underline tw:text-[17px] tw:leading-[1.45] tw:font-semibold tw:hover:bg-(--surface) tw:focus-visible:outline-2 tw:focus-visible:outline-(--contrast) ${isActive ? 'is-active tw:bg-(--surface) tw:text-(--text) tw:before:absolute tw:before:left-0 tw:before:h-[24px] tw:before:w-[3px] tw:before:rounded-full tw:before:bg-(--contrast)' : ''}`;
   const labelClass = collapsed ? 'tw:hidden' : 'tw:max-980:hidden';
@@ -139,11 +138,10 @@ export function Header({
           <NavLink
             to={accessToken ? '/profile' : '/login'}
             className={navClass}
-            onClick={() => setProfileTab('overview')}
             aria-label={accessToken ? 'Профиль' : 'Войти'}
             data-tip={
               accessToken
-                ? 'Профиль: данные аккаунта, аватар и активный курс.'
+                ? 'Профиль: данные аккаунта и аватар.'
                 : 'Войти в аккаунт AI Course Lab.'
             }
           >

@@ -782,6 +782,39 @@ void test('organization and model breadcrumbs show the current section name', as
   }
 });
 
+void test('legacy layout drops the profile tab and retains catalog and lesson preferences', async () => {
+  const key = useUiLayoutStore.persist.getOptions().name;
+  assert.ok(key);
+  const previousStorage = storage.getItem(key);
+  const previousLayout = useUiLayoutStore.getState();
+
+  storage.setItem(
+    key,
+    JSON.stringify({
+      version: 2,
+      state: {
+        activeProfileTab: 'active-course',
+        coursesPage: 3,
+        scrollPositions: { '/courses': 180 },
+        activeLessonTabs: { 'account:lesson': 'practice' },
+      },
+    }),
+  );
+
+  try {
+    await useUiLayoutStore.persist.rehydrate();
+    const layout = useUiLayoutStore.getState();
+    assert.equal('activeProfileTab' in layout, false);
+    assert.equal(layout.coursesPage, 3);
+    assert.equal(layout.getScrollPosition('/courses'), 180);
+    assert.equal(layout.getLessonActiveTab('account:lesson'), 'practice');
+  } finally {
+    useUiLayoutStore.setState(previousLayout);
+    if (previousStorage === null) storage.removeItem(key);
+    else storage.setItem(key, previousStorage);
+  }
+});
+
 void test('training tree shares scoped lesson tabs and keeps other accounts separate', async () => {
   const lessonId = 'local-training-lesson';
   const tree = (scope: string) => (

@@ -1,1 +1,1 @@
-export { ProfilePage, type ProfilePageProps } from './ui/ProfilePage';
+export { ProfilePage } from './ui/ProfilePage';
