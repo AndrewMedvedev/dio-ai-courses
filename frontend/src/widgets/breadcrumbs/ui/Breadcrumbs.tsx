@@ -50,6 +50,7 @@ export function Breadcrumbs({
       '/courses',
       '/my-courses',
       '/quick-start',
+      '/notifications',
       '/profile',
       '/creator',
       '/drag-and-drop-course',

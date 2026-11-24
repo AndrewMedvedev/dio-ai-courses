@@ -1,6 +1,8 @@
 import { useChatDockSpace } from '@/shared/ui/ai-chat';
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePersistenceScope } from '@/entities/session';
+import { useUnreadCount } from '@/entities/notification';
+import { notificationExamples } from './notification-examples';
 import { useLocalState, hasLocalStorageError } from '@/shared/lib/storage';
 import {
   BrowserRouter,
@@ -147,6 +149,11 @@ const DragAndDropCoursePreviewPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('@/pages/profile').then((module) => ({ default: module.ProfilePage })),
 );
+const NotificationsPage = lazy(() =>
+  import('@/pages/notifications').then((module) => ({
+    default: module.NotificationsPage,
+  })),
+);
 const OrganizationsPage = lazy(() =>
   import('@/pages/organizations').then((module) => ({
     default: module.OrganizationsPage,
@@ -239,6 +246,40 @@ function AppContent() {
     canCreateModel,
     canDeleteModel,
   } = useAppPermissions();
+  const demoNotifications =
+    import.meta.env.DEV &&
+    new URLSearchParams(location.search).get('notifications-demo') === '1';
+  const [demoReadIds, setDemoReadIds] = useState<string[]>([]);
+  const [notificationRevision, setNotificationRevision] = useState(0);
+  const [notificationPreviewRevision, setNotificationPreviewRevision] =
+    useState(0);
+  const unreadNotifications = useUnreadCount(
+    Boolean(accessToken) && !demoNotifications,
+    notificationRevision,
+  );
+  const refreshUnreadNotifications = () =>
+    setNotificationRevision((value) => value + 1);
+  const demoItems = demoNotifications
+    ? notificationExamples.map((item) =>
+        demoReadIds.includes(item.id) ? { ...item, read: true } : item,
+      )
+    : undefined;
+  function notificationRead(id: string) {
+    if (demoNotifications) {
+      setDemoReadIds((ids) => [...ids, id]);
+    } else {
+      refreshUnreadNotifications();
+    }
+  }
+  const notificationsPage = (
+    <NotificationsPage
+      key={demoNotifications ? 'demo' : 'account'}
+      demoItems={demoItems}
+      previewRevision={notificationPreviewRevision}
+      onRead={notificationRead}
+      onRefresh={refreshUnreadNotifications}
+    />
+  );
   const loadIdentity = useSessionStore((state) => state.loadIdentity);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const theme = useThemeStore((state) => state.theme);
@@ -1731,6 +1772,24 @@ function AppContent() {
         theme={appliedTheme}
         canCreateCourse={canCreateCourse}
         canReadCourse={canBrowseCourses}
+        notificationsHref={
+          demoNotifications
+            ? '/notifications?notifications-demo=1'
+            : accessToken
+              ? '/notifications'
+              : undefined
+        }
+        unreadNotifications={
+          demoItems
+            ? demoItems.filter((item) => !item.read).length
+            : unreadNotifications
+        }
+        demoNotifications={demoItems}
+        onNotificationRead={(id) => {
+          notificationRead(id);
+          if (!demoNotifications)
+            setNotificationPreviewRevision((value) => value + 1);
+        }}
         toggleTheme={toggleTheme}
       />
 
@@ -2003,6 +2062,16 @@ function AppContent() {
               </Route>
               <Route path="/quick-start" element={<QuickStartPage />} />
               <Route path="/quick-start/training" element={<CreatorPage />} />
+              <Route
+                path="/notifications"
+                element={
+                  demoNotifications ? (
+                    notificationsPage
+                  ) : (
+                    <ProtectedRoute>{notificationsPage}</ProtectedRoute>
+                  )
+                }
+              />
               <Route element={<ProtectedRoute />}>
                 <Route
                   path="/my-courses"

@@ -5,6 +5,14 @@ import {
 import { extractTaskId } from '../src/entities/agent-chat/lib/agent-chat-utils';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { act, create } from 'react-test-renderer';
+import {
+  fetchNotifications,
+  fetchUnreadCount,
+  markNotificationRead,
+} from '../src/entities/notification';
+import { NotificationsPage } from '../src/pages/notifications';
 import { calls, setResponder } from './fixtures/api';
 import { createApiError } from '../src/shared/api/api-error';
 import { getErrorMessage } from '../src/shared/lib/errors';
@@ -43,6 +51,97 @@ import {
 const C = '10000000-0000-4000-8000-000000000001';
 const M = '20000000-0000-4000-8000-000000000001';
 const L = '30000000-0000-4000-8000-000000000001';
+
+void test('notifications pass the unread filter and mark a single notification as read', async () => {
+  const signal = new AbortController().signal;
+  const notification = {
+    id: C,
+    title: 'Приглашение на курс',
+    message: 'Вас пригласили на курс.',
+    type: 'course_invited',
+    created_at: '2026-01-01T12:00:00Z',
+    data: {},
+    read: false,
+  };
+  setResponder((path, method) => {
+    if (method === 'PATCH') return { ...notification, read: true };
+    if (path.endsWith('/unread-count')) return { unread_count: null };
+    return { items: [notification], total: 1, has_next: false };
+  });
+
+  assert.deepEqual((await fetchNotifications(2, true, signal)).items, [
+    notification,
+  ]);
+  assert.deepEqual((await fetchNotifications(1, false, signal, 3)).items, [
+    notification,
+  ]);
+  assert.equal(await fetchUnreadCount(signal), 0);
+  assert.equal((await markNotificationRead(C)).read, true);
+  assert.deepEqual(
+    calls.map(({ path, method }) => [method, path]),
+    [
+      ['GET', '/notifications?page=2&size=10&unread_only=true'],
+      ['GET', '/notifications?page=1&size=3&unread_only=false'],
+      ['GET', '/notifications/unread-count'],
+      ['PATCH', `/notifications/${C}/read`],
+    ],
+  );
+});
+
+void test('the demo invitation disappears from Unread after marking it as read', () => {
+  setResponder(() => assert.fail('Demo notifications must not call the API'));
+  const invitation = {
+    id: C,
+    title: 'Приглашение на курс',
+    message: 'Основы работы с ИИ',
+    type: 'course_invited',
+    read: false,
+    created_at: '',
+    data: {},
+  };
+  let readId = '';
+  const props = {
+    demoItems: [invitation],
+    onRead: (id: string) => {
+      readId = id;
+    },
+    onRefresh: () => assert.fail('Demo notifications must not fetch a count'),
+  };
+  const view = create(createElement(NotificationsPage, props));
+  const click = (label: string) => {
+    const button = view.root
+      .findAllByType('button')
+      .find((node) => node.children.includes(label));
+    assert.ok(button);
+    const onClick = button.props.onClick as () => void;
+    act(onClick);
+  };
+  try {
+    click('Непрочитанные');
+    assert.equal(view.root.findAllByType('li').length, 1);
+    click('Отметить прочитанным');
+    assert.equal(readId, C);
+    act(() =>
+      view.update(
+        createElement(NotificationsPage, {
+          ...props,
+          demoItems: [{ ...invitation, read: true }],
+        }),
+      ),
+    );
+    assert.equal(view.root.findAllByType('li').length, 0);
+    click('Все');
+    assert.equal(view.root.findAllByType('li').length, 1);
+    assert.ok(
+      view.root
+        .findAllByType('button')
+        .some((node) => node.children.includes('Прочитано')),
+    );
+    assert.deepEqual(calls, []);
+  } finally {
+    act(() => view.unmount());
+  }
+});
 
 void test('internal response validation under HTTP 400 stays out of user messages and retains diagnostics', async () => {
   const diagnostic =

@@ -46,6 +46,23 @@
 
 /* Анимации: tw:animate-<имя>. inline — значение подставляется в утилиту, поэтому var(--dnd-ease) берётся с элемента */
 @theme inline {
+  --animate-notification-ring: notification-ring 0.42s ease-in-out;
+
+  @keyframes notification-ring {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    25% {
+      transform: rotate(14deg);
+    }
+    50% {
+      transform: rotate(-11deg);
+    }
+    75% {
+      transform: rotate(5deg);
+    }
+  }
   --animate-help-panel-in: help-panel-in 0.22s ease-out;
   --animate-help-step-in: help-step-in 0.2s ease-out;
 
