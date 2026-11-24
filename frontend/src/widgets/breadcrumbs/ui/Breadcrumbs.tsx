@@ -20,6 +20,7 @@ const staticRoutes: Record<string, string> = {
   creator: 'Создание курса',
   'drag-and-drop-course': 'Drag & Drop курс',
   profile: 'Личный кабинет',
+  invitations: 'Приглашения',
   organizations: 'Организации',
   models: 'AI-модели',
   login: 'Вход',
