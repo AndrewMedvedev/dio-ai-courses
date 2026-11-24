@@ -34,7 +34,7 @@ function ModelFormView({
 }: ModelFormProps) {
   return (
     <form
-      className="model-form tw:grid tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:max-760:grid-cols-[1fr] tw:[align-items:end] tw:[&_label]:grid tw:[&_label]:gap-[7px] tw:[&_label_>_span]:text-(--text) tw:[&_label_>_span]:text-[0.82rem] tw:[&_label_>_span]:font-[800] tw:[&_input]:w-[100%] tw:[&_input]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_input]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_input]:rounded-[12px] tw:[&_input]:p-[11px_12px] tw:[&_input]:[font:inherit] tw:[&_input]:text-(--text) tw:[&_input]:[outline:none] tw:[&_textarea]:w-[100%] tw:[&_textarea]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_textarea]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_textarea]:rounded-[12px] tw:[&_textarea]:p-[11px_12px] tw:[&_textarea]:[font:inherit] tw:[&_textarea]:text-(--text) tw:[&_textarea]:[outline:none] tw:[&_textarea]:min-h-[92px] tw:[&_textarea]:resize-y tw:[&_input:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_input:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&_textarea:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_textarea:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:dark:[.page_&_input]:text-(--heading) tw:dark:[.page_&_input]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_input]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[.page_&_textarea]:text-(--heading) tw:dark:[.page_&_textarea]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_textarea]:border-[rgba(var(--accent-rgb),_0.56)]"
+      className="model-form tw:grid tw:min-w-0 tw:grid-cols-[repeat(2,_minmax(0,_1fr))] tw:gap-[14px] tw:max-760:grid-cols-[minmax(0,1fr)] tw:[&_label]:min-w-0 tw:[&_input]:min-w-0 tw:[&_textarea]:min-w-0 tw:[align-items:end] tw:[&_label]:grid tw:[&_label]:gap-[7px] tw:[&_label_>_span]:text-(--text) tw:[&_label_>_span]:text-[0.82rem] tw:[&_label_>_span]:font-[800] tw:[&_input]:w-[100%] tw:[&_input]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_input]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_input]:rounded-[12px] tw:[&_input]:p-[11px_12px] tw:[&_input]:[font:inherit] tw:[&_input]:text-(--text) tw:[&_input]:[outline:none] tw:[&_textarea]:w-[100%] tw:[&_textarea]:[border:1px_solid_rgba(var(--accent-rgb),_0.36)] tw:[&_textarea]:[background:rgba(var(--accent-rgb),_0.08)] tw:[&_textarea]:rounded-[12px] tw:[&_textarea]:p-[11px_12px] tw:[&_textarea]:[font:inherit] tw:[&_textarea]:text-(--text) tw:[&_textarea]:[outline:none] tw:[&_textarea]:min-h-[92px] tw:[&_textarea]:resize-y tw:[&_input:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_input:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&_textarea:focus]:border-[rgba(var(--accent-rgb),_0.82)] tw:[&_textarea:focus]:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:dark:[.page_&_input]:text-(--heading) tw:dark:[.page_&_input]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_input]:border-[rgba(var(--accent-rgb),_0.56)] tw:dark:[.page_&_textarea]:text-(--heading) tw:dark:[.page_&_textarea]:[background:rgba(24,_24,_24,_0.75)] tw:dark:[.page_&_textarea]:border-[rgba(var(--accent-rgb),_0.56)]"
       onSubmit={onSubmit}
     >
       <label>
@@ -122,7 +122,7 @@ function ModelDescription({ description }: { description?: string }) {
   }
 
   return (
-    <div className="model-description-grid tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(210px,_1fr))] tw:gap-[10px]">
+    <div className="model-description-grid tw:grid tw:grid-cols-[repeat(auto-fit,_minmax(min(210px,100%),_1fr))] tw:gap-[10px]">
       {parts.map((part) => (
         <section
           key={part.label}
@@ -150,7 +150,7 @@ function ModelCard({
   const isDeleting = deletingUid === model.uid;
 
   return (
-    <article className="model-card tw:grid tw:gap-[18px] tw:rounded-[18px] tw:p-[18px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:[background:rgba(var(--accent-rgb),_0.05)] tw:[&_h4]:m-[0] tw:[&_h4]:text-(--heading)">
+    <article className="model-card tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-[18px] tw:wrap-anywhere tw:rounded-[18px] tw:p-[18px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:[background:rgba(var(--accent-rgb),_0.05)] tw:[&_h4]:m-[0] tw:[&_h4]:text-(--heading)">
       <div className="model-card-summary tw:flex tw:items-start tw:justify-between tw:flex-wrap tw:gap-[16px] tw:max-760:flex-col">
         <div className="model-card-title tw:min-w-[0] tw:grid tw:gap-[8px] tw:[&_p]:text-(--muted)">
           <span className="model-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">
@@ -281,7 +281,7 @@ export function ModelsPage({
       <SectionTop label="AI-модели" title="Управление AI-моделями" />
       <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
         Просмотр списка доступен авторизованным пользователям. Создание и
-        удаление отображаются только при наличии соответствующих permissions.
+        удаление отображаются только при наличии соответствующих прав доступа.
       </p>
 
       {(notice || error) && (
@@ -292,12 +292,9 @@ export function ModelsPage({
         </article>
       )}
 
-      <article className="glass-card model-panel tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:grid tw:gap-[18px] tw:p-[24px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_h4]:m-[0] tw:[&_h4]:text-(--heading)">
+      <article className="glass-card model-panel tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:grid tw:gap-[18px] tw:p-[24px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1] tw:[&_h4]:m-[0] tw:[&_h4]:text-(--heading)">
         <div className="model-panel-head tw:flex tw:items-start tw:justify-between tw:flex-wrap tw:gap-[16px] tw:max-760:flex-col">
           <div>
-            <span className="model-kicker tw:text-(--muted) tw:inline-flex tw:mb-[6px] tw:text-[0.78rem] tw:font-[800] tw:tracking-[0.03em] tw:uppercase">
-              /ai/models
-            </span>
             <h3 className="tw:text-[clamp(1.08rem,_1.8vw,_1.35rem)] tw:leading-[1.38] tw:tracking-[-0.008em]">
               Список моделей
             </h3>
@@ -317,7 +314,7 @@ export function ModelsPage({
         </div>
 
         {showCreateForm && canCreateModel && (
-          <div className="model-create-box tw:grid tw:gap-[18px] tw:rounded-[18px] tw:p-[18px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:[background:rgba(var(--accent-rgb),_0.05)]">
+          <div className="model-create-box tw:grid tw:grid-cols-[minmax(0,1fr)] tw:gap-[18px] tw:rounded-[18px] tw:p-[18px] tw:[border:1px_solid_rgba(var(--accent-rgb),_0.28)] tw:[background:rgba(var(--accent-rgb),_0.05)]">
             <div className="model-panel-head tw:flex tw:items-start tw:justify-between tw:flex-wrap tw:gap-[16px] tw:max-760:flex-col">
               <h4>Новая AI-модель</h4>
               <button

@@ -20,6 +20,9 @@ const staticRoutes: Record<string, string> = {
   creator: 'Создание курса',
   'drag-and-drop-course': 'Drag & Drop курс',
   profile: 'Личный кабинет',
+  invitations: 'Приглашения',
+  organizations: 'Организации',
+  models: 'AI-модели',
   login: 'Вход',
   register: 'Регистрация',
 };
@@ -47,6 +50,7 @@ export function Breadcrumbs({
       '/courses',
       '/my-courses',
       '/quick-start',
+      '/notifications',
       '/profile',
       '/creator',
       '/drag-and-drop-course',

@@ -121,8 +121,11 @@ export function TopBar({
     },
   ];
 
+  const viewModeButton =
+    'tw:inline-flex tw:min-h-[36px] tw:items-center tw:justify-center tw:gap-[5px] tw:rounded-[8px] tw:border tw:border-solid tw:border-transparent tw:bg-transparent tw:px-[7px] tw:text-[13px] tw:text-(--dnd-text) tw:[font-family:inherit] tw:cursor-pointer tw:[&.is-on]:border-(--dnd-border) tw:[&.is-on]:bg-(--dnd-node) tw:[&.is-on]:font-bold tw:focus-visible:outline-2 tw:focus-visible:outline-(--dnd-focus)';
+
   return (
-    <header className="dnd-topbar tw:flex tw:items-center tw:gap-[16px] tw:p-[12px_18px] tw:min-h-[72px] tw:max-1024:gap-y-[8px] tw:max-767:gap-[8px] tw:max-767:p-[10px_12px] tw:[border-bottom:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:max-1024:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&_.dnd-btn]:min-h-[42px] tw:[.page_.dnd-builder_&_.dnd-btn]:text-[0.94rem]">
+    <header className="dnd-topbar tw:flex tw:max-767:grid tw:max-767:grid-cols-[minmax(0,1fr)] tw:items-center tw:gap-[16px] tw:p-[12px_18px] tw:min-h-[72px] tw:max-1024:gap-y-[8px] tw:max-767:gap-[8px] tw:max-767:p-[10px_12px] tw:[border-bottom:1px_solid_var(--dnd-border)] tw:[background:var(--dnd-panel)] tw:max-1024:flex-wrap tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:w-[42px] tw:[.page_.dnd-builder_&_.dnd-icon-btn]:h-[42px] tw:[.page_.dnd-builder_&_.dnd-btn]:min-h-[42px] tw:[.page_.dnd-builder_&_.dnd-btn]:text-[0.94rem]">
       <div className="dnd-topbar-left tw:flex tw:items-center tw:gap-[8px] tw:min-w-[0] tw:flex-[0_1_auto] tw:max-1024:flex-[1_1_auto] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
         <button
           type="button"
@@ -148,7 +151,7 @@ export function TopBar({
           </button>
         ) : null}
         <div className="dnd-topbar-title tw:grid tw:min-w-[0] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
-          <h1 className="tw:tracking-[-0.025em] tw:font-[600] tw:text-(--dnd-heading) tw:whitespace-nowrap tw:[&&&&]:text-[1.08rem] tw:[&&&]:leading-[1.2] tw:[font-family:'Unbounded',_sans-serif] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.2] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:[font-family:'Unbounded',_sans-serif]">
+          <h1 className="tw:tracking-[-0.025em] tw:font-[600] tw:text-(--dnd-heading) tw:whitespace-nowrap tw:max-767:whitespace-normal tw:max-767:wrap-anywhere tw:[&&&&]:text-[1.08rem] tw:[&&&]:leading-[1.2] tw:[font-family:'Unbounded',_sans-serif] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:leading-[1.2] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:[font-family:'Unbounded',_sans-serif]">
             Drag &amp; Drop курс
           </h1>
           <span
@@ -160,9 +163,9 @@ export function TopBar({
         </div>
       </div>
 
-      <div className="dnd-topbar-center tw:flex-[1_1_260px] tw:min-w-[0] tw:grid tw:grid-cols-[auto_minmax(0,_1fr)] tw:grid-rows-[auto_auto] tw:gap-x-[12px] tw:gap-y-[2px] tw:items-center tw:max-w-[520px] tw:m-[0_auto] tw:max-1024:max-w-[none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-1024:[order:3] tw:max-767:[order:2]">
+      <div className="dnd-topbar-center tw:flex-[1_1_260px] tw:max-767:w-full tw:min-w-[0] tw:grid tw:grid-cols-[auto_minmax(0,_1fr)] tw:grid-rows-[auto_auto] tw:gap-x-[12px] tw:gap-y-[2px] tw:items-center tw:max-w-[520px] tw:m-[0_auto] tw:max-1024:max-w-[none] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-1024:[order:3] tw:max-767:[order:2]">
         <div
-          className="dnd-progress tw:row-[1_/_span_2] tw:grid tw:grid-cols-[repeat(4,_28px)] tw:gap-[4px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
+          className="dnd-progress tw:row-[1_/_span_2] tw:grid tw:grid-cols-[repeat(4,_28px)] tw:max-767:grid-cols-[repeat(4,12px)] tw:gap-[4px] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -177,7 +180,7 @@ export function TopBar({
             />
           ))}
         </div>
-        <p className="dnd-topbar-task tw:leading-[1.72] tw:tracking-[0.012em] tw:m-[0] tw:whitespace-nowrap tw:overflow-hidden tw:text-ellipsis tw:[&&&]:text-[0.95rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.95rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
+        <p className="dnd-topbar-task tw:leading-[1.72] tw:max-767:whitespace-normal tw:max-767:wrap-anywhere tw:tracking-[0.012em] tw:m-[0] tw:whitespace-nowrap tw:overflow-hidden tw:text-ellipsis tw:[&&&]:text-[0.95rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:leading-[inherit] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:tracking-[normal] tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[&&&&]:text-[0.95rem] tw:[&:where(p,li,h1,h2,h3,h4,button,input,textarea,select,small,dt,dd,label,legend)]:[font-family:inherit]">
           <strong className="tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px]">
             {stepText}
           </strong>
@@ -217,10 +220,10 @@ export function TopBar({
         </span>
       </div>
 
-      <div className="dnd-topbar-right tw:flex tw:items-center tw:gap-[8px] tw:min-w-[0] tw:flex-[0_0_auto] tw:justify-end tw:max-767:justify-start tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-767:[order:3]">
+      <div className="dnd-topbar-right tw:flex tw:max-767:flex-wrap tw:items-center tw:gap-[8px] tw:min-w-[0] tw:flex-[0_0_auto] tw:justify-end tw:max-767:justify-start tw:focus-visible:[outline:2px_solid_var(--dnd-focus)] tw:focus-visible:[outline-offset:2px] tw:max-767:[order:3]">
         {isMobile ? (
           <div
-            className="dnd-segmented dnd-segmented--sm tw:max-767:[.page_.dnd-builder_&_button]:p-[0_8px]"
+            className="dnd-segmented dnd-segmented--sm tw:flex tw:flex-wrap tw:gap-[2px] tw:rounded-[10px] tw:border tw:border-solid tw:border-(--dnd-border) tw:bg-(--dnd-panel-2) tw:p-[2px]"
             role="group"
             aria-label="Режим отображения"
           >
@@ -228,7 +231,7 @@ export function TopBar({
               type="button"
               aria-pressed={effectiveMode === 'canvas'}
               data-help="canvas-mode"
-              className={effectiveMode === 'canvas' ? 'is-on' : ''}
+              className={`${viewModeButton} ${effectiveMode === 'canvas' ? 'is-on' : ''}`}
               onClick={() => setViewMode('canvas')}
             >
               <Icon name="canvas" size={15} /> Холст
@@ -236,7 +239,7 @@ export function TopBar({
             <button
               type="button"
               aria-pressed={effectiveMode === 'list'}
-              className={effectiveMode === 'list' ? 'is-on' : ''}
+              className={`${viewModeButton} ${effectiveMode === 'list' ? 'is-on' : ''}`}
               onClick={() => setViewMode('list')}
             >
               <Icon name="list" size={15} /> Список

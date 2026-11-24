@@ -423,8 +423,13 @@ export const useSessionStore = create<SessionState>()(
             MEDIA_FOLDERS.AVATAR,
             avatarId,
           );
+          if (!avatarUrl) {
+            throw new Error('Хранилище не вернуло путь к аватару.');
+          }
           const user = normalizeSessionUser(
-            await updateCurrentUser({ avatarUrl }),
+            await updateCurrentUser({
+              avatarUrl: new URL(avatarUrl, window.location.origin).href,
+            }),
           );
           const userWithAvatarUrl = {
             ...user,

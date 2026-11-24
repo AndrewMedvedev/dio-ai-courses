@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { localStateStorage } from '../storage';
 
 const UI_LAYOUT_STORAGE_KEY = 'app-ui-layout-storage';
-const UI_LAYOUT_STORAGE_VERSION = 2;
+const UI_LAYOUT_STORAGE_VERSION = 3;
 const MAX_SCROLL_POSITIONS = 50;
 const MAX_ACTIVE_LESSON_TABS = 50;
 const MAX_ROUTE_HISTORY = 40;
@@ -21,14 +21,12 @@ type ScrollPositions = Record<string, number>;
 type ActiveLessonTabs = Record<string, LessonTab>;
 
 export interface UiLayoutState {
-  activeProfileTab: string;
   coursesPage: number;
   scrollPositions: ScrollPositions;
   activeLessonTabs: ActiveLessonTabs;
   routeHistory: string[];
   hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
-  setActiveProfileTab: (activeProfileTab: string) => void;
   setCoursesPage: (coursesPage: number | string) => void;
   getScrollPosition: (routeKey: string) => number | undefined;
   saveScrollPosition: (routeKey: string, scrollY: number) => void;
@@ -44,11 +42,7 @@ export interface UiLayoutState {
 type PersistedUiLayout = Partial<
   Pick<
     UiLayoutState,
-    | 'activeProfileTab'
-    | 'coursesPage'
-    | 'scrollPositions'
-    | 'activeLessonTabs'
-    | 'routeHistory'
+    'coursesPage' | 'scrollPositions' | 'activeLessonTabs' | 'routeHistory'
   >
 >;
 
@@ -105,7 +99,6 @@ const trimRouteHistory = (history: string[] = []) =>
 export const useUiLayoutStore = create<UiLayoutState>()(
   persist<UiLayoutState, [], [], PersistedUiLayout>(
     (set, get) => ({
-      activeProfileTab: 'overview',
       coursesPage: 1,
       scrollPositions: {},
       activeLessonTabs: {},
@@ -113,12 +106,6 @@ export const useUiLayoutStore = create<UiLayoutState>()(
       hasHydrated: false,
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
-      setActiveProfileTab: (activeProfileTab) => {
-        if (typeof activeProfileTab !== 'string' || !activeProfileTab.trim()) {
-          return;
-        }
-        set({ activeProfileTab });
-      },
       setCoursesPage: (coursesPage) =>
         set({ coursesPage: Math.max(1, Math.round(Number(coursesPage) || 1)) }),
       getScrollPosition: (routeKey) => get().scrollPositions[routeKey],
@@ -204,7 +191,6 @@ export const useUiLayoutStore = create<UiLayoutState>()(
       // Персистим только лёгкие UI-флаги и id/key -> primitive mappings;
       // серверные списки, токены и производные данные здесь не хранятся.
       partialize: (state) => ({
-        activeProfileTab: state.activeProfileTab,
         coursesPage: state.coursesPage,
         scrollPositions: trimScrollPositions(state.scrollPositions),
         activeLessonTabs: trimActiveLessonTabs(state.activeLessonTabs),
@@ -212,11 +198,6 @@ export const useUiLayoutStore = create<UiLayoutState>()(
       migrate: (rawState) => {
         const persistedState = rawState as PersistedUiLayout | undefined;
         return {
-          activeProfileTab:
-            typeof persistedState?.activeProfileTab === 'string' &&
-            persistedState.activeProfileTab.trim()
-              ? persistedState.activeProfileTab
-              : 'overview',
           coursesPage: Math.max(
             1,
             Math.round(Number(persistedState?.coursesPage) || 1),

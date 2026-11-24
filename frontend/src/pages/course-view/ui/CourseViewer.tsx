@@ -1,7 +1,7 @@
 import { Breadcrumbs } from '@/widgets/breadcrumbs';
 import { CollapsedCourseContents } from '@/entities/course';
 import { toText } from '@/shared/lib/text';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   LessonPracticeAgent,
@@ -36,12 +36,15 @@ import {
   usePermissionStore,
   useSessionStore,
 } from '@/entities/session';
-import { useUiLayoutStore } from '@/shared/lib/ui-layout';
+import { useUiLayoutStore, type LessonTab } from '@/shared/lib/ui-layout';
 import { useLocalState } from '@/shared/lib/storage';
 import { useRefreshOnReturn } from '@/shared/lib/use-refresh-on-return';
 import { usePersistenceScope } from '@/entities/session';
 import { useTheorySessionTracker } from '@/features/track-theory-time';
-import { useCourseProgress } from '@/features/course-progress';
+import {
+  getResumeLessonId,
+  useCourseProgress,
+} from '@/features/course-progress';
 import { getModuleProgressSummary } from '@/entities/progress';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { isUuid } from '@/shared/lib/uuid';
@@ -62,6 +65,11 @@ import {
   toModuleBasicInfoFromLearningBlock,
 } from '../lib/course-view';
 import { CourseProgressBar } from './CourseProgressBar';
+
+interface CourseResumePosition {
+  lessonId: string;
+  tab: LessonTab;
+}
 
 export interface CourseViewerProps {
   /** Курс из локального черновика (не UUID), открытый без запроса к бэкенду. */
@@ -98,6 +106,15 @@ export function CourseViewer({
     state.hasPermission(COURSE_PERMISSIONS.UPDATE),
   );
   const scope = usePersistenceScope();
+  const [resumePosition, setResumePosition] = useLocalState<
+    CourseResumePosition | string | null
+  >(`course-resume:${scope}:${courseId}`, null);
+  const lastLessonId =
+    typeof resumePosition === 'string'
+      ? resumePosition
+      : (resumePosition?.lessonId ?? null);
+  const savedLessonTab =
+    typeof resumePosition === 'string' ? undefined : resumePosition?.tab;
   const [contentsCollapsed, setContentsCollapsed] = useLocalState(
     `course-tree:${scope}:${courseId}`,
     false,
@@ -205,8 +222,9 @@ export function CourseViewer({
     [selectedLesson],
   );
 
+  const lessonTabKey = `${scope}:${selectedLesson?.id ?? ''}`;
   const activeTab = useUiLayoutStore((state) =>
-    state.getLessonActiveTab(selectedLesson?.id ?? ''),
+    state.getLessonActiveTab(lessonTabKey),
   );
   const setLessonActiveTab = useUiLayoutStore(
     (state) => state.setLessonActiveTab,
@@ -225,6 +243,8 @@ export function CourseViewer({
     isEnrolled &&
     isUuid(course?.id || '');
   const {
+    isLoading: isProgressLoading,
+    error: progressError,
     lessonProgressById,
     structure: progressStructure,
     summary: progressSummary,
@@ -232,6 +252,44 @@ export function CourseViewer({
     completeTheory,
     refreshLesson,
   } = useCourseProgress(course?.id, { enabled: isProgressTracked });
+  const resumeLessonId = isProgressTracked
+    ? getResumeLessonId(
+        progressStructure || course,
+        lessonProgressById,
+        lastLessonId,
+      )
+    : null;
+  const progressPending =
+    isProgressTracked &&
+    !resumeLessonId &&
+    (isProgressLoading || (!progressStructure && !progressError));
+
+  useLayoutEffect(() => {
+    if (
+      isProgressTracked &&
+      course?.id === effectiveCourseId &&
+      lessonId &&
+      selectedLesson?.id === lessonId &&
+      !isLoadingCourse
+    ) {
+      setResumePosition((previous) =>
+        typeof previous === 'object' &&
+        previous?.lessonId === lessonId &&
+        previous.tab === activeTab
+          ? previous
+          : { lessonId, tab: activeTab },
+      );
+    }
+  }, [
+    isProgressTracked,
+    course?.id,
+    effectiveCourseId,
+    lessonId,
+    selectedLesson?.id,
+    isLoadingCourse,
+    activeTab,
+    setResumePosition,
+  ]);
   const moduleProgressById = useMemo(() => {
     if (!isProgressTracked || !course) {
       return null;
@@ -477,7 +535,20 @@ export function CourseViewer({
   };
 
   const startLearning = () => {
-    if (!canReadCourseContent) {
+    if (!canReadCourseContent || !course || progressPending) {
+      return;
+    }
+    if (resumeLessonId) {
+      if (resumeLessonId === lastLessonId && savedLessonTab) {
+        setLessonActiveTab(`${scope}:${resumeLessonId}`, savedLessonTab);
+      }
+      void navigate(`/course/${course.id}/lesson/${resumeLessonId}`);
+      return;
+    }
+    if (isProgressTracked && progressError) {
+      setError(
+        'Не удалось восстановить прогресс курса. Попробуйте обновить страницу.',
+      );
       return;
     }
 
@@ -850,12 +921,15 @@ export function CourseViewer({
                 type="button"
                 className="btn btn-solid tw:flex-[0_1_auto] tw:max-w-[100%] tw:min-w-[0] tw:whitespace-normal tw:inline-flex tw:items-center tw:justify-center tw:rounded-[999px] tw:p-[12px_20px] tw:border-solid tw:border-(--cta) tw:font-[700] tw:tracking-[0.01em] tw:text-(--text-solid) tw:text-[0.96rem] tw:leading-[1.45] tw:[text-decoration:none] tw:[border-width:1px] tw:[transition:transform_0.18s_ease,_background_0.18s_ease] tw:[background:var(--cta)] tw:hover:[transform:translateY(-1px)]"
                 onClick={startLearning}
+                disabled={progressPending}
               >
-                {canViewWithoutEnrollment
-                  ? 'Посмотреть теорию'
-                  : isProgressTracked && progressSummary.started > 0
+                {progressPending
+                  ? 'Загружаем прогресс…'
+                  : resumeLessonId
                     ? 'Продолжить обучение'
-                    : 'Перейти к обучению'}
+                    : canViewWithoutEnrollment
+                      ? 'Посмотреть теорию'
+                      : 'Перейти к обучению'}
               </button>
               {canUpdateCourse && (
                 <>
@@ -934,6 +1008,7 @@ export function CourseViewer({
           />
         ) : course.blocks.length > 0 ? (
           <CourseNavigationTree
+            lessonTabScope={scope}
             onCollapse={() => setContentsCollapsed(true)}
             selectedCourse={course}
             selectedBlock={
@@ -1027,7 +1102,7 @@ export function CourseViewer({
                     lessonId={selectedLesson.id}
                     onChecked={handleAssessmentChecked('testCompletedAt')}
                     onBackToTheory={() =>
-                      setLessonActiveTab(selectedLesson.id, 'theory')
+                      setLessonActiveTab(lessonTabKey, 'theory')
                     }
                   />
                 ) : activeTab === 'practice' ? (
@@ -1037,7 +1112,7 @@ export function CourseViewer({
                     lessonId={selectedLesson.id}
                     onChecked={handleAssessmentChecked('practiceCompletedAt')}
                     onBackToTheory={() =>
-                      setLessonActiveTab(selectedLesson.id, 'theory')
+                      setLessonActiveTab(lessonTabKey, 'theory')
                     }
                   />
                 ) : (
@@ -1065,7 +1140,7 @@ export function CourseViewer({
                       type="button"
                       className="tw:mt-[28px] tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:border-transparent! tw:bg-(--contrast) tw:px-[28px] tw:py-[12px] tw:text-[14px] tw:font-semibold tw:text-(--text-solid) tw:cursor-pointer"
                       onClick={() =>
-                        setLessonActiveTab(selectedLesson.id, 'questions')
+                        setLessonActiveTab(lessonTabKey, 'questions')
                       }
                     >
                       Перейти к вопросам

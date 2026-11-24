@@ -107,7 +107,7 @@ export function InvitationEntry({
   const invalid = loadError?.status === 404;
   return (
     <section className="container section auth-view tw:relative tw:z-[1] tw:w-[min(1360px,_96vw)] tw:max-w-[100%] tw:mt-[64px] tw:m-[0_auto] tw:min-h-[650px] tw:grid tw:items-center tw:max-760:min-h-[auto] tw:max-760:pt-[24px] tw:min-1180:[&:has(.lesson-editor-block-row.has-ai)]:w-[min(1760px,_99vw)]">
-      <div className="auth-layout tw:w-[min(1120px,_100%)] tw:m-[0_auto] tw:grid tw:grid-cols-[minmax(0,_1fr)_minmax(400px,_480px)] tw:gap-[64px] tw:items-center tw:max-1100:grid-cols-[1fr] tw:max-1100:gap-[28px] tw:max-760:gap-[22px]">
+      <div className="auth-layout tw:w-[min(1120px,_100%)] tw:m-[0_auto] tw:grid tw:grid-cols-[minmax(0,_1fr)_minmax(400px,_480px)] tw:gap-[64px] tw:items-center tw:max-1100:grid-cols-[minmax(0,1fr)] tw:max-1100:gap-[28px] tw:max-760:gap-[22px]">
         <div className="auth-intro tw:max-w-[540px] tw:min-w-[0] tw:max-1100:max-w-[620px]">
           <span className="section-top-label">AI Course Lab · Приглашение</span>
           <h1 className="tw:max-w-[100%] tw:m-[14px_0_16px] tw:text-[clamp(1.8rem,_3.4vw,_2.75rem)] tw:leading-[1.18] tw:wrap-anywhere tw:tracking-[-0.025em] tw:[font-family:'Unbounded',_sans-serif]">
@@ -119,7 +119,7 @@ export function InvitationEntry({
           </p>
         </div>
         <div
-          className="glass-card auth-card tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:z-[1] tw:p-[34px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--surface)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
+          className="glass-card auth-card tw:min-w-0 tw:border-solid tw:border-(--glass-border) tw:rounded-[22px] tw:relative tw:overflow-hidden tw:isolate tw:z-[1] tw:p-[34px] tw:[border-width:1px] tw:hover:border-(--glass-glow) tw:[background:var(--surface)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))] tw:max-760:p-[18px] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[background:var(--glass-bg)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[backdrop-filter:var(--glass-backdrop)] tw:[:is(.course-details-view,.block-view,.practice-view)_&]:[-webkit-backdrop-filter:var(--glass-backdrop)] tw:[&::before]:absolute tw:[&::before]:inset-[0] tw:[&::before]:z-[0] tw:[&::before]:rounded-[inherit] tw:[&::before]:bg-(--glass-highlight) tw:[&::before]:[content:''] tw:[&::before]:[box-shadow:inset_0_0_20px_-5px_var(--glass-glow),_inset_0_1px_0_var(--glass-top-shine)] tw:[:is(.course-details-view,.block-view,.practice-view,.lesson-view)_&]:[&::after]:[content:none] tw:[.course-viewer_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[background:var(--glass-bg-strong)] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[background:var(--glass-bg-strong)] tw:[.course-viewer_&_.glass-card]:[backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[backdrop-filter:none] tw:[.course-viewer_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[.lesson-view_&_.glass-card:not(.lesson-main-card)]:[-webkit-backdrop-filter:none] tw:[:is(.course-details-view,.block-view,.practice-view)_&_.glass-card]:[-webkit-backdrop-filter:none] tw:[&_>_*]:relative tw:[&_>_*]:z-[1]"
           aria-busy={(!preview && !loadError) || submitting}
         >
           <div className="auth-card-head tw:grid tw:gap-[8px] tw:pb-[20px] tw:[border-bottom:1px_solid_rgba(var(--accent-rgb),_0.26)]">
@@ -132,7 +132,7 @@ export function InvitationEntry({
           </div>
           {loadError ? (
             <div
-              className="auth-form tw:grid tw:gap-[18px] tw:mt-[24px]"
+              className="auth-form tw:grid tw:grid-cols-[minmax(0,1fr)] tw:gap-[18px] tw:mt-[24px]"
               role="alert"
             >
               <p className="tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
@@ -159,16 +159,16 @@ export function InvitationEntry({
             <p role="status">Проверяем приглашение…</p>
           ) : (
             <form
-              className="auth-form tw:grid tw:gap-[18px] tw:mt-[24px]"
+              className="auth-form tw:grid tw:grid-cols-[minmax(0,1fr)] tw:gap-[18px] tw:mt-[24px]"
               onSubmit={submit}
             >
-              <p className="auth-notice tw:m-[14px_0_0] tw:p-[12px_14px] tw:rounded-[10px] tw:text-[#7a1b12] tw:text-[1rem] tw:font-[800] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_solid_#b42318] tw:[background:rgba(180,_35,_24,_0.12)] tw:[box-shadow:0_8px_22px_rgba(180,_35,_24,_0.12)]">
+              <p className="auth-notice tw:m-0 tw:wrap-anywhere tw:rounded-[10px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--bg) tw:p-[12px_14px] tw:text-(--text) tw:text-[1rem] tw:leading-[1.6]">
                 Ваш аккаунт: <strong>{preview.email}</strong>
                 <br />
                 Email подтверждён ссылкой из письма.
               </p>
               {preview.organization_name && (
-                <p className="auth-notice tw:m-[14px_0_0] tw:p-[12px_14px] tw:rounded-[10px] tw:text-[#7a1b12] tw:text-[1rem] tw:font-[800] tw:leading-[1.72] tw:tracking-[0.012em] tw:[border:1px_solid_#b42318] tw:[background:rgba(180,_35,_24,_0.12)] tw:[box-shadow:0_8px_22px_rgba(180,_35,_24,_0.12)]">
+                <p className="auth-notice tw:m-0 tw:wrap-anywhere tw:rounded-[10px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--bg) tw:p-[12px_14px] tw:text-(--text) tw:text-[1rem] tw:leading-[1.6]">
                   Организация: <strong>{preview.organization_name}</strong>
                 </p>
               )}
@@ -177,7 +177,7 @@ export function InvitationEntry({
                   Новый пароль
                 </span>
                 <input
-                  className="tw:w-[100%] tw:min-h-[54px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.32)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_16px] tw:leading-[1.45] tw:text-[0.96rem] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.82)] tw:[&[aria-invalid=true]]:border-[#b42318] tw:[background:var(--bg)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[&[aria-invalid=true]]:[background:rgba(180,_35,_24,_0.08)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&[aria-invalid=true]]:[box-shadow:0_0_0_3px_rgba(180,_35,_24,_0.14)]"
+                  className="tw:w-[100%] tw:min-h-[54px] tw:min-w-0 tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.32)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_16px] tw:leading-[1.45] tw:text-[0.96rem] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.82)] tw:[&[aria-invalid=true]]:border-[#b42318] tw:[background:var(--bg)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[&[aria-invalid=true]]:[background:rgba(180,_35,_24,_0.08)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[&[aria-invalid=true]]:[box-shadow:0_0_0_3px_rgba(180,_35,_24,_0.14)]"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
@@ -200,7 +200,7 @@ export function InvitationEntry({
                   Повторите пароль
                 </span>
                 <input
-                  className="tw:w-[100%] tw:min-h-[54px] tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.32)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_16px] tw:leading-[1.45] tw:text-[0.96rem] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.82)] tw:[.auth-form_&[aria-invalid=true]]:border-[#b42318] tw:[background:var(--bg)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[.auth-form_&[aria-invalid=true]]:[background:rgba(180,_35,_24,_0.08)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[.auth-form_&[aria-invalid=true]]:[box-shadow:0_0_0_3px_rgba(180,_35,_24,_0.14)]"
+                  className="tw:w-[100%] tw:min-h-[54px] tw:min-w-0 tw:border-solid tw:border-[rgba(var(--accent-rgb),_0.32)] tw:rounded-[12px] tw:text-(--text) tw:p-[12px_16px] tw:leading-[1.45] tw:text-[0.96rem] tw:[border-width:1px] tw:focus:border-[rgba(var(--accent-rgb),_0.82)] tw:[.auth-form_&[aria-invalid=true]]:border-[#b42318] tw:[background:var(--bg)] tw:[font-style:inherit] tw:[font-variant:inherit] tw:[font-weight:inherit] tw:[font-stretch:inherit] tw:[font-family:inherit] tw:[outline:none] tw:[.auth-form_&[aria-invalid=true]]:[background:rgba(180,_35,_24,_0.08)] tw:focus:[box-shadow:0_0_0_3px_rgba(var(--accent-rgb),_0.12)] tw:[.auth-form_&[aria-invalid=true]]:[box-shadow:0_0_0_3px_rgba(180,_35,_24,_0.14)]"
                   name="passwordConfirmation"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"

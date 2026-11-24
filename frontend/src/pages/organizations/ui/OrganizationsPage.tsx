@@ -804,7 +804,7 @@ export function OrganizationsPage({
       <p className="courses-catalog-intro tw:max-w-[820px] tw:m-[18px_0_0] tw:text-(--muted) tw:text-[1rem] tw:leading-[1.72] tw:tracking-[0.012em]">
         По умолчанию отображается организация, в которой состоит текущий
         пользователь. Остальные разделы в дереве появляются только при наличии
-        соответствующих permissions.
+        соответствующих прав доступа.
       </p>
 
       {(notice || error) && (

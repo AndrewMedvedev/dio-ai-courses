@@ -29,7 +29,7 @@ interface Position {
   height: number;
 }
 const button =
-  'tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[18px] tw:py-[10px] tw:text-[14px] tw:font-semibold tw:text-(--text) tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-50 tw:focus-visible:outline-2 tw:focus-visible:outline-(--contrast)';
+  'tw:min-h-[44px] tw:rounded-full tw:border tw:border-solid tw:border-(--line-strong) tw:bg-transparent tw:px-[18px] tw:py-[10px] tw:text-[16px] tw:font-bold tw:text-(--text) tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-50 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-(--ink-info)';
 const seenThisSession = new Set<string>();
 
 function storageKey(owner: string, id: HelpGuideId) {
@@ -62,7 +62,7 @@ export function ContextualHelp() {
   const [panelPosition, setPanelPosition] = useState({
     left: 16,
     top: 16,
-    width: 380,
+    width: 420,
     maxHeight: 'calc(100dvh - 32px)',
   });
   const panelRef = useRef<HTMLElement>(null);
@@ -95,8 +95,8 @@ export function ContextualHelp() {
     tour?.id === 'creatorTraining' || tour?.id === 'dnd'
       ? 560
       : tour?.id === 'profile'
-        ? 300
-        : 380;
+        ? 340
+        : 420;
   const close = useCallback(() => {
     if (tour) remember(tour);
     dismissedPathRef.current = location.pathname;
@@ -267,8 +267,8 @@ export function ContextualHelp() {
     if (!training || !owner) return;
     dismissedPathRef.current = null;
     let lastStep = '';
+    let lastRun: string | null = null;
     const sync = () => {
-      if (dismissedPathRef.current === location.pathname) return;
       const element = document.querySelector<HTMLElement>(
         '.creator-training[data-training-step]',
       );
@@ -287,6 +287,10 @@ export function ContextualHelp() {
         );
         return;
       }
+      const run = active.dataset.trainingRun || '0';
+      if (lastRun !== null && lastRun !== run) dismissedPathRef.current = null;
+      lastRun = run;
+      if (dismissedPathRef.current === location.pathname) return;
       const index = Number(
         element
           ? element.dataset.trainingStep
@@ -298,7 +302,7 @@ export function ContextualHelp() {
         index >= helpGuides[id].steps.length
       )
         return;
-      const key = `${id}:${index}`;
+      const key = `${id}:${run}:${index}`;
       if (lastStep === key) return;
       lastStep = key;
       setTour((previous) =>
@@ -315,7 +319,11 @@ export function ContextualHelp() {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ['data-training-step', 'data-training-lesson-step'],
+      attributeFilter: [
+        'data-training-step',
+        'data-training-lesson-step',
+        'data-training-run',
+      ],
     });
     return () => observer.disconnect();
   }, [training, owner, location.pathname, location.key]);
@@ -334,6 +342,7 @@ export function ContextualHelp() {
       setTarget(null);
       return;
     }
+    if (panelRef.current) panelRef.current.scrollTop = 0;
     const revealed = new Set<string>();
     const measure = () => {
       if (
@@ -530,7 +539,12 @@ export function ContextualHelp() {
     const element = document.querySelector<HTMLElement>(step.target);
     const rect = element?.getBoundingClientRect();
     if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80))
-      element?.scrollIntoView({ block: 'center' });
+      element?.scrollIntoView({
+        block: 'center',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+      });
     let frame: number | null = null;
     const scheduleMeasure = () => {
       if (frame !== null) return;
@@ -582,12 +596,14 @@ export function ContextualHelp() {
 
   if (!tour || !guide || !step) return null;
   const waiting = Boolean(step.waitForTarget && !target);
+  const isCreatorTraining = tour.id === 'creatorTraining';
+  const isCreatorResult = isCreatorTraining && tour.step >= 7;
   return createPortal(
     <>
       {target && (
         <div
           aria-hidden="true"
-          className="tw:pointer-events-none tw:fixed tw:z-[1300] tw:rounded-[16px] tw:border-2 tw:border-solid tw:border-(--eyebrow)"
+          className="contextual-help-target tw:pointer-events-none tw:fixed tw:z-[1300] tw:rounded-[16px] tw:border-2 tw:border-solid tw:border-(--eyebrow) tw:transition-none"
           style={target}
         />
       )}
@@ -597,38 +613,60 @@ export function ContextualHelp() {
           role="region"
           aria-label={`Обучение: ${guide.label}`}
           aria-live="polite"
-          className={`contextual-help ${inlineHost ? 'tw:relative tw:w-full' : 'tw:fixed'} tw:z-[1310] tw:box-border tw:overflow-y-auto tw:overscroll-contain tw:rounded-[22px] tw:border tw:border-solid tw:border-(--eyebrow) tw:bg-(--panel-bg) ${inChat ? 'tw:p-[16px] tw:shadow-none tw:[&_h2]:text-[17px]! tw:[&_h2]:mt-[10px]! tw:[&_h2]:mb-[8px]!' : 'tw:p-[24px] tw:shadow-xl'} tw:text-(--text)}`}
+          className={`contextual-help ${inlineHost ? 'tw:relative tw:w-full' : 'tw:fixed'} tw:z-[1310] tw:box-border tw:overflow-y-auto tw:overscroll-contain tw:rounded-[22px] tw:border tw:border-solid tw:border-(--ink-info) tw:bg-(--panel-bg) ${inChat ? 'tw:p-[16px] tw:shadow-none' : 'tw:p-[24px] tw:shadow-xl tw:max-480:p-[16px]'} tw:text-(--text) tw:transition-[left,top,width] tw:duration-300 tw:ease-out tw:animate-help-panel-in tw:motion-reduce:transition-none tw:motion-reduce:animate-none`}
           style={inlineHost ? undefined : panelPosition}
         >
-          <div className="tw:flex tw:items-center tw:justify-between tw:gap-[12px]">
-            <p className="tw:m-0 tw:text-[11px] tw:font-bold tw:uppercase tw:text-(--eyebrow)">
-              {tour.id === 'creatorTraining' && tour.step >= 7
-                ? tour.step === 7
-                  ? 'Создание · подтверждение'
-                  : 'Создание · готово'
-                : `${guide.label} · ${tour.step + 1} из ${tour.id === 'creatorTraining' ? 7 : guide.steps.length}`}
+          <div className="tw:flex tw:items-start tw:justify-between tw:gap-[8px]">
+            <p className="tw:m-0 tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-x-[10px] tw:gap-y-[6px] tw:text-[15px] tw:font-bold tw:leading-[1.4] tw:text-(--heading)">
+              <span>{isCreatorResult ? 'Создание' : guide.label}</span>
+              <span className="tw:rounded-full tw:bg-(--surface) tw:px-[10px] tw:py-[4px] tw:text-(--ink-info)">
+                {isCreatorResult
+                  ? tour.step === 7
+                    ? 'Подтверждение'
+                    : 'Готово'
+                  : `Шаг ${tour.step + 1} из ${isCreatorTraining ? 7 : guide.steps.length}`}
+              </span>
             </p>
             <button
               type="button"
               onClick={close}
               aria-label="Закрыть обучение"
-              className="tw:grid tw:size-[28px] tw:shrink-0 tw:place-items-center tw:rounded-full tw:border-0 tw:bg-transparent tw:text-[22px] tw:text-(--muted) tw:cursor-pointer"
+              className="tw:grid tw:size-[36px] tw:shrink-0 tw:place-items-center tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0 tw:text-[26px] tw:leading-none tw:text-(--heading) tw:cursor-pointer tw:hover:bg-(--surface) tw:focus-visible:outline-2 tw:focus-visible:outline-(--ink-info)"
             >
               ×
             </button>
           </div>
-          <h2 className="tw:mt-[16px] tw:mb-[12px] tw:text-[20px] tw:leading-[1.4] tw:[font-family:Unbounded,sans-serif]">
-            {step.title}
-          </h2>
-          <p className="tw:m-0 tw:text-[15px] tw:leading-[1.7] tw:text-(--muted)">
-            {step.text}
-          </p>
-          {waiting && (
-            <p className="tw:mt-[14px] tw:mb-0 tw:text-[13px] tw:leading-[1.6] tw:text-(--eyebrow)">
-              Выполните действие на странице — затем продолжим. Можно закрыть
-              подсказку и повторить обучение позже.
+          <div
+            role="progressbar"
+            aria-label="Прогресс знакомства"
+            aria-valuemin={0}
+            aria-valuemax={guide.steps.length}
+            aria-valuenow={tour.step + 1}
+            className="tw:mt-[12px] tw:h-[5px] tw:overflow-hidden tw:rounded-full tw:bg-(--line-strong)"
+          >
+            <div
+              className="tw:h-full tw:rounded-full tw:bg-(--ink-info) tw:transition-[width] tw:duration-300 tw:ease-out tw:motion-reduce:transition-none"
+              style={{
+                width: `${((tour.step + 1) / guide.steps.length) * 100}%`,
+              }}
+            />
+          </div>
+          <div
+            key={`${tour.id}:${tour.step}`}
+            className="contextual-help-step tw:animate-help-step-in tw:motion-reduce:animate-none"
+          >
+            <h2 className="tw:mt-[16px] tw:mb-[10px] tw:text-[23px] tw:font-bold tw:leading-[1.3] tw:text-(--heading) tw:max-480:text-[21px]">
+              {step.title}
+            </h2>
+            <p className="tw:m-0 tw:text-[17px] tw:font-medium tw:leading-[1.6] tw:text-(--text) tw:max-480:text-[16px]">
+              {step.text}
             </p>
-          )}
+            {waiting && (
+              <p className="tw:mt-[14px] tw:mb-0 tw:text-[16px] tw:font-semibold tw:leading-[1.5] tw:text-(--ink-info)">
+                Выполните указанное действие, чтобы перейти к следующему шагу.
+              </p>
+            )}
+          </div>
           <div className="tw:mt-[22px] tw:flex tw:flex-wrap tw:items-center tw:justify-end tw:gap-[10px]">
             {tour.step > 0 &&
               tour.id !== 'creatorTraining' &&

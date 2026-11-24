@@ -1,9 +1,14 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/entities/session';
+import type { UserNotification } from '@/entities/notification';
 import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 import { themedScrollbarClass } from '@/shared/ui/themed-scrollbar';
 import { Chevron } from '@/shared/ui/chevron';
 import brandLogo from '@/shared/assets/brand-logo.png';
+import { NotificationPreview } from './NotificationPreview';
+
+const headerIconClass =
+  'tw:relative tw:grid tw:size-[36px] tw:shrink-0 tw:place-items-center tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0 tw:text-(--muted) tw:cursor-pointer tw:hover:bg-(--surface) tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-(--contrast)';
 
 export interface HeaderProps {
   onFeedback?: () => void;
@@ -15,6 +20,10 @@ export interface HeaderProps {
   onToggleNavigation: () => void;
   onLogoClick?: () => void;
   currentCourse?: { id: string; title?: string };
+  notificationsHref?: string;
+  unreadNotifications?: number | null;
+  demoNotifications?: readonly UserNotification[];
+  onNotificationRead?: (id: string) => void;
 }
 
 function NavigationIcon({ name }: { name: string }) {
@@ -57,12 +66,15 @@ export function Header({
   onToggleNavigation,
   onLogoClick,
   currentCourse,
+  notificationsHref,
+  unreadNotifications = null,
+  demoNotifications,
+  onNotificationRead,
 }: HeaderProps) {
   const navigate = useNavigate();
   const accessToken = useSessionStore((state) => state.accessToken);
   const logout = useSessionStore((state) => state.logout);
   const resetHistory = useUiLayoutStore((state) => state.resetRouteHistory);
-  const setProfileTab = useUiLayoutStore((state) => state.setActiveProfileTab);
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link tw:relative tw:flex tw:min-h-[54px] tw:items-center tw:gap-[16px] tw:rounded-[16px] tw:px-[16px] tw:text-(--muted) tw:no-underline tw:text-[17px] tw:leading-[1.45] tw:font-semibold tw:hover:bg-(--surface) tw:focus-visible:outline-2 tw:focus-visible:outline-(--contrast) ${isActive ? 'is-active tw:bg-(--surface) tw:text-(--text) tw:before:absolute tw:before:left-0 tw:before:h-[24px] tw:before:w-[3px] tw:before:rounded-full tw:before:bg-(--contrast)' : ''}`;
   const labelClass = collapsed ? 'tw:hidden' : 'tw:max-980:hidden';
@@ -126,11 +138,10 @@ export function Header({
           <NavLink
             to={accessToken ? '/profile' : '/login'}
             className={navClass}
-            onClick={() => setProfileTab('overview')}
             aria-label={accessToken ? 'Профиль' : 'Войти'}
             data-tip={
               accessToken
-                ? 'Профиль: данные аккаунта, аватар и активный курс.'
+                ? 'Профиль: данные аккаунта и аватар.'
                 : 'Войти в аккаунт AI Course Lab.'
             }
           >
@@ -224,7 +235,7 @@ export function Header({
           </button>
         )}
       </aside>
-      <header className="header tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:sticky tw:top-0 tw:z-30 tw:flex tw:h-[66px] tw:items-center tw:justify-end tw:gap-[20px] tw:bg-(--navigation-bg) tw:px-[24px] tw:max-760:px-[16px]">
+      <header className="header tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:sticky tw:top-0 tw:z-30 tw:flex tw:h-[66px] tw:items-center tw:justify-end tw:gap-[12px] tw:bg-(--navigation-bg) tw:px-[24px] tw:max-760:gap-[8px] tw:max-760:px-[12px]">
         <button
           type="button"
           onClick={toggleTheme}
@@ -233,15 +244,25 @@ export function Header({
           aria-label={
             theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'
           }
-          className="tw:flex tw:size-[36px] tw:items-center tw:justify-center tw:border-0 tw:bg-transparent tw:text-(--muted) tw:cursor-pointer"
+          className={headerIconClass}
         >
           <NavigationIcon name="sun" />
         </button>
+        {notificationsHref && (
+          <NotificationPreview
+            key={demoNotifications ? 'demo' : 'account'}
+            href={notificationsHref}
+            count={unreadNotifications}
+            demoItems={demoNotifications}
+            onRead={onNotificationRead}
+            buttonClass={headerIconClass}
+          />
+        )}
         <button
           type="button"
           onClick={onFeedback}
           data-help="feedback"
-          className="tw:min-h-[46px] tw:rounded-full tw:border-0 tw:bg-(--contrast) tw:px-[44px] tw:text-(--text-solid) tw:font-semibold tw:cursor-pointer tw:max-760:px-[20px] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-(--contrast)"
+          className="tw:min-h-[36px] tw:rounded-full tw:border-0 tw:bg-(--contrast) tw:px-[16px] tw:text-[13px] tw:text-(--text-solid) tw:font-semibold tw:whitespace-nowrap tw:cursor-pointer tw:max-760:px-[12px] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-(--contrast)"
         >
           Обратная связь
         </button>

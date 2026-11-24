@@ -1,10 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { useSessionStore } from '@/entities/session';
-import type { CourseNode } from '@/entities/course';
 import { getMediaUrl, MEDIA_FOLDERS } from '@/shared/lib/media';
 import { getErrorMessage } from '@/shared/lib/errors';
-import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 
 interface ProfileForm {
   username: string;
@@ -22,15 +19,6 @@ function getDisplayText(rawValue: unknown): string {
 
   return getDisplayText(
     value.value || value.label || value.name || value.email || value.username,
-  );
-}
-
-function getDisplayName(user: Record<string, unknown> | null | undefined) {
-  return (
-    getDisplayText(user?.full_name) ||
-    getDisplayText(user?.username) ||
-    getDisplayText(user?.email) ||
-    'Загружаем профиль...'
   );
 }
 
@@ -104,42 +92,13 @@ function validateAvatarFile(file: File | null): asserts file is File {
   }
 }
 
-export interface ProfilePageProps {
-  profileActiveCourse: CourseNode;
-  profileActiveCourseProgress: number;
-  profileActiveCourseTotal: number;
-  profileActiveCourseCompleted: number;
-  profileUpcomingTopics: (string | undefined)[];
-  completedLessonsCount: number;
-  completedPracticesCount: number;
-  overallProgressPercent: number;
-  totalContentCount: number;
-  coursesData: CourseNode[];
-  openCourse: (courseId: string | null | undefined) => void;
-  openBlock: (blockId: string | null | undefined) => void;
-  openCreator: () => void;
-  canCreateCourse?: boolean;
-  canUpdateCourse?: boolean;
-  canDeleteCourse?: boolean;
-}
-
-export function ProfilePage({
-  profileActiveCourse,
-  profileActiveCourseProgress,
-  profileActiveCourseTotal,
-  profileActiveCourseCompleted,
-  openCourse,
-  openBlock,
-}: ProfilePageProps) {
+export function ProfilePage() {
   const user = useSessionStore((state) => state.user);
   const loadCurrentUser = useSessionStore((state) => state.loadCurrentUser);
   const updateProfile = useSessionStore((state) => state.updateProfile);
   const uploadAvatar = useSessionStore((state) => state.uploadAvatar);
   const apiErrors = useSessionStore((state) => state.validationErrors);
   const sessionError = useSessionStore((state) => state.error);
-  const storedTab = useUiLayoutStore((state) => state.activeProfileTab);
-  const setTab = useUiLayoutStore((state) => state.setActiveProfileTab);
-  const tab = storedTab === 'active-course' ? 'active-course' : 'overview';
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<ProfileForm>({
@@ -150,9 +109,9 @@ export function ProfilePage({
   const [notice, setNotice] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
-  const displayName = getDisplayName(user);
   const email = getDisplayText(user?.email);
   const username = getDisplayText(user?.username);
+  const fullName = getDisplayText(user?.full_name);
   const avatarUrl =
     avatarPreview ||
     getMediaUrl(
@@ -186,7 +145,7 @@ export function ProfilePage({
     setAvatarFile(null);
     setErrors({});
     setNotice('');
-    setForm({ username, full_name: getDisplayText(user?.full_name) });
+    setForm({ username, full_name: fullName });
   }
   function selectAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] || null;
@@ -219,7 +178,7 @@ export function ProfilePage({
     const changes: Record<string, string | null> = {};
     if (normalized.username !== username)
       changes.username = normalized.username || null;
-    if (normalized.full_name !== getDisplayText(user?.full_name))
+    if (normalized.full_name !== fullName)
       changes.full_name = normalized.full_name || null;
     setSaving(true);
     try {
@@ -238,252 +197,180 @@ export function ProfilePage({
     }
   }
   const panel =
-    'tw:rounded-[22px] tw:border tw:border-solid tw:border-(--glass-border) tw:bg-(--panel-bg) tw:p-[22px]';
+    'tw:min-w-0 tw:rounded-[24px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--panel-bg) tw:max-480:rounded-[20px]';
+  const panelPadding = 'tw:p-[32px] tw:max-760:p-[24px] tw:max-480:p-[16px]';
+  const detailRow = 'tw:grid tw:gap-[6px]';
+  const detailLabel = 'tw:text-[15px] tw:text-(--muted) tw:max-480:text-[13px]';
+  const detailValue =
+    'tw:m-0 tw:wrap-anywhere tw:text-[18px] tw:font-semibold tw:text-(--text) tw:max-480:text-[15px]';
   const button =
-    'tw:[font-family:inherit] tw:min-h-[46px] tw:rounded-full tw:border tw:border-solid tw:border-(--line-strong) tw:bg-transparent tw:px-[20px] tw:py-[12px] tw:text-(--text) tw:text-[14px] tw:font-semibold tw:cursor-pointer tw:disabled:opacity-50 tw:disabled:cursor-wait';
+    'tw:[font-family:inherit] tw:min-h-[50px] tw:rounded-full tw:border tw:border-solid tw:border-(--line-strong) tw:bg-transparent tw:px-[22px] tw:py-[12px] tw:text-(--text) tw:text-[15px] tw:font-semibold tw:cursor-pointer tw:hover:bg-(--surface) tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-(--cta) tw:disabled:opacity-50 tw:disabled:cursor-wait tw:max-480:min-h-[44px] tw:max-480:px-[12px] tw:max-480:py-[10px] tw:max-480:text-[14px]';
+  const primaryButton = `${button} tw:border-transparent! tw:bg-(--contrast)! tw:text-(--text-solid)! tw:hover:brightness-95`;
   const field =
-    'tw:box-border tw:w-full tw:rounded-[12px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--surface) tw:p-[14px] tw:text-(--text) tw:[font:inherit] tw:disabled:opacity-60';
+    'tw:box-border tw:w-full tw:rounded-[12px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--surface) tw:p-[16px] tw:text-(--text) tw:[font:inherit] tw:disabled:opacity-60 tw:max-480:p-[14px]';
+  const avatar =
+    'tw:size-[104px] tw:shrink-0 tw:rounded-[24px] tw:min-1180:size-[128px] tw:max-480:size-[72px] tw:max-480:rounded-[16px]';
+
   return (
-    <section className="container section profile-view">
-      <p className="tw:mt-[8px] tw:mb-[24px] tw:text-[12px] tw:font-bold tw:text-(--eyebrow)">
+    <section className="profile-view tw:w-full tw:text-(--text)">
+      <h1 className="tw:mb-[26px] tw:text-[clamp(1.25rem,3vw,2.5rem)] tw:leading-[1.3] tw:[font-family:Unbounded,sans-serif] tw:max-480:mb-[20px]">
         Профиль
-      </p>
-      <h1 className="tw:mb-[24px] tw:border-0 tw:border-b tw:border-solid tw:border-(--line) tw:pb-[24px] tw:text-[28px] tw:[font-family:Unbounded,sans-serif]">
-        Личный кабинет
       </h1>
-      <div className="profile-layout tw:grid tw:grid-cols-[300px_minmax(0,1fr)] tw:items-start tw:gap-[14px] tw:max-1100:grid-cols-1">
-        <aside className="profile-sidebar tw:grid tw:gap-[14px]">
-          <article className={`${panel} profile-user-card`}>
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Аватар пользователя"
-                className="tw:size-[88px] tw:rounded-[26px] tw:object-cover"
-              />
-            ) : (
-              <span className="tw:inline-flex tw:size-[88px] tw:items-center tw:justify-center tw:rounded-[26px] tw:bg-(--surface) tw:text-[32px] tw:font-bold">
-                {getInitials(displayName)}
-              </span>
-            )}
-            <h2 className="tw:mt-[18px] tw:text-[22px] tw:wrap-anywhere tw:[font-family:Unbounded,sans-serif]">
-              {displayName}
+      <div className="profile-layout tw:grid tw:grid-cols-[clamp(300px,34%,440px)_minmax(0,1fr)] tw:items-start tw:gap-[24px] tw:max-980:grid-cols-1 tw:max-480:gap-[18px]">
+        <article
+          className={`${panel} ${panelPadding} profile-user-card tw:grid tw:justify-items-start tw:gap-[24px] tw:[background:color-mix(in_srgb,var(--panel-bg)_88%,var(--contrast))] tw:max-480:gap-[16px]`}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className={`${avatar} tw:object-cover`}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className={`${avatar} tw:grid tw:place-items-center tw:bg-(--contrast) tw:text-[38px] tw:font-bold tw:text-(--text-solid) tw:max-480:text-[24px]`}
+            >
+              {getInitials(fullName || username || email)}
+            </span>
+          )}
+          {!editing && (
+            <h2 className="tw:m-0 tw:wrap-anywhere tw:text-[clamp(1.25rem,2.5vw,2rem)] tw:leading-[1.25] tw:text-(--heading)">
+              {fullName || (user ? 'Ваш аккаунт' : 'Загружаем профиль…')}
             </h2>
-            <p className="tw:mt-[14px] tw:mb-[12px] tw:wrap-anywhere tw:text-(--muted)">
-              {email || 'Данные аккаунта загружаются...'}
-            </p>
-            {username && (
-              <span className="tw:text-[14px] tw:text-(--muted)">
-                @{username}
-              </span>
-            )}
-          </article>
-          <nav
-            aria-label="Разделы профиля"
-            className={`${panel} tw:grid tw:gap-[8px]`}
-          >
-            {[
-              { id: 'overview', label: 'Профиль' },
-              { id: 'active-course', label: 'Активный курс' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-current={tab === item.id ? 'page' : undefined}
-                onClick={() => setTab(item.id)}
-                className={`${button} ${tab === item.id ? 'tw:bg-(--surface)' : ''}`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
-        {tab === 'overview' ? (
-          <article className={`${panel} profile-edit-card`}>
-            <p className="tw:mt-0 tw:mb-[24px] tw:text-[11px] tw:font-bold tw:uppercase tw:text-(--muted)">
-              Данные аккаунта
-            </p>
-            <div className="tw:mb-[22px] tw:flex tw:items-center tw:justify-between tw:gap-[24px] tw:max-760:flex-wrap">
-              <div>
-                <h2 className="tw:text-[24px] tw:[font-family:Unbounded,sans-serif]">
-                  Профиль пользователя
-                </h2>
-                <p className="tw:mt-[14px] tw:mb-0 tw:leading-[1.7] tw:text-(--muted)">
-                  Эти данные используются в личном кабинете и интерфейсе
-                  платформы.
-                </p>
+          )}
+          <dl className="tw:m-0 tw:grid tw:w-full tw:gap-[18px] tw:border-0 tw:border-t tw:border-solid tw:border-(--line) tw:pt-[20px] tw:max-480:gap-[12px] tw:max-480:pt-[16px]">
+            {!editing && (
+              <div className={detailRow}>
+                <dt className={detailLabel}>Никнейм</dt>
+                <dd className={detailValue}>{username || 'Не указан'}</dd>
               </div>
-              {!editing && (
-                <button
-                  data-help="profile-edit"
-                  type="button"
-                  className={`${button} tw:shrink-0`}
-                  onClick={() => {
-                    setEditing(true);
-                    setNotice('');
-                    setErrors({});
-                  }}
-                >
-                  Редактировать профиль
-                </button>
-              )}
+            )}
+            <div className={detailRow}>
+              <dt className={detailLabel}>Аватар</dt>
+              <dd className={detailValue}>
+                {user?.avatar_url ? 'Загружен' : 'Не загружен'}
+              </dd>
             </div>
-            {!editing ? (
-              <dl className="tw:m-0 tw:grid tw:grid-cols-2 tw:gap-[16px] tw:max-760:grid-cols-1">
-                {[
-                  { label: 'Email', value: email },
-                  { label: 'Никнейм', value: username },
-                  { label: 'ФИО', value: getDisplayText(user?.full_name) },
-                  {
-                    label: 'Аватар',
-                    value: user?.avatar_url ? 'Загружен' : 'Не загружен',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="tw:rounded-[12px] tw:border tw:border-solid tw:border-(--line) tw:bg-(--surface) tw:p-[14px]"
+          </dl>
+          {!editing && (
+            <button
+              data-help="profile-edit"
+              type="button"
+              className={`${primaryButton} tw:max-w-full tw:whitespace-normal`}
+              onClick={() => {
+                setEditing(true);
+                setNotice('');
+                setErrors({});
+              }}
+            >
+              Редактировать профиль
+            </button>
+          )}
+        </article>
+        <article className={`${panel} profile-edit-card`}>
+          <header
+            className={`${panelPadding} tw:border-0 tw:border-b tw:border-solid tw:border-(--line)`}
+          >
+            <h2 className="tw:m-0 tw:text-[21px] tw:font-bold tw:leading-[1.4] tw:text-(--heading) tw:max-480:text-[17px]">
+              {editing ? 'Редактирование профиля' : 'Личная информация'}
+            </h2>
+          </header>
+          <dl className={`${panelPadding} tw:m-0`}>
+            <div className={detailRow}>
+              <dt className={detailLabel}>Электронная почта</dt>
+              <dd className={detailValue}>{email || 'Не указана'}</dd>
+            </div>
+          </dl>
+          {editing && (
+            <form
+              onSubmit={(event) => {
+                void save(event);
+              }}
+              className={`${panelPadding} tw:grid tw:gap-[20px] tw:border-0 tw:border-t tw:border-solid tw:border-(--line)`}
+              noValidate
+            >
+              <div>
+                <label className="tw:grid tw:gap-[8px] tw:text-[14px]">
+                  Аватар
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={selectAvatar}
+                    disabled={saving}
+                    className="tw:peer tw:sr-only"
+                    aria-label="Выбрать файл аватара"
+                    aria-describedby="profile-avatar-hint"
+                    aria-invalid={Boolean(fieldErrors.avatar)}
+                  />
+                  <span
+                    className={`${button} tw:justify-self-start tw:inline-flex tw:max-w-full tw:items-center tw:justify-center tw:whitespace-normal tw:text-center tw:peer-focus-visible:outline-2 tw:peer-focus-visible:outline-offset-2 tw:peer-focus-visible:outline-(--cta) tw:peer-disabled:opacity-50`}
                   >
-                    <dt className="tw:mb-[14px] tw:text-[11px] tw:font-bold tw:uppercase tw:text-(--muted)">
-                      {item.label}
-                    </dt>
-                    <dd className="tw:m-0 tw:wrap-anywhere tw:font-semibold">
-                      {item.value || 'Не указано'}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            ) : (
-              <form
-                onSubmit={(event) => {
-                  void save(event);
-                }}
-                className="tw:grid tw:gap-[20px]"
-                noValidate
-              >
-                <div>
+                    Выбрать файл
+                  </span>
+                  {avatarFile && (
+                    <span className="tw:wrap-anywhere tw:text-(--muted)">
+                      {avatarFile.name}
+                    </span>
+                  )}
+                </label>
+                <p
+                  id="profile-avatar-hint"
+                  className="tw:text-[12px] tw:leading-[1.7] tw:text-(--muted)"
+                >
+                  PNG, JPEG или WebP до 15 МБ.
+                </p>
+                {fieldErrors.avatar && <p role="alert">{fieldErrors.avatar}</p>}
+              </div>
+              {(['username', 'full_name'] as const).map((key) => (
+                <div key={key}>
                   <label className="tw:grid tw:gap-[8px] tw:text-[14px]">
-                    Аватар
+                    {key === 'username' ? 'Никнейм' : 'ФИО'}
                     <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      onChange={selectAvatar}
+                      value={form[key]}
+                      onChange={(event) => {
+                        setForm((value) => ({
+                          ...value,
+                          [key]: event.target.value,
+                        }));
+                        setErrors((value) => ({ ...value, [key]: '' }));
+                      }}
+                      className={field}
                       disabled={saving}
-                      className="tw:w-full tw:min-w-0 tw:max-w-full tw:text-(--muted)"
-                      aria-invalid={Boolean(fieldErrors.avatar)}
+                      aria-invalid={Boolean(fieldErrors[key])}
                     />
                   </label>
-                  <p className="tw:text-[12px] tw:leading-[1.7] tw:text-(--muted)">
-                    PNG, JPEG или WebP до 15 МБ.
-                  </p>
-                  {fieldErrors.avatar && (
-                    <p role="alert">{fieldErrors.avatar}</p>
-                  )}
+                  {fieldErrors[key] && <p role="alert">{fieldErrors[key]}</p>}
                 </div>
-                <label className="tw:grid tw:gap-[8px] tw:text-[14px]">
-                  Email
-                  <input
-                    type="email"
-                    value={email}
-                    readOnly
-                    className={field}
-                  />
-                </label>
-                {(['username', 'full_name'] as const).map((key) => (
-                  <div key={key}>
-                    <label className="tw:grid tw:gap-[8px] tw:text-[14px]">
-                      {key === 'username' ? 'Никнейм' : 'ФИО'}
-                      <input
-                        value={form[key]}
-                        onChange={(event) => {
-                          setForm((value) => ({
-                            ...value,
-                            [key]: event.target.value,
-                          }));
-                          setErrors((value) => ({ ...value, [key]: '' }));
-                        }}
-                        className={field}
-                        disabled={saving}
-                        aria-invalid={Boolean(fieldErrors[key])}
-                      />
-                    </label>
-                    {fieldErrors[key] && <p role="alert">{fieldErrors[key]}</p>}
-                  </div>
-                ))}
-                <div className="tw:flex tw:flex-wrap tw:gap-[12px]">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className={`${button} tw:bg-(--contrast)! tw:text-(--text-solid)!`}
-                  >
-                    {saving ? 'Сохраняем...' : 'Сохранить'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    className={button}
-                    onClick={cancel}
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </form>
-            )}
-            {(notice || sessionError) && (
-              <p
-                role="status"
-                className="tw:mt-[18px] tw:mb-0 tw:leading-[1.7]"
-              >
-                {notice || sessionError}
-              </p>
-            )}
-          </article>
-        ) : (
-          <article className={panel}>
-            <h2 className="tw:text-[24px] tw:[font-family:Unbounded,sans-serif]">
-              Активный курс
-            </h2>
-            {profileActiveCourse?.id ? (
-              <>
-                <h3 className="tw:mt-[22px] tw:text-[20px]">
-                  {profileActiveCourse.title}
-                </h3>
-                <p className="tw:text-(--muted)">
-                  {profileActiveCourseCompleted} из {profileActiveCourseTotal}{' '}
-                  пройдено · {profileActiveCourseProgress}%
-                </p>
+              ))}
+              <div className="tw:flex tw:flex-wrap tw:gap-[12px]">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className={primaryButton}
+                >
+                  {saving ? 'Сохраняем...' : 'Сохранить'}
+                </button>
                 <button
                   type="button"
+                  disabled={saving}
                   className={button}
-                  onClick={() => openCourse(profileActiveCourse.id)}
+                  onClick={cancel}
                 >
-                  Продолжить обучение
+                  Отмена
                 </button>
-                <ul className="tw:mt-[20px] tw:grid tw:list-none tw:gap-[10px] tw:p-0">
-                  {profileActiveCourse.blocks?.map((block) => (
-                    <li key={block.id}>
-                      <button
-                        type="button"
-                        className={`${button} tw:w-full tw:text-left`}
-                        onClick={() => openBlock(block.id)}
-                      >
-                        {block.title}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p className="tw:mt-[20px] tw:text-(--muted)">
-                Откройте курс, чтобы продолжить обучение.
-              </p>
-            )}
-            <Link
-              to="/my-courses"
-              className="tw:mt-[22px] tw:block tw:text-(--eyebrow)"
+              </div>
+            </form>
+          )}
+          {(notice || sessionError) && (
+            <p
+              role="status"
+              className="tw:m-0 tw:px-[32px] tw:pb-[20px] tw:leading-[1.7] tw:max-760:px-[24px] tw:max-480:px-[16px]"
             >
-              Все мои курсы
-            </Link>
-          </article>
-        )}
+              {notice || sessionError}
+            </p>
+          )}
+        </article>
       </div>
     </section>
   );

@@ -761,17 +761,18 @@ export function CreatorChatView() {
     <section className="creator-chat-shell tw:mt-[10px] tw:grid tw:gap-[16px]">
       <div className="tw:min-w-0">
         <article className="glass-card creator-chat-main tw:relative tw:flex tw:flex-col tw:h-[calc(100dvh_-_140px)] tw:min-h-[320px] tw:max-760:h-[calc(100dvh_-_124px)] tw:max-760:min-h-[280px] tw:rounded-[22px] tw:overflow-hidden tw:[border:1px_solid_var(--glass-border)] tw:dark:[border-color:rgba(var(--accent-rgb),_0.5)] tw:[background:var(--glass-tint)] tw:[box-shadow:var(--glass-shadow),_var(--glass-inset)] tw:[backdrop-filter:blur(var(--glass-blur))] tw:[-webkit-backdrop-filter:blur(var(--glass-blur))]">
-          <header className="creator-chat-head tw:flex tw:items-center tw:justify-between tw:gap-[12px] tw:shrink-0 tw:min-h-[56px] tw:py-[10px] tw:pr-[12px] tw:pl-[18px] tw:[border-bottom:1px_solid_var(--line)]">
-            <h2 className="tw:m-0 tw:text-[18px] tw:[font-family:Unbounded,sans-serif]">
+          <header className="creator-chat-head tw:flex tw:max-480:grid tw:max-480:grid-cols-[minmax(0,1fr)_auto] tw:max-480:gap-[4px_8px] tw:max-480:px-[12px] tw:items-center tw:justify-between tw:gap-[12px] tw:shrink-0 tw:min-h-[56px] tw:py-[10px] tw:pr-[12px] tw:pl-[18px] tw:[border-bottom:1px_solid_var(--line)]">
+            <h2 className="tw:m-0 tw:text-[18px] tw:max-480:text-[16px] tw:wrap-anywhere tw:[font-family:Unbounded,sans-serif]">
               Чат-конструктор
             </h2>
             <span
               role="status"
-              className="tw:ml-auto tw:text-[12px] tw:text-(--muted)"
+              className="tw:ml-auto tw:text-[12px] tw:text-(--muted) tw:max-480:col-start-1 tw:max-480:row-start-2 tw:max-480:ml-0"
             >
               {statusLabel}
             </span>
             <ChatIconButton
+              className="tw:max-480:col-start-2 tw:max-480:row-start-1 tw:max-480:row-span-2"
               label={isGenerationComplete ? 'Новый чат' : 'Очистить чат'}
               onClick={() =>
                 isGenerationComplete
@@ -929,7 +930,7 @@ export function CreatorChatView() {
                 </ChatNotice>
               ) : null}
               <ChatComposer
-                className="creator-chat-composer tw:[&_.ai-chat-input]:text-[16px]"
+                className="creator-chat-composer tw:max-480:px-[6px] tw:[&_.ai-chat-input]:text-[16px]"
                 showSendLabel
                 sendLabel="Отправить"
                 value={inputValue}

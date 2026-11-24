@@ -4,8 +4,9 @@ import { AiChatPanel } from '@/shared/ui/ai-chat';
 import { ChatComposer, ChatMessage } from '@/shared/ui/ai-chat';
 
 /** Учебный ответ показывает механику помощника без запроса к модели. */
-export function TrainingMentor() {
-  const scope = usePersistenceScope();
+export function TrainingMentor({ run = 0 }: { run?: number }) {
+  const ownerScope = usePersistenceScope();
+  const scope = run ? `${ownerScope}:training-run-${run}` : ownerScope;
   const [open, setOpen] = useLocalState(`training-mentor:${scope}:open`, false);
   const [input, setInput] = useLocalState(`training-mentor:${scope}:input`, '');
   const [messages, setMessages] = useLocalState<

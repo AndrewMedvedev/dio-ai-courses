@@ -12,7 +12,8 @@ import { useState, type ReactElement } from 'react';
 import { EmailRowsField, useEmailRows } from '@/features/invite';
 import { PageLoadBoundary } from '@/app/router';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { apiFetch, requestJson } from '@/shared/api';
+import { apiFetch, attachmentsApi, requestJson } from '@/shared/api';
+import { getMediaUrl, MEDIA_FOLDERS } from '@/shared/lib/media';
 import { fetchModelsPage } from '@/entities/ai-model';
 import {
   getCourseLearningStructure,
@@ -25,10 +26,19 @@ import {
   EMPTY_COURSE,
 } from '@/entities/course';
 import { CourseViewer } from '@/pages/course-view';
-import { useCourseProgress } from '@/features/course-progress';
+import {
+  getResumeLessonId,
+  useCourseProgress,
+} from '@/features/course-progress';
+import type { LessonProgress } from '@/entities/progress';
 import { useRefreshOnReturn } from '@/shared/lib/use-refresh-on-return';
-import { CreatorChatView } from '@/features/create-course-chat';
+import {
+  CreatorChatView,
+  CreatorTrainingView,
+  useTrainingStore,
+} from '@/features/create-course-chat';
 import { CourseCatalog } from '@/widgets/course-catalog';
+import { Breadcrumbs } from '@/widgets/breadcrumbs';
 import { CourseNavigationTree } from '@/entities/course';
 import { useUiLayoutStore } from '@/shared/lib/ui-layout';
 import { Select } from '@/shared/ui/select';
@@ -92,6 +102,11 @@ Object.assign(globalThis, {
   window: Object.assign(events, {
     localStorage: storage,
     location: new URL('http://localhost/'),
+    matchMedia: () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }),
     setTimeout,
     clearTimeout,
     requestAnimationFrame: (callback: FrameRequestCallback) =>
@@ -192,6 +207,144 @@ async function unmount(renderer: ReactTestRenderer) {
   act(() => renderer.unmount());
   await tick();
 }
+
+const mediaUserId = '11111111-1111-4111-8111-111111111111';
+const mediaUploadId = '22222222-2222-4222-8222-222222222222';
+const mediaObjectId = '33333333-3333-4333-8333-333333333333';
+const mediaKey = `course-images/${mediaObjectId}/${mediaUploadId}.png`;
+const mediaStorageUrl = 'https://storage.example.test/media.png';
+
+void test('avatar sends size and SHA-256, confirms by upload id, and saves the returned object path', async (context) => {
+  const file = new File(['abc'], 'avatar.png', { type: 'image/png' });
+  const avatarUrl = getMediaUrl(mediaUserId, MEDIA_FOLDERS.AVATAR, mediaKey);
+  assert.ok(avatarUrl.endsWith(`/${mediaKey}`));
+  assert.ok(
+    getMediaUrl(mediaUserId, MEDIA_FOLDERS.AVATAR, 'old.png').endsWith(
+      `/avatar/${mediaUserId}/old.png`,
+    ),
+  );
+  const absoluteAvatarUrl = new URL(avatarUrl, window.location.origin).href;
+  const { accessToken } = useSessionStore.getState();
+  context.after(() => useSessionStore.setState({ accessToken }));
+  useSessionStore.setState({
+    user: { id: mediaUserId },
+    accessToken: 'mock-only',
+  });
+  responder = (url, options) => {
+    const headers = new Headers(options?.headers);
+    if (url === mediaStorageUrl) {
+      assert.equal(options?.method, 'PUT');
+      assert.equal(options?.body, file);
+      assert.equal(headers.get('Content-Type'), 'image/png');
+      assert.equal(headers.get('X-Upload-Header'), 'mock-value');
+      assert.equal(headers.get('Authorization'), null);
+      assert.equal(options?.credentials, 'omit');
+      return new Response(null, { status: 200 });
+    }
+    assert.equal(headers.get('Authorization'), 'Bearer mock-only');
+    if (url.endsWith('/attachments/presigned-upload')) {
+      assert.equal(options?.method, 'POST');
+      assert.ok(typeof options?.body === 'string');
+      assert.deepEqual(JSON.parse(options.body), {
+        filename: 'avatar.png',
+        folder: 'avatar',
+        content_type: 'image/png',
+        size_bytes: 3,
+        sha256:
+          'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      });
+      return Response.json({
+        id: mediaUploadId,
+        upload: {
+          url: mediaStorageUrl,
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'image/png',
+            'X-Upload-Header': 'mock-value',
+          },
+          expiresIn: 1800,
+        },
+      });
+    }
+    if (url.endsWith(`/attachments/confirm-upload/${mediaUploadId}`)) {
+      assert.equal(options?.method, 'POST');
+      assert.equal(options?.body, undefined);
+      return Response.json(
+        { id: mediaObjectId, storage_key: mediaKey },
+        { status: 201 },
+      );
+    }
+    assert.ok(url.endsWith('/users/me'));
+    if (options?.method === 'PATCH') {
+      assert.ok(typeof options.body === 'string');
+      assert.deepEqual(JSON.parse(options.body), {
+        avatarUrl: absoluteAvatarUrl,
+      });
+    }
+    return Response.json({ id: mediaUserId, avatarUrl: absoluteAvatarUrl });
+  };
+
+  const user = await useSessionStore.getState().uploadAvatar(file);
+  assert.equal(user.avatarUrl, avatarUrl);
+  const reloadedUser = await useSessionStore.getState().loadCurrentUser();
+  assert.equal(reloadedUser?.avatarUrl, avatarUrl);
+  assert.deepEqual(calls, [
+    '/api/v1/attachments/presigned-upload',
+    mediaStorageUrl,
+    `/api/v1/attachments/confirm-upload/${mediaUploadId}`,
+    '/api/v1/users/me',
+    '/api/v1/users/me',
+  ]);
+});
+
+void test('a rejected storage upload uses the file MIME fallback and skips confirmation', async () => {
+  const file = new File(['image'], 'picture.png', { type: 'image/png' });
+  responder = (url, options) => {
+    if (url === mediaStorageUrl) {
+      assert.equal(
+        new Headers(options?.headers).get('Content-Type'),
+        'image/png',
+      );
+      return new Response(null, { status: 403 });
+    }
+    assert.ok(url.endsWith('/attachments/presigned-upload'));
+    return Response.json({
+      id: mediaUploadId,
+      upload: { url: mediaStorageUrl, method: 'PUT', headers: {} },
+    });
+  };
+  await assert.rejects(
+    attachmentsApi.uploadAttachment(
+      file,
+      MEDIA_FOLDERS.COURSE_IMAGES,
+      mediaUserId,
+    ),
+    { code: 'STORAGE_PUT_403' },
+  );
+  assert.equal(calls.length, 2);
+});
+
+void test('attachment metadata and links use Bearer, and storage download omits credentials', async () => {
+  responder = (url, options) => {
+    const headers = new Headers(options?.headers);
+    if (url === mediaStorageUrl) {
+      assert.equal(headers.get('Authorization'), null);
+      assert.equal(options?.credentials, 'omit');
+      return new Response('image bytes');
+    }
+    assert.equal(headers.get('Authorization'), 'Bearer mock-only');
+    if (url.endsWith(`/attachments/${mediaObjectId}/presigned-download`)) {
+      return Response.json({ download_url: mediaStorageUrl });
+    }
+    assert.ok(url.endsWith(`/attachments/${mediaObjectId}`));
+    return Response.json({ id: mediaObjectId, storage_key: mediaKey });
+  };
+
+  const attachment = await attachmentsApi.getAttachment(mediaObjectId);
+  const blob = await attachmentsApi.fetchAttachmentBlob(mediaObjectId);
+  assert.equal(attachment.storage_key, mediaKey);
+  assert.equal(await blob.text(), 'image bytes');
+});
 
 void test('practice: draft, result and AI feedback survive remount and storage hydration without new POST', async () => {
   let page = await render(
@@ -611,6 +764,57 @@ void test('catalog restores filters from the URL without changing API calls', as
   await unmount(page);
 });
 
+void test('organization and model breadcrumbs show the current section name', async () => {
+  for (const [path, label] of [
+    ['/organizations', 'Организации'],
+    ['/models', 'AI-модели'],
+  ]) {
+    const page = await render(
+      <MemoryRouter initialEntries={[path]}>
+        <Breadcrumbs />
+      </MemoryRouter>,
+    );
+    assert.deepEqual(
+      page.root.findByProps({ 'aria-current': 'page' }).children,
+      [label],
+    );
+    await unmount(page);
+  }
+});
+
+void test('legacy layout drops the profile tab and retains catalog and lesson preferences', async () => {
+  const key = useUiLayoutStore.persist.getOptions().name;
+  assert.ok(key);
+  const previousStorage = storage.getItem(key);
+  const previousLayout = useUiLayoutStore.getState();
+
+  storage.setItem(
+    key,
+    JSON.stringify({
+      version: 2,
+      state: {
+        activeProfileTab: 'active-course',
+        coursesPage: 3,
+        scrollPositions: { '/courses': 180 },
+        activeLessonTabs: { 'account:lesson': 'practice' },
+      },
+    }),
+  );
+
+  try {
+    await useUiLayoutStore.persist.rehydrate();
+    const layout = useUiLayoutStore.getState();
+    assert.equal('activeProfileTab' in layout, false);
+    assert.equal(layout.coursesPage, 3);
+    assert.equal(layout.getScrollPosition('/courses'), 180);
+    assert.equal(layout.getLessonActiveTab('account:lesson'), 'practice');
+  } finally {
+    useUiLayoutStore.setState(previousLayout);
+    if (previousStorage === null) storage.removeItem(key);
+    else storage.setItem(key, previousStorage);
+  }
+});
+
 void test('training tree shares scoped lesson tabs and keeps other accounts separate', async () => {
   const lessonId = 'local-training-lesson';
   const tree = (scope: string) => (
@@ -652,6 +856,325 @@ void test('training tree shares scoped lesson tabs and keeps other accounts sepa
     true,
   );
   await unmount(page);
+});
+
+void test('resume keeps completed visits and falls back to the latest recorded lesson activity', () => {
+  const course = {
+    blocks: [
+      { lessons: [{ id: 'one' }, { id: 'two' }] },
+      { lessons: [{ id: 'three' }] },
+    ],
+  };
+  const partial: LessonProgress = {
+    id: 'p',
+    lessonId: 'one',
+    moduleProgressId: 'm',
+    theoryCompletedAt: '2026-11-18T12:00:00Z',
+    testCompletedAt: null,
+    practiceCompletedAt: null,
+  };
+  const done: LessonProgress = {
+    ...partial,
+    testCompletedAt: '2026-11-18T13:00:00Z',
+    practiceCompletedAt: '2026-11-18T14:00:00Z',
+  };
+  const recent = { ...partial, updatedAt: '2026-11-19T12:00:00Z' };
+  assert.equal(getResumeLessonId(course, {}, null), null);
+  assert.equal(getResumeLessonId(course, {}, 'deleted'), null);
+  assert.equal(getResumeLessonId(course, {}, 'two'), 'two');
+  assert.equal(getResumeLessonId(course, { one: partial }, null), 'one');
+  assert.equal(
+    getResumeLessonId(course, { one: done, two: recent }, 'one'),
+    'one',
+  );
+  assert.equal(
+    getResumeLessonId(
+      course,
+      { one: done, two: recent, three: partial },
+      'deleted',
+    ),
+    'two',
+  );
+  assert.equal(
+    getResumeLessonId(course, { one: done, two: recent, three: partial }, null),
+    'two',
+  );
+  assert.equal(
+    getResumeLessonId(course, { one: done, two: done, three: done }, 'two'),
+    'two',
+  );
+  assert.equal(getResumeLessonId({ blocks: [] }, {}, 'two'), null);
+});
+
+for (const [index, tab] of [
+  null,
+  'Теория',
+  'Проверочные вопросы',
+  'Практика',
+].entries()) {
+  void test(`course entry ${tab ? `restores ${tab} on the last visited completed lesson` : 'opens the structure when there is no progress'}`, async () => {
+    const courseId = `80000000-0000-4000-8000-00000000001${index}`;
+    const moduleId = '80000000-0000-4000-8000-000000000003';
+    const first = '80000000-0000-4000-8000-000000000004';
+    const second = '80000000-0000-4000-8000-000000000005';
+    const originalDocument = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'document',
+    );
+    const originalPermissions = usePermissionStore.getState().permissions;
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: Object.assign(new EventTarget(), {
+        visibilityState: 'hidden',
+        hidden: true,
+        documentElement: { clientWidth: 1440, dataset: {} },
+      }),
+    });
+    usePermissionStore
+      .getState()
+      .setPermissions([COURSE_PERMISSIONS.COURSE_READ]);
+    const basic = {
+      id: courseId,
+      title: 'Resume course',
+      creatorId: 'other-user',
+      modules: [{ id: moduleId }],
+    };
+    responder = (url) => {
+      if (url.includes('/progress/')) {
+        if (url.includes('/progress/lessons/'))
+          return tab
+            ? Response.json({
+                id: 'p',
+                updatedAt: url.endsWith(second)
+                  ? '2026-11-19T12:00:00Z'
+                  : '2026-11-18T12:00:00Z',
+                theoryCompletedAt: '2026-11-18T12:00:00Z',
+                testCompletedAt: '2026-11-18T12:00:00Z',
+                practiceCompletedAt: '2026-11-18T12:00:00Z',
+              })
+            : Response.json({ detail: 'Not found' }, { status: 404 });
+        return Response.json({ id: 'progress', percent: 0 });
+      }
+      if (url.includes('/members?')) return Response.json({ items: [basic] });
+      if (url.endsWith(`/courses/${courseId}`)) return Response.json(basic);
+      if (url.endsWith(`/modules/${moduleId}`))
+        return Response.json({
+          id: moduleId,
+          lessons: [
+            { id: first, title: 'Saved completed lesson' },
+            { id: second, title: 'More recent progress' },
+          ],
+        });
+      if (url.endsWith('/theory'))
+        return tab && tab !== 'Теория'
+          ? Response.json({ detail: 'Unavailable' }, { status: 503 })
+          : Response.json([
+              { content_type: 'text', md_content: 'Lesson text' },
+            ]);
+      if (url.endsWith(`/lessons/${first}`))
+        return Response.json({ id: first, title: 'Saved completed lesson' });
+      assert.fail(`Unexpected request: ${url}`);
+    };
+    const view = (path: string) => (
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/course/:courseId" element={<CourseViewer />} />
+          <Route
+            path="/course/:courseId/lesson/:lessonId"
+            element={<CourseViewer />}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+    let page: ReactTestRenderer | undefined;
+    try {
+      if (tab) {
+        page = await render(view(`/course/${courseId}/lesson/${first}`));
+        await act(tick);
+        await click(page.root.findByProps({ 'aria-label': tab }));
+        await unmount(page);
+        page = undefined;
+        // The resume record must restore the tab even if layout history was cleared.
+        useUiLayoutStore.getState().clearLessonActiveTabs();
+      }
+      page = await render(view(`/course/${courseId}`));
+      await act(tick);
+      await click(
+        button(page, tab ? 'Продолжить обучение' : 'Перейти к обучению'),
+      );
+      await act(tick);
+      assert.equal(
+        page.root.findAllByType(LessonTestAgent).length,
+        tab === 'Проверочные вопросы' ? 1 : 0,
+      );
+      assert.equal(
+        page.root.findAllByType(LessonPracticeAgent).length,
+        tab === 'Практика' ? 1 : 0,
+      );
+      assert.equal(
+        JSON.stringify(page.toJSON()).includes('Lesson text'),
+        tab === 'Теория',
+      );
+      if (tab) {
+        const tree = page.root.findByType(CourseNavigationTree);
+        assert.equal(tree.props.selectedLessonId, first);
+        assert.equal(
+          tree.findByProps({ 'aria-label': tab }).props['aria-pressed'],
+          true,
+        );
+        await unmount(page);
+        page = undefined;
+        useSessionStore.setState({ user: { id: 'different-account' } });
+        assert.equal(
+          storage.getItem(`course-resume:${getPersistenceScope()}:${courseId}`),
+          null,
+        );
+      }
+    } finally {
+      if (page) await unmount(page);
+      usePermissionStore.getState().setPermissions(originalPermissions);
+      if (originalDocument)
+        Object.defineProperty(globalThis, 'document', originalDocument);
+      else Reflect.deleteProperty(globalThis, 'document');
+    }
+  });
+}
+
+void test('completed training can restart from Quick Start and replay again without old answers or real-course changes', async () => {
+  const owner = 'training-replay-owner';
+  useSessionStore.setState({ user: { id: owner } });
+  const scope = getPersistenceScope();
+  const draft = `training-creator:${scope}`;
+  const readRun = () =>
+    (
+      JSON.parse(storage.getItem(`${draft}:lesson-run`)!) as {
+        state: { value: number };
+      }
+    ).state.value;
+  storage.setItem(
+    `${draft}:finished`,
+    JSON.stringify({ version: 1, state: { value: true } }),
+  );
+  storage.setItem(
+    `training-lesson:${scope}:training-lesson-2:result`,
+    JSON.stringify({ version: 1, state: { value: 'Учебный пример готов!' } }),
+  );
+  useUiLayoutStore
+    .getState()
+    .setLessonActiveTab(`${scope}:training-lesson-2`, 'practice');
+  useUiLayoutStore
+    .getState()
+    .setLessonActiveTab('real-course-lesson', 'questions');
+  useTrainingStore.setState({
+    courses: {
+      [owner]: {
+        title: 'Saved example',
+        answers: ['Saved example'],
+        completed: true,
+      },
+    },
+  });
+  const view = (query: string) => (
+    <MemoryRouter
+      initialEntries={[
+        `/quick-start/training?training=creator&lesson=1${query}`,
+      ]}
+    >
+      <CreatorTrainingView />
+    </MemoryRouter>
+  );
+  let page = await render(view('&start=1'));
+  try {
+    assert.equal(
+      page.root.findByProps({ className: 'training-lesson' }).props[
+        'data-training-lesson-step'
+      ],
+      0,
+    );
+    assert.equal(readRun(), 1);
+    await click(button(page, 'Перейти к вопросам'));
+    assert.equal(
+      page.root.findByProps({ className: 'training-lesson' }).props[
+        'data-training-lesson-step'
+      ],
+      3,
+    );
+    await unmount(page);
+    page = await render(view(''));
+    assert.equal(
+      page.root.findByProps({ className: 'training-lesson' }).props[
+        'data-training-lesson-step'
+      ],
+      3,
+      'reload resumes the new attempt',
+    );
+    assert.equal(readRun(), 1);
+    await click(page.root.findByProps({ 'data-training-finish': true }));
+    await click(button(page, 'Повторить обучение'));
+    assert.equal(
+      page.root.findByProps({ className: 'training-lesson' }).props[
+        'data-training-lesson-step'
+      ],
+      0,
+    );
+    assert.equal(readRun(), 2);
+    assert.equal(
+      useTrainingStore.getState().courses[owner].title,
+      'Saved example',
+    );
+    assert.equal(
+      useUiLayoutStore.getState().getLessonActiveTab('real-course-lesson'),
+      'questions',
+    );
+    await click(page.root.findByProps({ 'data-training-finish': true }));
+    await click(button(page, 'Повторить создание курса'));
+    assert.equal(
+      page.root.findAll((node) => node.props['data-training-step'] === 0)
+        .length,
+      1,
+    );
+    assert.equal(
+      calls.length,
+      0,
+      'replaying training must not call the API or AI',
+    );
+  } finally {
+    await unmount(page);
+  }
+});
+
+void test('Quick Start resumes unfinished creator answers and clears its start marker', async () => {
+  useSessionStore.setState({ user: { id: 'training-resume-owner' } });
+  const draft = `training-creator:${getPersistenceScope()}`;
+  storage.setItem(
+    `${draft}:answers`,
+    JSON.stringify({ version: 1, state: { value: ['My course'] } }),
+  );
+  storage.setItem(
+    `${draft}:input`,
+    JSON.stringify({ version: 1, state: { value: 'Unfinished answer' } }),
+  );
+  const page = await render(
+    <MemoryRouter
+      initialEntries={['/quick-start/training?training=creator&start=1']}
+    >
+      <CreatorTrainingView />
+    </MemoryRouter>,
+  );
+  try {
+    assert.equal(
+      page.root.findAll((node) => node.props['data-training-step'] === 1)
+        .length,
+      1,
+    );
+    assert.equal(
+      page.root.findByType('textarea').props.value,
+      'Unfinished answer',
+    );
+    assert.equal(calls.length, 0);
+  } finally {
+    await unmount(page);
+  }
 });
 
 const editorCourse = 'editor-course';

@@ -72,11 +72,15 @@ const theory =
 export function TrainingLesson({
   onBack,
   onFinish,
+  run = 0,
 }: {
   onBack: () => void;
   onFinish: () => void;
+  run?: number;
 }) {
-  const scope = usePersistenceScope();
+  const ownerScope = usePersistenceScope();
+  // A replay starts fresh without touching the saved example or real lessons.
+  const scope = run ? `${ownerScope}:training-run-${run}` : ownerScope;
   const key = `training-lesson:${scope}`;
   const [selected, setSelected] = useLocalState(
     `${key}:selected`,
@@ -148,6 +152,7 @@ export function TrainingLesson({
   return (
     <section
       className="training-lesson"
+      data-training-run={run}
       data-training-lesson-step={
         practiceResult.startsWith('Учебный пример готов')
           ? 5
@@ -164,7 +169,7 @@ export function TrainingLesson({
           <button
             type="button"
             onClick={onBack}
-            className="tw:border-0 tw:bg-transparent tw:text-(--text) tw:cursor-pointer"
+            className="tw:inline-flex tw:min-h-[44px] tw:max-w-full tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[12px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--text) tw:[font-family:inherit] tw:cursor-pointer tw:focus-visible:outline-2 tw:focus-visible:outline-(--cta)"
           >
             К учебному чату
           </button>
@@ -173,7 +178,7 @@ export function TrainingLesson({
             onClick={onFinish}
             data-training-finish
             data-help-exit
-            className="tw:border-0 tw:bg-transparent tw:text-(--text) tw:cursor-pointer"
+            className="tw:inline-flex tw:min-h-[44px] tw:max-w-full tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-solid tw:border-(--line) tw:bg-transparent tw:px-[12px] tw:text-center tw:text-[14px] tw:font-semibold tw:text-(--text) tw:[font-family:inherit] tw:cursor-pointer tw:focus-visible:outline-2 tw:focus-visible:outline-(--cta)"
           >
             Завершить знакомство
           </button>
@@ -372,7 +377,7 @@ export function TrainingLesson({
           )}
         </article>
       </div>
-      <TrainingMentor />
+      <TrainingMentor run={run} />
     </section>
   );
 }

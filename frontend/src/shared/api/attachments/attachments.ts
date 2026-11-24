@@ -46,9 +46,15 @@ export interface Attachment {
   [key: string]: unknown;
 }
 
+interface StorageUpload {
+  url: string;
+  method: 'PUT';
+  headers: Record<string, string>;
+}
+
 interface PresignedUpload {
-  upload_url: string;
-  storage_key: string;
+  id: string;
+  upload: StorageUpload;
 }
 
 export type ConcurrencyResult<T> =
@@ -167,7 +173,15 @@ export function validateAttachmentFile(
     });
   }
 
-  if (Number(file.size) > maxSizeBytes) {
+  if (file.size === 0) {
+    throw new AttachmentError('Файл пуст.', {
+      code: 'FILE_EMPTY',
+      step: 'validation',
+      fileName: filename,
+    });
+  }
+
+  if (file.size > maxSizeBytes) {
     throw new AttachmentError(
       `Файл больше допустимого лимита ${formatFileSize(maxSizeBytes)}.`,
       {
@@ -318,15 +332,11 @@ function rewriteStorageUrl(url: string): string {
 async function requestAttachmentJson<T>(
   path: string,
   options: RequestInit,
-  {
-    auth = true,
-    step,
-    fileName,
-  }: { auth?: boolean; step: AttachmentStep; fileName?: string },
+  { step, fileName }: { step: AttachmentStep; fileName?: string },
 ): Promise<T> {
   let response: Response;
   try {
-    response = await apiFetch(path, options, { auth });
+    response = await apiFetch(path, options);
   } catch (error) {
     throw new AttachmentError(
       'Сеть недоступна. Проверьте подключение и повторите попытку.',
@@ -347,16 +357,22 @@ async function requestAttachmentJson<T>(
 }
 
 async function putFileToStorage(
-  uploadUrl: string,
+  upload: StorageUpload,
   file: File,
   { signal }: { signal?: AbortSignal } = {},
 ): Promise<void> {
-  const publicUrl = rewriteStorageUrl(uploadUrl);
+  const publicUrl = rewriteStorageUrl(upload.url);
   try {
+    const headers = new Headers(upload.headers);
+    headers.delete('Authorization');
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', getUploadContentType(file));
+    }
     const response = await fetch(publicUrl, {
-      method: 'PUT',
+      method: upload.method,
       body: file,
-      headers: { 'Content-Type': getUploadContentType(file) },
+      headers,
+      credentials: 'omit',
       signal,
     });
 
@@ -393,7 +409,7 @@ async function fetchBlobFromStorage(
   const publicUrl = rewriteStorageUrl(downloadUrl);
   let response: Response;
   try {
-    response = await fetch(publicUrl, { signal });
+    response = await fetch(publicUrl, { credentials: 'omit', signal });
   } catch (error) {
     if ((error as Error | null)?.name === 'AbortError') {
       throw new AttachmentError('Скачивание файла отменено.', {
@@ -413,6 +429,22 @@ async function fetchBlobFromStorage(
   }
 
   return response.blob();
+}
+
+async function getFileSha256(file: File): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new AttachmentError('Для загрузки файла откройте сайт по HTTPS.', {
+      code: 'SHA256_UNAVAILABLE',
+      step: 'validation',
+      fileName: file.name,
+    });
+  }
+
+  const digest = await subtle.digest('SHA-256', await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
 }
 
 export async function runWithConcurrency<T, R>(
@@ -456,66 +488,52 @@ export const attachmentsApi = {
     filename,
     folder,
     content_type,
-    owner_id,
+    size_bytes,
+    sha256,
   }: {
     filename: string;
     folder: string;
     content_type: string;
-    owner_id: string;
+    size_bytes: number;
+    sha256: string;
   }): Promise<PresignedUpload> {
     return requestAttachmentJson<PresignedUpload>(
       '/attachments/presigned-upload',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename, folder, content_type, owner_id }),
+        body: JSON.stringify({
+          filename,
+          folder,
+          content_type,
+          size_bytes,
+          sha256,
+        }),
       },
-      { auth: true, step: 'presigned-upload', fileName: filename },
+      { step: 'presigned-upload', fileName: filename },
     );
   },
 
   async uploadFileToStorage(
-    uploadUrl: string,
+    upload: StorageUpload,
     file: File,
     options: { signal?: AbortSignal } = {},
   ): Promise<void> {
-    return putFileToStorage(uploadUrl, file, options);
+    return putFileToStorage(upload, file, options);
   },
 
-  async confirmUpload({
-    storage_key,
-    original_filename,
-    content_type,
-    owner_id,
-  }: {
-    storage_key: string;
-    original_filename: string;
-    content_type: string;
-    owner_id: string;
-  }): Promise<Attachment> {
+  async confirmUpload(
+    uploadId: string,
+    fileName?: string,
+  ): Promise<Attachment> {
     return requestAttachmentJson<Attachment>(
-      '/attachments/confirm-upload',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storage_key,
-          original_filename,
-          content_type,
-          owner_id,
-        }),
-      },
-      { auth: true, step: 'confirm-upload', fileName: original_filename },
+      `/attachments/confirm-upload/${encodeURIComponent(uploadId)}`,
+      { method: 'POST' },
+      { step: 'confirm-upload', fileName },
     );
   },
 
-  /**
-   * ownerType сохранён для обратной совместимости с прежними вызовами
-   * uploadAttachment(file, ownerType, ownerId), но в JSON не отправляется:
-   * фактическая backend-схема ../backend/src/media/schemas.py для
-   * PresignedUploadRequest/ConfirmUploadRequest содержит owner_id и не
-   * содержит owner_type.
-   */
+  /** Сервер определяет владельца вложения по текущей сессии. */
   async uploadAttachment(
     file: File,
     ownerType: string,
@@ -526,23 +544,30 @@ export const attachmentsApi = {
     validateOwnerId(ownerId);
     const { filename, contentType } = validateAttachmentFile(file, options);
 
-    const presignedData = await this.getPresignedUploadUrl({
+    const presigned = await this.getPresignedUploadUrl({
       filename,
       folder,
       content_type: contentType,
-      owner_id: ownerId,
+      size_bytes: file.size,
+      sha256: await getFileSha256(file),
     });
+    if (
+      !UUID_RE.test(presigned?.id) ||
+      !presigned.upload?.url ||
+      presigned.upload.method !== 'PUT'
+    ) {
+      throw new AttachmentError('API вернул неполные данные для загрузки.', {
+        code: 'INVALID_UPLOAD_RESPONSE',
+        step: 'presigned-upload',
+        fileName: filename,
+      });
+    }
 
-    await this.uploadFileToStorage(presignedData.upload_url, file, {
+    await this.uploadFileToStorage(presigned.upload, file, {
       signal: options.signal,
     });
 
-    return this.confirmUpload({
-      storage_key: presignedData.storage_key,
-      original_filename: filename,
-      content_type: contentType,
-      owner_id: ownerId,
-    });
+    return this.confirmUpload(presigned.id, filename);
   },
 
   async uploadAttachments(
@@ -593,7 +618,7 @@ export const attachmentsApi = {
     return requestAttachmentJson<{ download_url: string }>(
       `/attachments/${encodeURIComponent(attachmentId)}/presigned-download`,
       { method: 'GET' },
-      { auth: false, step: 'presigned-download' },
+      { step: 'presigned-download' },
     );
   },
 
@@ -609,7 +634,7 @@ export const attachmentsApi = {
     return requestAttachmentJson<Attachment>(
       `/attachments/${encodeURIComponent(attachmentId)}`,
       { method: 'GET' },
-      { auth: false, step: 'get-attachment' },
+      { step: 'get-attachment' },
     );
   },
 

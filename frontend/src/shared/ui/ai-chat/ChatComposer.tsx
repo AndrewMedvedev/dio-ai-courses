@@ -152,7 +152,7 @@ export function ChatComposer({
           disabled={disabled}
           aria-label={ariaLabel}
         />
-        <div className="tw:flex tw:items-center tw:justify-between tw:gap-[8px]">
+        <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-[8px]">
           <div className="tw:flex tw:items-center tw:gap-[4px] tw:min-w-0">
             {onAttach ? (
               <ChatIconButton
@@ -168,7 +168,7 @@ export function ChatComposer({
           {busy && onStop ? (
             <button
               type="button"
-              className={`${showSendLabel ? 'tw:w-auto! tw:px-[28px]! tw:h-[44px]! tw:gap-[8px]' : ''} ai-chat-send is-stop tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b]`}
+              className={`${showSendLabel ? 'tw:w-auto! tw:px-[28px]! tw:max-480:px-[12px]! tw:h-[44px]! tw:gap-[8px]' : ''} ai-chat-send is-stop tw:ml-auto! tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b]`}
               onClick={onStop}
               aria-label="Остановить ответ"
               title="Остановить"
@@ -178,7 +178,7 @@ export function ChatComposer({
           ) : (
             <button
               type="button"
-              className={`${showSendLabel ? 'tw:w-auto! tw:px-[28px]! tw:h-[44px]! tw:gap-[8px]' : ''} ai-chat-send tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b] tw:transition-opacity tw:disabled:opacity-45 tw:disabled:cursor-not-allowed tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]`}
+              className={`${showSendLabel ? 'tw:w-auto! tw:px-[28px]! tw:max-480:px-[12px]! tw:h-[44px]! tw:gap-[8px]' : ''} ai-chat-send tw:ml-auto! tw:inline-flex tw:items-center tw:justify-center tw:size-[34px] tw:shrink-0 tw:rounded-full tw:border-0 tw:m-0 tw:p-0 tw:cursor-pointer tw:bg-(--cta) tw:text-[#2b2b2b] tw:transition-opacity tw:disabled:opacity-45 tw:disabled:cursor-not-allowed tw:focus-visible:outline-[2px] tw:focus-visible:outline-solid tw:focus-visible:outline-(--cta) tw:focus-visible:outline-offset-[2px]`}
               onClick={onSubmit}
               disabled={sendDisabled}
               aria-label={busy ? 'ИИ готовит ответ' : sendLabel}
