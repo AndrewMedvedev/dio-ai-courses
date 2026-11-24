@@ -165,6 +165,7 @@ const AuthPage = lazy(() =>
 );
 
 type CompletedMap = Record<string, boolean | undefined>;
+const glassIdentityMatrix = '1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0';
 
 const errorText = (error: unknown, fallback: string): string =>
   getErrorMessage(error, fallback) ?? fallback;
@@ -215,24 +216,29 @@ function AppContent() {
   const location = useLocation();
   const needsCourseCatalog = location.pathname === '/courses';
   const isLanding = location.pathname === '/';
-  const glassOffsetRef = useRef<SVGFEOffsetElement>(null);
-  const glassHorizontalRef = useRef<SVGFEFuncRElement>(null);
+  const glassDisplacementRef = useRef<SVGFEColorMatrixElement>(null);
   useEffect(() => {
-    const offset = glassOffsetRef.current;
-    const horizontal = glassHorizontalRef.current;
-    if (!isLanding || !offset || !horizontal) return;
+    const displacement = glassDisplacementRef.current;
+    if (!isLanding || !displacement) return;
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
+    let previousMatrix = glassIdentityMatrix;
 
     const update = () => {
       frame = 0;
-      const scrollPhase = reducedMotion.matches
-        ? 0
-        : Math.sin(window.scrollY / 180);
-      offset.dy.baseVal = -28 * scrollPhase;
-      // Red controls the horizontal sample position in the displacement map.
-      horizontal.intercept.baseVal = 0.3 * scrollPhase;
+      const scroll = reducedMotion.matches ? 0 : Math.max(0, window.scrollY);
+      const travel = scroll / (scroll + 100);
+      // Red and green shift the backdrop sample on the horizontal and vertical axes.
+      const x = (0.24 * travel).toFixed(3);
+      const y = (0.12 * travel).toFixed(3);
+      const matrix = scroll
+        ? `1 0 0 0 ${x} 0 1 0 0 ${y} 0 0 1 0 0 0 0 0 1 0`
+        : glassIdentityMatrix;
+      if (matrix !== previousMatrix) {
+        displacement.setAttribute('values', matrix);
+        previousMatrix = matrix;
+      }
     };
 
     const scheduleUpdate = () => {
@@ -248,8 +254,7 @@ function AppContent() {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('scroll', scheduleUpdate);
       reducedMotion.removeEventListener('change', scheduleUpdate);
-      offset.dy.baseVal = 0;
-      horizontal.intercept.baseVal = 0;
+      displacement.setAttribute('values', glassIdentityMatrix);
     };
   }, [isLanding]);
   const isDndRoute =
@@ -1754,17 +1759,13 @@ function AppContent() {
               result="noise"
             />
             <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
-            <feOffset
-              ref={glassOffsetRef}
+            <feColorMatrix
+              ref={glassDisplacementRef}
               in="blurred"
-              result="shifted-noise"
-            />
-            <feComponentTransfer
-              in="shifted-noise"
+              type="matrix"
+              values={glassIdentityMatrix}
               result="scroll-displacement"
-            >
-              <feFuncR ref={glassHorizontalRef} type="linear" intercept="0" />
-            </feComponentTransfer>
+            />
             <feDisplacementMap
               in="SourceGraphic"
               in2="scroll-displacement"
