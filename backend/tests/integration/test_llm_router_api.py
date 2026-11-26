@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 
 from src.iam.dependencies.identity import get_current_identity
-from src.llm_router.dependencies import (
+from src.llm_router.api.dependencies.services import (
     get_llm_image_router,
     get_llm_text_router,
 )

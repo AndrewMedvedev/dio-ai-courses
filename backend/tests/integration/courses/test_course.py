@@ -2,9 +2,10 @@ from uuid import uuid4
 
 import pytest
 
-from src.courses.domain.enums import CourseStatus, DifficultyLevel
+from src.courses.domain.catalog.enums import CourseStatus, DifficultyLevel
 from src.courses.infra.database.repos.course import SqlCourseRepository
-from src.courses.infra.models import CourseOrm, ModuleOrm, StudentOrm
+from src.courses.domain.enrollment.vo import MemberRole
+from src.courses.infra.database.models import CourseOrm, MemberOrm, ModuleOrm
 from src.shared.application.dtos import Pagination
 
 
@@ -15,6 +16,7 @@ async def test_get_by_id_basic_info_returns_course_with_modules(session):
     course = CourseOrm(
         id=course_id,
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Python",
         description="Python course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -27,7 +29,7 @@ async def test_get_by_id_basic_info_returns_course_with_modules(session):
         course_id=course_id,
         title="Basics",
         description="Python basics",
-        order=1,
+        rank="a",
         learning_objectives=["Learn syntax"],
     )
     session.add_all([course, module])
@@ -49,6 +51,7 @@ async def test_get_by_id_basic_info_returns_modules_in_course_order(session):
     course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Python",
         description="Python course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -60,14 +63,14 @@ async def test_get_by_id_basic_info_returns_modules_in_course_order(session):
         course_id=course.id,
         title="Advanced",
         description="Advanced Python",
-        order=2,
+        rank="b",
     )
     first_module = ModuleOrm(
         id=uuid4(),
         course_id=course.id,
         title="Basics",
         description="Python basics",
-        order=1,
+        rank="a",
     )
     session.add_all([course, later_module, first_module])
     await session.flush()
@@ -93,6 +96,7 @@ async def test_get_by_id_basic_info_returns_empty_modules_for_new_course(session
     course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Python",
         description="Python course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -116,6 +120,7 @@ async def test_find_student_courses_excludes_archived_courses(session):
     published_course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Published Python",
         description="Published course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -125,6 +130,7 @@ async def test_find_student_courses_excludes_archived_courses(session):
     archived_course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Archived Python",
         description="Archived course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -135,14 +141,14 @@ async def test_find_student_courses_excludes_archived_courses(session):
         [
             published_course,
             archived_course,
-            StudentOrm(course_id=published_course.id, user_id=user_id),
-            StudentOrm(course_id=archived_course.id, user_id=user_id),
+            MemberOrm(course_id=published_course.id, user_id=user_id, role=MemberRole.STUDENT),
+            MemberOrm(course_id=archived_course.id, user_id=user_id, role=MemberRole.STUDENT),
         ]
     )
     await session.flush()
     repository = SqlCourseRepository(session)
 
-    page = await repository.find_student_courses(user_id, Pagination())
+    page = await repository.find_member_courses(user_id, Pagination())
 
     assert [course.id for course in page.items] == [published_course.id]
 
@@ -153,6 +159,7 @@ async def test_find_returns_only_published_courses(session):
     published_course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Published Python",
         description="Published course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -162,6 +169,7 @@ async def test_find_returns_only_published_courses(session):
     draft_course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Draft Python",
         description="Draft course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -184,6 +192,7 @@ async def test_find_returns_page_metadata_for_published_courses(session):
         CourseOrm(
             id=uuid4(),
             creator_id=uuid4(),
+            organization_id=uuid4(),
             title=f"Python {number}",
             description="Published course",
             difficulty=DifficultyLevel.BEGINNER,
@@ -212,6 +221,7 @@ async def test_find_user_courses_returns_only_creator_courses(session):
     creator_course = CourseOrm(
         id=uuid4(),
         creator_id=creator_id,
+        organization_id=uuid4(),
         title="Creator Python",
         description="Creator course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -221,6 +231,7 @@ async def test_find_user_courses_returns_only_creator_courses(session):
     other_course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Other Python",
         description="Other course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -243,6 +254,7 @@ async def test_get_course_status_returns_status_only_for_creator(session):
     course = CourseOrm(
         id=uuid4(),
         creator_id=creator_id,
+        organization_id=uuid4(),
         title="Python",
         description="Python course",
         difficulty=DifficultyLevel.BEGINNER,
@@ -264,6 +276,7 @@ async def test_get_course_status_returns_none_for_other_creator(session):
     course = CourseOrm(
         id=uuid4(),
         creator_id=uuid4(),
+        organization_id=uuid4(),
         title="Python",
         description="Python course",
         difficulty=DifficultyLevel.BEGINNER,

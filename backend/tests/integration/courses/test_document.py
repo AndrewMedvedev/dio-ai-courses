@@ -2,9 +2,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.courses.domain.enums import DocumentNodeType
+from src.courses.domain.knowledge.enums import DocumentNodeType
 from src.courses.infra.database.repos.document import SqlDocumentRepository
-from src.courses.infra.models import DocumentOrm
+from src.courses.infra.database.models import DocumentOrm
 
 
 @pytest.mark.asyncio

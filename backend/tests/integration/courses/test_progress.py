@@ -1,37 +1,51 @@
-from datetime import UTC, datetime, timezone
-from unittest.mock import AsyncMock
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 from ddf.application.dtos import CursorPagination
-from ddf.application.events import EventDispatcher as Transaction
-from src.courses.api.dependencies.crud.course_progress import CourseProgressCrud
-from src.courses.api.dependencies.crud.lesson_progress import LessonProgressCrud
-from src.courses.api.dependencies.crud.module_progress import ModuleProgressCrud
-from src.courses.domain.events import LessonProgressUpdate, LessonProgressUpdated
+from src.courses.api.dependencies.learning import (
+    course_progress as course_progress_actions,
+    lesson_progress as lesson_progress_actions,
+    module_progress as module_progress_actions,
+)
+from src.courses.domain.learning.events import LessonProgressUpdate, LessonProgressUpdated
 
 from src.courses.infra.database.mappers import CourseProgressMapper, LessonProgressMapper
 from src.courses.infra.database.models import (
+    CourseOrm,
     CourseProgressOrm,
     LessonProgressOrm,
     ModuleProgressOrm,
 )
+from src.courses.domain.catalog.enums import CourseStatus, DifficultyLevel
 from src.courses.infra.database.repos.course_progress import SqlCourseProgressRepository
 from src.courses.infra.database.repos.lesson_progress import SqlLessonProgressRepository
 from src.courses.infra.database.repos.module_progress import SqlModuleProgressRepository
+
+
+def make_course() -> CourseOrm:
+    return CourseOrm(
+        creator_id=uuid4(),
+        organization_id=uuid4(),
+        title="Python",
+        description="Python course",
+        difficulty=DifficultyLevel.BEGINNER,
+        status=CourseStatus.DRAFT,
+    )
 
 
 @pytest.mark.asyncio
 async def test_read_by_returns_saved_user_course_progress(session):
     """Возвращает сохранённый прогресс конкретного пользователя по курсу."""
     user_id = uuid4()
-    course_id = uuid4()
+    course = make_course()
+    course_id = course.id
     course_progress = CourseProgressOrm(
         user_id=user_id,
         course_id=course_id,
         progress_percent=25,
     )
-    session.add(course_progress)
+    session.add_all([course, course_progress])
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
@@ -45,12 +59,13 @@ async def test_read_by_returns_saved_user_course_progress(session):
 @pytest.mark.asyncio
 async def test_read_by_does_not_return_other_user_course_progress(session):
     """Не возвращает progress курса пользователю, которому он не принадлежит."""
+    course = make_course()
     course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=course.id,
     )
-    session.add(course_progress)
+    session.add_all([course, course_progress])
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
@@ -63,17 +78,18 @@ async def test_read_by_does_not_return_other_user_course_progress(session):
 async def test_read_by_does_not_return_other_user_module_progress(session):
     """Не возвращает progress модуля пользователю, которому он не принадлежит."""
     module_id = uuid4()
+    course = make_course()
     course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=course.id,
     )
     module_progress = ModuleProgressOrm(
         id=uuid4(),
         course_progress_id=course_progress.id,
         module_id=module_id,
     )
-    session.add_all([course_progress, module_progress])
+    session.add_all([course, course_progress, module_progress])
     await session.flush()
     repository = SqlModuleProgressRepository(session)
 
@@ -87,10 +103,11 @@ async def test_count_completed_lessons_ignores_incomplete_lessons(session):
     """Считает только уроки с завершённой теорией, практикой и тестом."""
     course_progress_id = uuid4()
     module_progress_id = uuid4()
+    course = make_course()
     course_progress = CourseProgressOrm(
         id=course_progress_id,
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=course.id,
     )
     module_progress = ModuleProgressOrm(
         id=module_progress_id,
@@ -110,7 +127,7 @@ async def test_count_completed_lessons_ignores_incomplete_lessons(session):
         lesson_id=uuid4(),
         theory_completed_at=completed_at,
     )
-    session.add_all([course_progress, module_progress, completed_lesson, incomplete_lesson])
+    session.add_all([course, course_progress, module_progress, completed_lesson, incomplete_lesson])
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
@@ -122,12 +139,13 @@ async def test_count_completed_lessons_ignores_incomplete_lessons(session):
 @pytest.mark.asyncio
 async def test_count_completed_lessons_returns_zero_without_lessons(session):
     """Возвращает ноль, когда для курса нет завершённых уроков."""
+    course = make_course()
     course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=course.id,
     )
-    session.add(course_progress)
+    session.add_all([course, course_progress])
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 
@@ -139,7 +157,8 @@ async def test_count_completed_lessons_returns_zero_without_lessons(session):
 @pytest.mark.asyncio
 async def test_update_course_progress_rounds_completed_lesson_fraction(session):
     """Округляет процент, когда полностью завершен один из трех уроков."""
-    course_progress = CourseProgressOrm(id=uuid4(), user_id=uuid4(), course_id=uuid4())
+    course = make_course()
+    course_progress = CourseProgressOrm(id=uuid4(), user_id=uuid4(), course_id=course.id)
     module_progress = ModuleProgressOrm(
         id=uuid4(),
         course_progress_id=course_progress.id,
@@ -157,14 +176,14 @@ async def test_update_course_progress_rounds_completed_lesson_fraction(session):
         LessonProgressOrm(module_progress_id=module_progress.id, lesson_id=uuid4())
         for _ in range(2)
     ]
-    session.add_all([course_progress, module_progress, completed_lesson, *incomplete_lessons])
+    session.add_all([course, course_progress, module_progress, completed_lesson, *incomplete_lessons])
     await session.flush()
-    crud = CourseProgressCrud(
+    progress = await course_progress_actions.update(
         SqlCourseProgressRepository(session),
-        Transaction(session, AsyncMock()),
+        session,
+        CourseProgressMapper.from_model(course_progress),
+        total_lessons=3,
     )
-
-    progress = await crud.update(CourseProgressMapper.from_model(course_progress), total_lessons=3)
 
     assert progress.progress_percent == 33.33
 
@@ -174,15 +193,17 @@ async def test_update_from_event_updates_only_target_user_progress(session):
     """Обновляет прогресс урока только пользователя из события."""
     user_id = uuid4()
     lesson_id = uuid4()
+    target_course = make_course()
+    other_course = make_course()
     target_course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=user_id,
-        course_id=uuid4(),
+        course_id=target_course.id,
     )
     other_course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=other_course.id,
     )
     target_module_progress = ModuleProgressOrm(
         id=uuid4(),
@@ -206,6 +227,8 @@ async def test_update_from_event_updates_only_target_user_progress(session):
     )
     session.add_all(
         [
+            target_course,
+            other_course,
             target_course_progress,
             other_course_progress,
             target_module_progress,
@@ -234,10 +257,11 @@ async def test_update_from_event_updates_only_target_user_progress(session):
 @pytest.mark.asyncio
 async def test_update_from_event_preserves_completed_progress_parts(session):
     """Не затирает уже сохранённую часть прогресса при обновлении из события."""
+    course = make_course()
     course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=course.id,
     )
     module_progress = ModuleProgressOrm(
         id=uuid4(),
@@ -250,7 +274,7 @@ async def test_update_from_event_preserves_completed_progress_parts(session):
         lesson_id=uuid4(),
         practice_completed_at=practice_completed_at,
     )
-    session.add_all([course_progress, module_progress, lesson_progress])
+    session.add_all([course, course_progress, module_progress, lesson_progress])
     await session.flush()
     test_completed_at = datetime.now(UTC)
     event = LessonProgressUpdated(
@@ -286,7 +310,8 @@ async def test_update_from_event_does_not_create_unknown_lesson_progress(session
 async def test_update_course_progress_saves_calculated_percent(session):
     """Сохраняет процент курса, рассчитанный по завершённым урокам."""
     user_id = uuid4()
-    course_id = uuid4()
+    course = make_course()
+    course_id = course.id
     course_progress = CourseProgressOrm(id=uuid4(), user_id=user_id, course_id=course_id)
     module_progress = ModuleProgressOrm(
         id=uuid4(),
@@ -305,14 +330,11 @@ async def test_update_course_progress_saves_calculated_percent(session):
         module_progress_id=module_progress.id,
         lesson_id=uuid4(),
     )
-    session.add_all([course_progress, module_progress, completed_lesson, incomplete_lesson])
+    session.add_all([course, course_progress, module_progress, completed_lesson, incomplete_lesson])
     await session.flush()
-    crud = CourseProgressCrud(
+    progress = await course_progress_actions.update(
         SqlCourseProgressRepository(session),
-        Transaction(session, AsyncMock()),
-    )
-
-    progress = await crud.update(
+        session,
         CourseProgressMapper.from_model(course_progress),
         total_lessons=2,
     )
@@ -325,28 +347,33 @@ async def test_update_course_progress_saves_calculated_percent(session):
 async def test_create_progress_tree_links_course_module_and_lesson(session):
     """Создаёт связанные записи прогресса курса, модуля и урока."""
     user_id = uuid4()
-    course_id = uuid4()
+    course = make_course()
+    course_id = course.id
     module_id = uuid4()
     lesson_id = uuid4()
     course_progress_repository = SqlCourseProgressRepository(session)
     module_progress_repository = SqlModuleProgressRepository(session)
     lesson_progress_repository = SqlLessonProgressRepository(session)
-    transaction = Transaction(session, AsyncMock())
-    course_crud = CourseProgressCrud(course_progress_repository, transaction)
-    module_crud = ModuleProgressCrud(
+    session.add(course)
+    course_progress = await course_progress_actions.create(
+        course_progress_repository, user_id, course_id, session
+    )
+    module_progress = await module_progress_actions.create(
         module_progress_repository,
         course_progress_repository,
-        transaction,
+        session,
+        user_id,
+        course_id,
+        module_id,
     )
-    lesson_crud = LessonProgressCrud(
+    lesson_progress = await lesson_progress_actions.create(
         lesson_progress_repository,
         module_progress_repository,
-        transaction,
+        session,
+        user_id,
+        module_id,
+        lesson_id,
     )
-
-    course_progress = await course_crud.create(user_id, course_id)
-    module_progress = await module_crud.create(user_id, course_id, module_id)
-    lesson_progress = await lesson_crud.create(user_id, module_id, lesson_id)
 
     assert module_progress.course_progress_id == course_progress.id
     assert lesson_progress.module_progress_id == module_progress.id
@@ -357,15 +384,17 @@ async def test_update_marks_theory_completed_only_for_target_user(session):
     """Сохраняет завершение теории только в прогрессе текущего пользователя."""
     user_id = uuid4()
     lesson_id = uuid4()
+    target_course = make_course()
+    other_course = make_course()
     target_course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=user_id,
-        course_id=uuid4(),
+        course_id=target_course.id,
     )
     other_course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=other_course.id,
     )
     target_module_progress = ModuleProgressOrm(
         id=uuid4(),
@@ -389,6 +418,8 @@ async def test_update_marks_theory_completed_only_for_target_user(session):
     )
     session.add_all(
         [
+            target_course,
+            other_course,
             target_course_progress,
             other_course_progress,
             target_module_progress,
@@ -398,14 +429,11 @@ async def test_update_marks_theory_completed_only_for_target_user(session):
         ]
     )
     await session.flush()
-    crud = LessonProgressCrud(
-        SqlLessonProgressRepository(session),
-        SqlModuleProgressRepository(session),
-        Transaction(session, AsyncMock()),
-    )
     completed_at = datetime.now(UTC)
 
-    progress = await crud.update(
+    progress = await lesson_progress_actions.update(
+        session,
+        SqlLessonProgressRepository(session),
         LessonProgressMapper.from_model(target_lesson_progress),
         completed_at,
     )
@@ -420,7 +448,9 @@ async def test_update_marks_theory_completed_only_for_target_user(session):
 @pytest.mark.asyncio
 async def test_find_by_course_returns_paginated_student_progress(session):
     """Возвращает преподавателю страницу progress учеников указанного курса."""
-    course_id = uuid4()
+    course = make_course()
+    other_course = make_course()
+    course_id = course.id
     first_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
@@ -436,10 +466,10 @@ async def test_find_by_course_returns_paginated_student_progress(session):
     other_course_progress = CourseProgressOrm(
         id=uuid4(),
         user_id=uuid4(),
-        course_id=uuid4(),
+        course_id=other_course.id,
         progress_percent=100,
     )
-    session.add_all([first_progress, second_progress, other_course_progress])
+    session.add_all([course, other_course, first_progress, second_progress, other_course_progress])
     await session.flush()
     repository = SqlCourseProgressRepository(session)
 

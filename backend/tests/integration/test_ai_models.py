@@ -8,8 +8,9 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 
 from src.iam.dependencies.identity import get_current_identity
-from src.llm_router.dependencies import get_ai_model_repo
+from src.llm_router.api.dependencies.repos import get_ai_model_repo
 from src.llm_router.domain.entities import AIModel
+from src.llm_router.domain.enums import Complexity
 from src.llm_router.domain.permissions.ai_models import CREATE, DELETE
 from src.shared.application.dtos import Page
 from src.shared.dependencies.database import DBSession
@@ -26,6 +27,7 @@ async def test_get_models_returns_models(
         [
             {
                 "name": "gpt-5-mini",
+                "complexity": Complexity.EASY,
                 "description": "Test model",
                 "context": 128000,
             },
@@ -50,6 +52,7 @@ async def test_get_models_returns_models(
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
+    repository.find.assert_awaited_once()
 
     body = response.json()
 
@@ -57,8 +60,6 @@ async def test_get_models_returns_models(
     assert body["items"][0]["name"] == "gpt-5-mini"
     assert body["items"][0]["description"] == "Test model"
     assert body["items"][0]["context"] == 128000
-
-    repository.find.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -71,6 +72,7 @@ async def test_add_model_creates_model_and_commits(
 
     repository.create.return_value = AIModel(
         name="gpt-5-mini",
+        complexity=Complexity.EASY,
         description="Test model",
         context=128000,
     )
@@ -88,6 +90,7 @@ async def test_add_model_creates_model_and_commits(
             "/api/v1/ai-models",
             json={
                 "name": "gpt-5-mini",
+                "complexity": "easy",
                 "description": "Test model",
                 "context": 128000,
             },

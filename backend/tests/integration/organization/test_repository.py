@@ -1,8 +1,8 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from src.organization.infra.models import OrganizationOrm
-from src.organization.infra.repos import SqlOrganizationRepository
+from src.organization.infra.database.models import OrganizationOrm
+from src.organization.infra.database.repos.organization import SqlOrganizationRepository
 
 
 @pytest.mark.asyncio

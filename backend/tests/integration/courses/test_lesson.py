@@ -1,28 +1,55 @@
 from uuid import uuid4
+from uuid import UUID
+from unittest.mock import AsyncMock
 
 import pytest
 
-from src.courses.domain.entities import TextBlock
+from src.courses.domain.catalog.enums import CourseStatus, DifficultyLevel
+from src.courses.api.dependencies.catalog.lesson import move_lesson
+from src.courses.application.catalog.dtos.lesson import MoveLessonDTO
+from src.courses.domain.catalog.vo import TextBlock
 from src.courses.infra.database.repos.lesson import SqlLessonRepository
-from src.courses.infra.models import LessonOrm, ModuleOrm
+from src.courses.infra.database.models import CourseOrm, LessonOrm, ModuleOrm
+
+
+def make_course() -> CourseOrm:
+    return CourseOrm(
+        creator_id=uuid4(),
+        organization_id=uuid4(),
+        title="Python",
+        description="Python course",
+        difficulty=DifficultyLevel.BEGINNER,
+        status=CourseStatus.DRAFT,
+    )
+
+
+def make_module(course_id: UUID) -> ModuleOrm:
+    return ModuleOrm(
+        course_id=course_id,
+        title="Basics",
+        description="Python basics",
+        rank="a",
+    )
 
 
 @pytest.mark.asyncio
 async def test_replace_content_block_updates_only_selected_block(session):
     """Заменяет указанный блок контента урока в PostgreSQL."""
+    course = make_course()
+    module = make_module(course.id)
     lesson_id = uuid4()
     lesson = LessonOrm(
         id=lesson_id,
-        module_id=None,
+        module_id=module.id,
         title="Variables",
         description="Python variables",
-        order=1,
+        rank="a",
         content_blocks=[
             TextBlock(md_content="First block"),
             TextBlock(md_content="Old block"),
         ],
     )
-    session.add(lesson)
+    session.add_all([course, module, lesson])
     await session.flush()
     repository = SqlLessonRepository(session)
 
@@ -43,17 +70,19 @@ async def test_replace_content_block_updates_only_selected_block(session):
 @pytest.mark.asyncio
 async def test_get_by_id_basic_info_returns_lesson_data(session):
     """Возвращает краткие данные урока из PostgreSQL."""
+    course = make_course()
+    module = make_module(course.id)
     lesson = LessonOrm(
         id=uuid4(),
-        module_id=None,
+        module_id=module.id,
         title="Variables",
         description="Python variables",
-        order=1,
+        rank="a",
         learning_objectives=["Use variables"],
         estimated_time_minutes=30,
         content_blocks=[],
     )
-    session.add(lesson)
+    session.add_all([course, module, lesson])
     await session.flush()
     repository = SqlLessonRepository(session)
 
@@ -77,26 +106,27 @@ async def test_lesson_repository_returns_none_for_unknown_lesson(session):
 @pytest.mark.asyncio
 async def test_assign_module_updates_only_selected_lesson(session):
     """Не меняет привязку другого урока при переносе выбранного урока в модуль."""
+    course = make_course()
     target_module = ModuleOrm(
         id=uuid4(),
-        course_id=None,
+        course_id=course.id,
         title="Target module",
         description="Target description",
-        order=1,
+        rank="a",
     )
     other_module = ModuleOrm(
         id=uuid4(),
-        course_id=None,
+        course_id=course.id,
         title="Other module",
         description="Other description",
-        order=2,
+        rank="b",
     )
     target_lesson = LessonOrm(
         id=uuid4(),
-        module_id=None,
+        module_id=target_module.id,
         title="Target lesson",
         description="Target description",
-        order=1,
+        rank="a",
         content_blocks=[],
     )
     other_lesson = LessonOrm(
@@ -104,14 +134,19 @@ async def test_assign_module_updates_only_selected_lesson(session):
         module_id=other_module.id,
         title="Other lesson",
         description="Other description",
-        order=1,
+        rank="a",
         content_blocks=[],
     )
-    session.add_all([target_module, other_module, target_lesson, other_lesson])
+    session.add_all([course, target_module, other_module, target_lesson, other_lesson])
     await session.flush()
     repository = SqlLessonRepository(session)
 
-    await repository.assign_module(target_lesson.id, target_module.id)
+    await move_lesson(
+        target_lesson.id,
+        MoveLessonDTO(module_id=target_module.id),
+        repository=repository,
+        transaction=AsyncMock(),
+    )
     await session.refresh(target_lesson)
     await session.refresh(other_lesson)
 
@@ -120,28 +155,33 @@ async def test_assign_module_updates_only_selected_lesson(session):
 
 
 @pytest.mark.asyncio
-async def test_assign_module_links_lesson_to_module(session):
-    """Привязывает урок к указанному модулю в базе данных."""
-    module = ModuleOrm(
-        id=uuid4(),
-        course_id=None,
-        title="Basics",
-        description="Python basics",
-        order=1,
+async def test_move_lesson_persists_new_module(session):
+    """Перемещает урок в другой модуль и сохраняет связь."""
+    course = make_course()
+    source_module = make_module(course.id)
+    target_module = ModuleOrm(
+        course_id=course.id,
+        title="Advanced",
+        description="Advanced Python",
+        rank="b",
     )
     lesson = LessonOrm(
         id=uuid4(),
-        module_id=None,
+        module_id=source_module.id,
         title="Variables",
         description="Python variables",
-        order=1,
+        rank="a",
         content_blocks=[],
     )
-    session.add_all([module, lesson])
+    session.add_all([course, source_module, target_module, lesson])
     await session.flush()
-    repository = SqlLessonRepository(session)
 
-    await repository.assign_module(lesson.id, module.id)
+    await move_lesson(
+        lesson.id,
+        MoveLessonDTO(module_id=target_module.id),
+        repository=SqlLessonRepository(session),
+        transaction=AsyncMock(),
+    )
     await session.refresh(lesson)
 
-    assert lesson.module_id == module.id
+    assert lesson.module_id == target_module.id
