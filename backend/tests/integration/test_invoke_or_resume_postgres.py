@@ -25,7 +25,7 @@ class State(TypedDict):
 
 @pytest.fixture(scope="module")
 def checkpoint_dsn() -> AsyncIterator[str]:
-    with PostgresContainer(image="postgres:16.9", driver="psycopg") as postgres:
+    with PostgresContainer(image="postgres:18", driver="psycopg") as postgres:
         yield postgres.get_connection_url().replace("postgresql+psycopg://", "postgresql://", 1)
 
 

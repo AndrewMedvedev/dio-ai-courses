@@ -3,7 +3,7 @@ from typing import Annotated
 from uuid import UUID
 
 from ddf.application.crud import Crud
-from ddf.application.events import EventDispatcher as Transaction
+from ddf.application.events import EventDispatcher
 from ddf.application.exceptions import NotFoundError
 from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
 from ddf.domain.exceptions import InvalidStateError
@@ -122,7 +122,7 @@ async def move_module(
     dto: MoveModuleDTO,
     *,
     repository: ModuleRepoDep,
-    transaction: Transaction,
+    transaction: EventDispatcher,
 ) -> ModuleResponse:
     module = await get_or_raise_404(
         repository.read,

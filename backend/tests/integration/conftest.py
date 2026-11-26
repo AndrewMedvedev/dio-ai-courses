@@ -38,7 +38,7 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
 @pytest.fixture(scope="session")
 def postgres_container():
     """Поднимает PostgreSQL для интеграционных тестов."""
-    with PostgresContainer(image="postgres:16.9", driver="asyncpg") as postgres:
+    with PostgresContainer(image="postgres:18", driver="asyncpg") as postgres:
         yield postgres
 
 

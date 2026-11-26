@@ -3,7 +3,7 @@ from typing import Annotated
 from uuid import UUID
 
 from ddf.application.dtos import OffsetPagination, Page
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, Path, Query, status
 
 from src.courses.api.dependencies.services import InvitationServiceDep
 from src.courses.application.enrollment.dtos import MemberResponse
@@ -12,7 +12,6 @@ from src.courses.application.enrollment.dtos.invitation import (
     InvitationResponse,
 )
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.dependencies.params import PaginationDep
 
 router = APIRouter(
     prefix="/courses/invitations", tags=["Приглашения в курсы | Invitations in courses"]
@@ -41,13 +40,13 @@ async def create_invitations(
 async def get_course_invitations(
     identity: CurrentIdentity,
     service: InvitationServiceDep,
-    pagination: PaginationDep,
+    pagination: Annotated[OffsetPagination, Query()],
     course_id: Annotated[UUID, Path(description="Идентификатор курса")],
 ) -> Page[InvitationResponse]:
     return await service.get_course_invitations(
         course_id=course_id,
         identity=identity,
-        pagination=OffsetPagination(page=pagination.page, size=pagination.size),
+        pagination=pagination,
     )
 
 

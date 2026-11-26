@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
 from ddf.infra.database.sqlalchemy.types import DatatimeTz, DatetimeTzNull, StrUnique
 from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import JSONB
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.database import Base
 
 
-class OrganizationOrm(Base):
+class OrganizationOrm(Base, EntityMixin):
     __tablename__ = "organizations"
 
     name: Mapped[str]
@@ -17,7 +18,7 @@ class OrganizationOrm(Base):
     is_active: Mapped[bool]
 
 
-class InvitationOrm(Base):
+class InvitationOrm(Base, EntityMixin):
     __tablename__ = "organization_invitations"
 
     email: Mapped[str]

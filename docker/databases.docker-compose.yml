@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16.9
+    image: postgres:18
     container_name: postgres
     restart: unless-stopped
 
@@ -11,7 +11,7 @@ services:
       PGPORT: ${POSTGRES_PORT}
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"

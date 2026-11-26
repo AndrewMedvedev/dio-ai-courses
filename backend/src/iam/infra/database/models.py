@@ -2,6 +2,7 @@ from typing import Any
 
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
 from ddf.infra.database.sqlalchemy.types import (
     DatatimeTz,
     DatetimeTzNull,
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.database import Base
 
 
-class UserOrm(Base):
+class UserOrm(Base, EntityMixin):
     __tablename__ = "users"
 
     email: Mapped[StrUnique]
@@ -31,7 +32,7 @@ class UserOrm(Base):
     __table_args__ = (Index("ix_users_is_active", "is_active"),)
 
 
-class ServiceAccountOrm(Base):
+class ServiceAccountOrm(Base, EntityMixin):
     __tablename__ = "service_accounts"
 
     name: Mapped[str]
@@ -53,7 +54,7 @@ class ServiceAccountOrm(Base):
     )
 
 
-class MembershipOrm(Base):
+class MembershipOrm(Base, EntityMixin):
     __tablename__ = "memberships"
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), unique=False)
@@ -70,7 +71,7 @@ class MembershipOrm(Base):
     )
 
 
-class PermissionOrm(Base):
+class PermissionOrm(Base, EntityMixin):
     __tablename__ = "permissions"
 
     resource: Mapped[str]
@@ -84,7 +85,7 @@ class PermissionOrm(Base):
     __table_args__ = (UniqueConstraint("resource", "action", name="uq_resource_action"),)
 
 
-class RoleOrm(Base):
+class RoleOrm(Base, EntityMixin):
     __tablename__ = "roles"
 
     name: Mapped[str]
@@ -98,7 +99,7 @@ class RoleOrm(Base):
     organization_id: Mapped[UUID | None] = mapped_column(nullable=True)
 
 
-class InvitationOrm(Base):
+class InvitationOrm(Base, EntityMixin):
     __tablename__ = "invitations"
 
     email: Mapped[str]

@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict
 from uuid import UUID
 
-from ddf.application.events import EventDispatcher as Transaction
+from ddf.application.events import EventDispatcher
 from ddf.application.exceptions import NotFoundError
 from pydantic import TypeAdapter
 
@@ -44,7 +44,7 @@ class PracticerAgent:
         self,
         practice_repo: PracticeRepository,
         lesson_repo: LessonRepository,
-        transaction: Transaction,
+        transaction: EventDispatcher,
     ) -> None:
         self.practice_repo = practice_repo
         self.lesson_repo = lesson_repo
