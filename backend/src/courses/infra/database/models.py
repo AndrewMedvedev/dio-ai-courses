@@ -143,6 +143,13 @@ class LessonTheorySessionOrm(Base, EntityMixin):
     __tablename__ = "lesson_theory_sessions"
 
     __table_args__ = (
+        Index(
+            "ix_lesson_theory_sessions_lesson_user_created_at_id",
+            "lesson_id",
+            "user_id",
+            "created_at",
+            "id",
+        ),
         CheckConstraint(
             "active_time_seconds >= 0",
             name="ck_lesson_theory_session_active_time_non_negative",
@@ -183,6 +190,12 @@ class CourseProgressOrm(Base, EntityMixin):
 
     __table_args__ = (
         UniqueConstraint("user_id", "course_id", name="uq_course_progress_user_course"),
+        Index(
+            "ix_course_progress_course_created_at_id",
+            "course_id",
+            "created_at",
+            "id",
+        ),
     )
 
 
@@ -319,6 +332,10 @@ class DocumentOrm(Base, EntityMixin):
 
 class PracticeOrm(Base, EntityMixin):
     __tablename__ = "practices"
+
+    __table_args__ = (
+        Index("ix_practices_user_module_lesson", "user_id", "module_id", "lesson_id"),
+    )
 
     user_id: Mapped[UUID]
     module_id: Mapped[UUID]
