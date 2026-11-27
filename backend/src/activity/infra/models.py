@@ -3,6 +3,7 @@ from typing import Any
 from datetime import datetime
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
 from sqlalchemy import DateTime, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.core.database import Base
 
 
-class ActivityLogOrm(Base):
+class ActivityLogOrm(Base, EntityMixin):
     __tablename__ = "activity_logs"
 
     aggregate_type: Mapped[str]

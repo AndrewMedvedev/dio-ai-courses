@@ -1,12 +1,13 @@
+from ddf.domain.vo import Email
+from ddf.infra.database.sqlalchemy.data_mapper import DataMapper
+
 from src.feedback.domain.entities import Feedback
 from src.feedback.domain.vo import FeedbackRating
-from ddf.domain.vo import Email
-from src.shared.infra.database.mappers import ModelMapper
 
 from .models import FeedbackOrm
 
 
-class FeedbackMapper(ModelMapper[Feedback, FeedbackOrm]):
+class FeedbackMapper(DataMapper[Feedback, FeedbackOrm]):
     """Преобразует отзыв между доменной сущностью и ORM-моделью."""
 
     @staticmethod

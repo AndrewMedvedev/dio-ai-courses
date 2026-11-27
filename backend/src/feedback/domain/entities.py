@@ -3,7 +3,7 @@ from typing import Self
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.shared.domain.entities import AggregateRoot
+from ddf.domain.models import AggregateRoot
 from ddf.domain.vo import Email
 
 from .constants import MAX_COMMENT_LENGTH

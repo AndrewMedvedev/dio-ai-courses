@@ -2,9 +2,10 @@ import asyncio
 import logging
 import uuid
 
+from ddf.application.exceptions import NotFoundError
+
 from src.core.redis import redis_client
 from src.shared.application.dtos import Page
-from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 

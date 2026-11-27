@@ -2,6 +2,7 @@ from typing import Any
 
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
 from sqlalchemy import CheckConstraint, Enum, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -10,7 +11,7 @@ from src.core.database import Base
 from src.llm_router.domain.enums import Complexity, LLMInvocationStatus
 
 
-class AIModelOrm(Base):
+class AIModelOrm(Base, EntityMixin):
     __tablename__ = "ai_models"
 
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
@@ -19,7 +20,7 @@ class AIModelOrm(Base):
     context: Mapped[int] = mapped_column(nullable=False)
 
 
-class LLMInvocationOrm(Base):
+class LLMInvocationOrm(Base, EntityMixin):
     __tablename__ = "llm_invocations"
 
     request_id: Mapped[UUID] = mapped_column(nullable=False)

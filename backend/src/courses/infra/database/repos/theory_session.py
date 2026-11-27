@@ -1,6 +1,7 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos.sorting import Sort, parse_sort_query_param
 from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from ddf.infra.database.sqlalchemy.utils import apply_sorting
 from sqlalchemy import select
@@ -45,11 +46,12 @@ class SqlLessonTheorySessionRepository(
                     self.model.created_at < filters.created_to,
                 )
 
-        stmt = apply_sorting(
-            stmt,
-            self.model,
-            filters.sort if filters else None,
+        sort = (
+            parse_sort_query_param(filters.sort)
+            if filters and filters.sort
+            else Sort(field="created_at", direction="asc")
         )
+        stmt = apply_sorting(stmt, self.model, sort)
 
         result = await self._session.execute(stmt)
 

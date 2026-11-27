@@ -1,11 +1,13 @@
 from typing import ClassVar
 
 import logging
-import random
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import timedelta
 
+from ddf.ratelimit import SlidingWindowPolicy
+from ddf.ratelimit.redis import RedisRateLimiter
 from fastapi import Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -16,33 +18,6 @@ from src.shared.domain.exceptions import RateLimitExceededError
 
 logger = logging.getLogger(__name__)
 
-
-# Lua скрипт реализующий алгоритм скользящего окна
-SLIDING_WINDOW_LUA_SCRIPT = """
--- rate_limit.lua
-local key = KEYS[1]
-local now_ms = tonumber(ARGV[1])
-local window_ms = tonumber(ARGV[2])
-local limit = tonumber(ARGV[3])
-local member = ARGV[4]
-
--- 1. Удаление записей старше окна
-redis.call('ZREMRANGEBYSCORE', key, '-inf', now_ms - window_ms)
-
--- 2. Текущее количество запросов в окне
-local current = redis.call('ZCARD', key)
-
--- 3. Проверка лимита
-if current < limit then
-    redis.call('ZADD', key, now_ms, member)
-    current = current + 1
-    redis.call('EXPIRE', key, math.ceil(window_ms / 1000) + 10)
-    return {1, current}   -- {allowed, count_after_insert}
-else
-    redis.call('EXPIRE', key, math.ceil(window_ms / 1000) + 10)
-    return {0, current}   -- {denied, count_before_insert}
-end
-"""
 
 # Функции для идентификации запросов клиентов
 type IdentifierFunc = Callable[[Request], Awaitable[str]]
@@ -81,35 +56,28 @@ class RateLimitResult:
 
 class RateLimiter:
     def __init__(self, redis: Redis, prefix: str = "rate_limiter") -> None:
-        self.redis = redis
-        self.prefix = prefix
-        self._script = self.redis.register_script(SLIDING_WINDOW_LUA_SCRIPT)
+        self._limiter = RedisRateLimiter(redis, prefix=prefix)
 
     async def check_limit(
             self, client_id: str, endpoint: str, max_requests, window_seconds: int
     ) -> RateLimitResult:
-        key = f"{self.prefix}:{endpoint}:{client_id}"
-
-        now_ms = time.time_ns() // 1_000_000
-        window_ms = window_seconds * 1000
-        member = f"{now_ms}_{random.getrandbits(32):08x}"
-
+        now = time.time()
         try:
-            allowed, current_count = await self._script(
-                keys=[key], args=[now_ms, window_ms, max_requests, member]
+            result = await self._limiter.acquire(
+                key=f"{endpoint}:{client_id}",
+                policy=SlidingWindowPolicy(
+                    limit=max_requests, window=timedelta(seconds=window_seconds),
+                ),
             )
-            remaining = max(0, max_requests - current_count)
-            reset_at = (now_ms + window_ms) / 1000.0
-
             return RateLimitResult(
-                allowed=bool(allowed),
-                current=current_count,
-                remaining=remaining,
-                reset_at=reset_at,
+                allowed=result.allowed,
+                current=max_requests - result.remaining if result.remaining is not None else 0,
+                remaining=result.remaining,
+                reset_at=now + window_seconds,
             )
         except RedisError:
             logger.exception("Error occurred while redis_client rate limit check key")
-            reset_at = (now_ms / 1000.0) + window_seconds
+            reset_at = now + window_seconds
             return RateLimitResult(allowed=True, current=1, remaining=None, reset_at=reset_at)
 
 

@@ -1,9 +1,11 @@
+from ddf.domain.exceptions import DomainError
 from fastapi import status
-
-from src.shared.domain.exceptions import DomainError
 
 
 class WeakPasswordError(DomainError):
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    error_code = "WEAK_PASSWORD"
+
     def __init__(
         self,
         message: str,
@@ -16,8 +18,6 @@ class WeakPasswordError(DomainError):
 
         super().__init__(
             message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            error_code="WEAK_PASSWORD",
             details=details,
         )
 

@@ -763,38 +763,40 @@ export async function acceptCourseInvitation(token) {
 
 export async function fetchCourseMembersPage(
   courseId,
-  { page = 1, size = 20 } = {},
+  { cursor = null, size = 20 } = {},
 ) {
-  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const query = new URLSearchParams({ size: String(size) });
+  if (cursor) query.set("cursor", cursor);
   const data = await requestJson(
     `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
   );
   const items = Array.isArray(data) ? data : data?.items || [];
+  const meta = data?.meta || data;
   return {
     items,
-    page: Number(data?.page) || page,
-    size: Number(data?.size) || size,
-    total: Number(data?.total) || items.length,
-    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+    nextCursor: meta?.next_cursor || null,
+    hasNext: Boolean(meta?.has_next ?? meta?.hasNext),
   };
 }
 
 // Прогресс всех учеников курса — для автора и преподавателей (страница метрик).
 export async function fetchCourseStudentsProgress(
   courseId,
-  { page = 1, size = 100 } = {},
+  { cursor = null, size = 100 } = {},
   options = {},
 ) {
-  const query = new URLSearchParams({ page: String(page), size: String(size) });
+  const query = new URLSearchParams({ size: String(size) });
+  if (cursor) query.set("cursor", cursor);
   const data = await requestJson(
     `/progress/courses/${encodeURIComponent(courseId)}/students?${query.toString()}`,
     options,
   );
   const items = Array.isArray(data) ? data : data?.items || [];
+  const meta = data?.meta || data;
   return {
     items,
-    total: Number(data?.total) || items.length,
-    hasNext: Boolean(data?.has_next ?? data?.hasNext),
+    nextCursor: meta?.next_cursor || null,
+    hasNext: Boolean(meta?.has_next ?? meta?.hasNext),
   };
 }
 

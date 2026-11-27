@@ -1,15 +1,19 @@
 # pyright: reportArgumentType=false
-from typing import Any
+from typing import Any, overload
 
 from collections.abc import Callable
 from uuid import UUID
 
+from ddf.application.dtos import Page as DdfPage
+from ddf.application.dtos import Pagination as DdfPagination
+from ddf.application.dtos import QueryDTO, Sort
+from ddf.domain.models import Entity
+from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository as DdfRepository
 from sqlalchemy import (
     ColumnElement,
     Select,
     UnaryExpression,
     asc,
-    delete,
     desc,
     exists,
     func,
@@ -19,8 +23,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import Base
 from src.shared.application.dtos import BaseQueryParamFilters, Page, Pagination
-from src.shared.domain.entities import Entity
-from src.shared.infra.database.mappers import ModelMapper
 
 
 def _parse_sort_param(
@@ -99,56 +101,43 @@ async def paginate[ModelT: Base, ItemT](
     )
 
 
-class SqlAlchemyRepository[EntityT: Entity, ModelT: Base]:
-    model: type[ModelT]
-    model_mapper: ModelMapper[EntityT, ModelT]
-
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def create(self, entity: EntityT) -> EntityT:
-
-        model = self.model_mapper.to_model(entity)
-        self._session.add(model)
-        return self.model_mapper.from_model(model)
-
-    async def read(self, uid: UUID) -> EntityT | None:
-        stmt = select(self.model).where(self.model.id == uid)
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        return None if model is None else self.model_mapper.from_model(model)
-
+class SqlAlchemyRepository[EntityT: Entity, ModelT: Base](DdfRepository[EntityT, ModelT]):
+    @overload
     async def find(
         self,
         pagination: Pagination,
         filters: BaseQueryParamFilters | None = None,
-    ) -> Page[EntityT]:
-        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
+    ) -> Page[EntityT]: ...
+
+    @overload
+    async def find(
+        self,
+        pagination: DdfPagination,
+        query: QueryDTO | None = None,
+        sort: Sort | None = None,
+    ) -> DdfPage[EntityT]: ...
+
+    async def find(
+        self,
+        pagination: Pagination | DdfPagination,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Page[EntityT] | DdfPage[EntityT]:
+        if not isinstance(pagination, Pagination):
+            return await super().find(pagination, *args, **kwargs)
 
         stmt = select(self.model)
+        filters = args[0] if args else kwargs.get("filters")
 
         return await paginate(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
-            mapper=self.model_mapper.from_model,
+            mapper=self.data_mapper.from_model,
             sort=filters.sort if filters else None,
         )
-
-    async def update(self, entity: EntityT) -> None:
-        model = self.model_mapper.to_model(entity)
-        await self._session.merge(model)
-
-    async def delete(self, uid: UUID) -> None:
-        stmt = delete(self.model).where(self.model.id == uid)
-        await self._session.execute(stmt)
 
     async def exists(self, uid: UUID) -> bool:
         stmt = select(exists().where(self.model.id == uid))
         return bool(await self._session.scalar(stmt))
-
-    async def get_by_ids(self, ids: list[UUID]) -> tuple[EntityT, ...]:
-        stmt = select(self.model).where(self.model.id.in_(ids))
-        results = await self._session.execute(stmt)
-        return tuple(self.model_mapper.from_model(model) for model in results.scalars().all())

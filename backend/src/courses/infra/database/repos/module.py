@@ -2,13 +2,13 @@ import logging
 from uuid import UUID
 
 from ddf.application.exceptions import NotFoundError
-from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from sqlalchemy import select
 
 from src.courses.application.catalog.dtos.basic_info import BasicInfoDTO, ModuleBasicInfoDTO
 from src.courses.domain.catalog.entities import (
     Module,
 )
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     ModuleMapper,
@@ -150,7 +150,7 @@ class SqlModuleRepository(SqlAlchemyRepository[Module, ModuleOrm]):
             return None
         lessons = await self.select_lessons_by_id_module(module_id=uid)
 
-        return self.model_mapper.basic_info_mapper(module_row, lessons)  # type: ignore
+        return self.data_mapper.basic_info_mapper(module_row, lessons)  # type: ignore
 
     async def read_course_ownership(
         self,

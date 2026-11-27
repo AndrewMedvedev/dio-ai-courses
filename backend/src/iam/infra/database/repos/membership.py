@@ -10,7 +10,7 @@ from src.shared.infra.database import SqlAlchemyRepository
 
 class SqlMembershipRepository(SqlAlchemyRepository[Membership, MembershipOrm]):
     model = MembershipOrm
-    model_mapper = MembershipMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = MembershipMapper  # pyright: ignore[reportAssignmentType]
 
     async def get_by_user(self, user_id: UUID) -> tuple[Membership, ...]:
         stmt = select(self.model).where(
@@ -18,7 +18,7 @@ class SqlMembershipRepository(SqlAlchemyRepository[Membership, MembershipOrm]):
         )
         results = await self._session.execute(stmt)
         models = results.scalars().all()
-        return tuple(self.model_mapper.from_model(model) for model in models)
+        return tuple(self.data_mapper.from_model(model) for model in models)
 
     async def get_by_user_and_organization(
         self,
@@ -30,4 +30,4 @@ class SqlMembershipRepository(SqlAlchemyRepository[Membership, MembershipOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return self.model_mapper.from_model(model) if model else None
+        return self.data_mapper.from_model(model) if model else None

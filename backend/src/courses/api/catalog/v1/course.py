@@ -1,6 +1,8 @@
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import OffsetPagination, Page
+from ddf.application.exceptions import NotFoundError
 from fastapi import APIRouter, Depends, status
 
 from src.courses.api.dependencies.access import course_access
@@ -19,9 +21,7 @@ from src.courses.domain.catalog.enums import (
 from src.courses.domain.permissions.courses import CREATE, DELETE, UPDATE
 from src.iam.dependencies import require_permissions
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies import DBSession
-from src.shared.domain.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +51,10 @@ async def create_course(
 )
 async def get_course_with_pagination(
     repo: CourseRepoDep,
-    pagination: Pagination,
+    pagination: OffsetPagination,
 ) -> Page[CourseResponse]:
     result = await repo.find(pagination)
-    return result.to_response(map_to_response)
+    return result.map(map_to_response)
 
 
 @router.post(
@@ -66,10 +66,10 @@ async def get_course_with_pagination(
 async def get_user_courses(
     repo: CourseRepoDep,
     identity: CurrentIdentity,
-    pagination: Pagination,
+    pagination: OffsetPagination,
 ) -> Page[CourseResponse]:
     result = await repo.find_user_courses(identity.id, pagination)
-    return result.to_response(map_to_response)
+    return result.map(map_to_response)
 
 
 @router.get(

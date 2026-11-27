@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
+from ddf.infra.database.sqlalchemy.types import DatatimeTz, StrUnique
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 from src.media.domain.vo import UploadStatus
-from src.shared.infra.database.types import DatetimeTz, StrUnique
 
 
-class UploadSessionOrm(Base):
+class UploadSessionOrm(Base, EntityMixin):
     """Сессия прямой загрузки файла в S3."""
 
     __tablename__ = "upload_sessions"
@@ -22,7 +23,7 @@ class UploadSessionOrm(Base):
     sha256: Mapped[str]
     uploaded_by: Mapped[UUID]
     status: Mapped[UploadStatus] = mapped_column(default=UploadStatus.PENDING)
-    expires_at: Mapped[DatetimeTz]
+    expires_at: Mapped[DatatimeTz]
     object_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("stored_objects.id", ondelete="RESTRICT"),
         nullable=True,
@@ -31,7 +32,7 @@ class UploadSessionOrm(Base):
     object: Mapped[StoredObjectOrm | None] = relationship()
 
 
-class StoredObjectOrm(Base):
+class StoredObjectOrm(Base, EntityMixin):
     """
     Физически загруженный объект в хранилище.
     Если такой объект существует, то файл гарантировано загружен в S3,

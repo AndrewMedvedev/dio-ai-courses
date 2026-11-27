@@ -1,4 +1,6 @@
+from ddf.application.exceptions import NotFoundError
 from ddf.application.uow import UnitOfWork
+from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
 
 from src.iam.application.dtos import ClientCredentials, CreateServiceAccountDTO
 from src.iam.application.repos import RoleRepository, ServiceAccountRepository
@@ -8,8 +10,6 @@ from src.iam.domain.vo import SecretHash
 from src.iam.security import generate_client_id, generate_client_secret, hash_password_async
 from src.organization.application.repos import OrganizationRepository
 from src.organization.domain.entities import Organization
-from src.shared.application.repos import get_or_raise_404
-from src.shared.domain.exceptions import NotFoundError
 
 
 class ClientCredentialsService:

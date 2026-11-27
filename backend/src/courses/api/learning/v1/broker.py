@@ -1,6 +1,6 @@
 from faststream.rabbit import RabbitQueue
 
-from src.core.rabbit import router
+from src.core.rabbit import events_exchange, router
 from src.courses.api.dependencies.repos import (
     LessonProgressRepoDep,
 )
@@ -14,8 +14,9 @@ from src.shared.dependencies.database import DBSession
     queue=RabbitQueue(
         "learning_progress_updated",
         durable=True,
-        routing_key=LessonProgressUpdated.event_type,
-    )
+        routing_key="lesson.progress.updated.v1",
+    ),
+    exchange=events_exchange,
 )
 async def on_lesson_progress_updated(
     event: LessonProgressUpdated,

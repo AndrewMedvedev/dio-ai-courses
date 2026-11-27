@@ -1,9 +1,10 @@
 from uuid import UUID
 
-from ddf.application.dtos import Page, Pagination
+from ddf.application.dtos import Page, Pagination, Sort
 from ddf.application.dtos.query import QueryDTO
 from ddf.domain.vo import Email
 from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
+from ddf.infra.database.sqlalchemy.filters import compile_filter
 from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import select
 
@@ -37,13 +38,17 @@ class SqlInvitationRepository(SqlAlchemyRepository[Invitation, InvitationOrm]):
             self.model.is_used.is_(False),
             self.model.expires_at > current_datetime(),
         )
+        if filters is not None:
+            stmt = stmt.where(
+                compile_filter(self.model, filters, self.filter_whitelist, self.search),
+            )
         return await paginate(
             session=self._session,
             model=self.model,
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
-            sort=filters.sort if filters else "created_at:desc",
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def get_active(

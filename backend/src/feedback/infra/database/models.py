@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
 from sqlalchemy import CheckConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -8,7 +9,7 @@ from src.core.database import Base
 from ...domain.constants import MAX_RATING, MIN_RATING
 
 
-class FeedbackOrm(Base):
+class FeedbackOrm(Base, EntityMixin):
     __tablename__ = "feedbacks"
 
     user_id: Mapped[UUID] = mapped_column(nullable=False)

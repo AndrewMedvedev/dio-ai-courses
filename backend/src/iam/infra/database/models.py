@@ -2,21 +2,22 @@ from typing import Any
 
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
+from ddf.infra.database.sqlalchemy.types import (
+    DatatimeTz,
+    DatetimeTzNull,
+    StrNull,
+    StrUnique,
+    TextNull,
+)
 from sqlalchemy import ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-from src.shared.infra.database.types import (
-    DatetimeNull,
-    DatetimeTz,
-    StrNull,
-    StrUnique,
-    TextNull,
-)
 
 
-class UserOrm(Base):
+class UserOrm(Base, EntityMixin):
     __tablename__ = "users"
 
     email: Mapped[StrUnique]
@@ -31,7 +32,7 @@ class UserOrm(Base):
     __table_args__ = (Index("ix_users_is_active", "is_active"),)
 
 
-class ServiceAccountOrm(Base):
+class ServiceAccountOrm(Base, EntityMixin):
     __tablename__ = "service_accounts"
 
     name: Mapped[str]
@@ -53,13 +54,13 @@ class ServiceAccountOrm(Base):
     )
 
 
-class MembershipOrm(Base):
+class MembershipOrm(Base, EntityMixin):
     __tablename__ = "memberships"
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), unique=False)
     organization_id: Mapped[UUID]
     roles: Mapped[list[UUID]] = mapped_column(JSONB)
-    expires_at: Mapped[DatetimeNull]
+    expires_at: Mapped[DatetimeTzNull]
     is_active: Mapped[bool]
 
     user: Mapped["UserOrm"] = relationship(back_populates="memberships")
@@ -70,7 +71,7 @@ class MembershipOrm(Base):
     )
 
 
-class PermissionOrm(Base):
+class PermissionOrm(Base, EntityMixin):
     __tablename__ = "permissions"
 
     resource: Mapped[str]
@@ -84,7 +85,7 @@ class PermissionOrm(Base):
     __table_args__ = (UniqueConstraint("resource", "action", name="uq_resource_action"),)
 
 
-class RoleOrm(Base):
+class RoleOrm(Base, EntityMixin):
     __tablename__ = "roles"
 
     name: Mapped[str]
@@ -98,7 +99,7 @@ class RoleOrm(Base):
     organization_id: Mapped[UUID | None] = mapped_column(nullable=True)
 
 
-class InvitationOrm(Base):
+class InvitationOrm(Base, EntityMixin):
     __tablename__ = "invitations"
 
     email: Mapped[str]
@@ -107,9 +108,9 @@ class InvitationOrm(Base):
 
     granted_roles: Mapped[list[UUID] | None] = mapped_column(JSONB, nullable=True)
     organization_id: Mapped[UUID | None] = mapped_column(nullable=True)
-    expires_at: Mapped[DatetimeTz]
+    expires_at: Mapped[DatatimeTz]
 
-    used_at: Mapped[DatetimeNull]
+    used_at: Mapped[DatetimeTzNull]
     is_used: Mapped[bool]
 
     __table_args__ = (Index("ix_invitations_organization_used", "organization_id", "is_used"),)

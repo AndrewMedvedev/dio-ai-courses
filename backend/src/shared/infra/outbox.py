@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import StrEnum, auto
 from uuid import UUID
 
+from ddf.infra.database.sqlalchemy import EntityMixin
 from sqlalchemy import TEXT, DateTime, Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,7 +20,7 @@ class MessageStatus(StrEnum):
     DEAD = auto()
 
 
-class OutboxEvent(Base):
+class OutboxEvent(Base, EntityMixin):
     __tablename__ = "outbox_events"
 
     event_type: Mapped[str]

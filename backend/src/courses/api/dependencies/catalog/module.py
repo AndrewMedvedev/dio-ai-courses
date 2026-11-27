@@ -2,6 +2,11 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.crud import Crud
+from ddf.application.events import EventDispatcher
+from ddf.application.exceptions import NotFoundError
+from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
+from ddf.domain.exceptions import InvalidStateError
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,11 +21,7 @@ from src.courses.application.catalog.dtos.module import (
 from src.courses.application.catalog.repos import ModuleRepository
 from src.courses.domain.catalog.entities import Module
 from src.courses.domain.catalog.ranking import rank_between
-from src.shared.application.crud import Crud
-from src.shared.application.repos import get_or_raise_404
-from src.shared.application.transaction import Transaction
 from src.shared.dependencies import TransactionDep
-from src.shared.domain.exceptions import InvalidStateError, NotFoundError
 
 ModuleCrud = Crud[
     Module,
@@ -109,7 +110,7 @@ def get_module_crud(
 ) -> ModuleCrud:
     return ModuleCrud(
         repository=repo,  # pyright: ignore[reportArgumentType]
-        transaction=transaction,
+        dispatcher=transaction,
         to_response=map_to_response,
         create_handler=make_create_handler(repo),
         update_handler=update_handler,
@@ -121,7 +122,7 @@ async def move_module(
     dto: MoveModuleDTO,
     *,
     repository: ModuleRepoDep,
-    transaction: Transaction,
+    transaction: EventDispatcher,
 ) -> ModuleResponse:
     module = await get_or_raise_404(
         repository.read,

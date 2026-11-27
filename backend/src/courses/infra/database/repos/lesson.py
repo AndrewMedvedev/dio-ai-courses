@@ -4,7 +4,6 @@ import logging
 from uuid import UUID
 
 from ddf.application.exceptions import NotFoundError
-from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from sqlalchemy import func, literal, select, text, update
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -15,6 +14,7 @@ from src.courses.domain.catalog.entities import (
 from src.courses.domain.catalog.vo import (
     AnyContentBlock,
 )
+from src.shared.infra.database.repos.sqlalchemy import SqlAlchemyRepository
 
 from ..mappers import (
     LessonMapper,
@@ -155,7 +155,7 @@ class SqlLessonRepository(SqlAlchemyRepository[Lesson, LessonOrm]):
 
         result = await self._session.execute(stmt)
         model = result.one_or_none()
-        return None if model is None else self.model_mapper.basic_info_mapper(model)  # type: ignore
+        return None if model is None else self.data_mapper.basic_info_mapper(model)  # type: ignore
 
     async def read_course_ownership(
         self,

@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
+from ddf.infra.database.sqlalchemy import EntityMixin
 
 from src.core.database import Base
 
@@ -20,7 +21,7 @@ class MessageStatus(StrEnum):
     FAILED = "failed"
 
 
-class InboxMessage(Base):
+class InboxMessage(Base, EntityMixin):
     __tablename__ = "inbox_messages"
 
     message_id: Mapped[str]

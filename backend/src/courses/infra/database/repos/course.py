@@ -1,9 +1,8 @@
 import logging
 from uuid import UUID
 
-from ddf.application.dtos import Page, Pagination
-from ddf.application.dtos.query import QueryDTO
-from ddf.infra.database.sqlalchemy.repository import SqlAlchemyRepository
+from ddf.application.dtos import OffsetPagination, Page, Sort
+from ddf.infra.database.sqlalchemy import SqlAlchemyRepository
 from ddf.infra.database.sqlalchemy.utils import paginate
 from sqlalchemy import select
 
@@ -17,7 +16,6 @@ from src.courses.domain.catalog.entities import (
 from src.courses.domain.catalog.enums import (
     CourseStatus,
 )
-
 from ..mappers import (
     CourseMapper,
 )
@@ -32,14 +30,12 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
 
     async def find(
         self,
-        pagination: Pagination,
-        filters: QueryDTO | None = None,
+        pagination: OffsetPagination,
     ) -> Page[Course]:
-        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
+        """Возвращает опубликованные курсы с постраничной навигацией."""
 
         stmt = (
             select(self.model)
-            .order_by(CourseOrm.created_at.desc())
             .where(self.model.status == CourseStatus.PUBLISHED)
         )
 
@@ -49,20 +45,16 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
-            sort=filters.sort if filters else "created_at:desc",
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def find_user_courses(
         self,
         user_id: UUID,
-        pagination: Pagination,
+        pagination: OffsetPagination,
     ) -> Page[Course]:
 
-        stmt = (
-            select(self.model)
-            .order_by(self.model.created_at.desc())
-            .where(self.model.creator_id == user_id)
-        )
+        stmt = select(self.model).where(self.model.creator_id == user_id)
 
         return await paginate(
             session=self._session,
@@ -70,12 +62,13 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def find_member_courses(
         self,
         user_id: UUID,
-        pagination: Pagination,
+        pagination: OffsetPagination,
     ) -> Page[Course]:
         """Получает курсы, на которые записан студент."""
 
@@ -102,7 +95,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
-            sort="created_at:desc",
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def select_modules_by_id_course(self, course_id: UUID) -> list[BasicInfoDTO]:
@@ -149,7 +142,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
 
         modules = await self.select_modules_by_id_course(uid)
 
-        return self.model_mapper.basic_info_mapper(course_row, modules)  # type: ignore
+        return self.data_mapper.basic_info_mapper(course_row, modules)  # type: ignore
 
     async def get_course_status(
         self,
@@ -169,13 +162,12 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
     async def find_members(
         self,
         course_id: UUID,
-        pagination: Pagination,
+        pagination: OffsetPagination,
     ) -> Page[Course]:
-        """Для расширения логики фильтрации можно переопределить в дочерних классах."""
+        """Возвращает участников курса постранично."""
 
         stmt = (
             select(self.model.members)
-            .order_by(self.model.created_at.desc())
             .where(self.model.id == course_id)
         )
 
@@ -185,6 +177,7 @@ class SqlCourseRepository(SqlAlchemyRepository[Course, CourseOrm]):
             stmt=stmt,
             pagination=pagination,
             from_model=self.data_mapper.from_model,
+            sort=Sort(field="created_at", direction="desc"),
         )
 
     async def read_course_ownership(self, uid: UUID) -> tuple[UUID, UUID] | None:

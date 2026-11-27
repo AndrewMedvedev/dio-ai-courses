@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from ...shared.domain.exceptions import DomainError
+from ddf.domain.exceptions import DomainError
 
 
 class S3NotFoundError(DomainError):

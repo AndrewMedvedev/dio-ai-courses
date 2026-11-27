@@ -1,9 +1,8 @@
 import logging
 from uuid import UUID
 
+from ddf.application.exceptions import NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.shared.domain.exceptions import NotFoundError
 
 from ..domain.entities import Notification
 from ..domain.exceptions import NotificationSendingFailedError

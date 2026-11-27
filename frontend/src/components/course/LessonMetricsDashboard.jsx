@@ -79,7 +79,7 @@ export default function LessonMetricsDashboard({ courseId, lesson }) {
 
   useEffect(() => {
     if (!courseId) return;
-    loadStudents(courseId, { page: 1, size: METRICS_STUDENTS_LIMIT }).catch(
+    loadStudents(courseId, { size: METRICS_STUDENTS_LIMIT }).catch(
       () => null,
     );
   }, [courseId, loadStudents]);

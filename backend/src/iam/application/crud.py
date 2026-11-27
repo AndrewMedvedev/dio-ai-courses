@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
+
 from src.iam.domain.entities import User
 from src.iam.domain.vo import FullName, Username
-from src.shared.application.repos import get_or_raise_404
 
 from .dtos.users import UpdateUserDTO
 from .repos import UserRepository

@@ -3,6 +3,7 @@ from typing import Annotated
 import logging
 from uuid import UUID
 
+from ddf.application.dtos import CursorPagination, OffsetPagination, Page as DdfPage
 from fastapi import APIRouter, Depends, Query, status
 
 from src.courses.api.dependencies.access import course_access
@@ -12,7 +13,6 @@ from src.courses.application.catalog.dtos import CourseResponse
 from src.courses.application.enrollment.dtos.member import MemberResponse
 from src.courses.domain.permissions.courses import UPDATE
 from src.iam.dependencies.identity import CurrentIdentity
-from src.shared.application.dtos import Page, Pagination
 from src.shared.dependencies import DBSession
 
 logger = logging.getLogger(__name__)
@@ -51,10 +51,10 @@ async def sign_up(
 async def get_courses(
     repo: CourseRepoDep,
     identity: CurrentIdentity,
-    pagination: Annotated[Pagination, Query()],
-) -> Page[CourseResponse]:
+    pagination: Annotated[OffsetPagination, Query()],
+) -> DdfPage[CourseResponse]:
     result = await repo.find_member_courses(identity.id, pagination)
-    return result.to_response(CourseResponse.model_validate)
+    return result.map(CourseResponse.model_validate)
 
 
 @router.get(
@@ -67,7 +67,7 @@ async def get_courses(
 async def get_course_students(
     uid: UUID,
     repo: MemberRepoDep,
-    pagination: Annotated[Pagination, Query()],
-) -> Page[MemberResponse]:
+    pagination: Annotated[CursorPagination, Query()],
+) -> DdfPage[MemberResponse]:
     result = await repo.find_by_course(uid, pagination)
-    return result.to_response(MemberResponse.model_validate)
+    return result.map(MemberResponse.model_validate)

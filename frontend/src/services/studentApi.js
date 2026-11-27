@@ -67,21 +67,17 @@ function normalizeStudent(raw = {}) {
   };
 }
 
-function normalizeStudentPage(data, { page = 1, size = 10 } = {}) {
-  const items = (data?.items || []).map(normalizeStudent);
-  const total = Number(data?.total) || items.length;
-  const pages =
-    Number(data?.pages) || Math.max(1, Math.ceil(total / Math.max(1, size)));
-
+function normalizeStudentPage(items, size) {
+  const normalizedItems = items.map(normalizeStudent);
   return {
-    items,
-    page: Number(data?.page) || page,
-    size: Number(data?.size) || size,
-    total,
-    pages,
-    total_pages: pages,
-    has_next: Boolean(data?.has_next ?? data?.hasNext ?? page < pages),
-    has_prev: Boolean(data?.has_prev ?? data?.hasPrev ?? page > 1),
+    items: normalizedItems,
+    page: 1,
+    size,
+    total: normalizedItems.length,
+    pages: 1,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
   };
 }
 
@@ -100,24 +96,35 @@ function normalizeUser(raw = {}) {
 
 export async function getCourseStudents(
   courseId,
-  { page = 1, size = 10 } = {},
+  { size = 100 } = {},
   options = {},
 ) {
-  const query = new URLSearchParams({ page: String(page), size: String(size) });
-  const response = await apiFetch(
-    `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
-    {
-      ...options,
-      method: "GET",
-    },
-  );
+  const items = [];
+  let cursor = null;
 
-  if (!response.ok) {
-    throw await parseError(response, "Не удалось загрузить студентов курса.");
+  while (true) {
+    const query = new URLSearchParams({ size: String(size) });
+    if (cursor) query.set("cursor", cursor);
+    const response = await apiFetch(
+      `/members/${encodeURIComponent(courseId)}?${query.toString()}`,
+      {
+        ...options,
+        method: "GET",
+      },
+    );
+
+    if (!response.ok) {
+      throw await parseError(response, "Не удалось загрузить студентов курса.");
+    }
+
+    const data = await response.json();
+    items.push(...(data?.items || []));
+    const meta = data?.meta || {};
+    if (!meta.has_next || !meta.next_cursor) break;
+    cursor = meta.next_cursor;
   }
 
-  const data = await response.json();
-  return normalizeStudentPage(data, { page, size });
+  return normalizeStudentPage(items, size);
 }
 
 export async function getUserById(userId, options = {}) {

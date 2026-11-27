@@ -2,8 +2,9 @@ from typing import Protocol
 
 from uuid import UUID
 
+from ddf.domain.models import Entity
+
 from src.shared.application.repos import Repository
-from src.shared.domain.entities import Entity
 
 
 class BasicInfoProtocol[EntityT: Entity, BasicInfoT](Repository[EntityT], Protocol):

@@ -2,6 +2,8 @@ from typing import Annotated
 
 from uuid import UUID
 
+from ddf.application.events import EventDispatcher as Transaction
+from ddf.domain.vo import Email
 from fastapi import Depends
 
 from src.feedback.application.dtos import FeedbackResponse
@@ -9,9 +11,7 @@ from src.feedback.application.repos import FeedbackRepository
 from src.feedback.domain.entities import Feedback
 from src.feedback.infra.database.repos.feedback import SqlFeedbackRepository
 from src.iam.dependencies import CurrentIdentity
-from src.shared.application.transaction import Transaction
 from src.shared.dependencies.database import DBSession
-from ddf.domain.vo import Email
 
 
 def get_feedback_repo(session: DBSession) -> SqlFeedbackRepository:

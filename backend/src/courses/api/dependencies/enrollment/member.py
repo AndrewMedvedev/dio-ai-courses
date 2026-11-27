@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from ddf.application.exceptions import AlreadyExistsError, NotFoundError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.courses.application.catalog.repos import CourseRepository
@@ -8,7 +9,7 @@ from src.courses.application.enrollment.repos import MemberRepository
 from src.courses.domain.catalog.enums import CourseStatus
 from src.courses.domain.enrollment.entities import Member
 from src.courses.domain.enrollment.vo import MemberRole
-from src.shared.domain.exceptions import AlreadyExistsError, ForbiddenError, NotFoundError
+from src.shared.domain.exceptions import ForbiddenError
 
 
 def map_to_response(member: Member) -> MemberResponse:

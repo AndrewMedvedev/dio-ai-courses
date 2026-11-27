@@ -1,6 +1,5 @@
+from ddf.domain.exceptions import DomainError
 from fastapi import status
-
-from ...shared.domain.exceptions import DomainError
 
 
 class NotificationSendingFailedError(DomainError):

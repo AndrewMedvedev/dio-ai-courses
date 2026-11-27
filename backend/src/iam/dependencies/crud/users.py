@@ -1,5 +1,8 @@
 from typing import Annotated, Any
 
+from ddf.application.crud import Crud
+from ddf.application.utils import get_or_raise_not_found as get_or_raise_404
+from ddf.domain.utils import apply_changes
 from fastapi import Depends
 
 from src.iam.application.builders import build_user_response
@@ -13,11 +16,8 @@ from src.iam.dependencies.identity import CurrentIdentity
 from src.iam.dependencies.repos import UserRepositoryDep
 from src.iam.domain.entities import User
 from src.iam.domain.vo import FullName, Username
-from src.shared.application.crud import Crud
 from src.shared.application.dtos import Page
-from src.shared.application.repos import get_or_raise_404
 from src.shared.dependencies import PaginationDep, TransactionDep
-from src.shared.domain.helpers import apply_changes
 
 UserCrud = Crud[
     User,

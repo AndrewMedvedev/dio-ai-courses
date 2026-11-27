@@ -8,7 +8,7 @@ from src.shared.infra.database import SqlAlchemyRepository
 
 class SqlRoleRepository(SqlAlchemyRepository[Role, RoleOrm]):
     model = RoleOrm
-    model_mapper = RoleMapper  # pyright: ignore[reportAssignmentType]
+    data_mapper = RoleMapper  # pyright: ignore[reportAssignmentType]
 
     async def get_by_code(self, code: str) -> Role | None:
         stmt = select(self.model).where(
@@ -16,7 +16,7 @@ class SqlRoleRepository(SqlAlchemyRepository[Role, RoleOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return self.model_mapper.from_model(model) if model else None
+        return self.data_mapper.from_model(model) if model else None
 
     async def get_by_name(self, name: str) -> Role | None:
         stmt = select(self.model).where(
@@ -24,4 +24,4 @@ class SqlRoleRepository(SqlAlchemyRepository[Role, RoleOrm]):
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
-        return self.model_mapper.from_model(model) if model else None
+        return self.data_mapper.from_model(model) if model else None

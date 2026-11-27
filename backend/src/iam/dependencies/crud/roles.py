@@ -1,11 +1,12 @@
 from typing import Annotated, Any
 
+from ddf.application.crud import Crud
 from fastapi import Depends
 
 from src.iam.application.dtos import CreateRoleDTO, Identity, RoleResponse, UpdateRoleDTO
 from src.iam.dependencies.repos import RoleRepositoryDep
 from src.iam.domain.entities import Role
-from src.shared.application.crud import Crud
+from src.iam.domain.exceptions import UnauthorizedError
 from src.shared.application.dtos import Page
 from src.shared.dependencies import PaginationDep, TransactionDep
 
@@ -21,7 +22,9 @@ RoleCrud = Crud[
 ]
 
 
-async def create_handler(dto: CreateRoleDTO, identity: Identity) -> Role:
+async def create_handler(dto: CreateRoleDTO, identity: Identity | None = None) -> Role:
+    if identity is None:
+        raise UnauthorizedError("Identity is required to create a role.")
     return Role(
         name=dto.name,
         code=dto.code,
